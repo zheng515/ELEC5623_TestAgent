@@ -1,0 +1,70 @@
+import type {
+  Project,
+  ProjectCreate,
+  SystemInfo,
+  VerificationReport,
+  VerificationRun,
+} from "./types";
+
+const base = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(
+  /\/$/,
+  "",
+);
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      ...options,
+      headers: {
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...options.headers,
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch {
+    throw new Error("无法连接后端服务。请确认 FastAPI 已启动，然后重新连接。");
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    const detail = payload?.detail;
+    throw new Error(
+      typeof detail === "string"
+        ? detail
+        : response.status === 422
+          ? "输入格式不正确，请检查项目名称和需求内容。"
+          : `请求失败（${response.status}），请确认后端服务状态。`,
+    );
+  }
+  return response.json() as Promise<T>;
+}
+export const api = {
+  projects: () => request<Project[]>("/projects"),
+  createProject: (payload: ProjectCreate) =>
+    request<Project>("/projects", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  runs: (id: string) =>
+    request<VerificationRun[]>(`/projects/${encodeURIComponent(id)}/runs`),
+  createRun: (id: string) =>
+    request<VerificationRun>(`/projects/${encodeURIComponent(id)}/runs`, {
+      method: "POST",
+    }),
+  system: () => request<SystemInfo>("/system"),
+  report: (id: string) =>
+    request<VerificationReport>(`/runs/${encodeURIComponent(id)}/report`),
+};
+export async function downloadReport(id: string) {
+  const report = await api.report(id);
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `reqtest-report-${id}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
