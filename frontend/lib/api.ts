@@ -23,7 +23,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       signal: AbortSignal.timeout(15000),
     });
   } catch {
-    throw new Error("无法连接后端服务。请确认 FastAPI 已启动，然后重新连接。");
+    throw new Error("Unable to connect to the backend service. Confirm FastAPI is running, then reconnect.");
   }
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
@@ -32,8 +32,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       typeof detail === "string"
         ? detail
         : response.status === 422
-          ? "输入格式不正确，请检查项目名称和需求内容。"
-          : `请求失败（${response.status}），请确认后端服务状态。`,
+          ? "The input format is invalid. Check the project name and requirement content."
+          : `Request failed (${response.status}). Check the backend service status.`,
     );
   }
   return response.json() as Promise<T>;

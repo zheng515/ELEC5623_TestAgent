@@ -13,10 +13,10 @@ import type {
 
 type View = "overview" | "requirements" | "runs" | "integrations";
 const views: { id: View; label: string; symbol: string }[] = [
-  { id: "overview", label: "验证工作台", symbol: "◫" },
-  { id: "requirements", label: "需求与行为", symbol: "≡" },
-  { id: "runs", label: "任务与报告", symbol: "↗" },
-  { id: "integrations", label: "模块接入", symbol: "⊞" },
+  { id: "overview", label: "Verification Workbench", symbol: "◫" },
+  { id: "requirements", label: "Requirements & Behavior", symbol: "≡" },
+  { id: "runs", label: "Runs & Reports", symbol: "↗" },
+  { id: "integrations", label: "Integrations", symbol: "⊞" },
 ];
 const blank: ProjectCreate = {
   name: "",
@@ -26,15 +26,15 @@ const blank: ProjectCreate = {
 };
 const example: ProjectCreate = {
   name: "Shipping service",
-  description: "验证运费规则、金额边界和非法输入。",
+  description: "Verify shipping rules, amount boundaries, and invalid input.",
   repository_ref: "",
   requirements_text:
-    "R1：订单金额以整数分表示，金额不少于 10,000 分时免运费，否则收取 1,000 分。\nR2：负数金额必须抛出 ValueError。",
+    "R1: Order amount is represented as integer cents. Shipping is free when the amount is at least 10,000 cents; otherwise charge 1,000 cents.\nR2: Negative amounts must raise ValueError.",
 };
 const date = (value: string) =>
-  new Date(value).toLocaleString("zh-CN", { hour12: false });
+  new Date(value).toLocaleString("en-US", { hour12: false });
 const message = (error: unknown) =>
-  error instanceof Error ? error.message : "操作失败，请重试。";
+  error instanceof Error ? error.message : "Operation failed. Please try again.";
 
 export default function Workbench() {
   const [view, setView] = useState<View>("overview");
@@ -120,7 +120,7 @@ export default function Workbench() {
       setShowForm(false);
       setForm(blank);
       setView("overview");
-      setNotice("项目与需求已保存。可以创建联调任务，查看状态与报告链路。");
+      setNotice("Project and requirements saved. You can create an integration run and review the status and report trail.");
     } catch (err) {
       setError(message(err));
     } finally {
@@ -144,7 +144,7 @@ export default function Workbench() {
       }));
       setActiveRunId(run.id);
       setView("runs");
-      setNotice("联调任务已记录。真实验证模块尚未接入，任务已暂停。");
+      setNotice("Integration run recorded. The real verification modules are not connected yet, so the run is paused.");
     } catch (err) {
       setError(message(err));
     } finally {
@@ -177,14 +177,14 @@ export default function Workbench() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link className="brand" href="/" aria-label="ReqTest 首页">
+        <Link className="brand" href="/" aria-label="ReqTest home">
           <span className="brand-mark">rt</span>
           <span>
             reqtest<span className="brand-dot">.</span>
           </span>
         </Link>
         <div className="workspace-label">GROUP 04 / WORKSPACE</div>
-        <nav aria-label="工作区导航">
+        <nav aria-label="Workspace navigation">
           {views.map((item) => (
             <button
               key={item.id}
@@ -200,9 +200,9 @@ export default function Workbench() {
         <div className="sidebar-bottom">
           <span className="small-label">REQUIREMENT → EVIDENCE</span>
           <p>
-            每一个验证结论，
+            Every verification result
             <br />
-            都有据可循。
+            stays traceable.
           </p>
           <span className="version">ELEC5623 · v0.1.0</span>
         </div>
@@ -210,14 +210,14 @@ export default function Workbench() {
       <div className="main-shell">
         <header className="topbar">
           <div>
-            <span className="muted">工作区</span>
+            <span className="muted">Workspace</span>
             <span className="breadcrumb">/</span>
             {views.find((item) => item.id === view)?.label}
           </div>
           <div className="topbar-right">
             <span className={`connection ${system ? "online" : ""}`}>
               <i />
-              {loading ? "连接中" : system ? "API 已连接" : "API 未连接"}
+              {loading ? "Connecting" : system ? "API connected" : "API offline"}
             </span>
             <span className="avatar">G4</span>
           </div>
@@ -228,17 +228,17 @@ export default function Workbench() {
               <div className="eyebrow">REQUIREMENT-AWARE VERIFICATION</div>
               <h1>
                 {view === "overview"
-                  ? "从需求，走向验证。"
+                  ? "From requirements to verification."
                   : views.find((item) => item.id === view)?.label}
               </h1>
               <p className="subtitle">
                 {view === "overview"
-                  ? "连接需求、代码与测试，让验证缺口清晰可见。"
+                  ? "Connect requirements, code, and tests so verification gaps are visible."
                   : view === "requirements"
-                    ? "保留需求来源，建立后续行为分析的起点。"
+                    ? "Preserve the source requirements and prepare for behavior analysis."
                     : view === "runs"
-                      ? "追踪每一次决策、执行证据与尚待解决的问题。"
-                      : "查看框架能力，以及下一步需要接入的验证模块。"}
+                      ? "Track each decision, evidence item, and unresolved issue."
+                      : "Review framework capabilities and the verification modules still to connect."}
               </p>
             </div>
             <button
@@ -249,7 +249,7 @@ export default function Workbench() {
               }}
               disabled={loading || !system || busy}
             >
-              ＋ 新建项目
+              + New Project
             </button>
           </div>
           {error && (
@@ -260,7 +260,7 @@ export default function Workbench() {
                 onClick={reconnect}
                 disabled={loading || busy}
               >
-                重新连接
+                Reconnect
               </button>
             </div>
           )}
@@ -277,24 +277,24 @@ export default function Workbench() {
               <div className="section-heading">
                 <div>
                   <div className="eyebrow">NEW PROJECT</div>
-                  <h2 id="new-project-heading">创建验证项目</h2>
+                  <h2 id="new-project-heading">Create Verification Project</h2>
                 </div>
                 <button
                   className="text-button"
                   disabled={busy}
                   onClick={() => setShowForm(false)}
                 >
-                  取消
+                  Cancel
                 </button>
               </div>
               <form onSubmit={createProject}>
                 <div className="form-grid">
                   <label>
-                    项目名称 *
+                    Project Name *
                     <input
                       required
                       maxLength={100}
-                      placeholder="例如：Shipping service"
+                      placeholder="Example: Shipping service"
                       value={form.name}
                       onChange={(e) =>
                         setForm({ ...form, name: e.target.value })
@@ -302,10 +302,10 @@ export default function Workbench() {
                     />
                   </label>
                   <label>
-                    仓库引用
+                    Repository Reference
                     <input
                       maxLength={500}
-                      placeholder="仓库 URL 或路径（仅保存引用）"
+                      placeholder="Repository URL or path (stored as a reference only)"
                       value={form.repository_ref}
                       onChange={(e) =>
                         setForm({ ...form, repository_ref: e.target.value })
@@ -314,10 +314,10 @@ export default function Workbench() {
                   </label>
                 </div>
                 <label>
-                  项目描述
+                  Project Description
                   <input
                     maxLength={2000}
-                    placeholder="这个项目需要验证什么？"
+                    placeholder="What needs to be verified in this project?"
                     value={form.description}
                     onChange={(e) =>
                       setForm({ ...form, description: e.target.value })
@@ -325,12 +325,12 @@ export default function Workbench() {
                   />
                 </label>
                 <label>
-                  需求原文 *
+                  Source Requirements *
                   <textarea
                     required
                     rows={5}
                     maxLength={50000}
-                    placeholder="粘贴自然语言需求，保留规则、条件、边界和异常约定。"
+                    placeholder="Paste natural-language requirements, including rules, conditions, boundaries, and exception contracts."
                     value={form.requirements_text}
                     onChange={(e) =>
                       setForm({ ...form, requirements_text: e.target.value })
@@ -344,7 +344,7 @@ export default function Workbench() {
                     disabled={busy}
                     onClick={() => setForm(example)}
                   >
-                    填入运费需求示例
+                    Fill Shipping Example
                   </button>
                   <button
                     className="button primary"
@@ -355,21 +355,21 @@ export default function Workbench() {
                       !form.requirements_text.trim()
                     }
                   >
-                    {busy ? "保存中…" : "保存项目"}
+                    {busy ? "Saving..." : "Save Project"}
                   </button>
                 </div>
               </form>
             </section>
           )}
           <div className="mode-banner">
-            <span className="badge amber">框架阶段</span>
+            <span className="badge amber">Scaffold Stage</span>
             <p>
-              项目与任务数据会真实保存。需求分析、测试执行及变异分析尚未接入，所有验证指标保持未评估。
+              Project and run data are saved for real. Requirement analysis, test execution, and mutation analysis are not connected yet, so all verification metrics remain unevaluated.
             </p>
           </div>
           {view !== "integrations" && (
             <div className="project-toolbar">
-              <label htmlFor="project-select">当前项目</label>
+              <label htmlFor="project-select">Current Project</label>
               <select
                 id="project-select"
                 value={selectedId}
@@ -377,7 +377,7 @@ export default function Workbench() {
                 onChange={(e) => selectProject(e.target.value)}
               >
                 <option value="" disabled>
-                  {loading ? "正在加载…" : "选择项目"}
+                  {loading ? "Loading..." : "Select a project"}
                 </option>
                 {projects.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -385,21 +385,21 @@ export default function Workbench() {
                   </option>
                 ))}
               </select>
-              <span className="muted">{projects.length} 个项目</span>
+              <span className="muted">{projects.length} projects</span>
             </div>
           )}
           {loading ? (
             <section className="panel empty-state" role="status">
               <span className="spinner" />
-              <h2>正在连接工作区</h2>
-              <p>加载项目与模块状态…</p>
+              <h2>Connecting to Workspace</h2>
+              <p>Loading projects and module status...</p>
             </section>
           ) : view === "integrations" ? (
             <section className="panel">
               <div className="section-heading">
                 <div>
                   <div className="eyebrow">SYSTEM CAPABILITIES</div>
-                  <h2>模块接入状态</h2>
+                  <h2>Integration Status</h2>
                 </div>
                 <span className="badge neutral">
                   v{system?.version ?? "0.1.0"}
@@ -420,11 +420,11 @@ export default function Workbench() {
                   <span
                     className={`badge ${item.status === "ready" ? "teal" : "neutral"}`}
                   >
-                    {item.status === "ready" ? "已就绪" : "待接入"}
+                    {item.status === "ready" ? "Ready" : "Pending"}
                   </span>
                 </div>
               ))}
-              {!system && <p>连接后端后可查看模块状态。</p>}
+              {!system && <p>Connect to the backend to view module status.</p>}
             </section>
           ) : !project ? (
             <section className="panel empty-state">
@@ -432,37 +432,37 @@ export default function Workbench() {
                 ↗
               </div>
               <div className="eyebrow">YOUR FIRST VERIFICATION PROJECT</div>
-              <h2>给验证一个清晰的起点</h2>
+              <h2>Give verification a clear starting point</h2>
               <p>
-                创建项目并添加需求，开始建立
+                Create a project and add requirements to begin linking
                 <br />
-                Requirement → Behavior → Test → Evidence 的关联。
+                Requirement → Behavior → Test → Evidence.
               </p>
               <button
                 className="button primary"
                 disabled={!system || busy}
                 onClick={() => setShowForm(true)}
               >
-                创建第一个项目
+                Create First Project
               </button>
               <span className="empty-note">
-                Python / pytest · 需求驱动 · 证据可追溯
+                Python / pytest · Requirement-driven · Traceable evidence
               </span>
             </section>
           ) : view === "overview" ? (
             <>
               <div className="metric-grid">
-                <Metric label="已拆解行为" value="—" detail="等待需求分析" />
+                <Metric label="Behaviors Identified" value="—" detail="Waiting for requirement analysis" />
                 <Metric
-                  label="语义需求覆盖率"
+                  label="Semantic Requirement Coverage"
                   value="—"
-                  detail="尚无有效执行证据"
+                  detail="No valid execution evidence yet"
                 />
-                <Metric label="变异分数" value="—" detail="等待变异分析" />
+                <Metric label="Mutation Score" value="—" detail="Waiting for mutation analysis" />
                 <Metric
-                  label="已记录任务"
+                  label="Recorded Runs"
                   value={runsLoading ? "…" : String(runs.length)}
-                  detail="框架联调记录"
+                  detail="Scaffold integration records"
                 />
               </div>
               <div className="content-grid">
@@ -473,13 +473,13 @@ export default function Workbench() {
                   </div>
                   <h2>{project.name}</h2>
                   <p className="project-description">
-                    {project.description || "暂未添加项目描述。"}
+                    {project.description || "No project description added yet."}
                   </p>
                   <div className="repository">
-                    <span className="small-label">仓库引用</span>
-                    <code>{project.repository_ref || "尚未提供"}</code>
+                    <span className="small-label">Repository Reference</span>
+                    <code>{project.repository_ref || "Not provided"}</code>
                     <span className="muted">
-                      当前仅保存引用，尚未读取仓库。
+                      Only the reference is stored; the repository is not read yet.
                     </span>
                   </div>
                   <div className="card-footer">
@@ -487,21 +487,21 @@ export default function Workbench() {
                       className="text-button"
                       onClick={() => setView("requirements")}
                     >
-                      查看需求原文 ↗
+                      View Source Requirements ↗
                     </button>
                     <span className="muted">{date(project.created_at)}</span>
                   </div>
                 </section>
                 <section className="panel workflow-card">
                   <div className="eyebrow">CLOSED-LOOP WORKFLOW</div>
-                  <h2>验证闭环</h2>
+                  <h2>Verification Loop</h2>
                   <div className="workflow">
                     {["Understand", "Measure", "Improve", "Re-measure"].map(
                       (step, i) => (
                         <div className="workflow-step" key={step}>
                           <span>{String(i + 1).padStart(2, "0")}</span>
                           <strong>{step}</strong>
-                          <small>待接入</small>
+                          <small>Pending</small>
                         </div>
                       ),
                     )}
@@ -511,10 +511,10 @@ export default function Workbench() {
                     onClick={createRun}
                     disabled={busy || runsLoading || !system}
                   >
-                    {busy ? "创建中…" : "创建联调任务 →"}
+                    {busy ? "Creating..." : "Create Integration Run →"}
                   </button>
                   <p className="helper">
-                    记录输入并生成待接入报告，不执行代码。
+                    Records inputs and generates a pending report without executing code.
                   </p>
                 </section>
               </div>
@@ -522,17 +522,17 @@ export default function Workbench() {
                 <div className="section-heading">
                   <div>
                     <div className="eyebrow">LATEST ACTIVITY</div>
-                    <h2>最近任务</h2>
+                    <h2>Latest Runs</h2>
                   </div>
                   <button
                     className="text-button"
                     onClick={() => setView("runs")}
                   >
-                    查看全部 ↗
+                    View All ↗
                   </button>
                 </div>
                 {runsLoading ? (
-                  <p role="status">正在加载任务…</p>
+                  <p role="status">Loading runs...</p>
                 ) : latest ? (
                   <button
                     className="run-summary"
@@ -543,14 +543,14 @@ export default function Workbench() {
                   >
                     <span className="run-mark">↗</span>
                     <div>
-                      <strong>联调任务 · {latest.id.slice(0, 8)}</strong>
+                      <strong>Integration Run · {latest.id.slice(0, 8)}</strong>
                       <small>{date(latest.created_at)}</small>
                     </div>
-                    <span className="badge amber">等待模块接入</span>
+                    <span className="badge amber">Waiting for Modules</span>
                   </button>
                 ) : (
                   <div className="inline-empty">
-                    还没有任务记录。创建联调任务后，状态与报告会显示在这里。
+                    No runs recorded yet. Create an integration run to show status and reports here.
                   </div>
                 )}
               </section>
@@ -561,10 +561,10 @@ export default function Workbench() {
                 <div className="section-heading">
                   <div>
                     <div className="eyebrow">SOURCE OF TRUTH</div>
-                    <h2>需求原文</h2>
+                    <h2>Source Requirements</h2>
                   </div>
                   <span className="badge neutral">
-                    {project.requirements_text.length} 字符
+                    {project.requirements_text.length} characters
                   </span>
                 </div>
                 <pre className="requirements-text">
@@ -575,24 +575,24 @@ export default function Workbench() {
                 <div className="section-heading">
                   <div>
                     <div className="eyebrow">BEHAVIOR TRACEABILITY</div>
-                    <h2>需求行为映射</h2>
+                    <h2>Requirement Behavior Mapping</h2>
                   </div>
                 </div>
                 <div className="table-scroll">
                   <table>
                     <thead>
                       <tr>
-                        <th>需求行为</th>
-                        <th>代码引用</th>
-                        <th>对应测试</th>
-                        <th>执行证据</th>
-                        <th>验证状态</th>
+                        <th>Requirement Behavior</th>
+                        <th>Code Reference</th>
+                        <th>Linked Tests</th>
+                        <th>Execution Evidence</th>
+                        <th>Verification Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
                         <td colSpan={5} className="table-empty">
-                          需求分析模块尚未接入，暂无行为拆解与映射结果。
+                          The requirement analysis module is not connected yet, so no behavior breakdown or mapping is available.
                         </td>
                       </tr>
                     </tbody>
@@ -611,27 +611,27 @@ export default function Workbench() {
               <div className="section-heading">
                 <div>
                   <div className="eyebrow">RUN HISTORY & EVIDENCE</div>
-                  <h2>任务与验证报告</h2>
+                  <h2>Runs & Verification Reports</h2>
                 </div>
                 <button
                   className="button secondary"
                   onClick={createRun}
                   disabled={busy || runsLoading || !system}
                 >
-                  {busy ? "处理中…" : "＋ 创建联调任务"}
+                  {busy ? "Processing..." : "+ Create Integration Run"}
                 </button>
               </div>
               {runsLoading ? (
                 <p role="status" className="inline-empty">
-                  正在加载任务…
+                  Loading runs...
                 </p>
               ) : !runs.length ? (
                 <div className="inline-empty">
-                  暂无任务。创建联调任务以检查前后端数据链路。
+                  No runs yet. Create an integration run to check the frontend-backend data flow.
                 </div>
               ) : (
                 <div className="runs-layout">
-                  <div className="run-list" aria-label="任务列表">
+                  <div className="run-list" aria-label="Run list">
                     {runs.map((run) => (
                       <button
                         className={`run-list-item ${activeRun?.id === run.id ? "selected" : ""}`}
@@ -639,44 +639,44 @@ export default function Workbench() {
                         onClick={() => setActiveRunId(run.id)}
                         aria-pressed={activeRun?.id === run.id}
                       >
-                        <strong>任务 {run.id.slice(0, 8)}</strong>
+                        <strong>Run {run.id.slice(0, 8)}</strong>
                         <small>{date(run.created_at)}</small>
-                        <span className="badge amber">等待模块接入</span>
+                        <span className="badge amber">Waiting for Modules</span>
                       </button>
                     ))}
                   </div>
                   {activeRun && (
                     <article className="report">
                       <div className="section-heading">
-                        <h3>联调报告</h3>
+                        <h3>Integration Report</h3>
                         <button
                           className="text-button"
                           disabled={busy}
                           onClick={() => exportReport(activeRun)}
                         >
-                          下载 JSON ↓
+                          Download JSON ↓
                         </button>
                       </div>
                       <p>{activeRun.report.summary}</p>
                       <dl className="report-facts">
                         <div>
-                          <dt>运行模式</dt>
+                          <dt>Run Mode</dt>
                           <dd>Scaffold</dd>
                         </div>
                         <div>
-                          <dt>实际执行测试</dt>
+                          <dt>Executed Tests</dt>
                           <dd>{activeRun.report.executed_tests}</dd>
                         </div>
                         <div>
-                          <dt>语义覆盖率</dt>
+                          <dt>Semantic Coverage</dt>
                           <dd>
                             {activeRun.report.semantic_coverage === null
-                              ? "未评估"
+                              ? "Not evaluated"
                               : `${activeRun.report.semantic_coverage}%`}
                           </dd>
                         </div>
                       </dl>
-                      <h3>事件记录</h3>
+                      <h3>Event Log</h3>
                       <ol className="event-list">
                         {activeRun.events.map((event) => (
                           <li key={event.id}>
@@ -687,19 +687,19 @@ export default function Workbench() {
                           </li>
                         ))}
                       </ol>
-                      <h3>待接入能力</h3>
+                      <h3>Pending Capabilities</h3>
                       <ul className="issue-list">
                         {activeRun.report.unresolved_issues.map((issue) => (
                           <li key={issue}>{issue}</li>
                         ))}
                       </ul>
                       <details>
-                        <summary>查看输入指纹</summary>
+                        <summary>View Input Fingerprint</summary>
                         <code className="fingerprint">
                           {activeRun.input_sha256}
                         </code>
                         <p className="helper">
-                          SHA-256 绑定保存的项目输入，不代表仓库文件快照。
+                          SHA-256 binds the saved project input; it is not a repository file snapshot.
                         </p>
                       </details>
                     </article>
