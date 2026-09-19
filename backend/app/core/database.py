@@ -76,6 +76,13 @@ class Store:
             ).fetchall()
         return [VerificationRun.model_validate_json(row[0]) for row in rows]
 
+    def recent_runs(self, limit: int = 20) -> list[VerificationRun]:
+        with self.connection() as connection:
+            rows = connection.execute(
+                "SELECT payload FROM runs ORDER BY created_at DESC, id DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [VerificationRun.model_validate_json(row[0]) for row in rows]
+
     def get_run(self, run_id: str) -> VerificationRun | None:
         with self.connection() as connection:
             row = connection.execute("SELECT payload FROM runs WHERE id = ?", (run_id,)).fetchone()

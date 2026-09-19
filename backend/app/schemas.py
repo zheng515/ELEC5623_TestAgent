@@ -19,6 +19,11 @@ class ProjectCreate(BaseModel):
     description: str = Field(default="", max_length=2000)
     repository_ref: str = Field(default="", max_length=500)
     requirements_text: str = Field(min_length=1, max_length=50000)
+    goal: str = Field(
+        default="Identify verification gaps and improve requirement-based tests.",
+        min_length=1,
+        max_length=2000,
+    )
 
 
 class Project(ProjectCreate):

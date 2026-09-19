@@ -1,736 +1,288 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
-import Link from "next/link";
-import { api, downloadReport } from "@/lib/api";
-import type {
-  Project,
-  ProjectCreate,
-  SystemInfo,
-  VerificationRun,
-} from "@/lib/types";
+import { useCallback, useState } from "react";
+import { Home } from "../components/home";
+import { NewTask } from "../components/new-task";
+import { Evidence, Report, Workspace } from "../components/project-workspace";
+import { Badge, Empty, ErrorNotice, Loading } from "../components/ui";
+import { useResource } from "../hooks/use-resource";
+import { api, downloadReport } from "../lib/api";
+import { navigate, urlFor, useRoute } from "../lib/navigation";
+import type { ProjectCreate } from "../lib/types";
 
-type View = "overview" | "requirements" | "runs" | "integrations";
-const views: { id: View; label: string; symbol: string }[] = [
-  { id: "overview", label: "Verification Workbench", symbol: "◫" },
-  { id: "requirements", label: "Requirements & Behavior", symbol: "≡" },
-  { id: "runs", label: "Runs & Reports", symbol: "↗" },
-  { id: "integrations", label: "Integrations", symbol: "⊞" },
-];
-const blank: ProjectCreate = {
-  name: "",
-  description: "",
-  repository_ref: "",
-  requirements_text: "",
-};
-const example: ProjectCreate = {
-  name: "Shipping service",
-  description: "Verify shipping rules, amount boundaries, and invalid input.",
-  repository_ref: "",
-  requirements_text:
-    "R1: Order amount is represented as integer cents. Shipping is free when the amount is at least 10,000 cents; otherwise charge 1,000 cents.\nR2: Negative amounts must raise ValueError.",
-};
-const date = (value: string) =>
-  new Date(value).toLocaleString("en-US", { hour12: false });
-const message = (error: unknown) =>
-  error instanceof Error ? error.message : "Operation failed. Please try again.";
-
-export default function Workbench() {
-  const [view, setView] = useState<View>("overview");
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [runData, setRunData] = useState<{
-    projectId: string;
-    revision: number;
-    items: VerificationRun[];
-  }>({ projectId: "", revision: 0, items: [] });
-  const [system, setSystem] = useState<SystemInfo | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function App() {
+  const route = useRoute();
+  const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<ProjectCreate>(blank);
-  const [activeRunId, setActiveRunId] = useState("");
-  const [reload, setReload] = useState(0);
-  const runsLoading =
-    Boolean(selectedId) &&
-    (runData.projectId !== selectedId || runData.revision !== reload);
-  const runs = runsLoading ? [] : runData.items;
-  const project = projects.find((item) => item.id === selectedId);
-  const latest = runs[0];
-  const activeRun = runs.find((run) => run.id === activeRunId) ?? latest;
+  const [actionError, setActionError] = useState("");
+  const load = useCallback(async () => {
+    const [projects, system, recentRuns] = await Promise.all([
+      api.projects(),
+      api.system(),
+      api.recentRuns(),
+    ]);
+    return { projects, system, recentRuns };
+  }, []);
+  const resource = useResource(`index:${revision}`, load);
+  const loadRuns = useCallback(
+    () => (route.projectId ? api.runs(route.projectId) : Promise.resolve([])),
+    [route.projectId],
+  );
+  const runResource = useResource(
+    `runs:${route.projectId}:${revision}`,
+    loadRuns,
+  );
+  const data = resource.data;
+  const project = data?.projects.find((p) => p.id === route.projectId);
+  const runs = runResource.data ?? [];
+  const run = route.runId ? runs.find((r) => r.id === route.runId) : runs[0];
+  const projectView = ["workspace", "evidence", "reports"].includes(route.view);
+  const refresh = () => {
+    setActionError("");
+    setRevision((n) => n + 1);
+  };
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([api.projects(), api.system()])
-      .then(([items, info]) => {
-        if (cancelled) return;
-        setProjects(items);
-        setSystem(info);
-        setSelectedId((id) =>
-          items.some((item) => item.id === id) ? id : (items[0]?.id ?? ""),
-        );
-        setError("");
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setSystem(null);
-          setError(message(err));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reload]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!selectedId) return;
-    api
-      .runs(selectedId)
-      .then((items) => {
-        if (!cancelled)
-          setRunData({ projectId: selectedId, revision: reload, items });
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(message(err));
-          setRunData({ projectId: selectedId, revision: reload, items: [] });
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedId, reload]);
-
-  async function createProject(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submit(form: ProjectCreate) {
     setBusy(true);
-    setError("");
-    setNotice("");
+    setActionError("");
     try {
       const created = await api.createProject(form);
-      setProjects((items) => [created, ...items]);
-      selectProject(created.id);
-      setShowForm(false);
-      setForm(blank);
-      setView("overview");
-      setNotice("Project and requirements saved. You can create an integration run and review the status and report trail.");
-    } catch (err) {
-      setError(message(err));
+      let runId: string | undefined;
+      try {
+        runId = (await api.createRun(created.id)).id;
+      } catch (e) {
+        setActionError(
+          `Project saved, but the setup run could not be created. Open the workspace and retry. ${e instanceof Error ? e.message : ""}`,
+        );
+      }
+      setRevision((n) => n + 1);
+      navigate("workspace", created.id, runId);
     } finally {
       setBusy(false);
     }
   }
-  async function createRun() {
+  async function start() {
     if (!project) return;
     setBusy(true);
-    setError("");
-    setNotice("");
+    setActionError("");
     try {
-      const run = await api.createRun(project.id);
-      setRunData((current) => ({
-        projectId: project.id,
-        revision: reload,
-        items: [
-          run,
-          ...(current.projectId === project.id ? current.items : []),
-        ],
-      }));
-      setActiveRunId(run.id);
-      setView("runs");
-      setNotice("Integration run recorded. The real verification modules are not connected yet, so the run is paused.");
-    } catch (err) {
-      setError(message(err));
+      const created = await api.createRun(project.id);
+      setRevision((n) => n + 1);
+      navigate("workspace", project.id, created.id);
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : "Unable to create a run.",
+      );
     } finally {
       setBusy(false);
     }
   }
-  async function exportReport(run: VerificationRun) {
+  async function download() {
+    if (!run) return;
     setBusy(true);
-    setError("");
+    setActionError("");
     try {
       await downloadReport(run.id);
-    } catch (err) {
-      setError(message(err));
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : "Unable to download the report.",
+      );
     } finally {
       setBusy(false);
     }
   }
-  function selectProject(id: string) {
-    if (id === selectedId) return;
-    setActiveRunId("");
-    setSelectedId(id);
-    setNotice("");
-  }
-  function reconnect() {
-    setLoading(true);
-    setActiveRunId("");
-    setReload((n) => n + 1);
-  }
-
+  const nav = [
+    { view: "workspace" as const, label: "Agent workspace", icon: "◈" },
+    { view: "evidence" as const, label: "Requirements & evidence", icon: "≡" },
+    { view: "reports" as const, label: "Runs & reports", icon: "↗" },
+  ];
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link className="brand" href="/" aria-label="ReqTest home">
-          <span className="brand-mark">rt</span>
-          <span>
-            reqtest<span className="brand-dot">.</span>
+        <a href={urlFor("home")} className="brand">
+          <span className="brand-mark">
+            r<span>t</span>
           </span>
-        </Link>
-        <div className="workspace-label">GROUP 04 / WORKSPACE</div>
-        <nav aria-label="Workspace navigation">
-          {views.map((item) => (
-            <button
-              key={item.id}
-              className={`nav-item ${view === item.id ? "active" : ""}`}
-              aria-current={view === item.id ? "page" : undefined}
-              onClick={() => setView(item.id)}
-            >
-              <span aria-hidden="true">{item.symbol}</span>
-              {item.label}
-            </button>
-          ))}
+          reqtest<span className="brand-dot">.</span>
+        </a>
+        <span className="sidebar-caption">GROUP 04 / WORKSPACE</span>
+        <nav aria-label="Main navigation">
+          <a
+            className={`nav-item ${route.view === "home" ? "active" : ""}`}
+            href={urlFor("home")}
+            aria-current={route.view === "home" ? "page" : undefined}
+          >
+            <span>◫</span>Overview
+          </a>
+          <a
+            className={`nav-item ${route.view === "new" ? "active" : ""}`}
+            href={urlFor("new")}
+            aria-current={route.view === "new" ? "page" : undefined}
+          >
+            <span>＋</span>New task
+          </a>
+          {projectView && project && (
+            <>
+              <span className="sidebar-caption project-caption">
+                CURRENT PROJECT
+              </span>
+              {nav.map((n) => (
+                <a
+                  key={n.view}
+                  href={urlFor(n.view, project.id, run?.id)}
+                  className={`nav-item ${route.view === n.view ? "active" : ""}`}
+                  aria-current={route.view === n.view ? "page" : undefined}
+                >
+                  <span>{n.icon}</span>
+                  {n.label}
+                </a>
+              ))}
+            </>
+          )}
         </nav>
-        <div className="sidebar-bottom">
-          <span className="small-label">REQUIREMENT → EVIDENCE</span>
+        <div className="sidebar-footer">
+          <span className="eyebrow">BUILT ON EVIDENCE</span>
           <p>
-            Every verification result
+            Every requirement.
             <br />
-            stays traceable.
+            Every decision.
+            <br />A traceable outcome.
           </p>
-          <span className="version">ELEC5623 · v0.1.0</span>
+          <span>ELEC5623 · FOUNDATION</span>
         </div>
       </aside>
       <div className="main-shell">
         <header className="topbar">
-          <div>
-            <span className="muted">Workspace</span>
-            <span className="breadcrumb">/</span>
-            {views.find((item) => item.id === view)?.label}
+          <div className="breadcrumbs">
+            <a href={urlFor("home")}>Workspace</a>
+            <span>/</span>
+            <strong>
+              {projectView
+                ? (project?.name ?? "Project")
+                : route.view === "new"
+                  ? "New task"
+                  : "Overview"}
+            </strong>
           </div>
-          <div className="topbar-right">
-            <span className={`connection ${system ? "online" : ""}`}>
-              <i />
-              {loading ? "Connecting" : system ? "API connected" : "API offline"}
-            </span>
+          <div className="connection">
+            <span className={`status-dot ${data ? "" : "pending"}`} />
+            {resource.loading
+              ? "Connecting"
+              : data
+                ? "API connected"
+                : "API offline"}
             <span className="avatar">G4</span>
           </div>
         </header>
-        <main>
-          <div className="page-heading">
-            <div>
-              <div className="eyebrow">REQUIREMENT-AWARE VERIFICATION</div>
-              <h1>
-                {view === "overview"
-                  ? "From requirements to verification."
-                  : views.find((item) => item.id === view)?.label}
-              </h1>
-              <p className="subtitle">
-                {view === "overview"
-                  ? "Connect requirements, code, and tests so verification gaps are visible."
-                  : view === "requirements"
-                    ? "Preserve the source requirements and prepare for behavior analysis."
-                    : view === "runs"
-                      ? "Track each decision, evidence item, and unresolved issue."
-                      : "Review framework capabilities and the verification modules still to connect."}
-              </p>
-            </div>
-            <button
-              className="button primary"
-              onClick={() => {
-                setShowForm(true);
-                setNotice("");
-              }}
-              disabled={loading || !system || busy}
-            >
-              + New Project
-            </button>
-          </div>
-          {error && (
-            <div className="alert error" role="alert">
-              <span>{error}</span>
-              <button
-                className="text-button"
-                onClick={reconnect}
-                disabled={loading || busy}
-              >
-                Reconnect
-              </button>
-            </div>
-          )}
-          {notice && (
-            <div className="alert success" role="status">
-              {notice}
-            </div>
-          )}
-          {showForm && (
-            <section
-              className="panel create-panel"
-              aria-labelledby="new-project-heading"
-            >
-              <div className="section-heading">
-                <div>
-                  <div className="eyebrow">NEW PROJECT</div>
-                  <h2 id="new-project-heading">Create Verification Project</h2>
-                </div>
-                <button
-                  className="text-button"
-                  disabled={busy}
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-              <form onSubmit={createProject}>
-                <div className="form-grid">
-                  <label>
-                    Project Name *
-                    <input
-                      required
-                      maxLength={100}
-                      placeholder="Example: Shipping service"
-                      value={form.name}
-                      onChange={(e) =>
-                        setForm({ ...form, name: e.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Repository Reference
-                    <input
-                      maxLength={500}
-                      placeholder="Repository URL or path (stored as a reference only)"
-                      value={form.repository_ref}
-                      onChange={(e) =>
-                        setForm({ ...form, repository_ref: e.target.value })
-                      }
-                    />
-                  </label>
-                </div>
-                <label>
-                  Project Description
-                  <input
-                    maxLength={2000}
-                    placeholder="What needs to be verified in this project?"
-                    value={form.description}
-                    onChange={(e) =>
-                      setForm({ ...form, description: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Source Requirements *
-                  <textarea
-                    required
-                    rows={5}
-                    maxLength={50000}
-                    placeholder="Paste natural-language requirements, including rules, conditions, boundaries, and exception contracts."
-                    value={form.requirements_text}
-                    onChange={(e) =>
-                      setForm({ ...form, requirements_text: e.target.value })
-                    }
-                  />
-                </label>
-                <div className="form-footer">
-                  <button
-                    type="button"
-                    className="text-button"
-                    disabled={busy}
-                    onClick={() => setForm(example)}
-                  >
-                    Fill Shipping Example
-                  </button>
-                  <button
-                    className="button primary"
-                    type="submit"
-                    disabled={
-                      busy ||
-                      !form.name.trim() ||
-                      !form.requirements_text.trim()
-                    }
-                  >
-                    {busy ? "Saving..." : "Save Project"}
-                  </button>
-                </div>
-              </form>
-            </section>
-          )}
-          <div className="mode-banner">
-            <span className="badge amber">Scaffold Stage</span>
-            <p>
-              Project and run data are saved for real. Requirement analysis, test execution, and mutation analysis are not connected yet, so all verification metrics remain unevaluated.
-            </p>
-          </div>
-          {view !== "integrations" && (
-            <div className="project-toolbar">
-              <label htmlFor="project-select">Current Project</label>
-              <select
-                id="project-select"
-                value={selectedId}
-                disabled={loading || busy || !projects.length}
-                onChange={(e) => selectProject(e.target.value)}
-              >
-                <option value="" disabled>
-                  {loading ? "Loading..." : "Select a project"}
-                </option>
-                {projects.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-              <span className="muted">{projects.length} projects</span>
-            </div>
-          )}
-          {loading ? (
-            <section className="panel empty-state" role="status">
-              <span className="spinner" />
-              <h2>Connecting to Workspace</h2>
-              <p>Loading projects and module status...</p>
-            </section>
-          ) : view === "integrations" ? (
-            <section className="panel">
-              <div className="section-heading">
-                <div>
-                  <div className="eyebrow">SYSTEM CAPABILITIES</div>
-                  <h2>Integration Status</h2>
-                </div>
-                <span className="badge neutral">
-                  v{system?.version ?? "0.1.0"}
-                </span>
-              </div>
-              {system?.integrations.map((item) => (
-                <div className="integration-row" key={item.key}>
-                  <span
-                    className={`integration-icon ${item.status === "ready" ? "ready" : ""}`}
-                    aria-hidden="true"
-                  >
-                    {item.status === "ready" ? "✓" : "○"}
-                  </span>
-                  <div>
-                    <h3>{item.name}</h3>
-                    <p>{item.description}</p>
-                  </div>
-                  <span
-                    className={`badge ${item.status === "ready" ? "teal" : "neutral"}`}
-                  >
-                    {item.status === "ready" ? "Ready" : "Pending"}
-                  </span>
-                </div>
-              ))}
-              {!system && <p>Connect to the backend to view module status.</p>}
-            </section>
+        <main className="main-content">
+          {actionError && <ErrorNotice message={actionError} />}
+          {resource.error ? (
+            <ErrorNotice message={resource.error} retry={refresh} />
+          ) : resource.loading || !data ? (
+            <Loading />
+          ) : route.view === "home" ? (
+            <Home {...data} />
+          ) : route.view === "new" ? (
+            <NewTask submit={submit} busy={busy} />
           ) : !project ? (
-            <section className="panel empty-state">
-              <div className="empty-symbol" aria-hidden="true">
-                ↗
-              </div>
-              <div className="eyebrow">YOUR FIRST VERIFICATION PROJECT</div>
-              <h2>Give verification a clear starting point</h2>
-              <p>
-                Create a project and add requirements to begin linking
-                <br />
-                Requirement → Behavior → Test → Evidence.
-              </p>
-              <button
-                className="button primary"
-                disabled={!system || busy}
-                onClick={() => setShowForm(true)}
+            <section className="panel">
+              <Empty
+                title="Project not found"
+                action={
+                  <a href={urlFor("home")} className="button primary">
+                    Back to projects
+                  </a>
+                }
               >
-                Create First Project
-              </button>
-              <span className="empty-note">
-                Python / pytest · Requirement-driven · Traceable evidence
-              </span>
+                This project may no longer be available. Check the link or
+                select a project from the overview.
+              </Empty>
             </section>
-          ) : view === "overview" ? (
-            <>
-              <div className="metric-grid">
-                <Metric label="Behaviors Identified" value="—" detail="Waiting for requirement analysis" />
-                <Metric
-                  label="Semantic Requirement Coverage"
-                  value="—"
-                  detail="No valid execution evidence yet"
-                />
-                <Metric label="Mutation Score" value="—" detail="Waiting for mutation analysis" />
-                <Metric
-                  label="Recorded Runs"
-                  value={runsLoading ? "…" : String(runs.length)}
-                  detail="Scaffold integration records"
-                />
-              </div>
-              <div className="content-grid">
-                <section className="panel project-card">
-                  <div className="section-heading">
-                    <div className="eyebrow">PROJECT CONTEXT</div>
-                    <span className="badge neutral">Python / pytest</span>
-                  </div>
-                  <h2>{project.name}</h2>
-                  <p className="project-description">
-                    {project.description || "No project description added yet."}
-                  </p>
-                  <div className="repository">
-                    <span className="small-label">Repository Reference</span>
-                    <code>{project.repository_ref || "Not provided"}</code>
-                    <span className="muted">
-                      Only the reference is stored; the repository is not read yet.
-                    </span>
-                  </div>
-                  <div className="card-footer">
-                    <button
-                      className="text-button"
-                      onClick={() => setView("requirements")}
-                    >
-                      View Source Requirements ↗
-                    </button>
-                    <span className="muted">{date(project.created_at)}</span>
-                  </div>
-                </section>
-                <section className="panel workflow-card">
-                  <div className="eyebrow">CLOSED-LOOP WORKFLOW</div>
-                  <h2>Verification Loop</h2>
-                  <div className="workflow">
-                    {["Understand", "Measure", "Improve", "Re-measure"].map(
-                      (step, i) => (
-                        <div className="workflow-step" key={step}>
-                          <span>{String(i + 1).padStart(2, "0")}</span>
-                          <strong>{step}</strong>
-                          <small>Pending</small>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                  <button
-                    className="button primary full"
-                    onClick={createRun}
-                    disabled={busy || runsLoading || !system}
+          ) : runResource.loading ? (
+            <Loading />
+          ) : runResource.error ? (
+            <ErrorNotice message={runResource.error} retry={refresh} />
+          ) : route.runId && !run ? (
+            <section className="panel">
+              <Empty
+                title="Run not found"
+                action={
+                  <a
+                    href={urlFor("workspace", project.id)}
+                    className="button primary"
                   >
-                    {busy ? "Creating..." : "Create Integration Run →"}
-                  </button>
-                  <p className="helper">
-                    Records inputs and generates a pending report without executing code.
-                  </p>
-                </section>
-              </div>
-              <section className="panel">
-                <div className="section-heading">
-                  <div>
-                    <div className="eyebrow">LATEST ACTIVITY</div>
-                    <h2>Latest Runs</h2>
-                  </div>
+                    Open latest run
+                  </a>
+                }
+              >
+                The selected run does not belong to this project or is no longer
+                available.
+              </Empty>
+            </section>
+          ) : (
+            <>
+              <div className="project-strip">
+                <a href={urlFor("home")} className="text-button">
+                  ← All projects
+                </a>
+                <div>
+                  <Badge>Python / pytest</Badge>
+                  <label className="run-picker">
+                    <span className="sr-only">Selected run</span>
+                    <select
+                      value={run?.id ?? ""}
+                      disabled={!runs.length || busy}
+                      onChange={(e) =>
+                        navigate(route.view, project.id, e.target.value)
+                      }
+                    >
+                      {!runs.length && <option value="">No runs yet</option>}
+                      {runs.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          Run {r.id.slice(0, 8)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <button
                     className="text-button"
-                    onClick={() => setView("runs")}
+                    onClick={refresh}
+                    disabled={busy}
                   >
-                    View All ↗
+                    Refresh ↻
                   </button>
                 </div>
-                {runsLoading ? (
-                  <p role="status">Loading runs...</p>
-                ) : latest ? (
-                  <button
-                    className="run-summary"
-                    onClick={() => {
-                      setActiveRunId(latest.id);
-                      setView("runs");
-                    }}
-                  >
-                    <span className="run-mark">↗</span>
-                    <div>
-                      <strong>Integration Run · {latest.id.slice(0, 8)}</strong>
-                      <small>{date(latest.created_at)}</small>
-                    </div>
-                    <span className="badge amber">Waiting for Modules</span>
-                  </button>
-                ) : (
-                  <div className="inline-empty">
-                    No runs recorded yet. Create an integration run to show status and reports here.
-                  </div>
-                )}
-              </section>
-            </>
-          ) : view === "requirements" ? (
-            <>
-              <section className="panel">
-                <div className="section-heading">
-                  <div>
-                    <div className="eyebrow">SOURCE OF TRUTH</div>
-                    <h2>Source Requirements</h2>
-                  </div>
-                  <span className="badge neutral">
-                    {project.requirements_text.length} characters
-                  </span>
-                </div>
-                <pre className="requirements-text">
-                  {project.requirements_text}
-                </pre>
-              </section>
-              <section className="panel">
-                <div className="section-heading">
-                  <div>
-                    <div className="eyebrow">BEHAVIOR TRACEABILITY</div>
-                    <h2>Requirement Behavior Mapping</h2>
-                  </div>
-                </div>
-                <div className="table-scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Requirement Behavior</th>
-                        <th>Code Reference</th>
-                        <th>Linked Tests</th>
-                        <th>Execution Evidence</th>
-                        <th>Verification Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td colSpan={5} className="table-empty">
-                          The requirement analysis module is not connected yet, so no behavior breakdown or mapping is available.
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div className="status-legend">
-                  <span>● Verified</span>
-                  <span>◐ Partially Verified</span>
-                  <span>○ Unverified</span>
-                  <span>? Uncertain</span>
-                </div>
-              </section>
-            </>
-          ) : (
-            <section className="panel">
-              <div className="section-heading">
-                <div>
-                  <div className="eyebrow">RUN HISTORY & EVIDENCE</div>
-                  <h2>Runs & Verification Reports</h2>
-                </div>
-                <button
-                  className="button secondary"
-                  onClick={createRun}
-                  disabled={busy || runsLoading || !system}
-                >
-                  {busy ? "Processing..." : "+ Create Integration Run"}
-                </button>
               </div>
-              {runsLoading ? (
-                <p role="status" className="inline-empty">
-                  Loading runs...
-                </p>
-              ) : !runs.length ? (
-                <div className="inline-empty">
-                  No runs yet. Create an integration run to check the frontend-backend data flow.
-                </div>
+              {route.view === "workspace" ? (
+                <Workspace
+                  project={project}
+                  run={run}
+                  start={start}
+                  busy={busy}
+                />
+              ) : route.view === "evidence" ? (
+                <Evidence
+                  key={run?.id ?? project.id}
+                  project={project}
+                  run={run}
+                />
               ) : (
-                <div className="runs-layout">
-                  <div className="run-list" aria-label="Run list">
-                    {runs.map((run) => (
-                      <button
-                        className={`run-list-item ${activeRun?.id === run.id ? "selected" : ""}`}
-                        key={run.id}
-                        onClick={() => setActiveRunId(run.id)}
-                        aria-pressed={activeRun?.id === run.id}
-                      >
-                        <strong>Run {run.id.slice(0, 8)}</strong>
-                        <small>{date(run.created_at)}</small>
-                        <span className="badge amber">Waiting for Modules</span>
-                      </button>
-                    ))}
-                  </div>
-                  {activeRun && (
-                    <article className="report">
-                      <div className="section-heading">
-                        <h3>Integration Report</h3>
-                        <button
-                          className="text-button"
-                          disabled={busy}
-                          onClick={() => exportReport(activeRun)}
-                        >
-                          Download JSON ↓
-                        </button>
-                      </div>
-                      <p>{activeRun.report.summary}</p>
-                      <dl className="report-facts">
-                        <div>
-                          <dt>Run Mode</dt>
-                          <dd>Scaffold</dd>
-                        </div>
-                        <div>
-                          <dt>Executed Tests</dt>
-                          <dd>{activeRun.report.executed_tests}</dd>
-                        </div>
-                        <div>
-                          <dt>Semantic Coverage</dt>
-                          <dd>
-                            {activeRun.report.semantic_coverage === null
-                              ? "Not evaluated"
-                              : `${activeRun.report.semantic_coverage}%`}
-                          </dd>
-                        </div>
-                      </dl>
-                      <h3>Event Log</h3>
-                      <ol className="event-list">
-                        {activeRun.events.map((event) => (
-                          <li key={event.id}>
-                            <small>
-                              {date(event.created_at)} · {event.stage}
-                            </small>
-                            <p>{event.message}</p>
-                          </li>
-                        ))}
-                      </ol>
-                      <h3>Pending Capabilities</h3>
-                      <ul className="issue-list">
-                        {activeRun.report.unresolved_issues.map((issue) => (
-                          <li key={issue}>{issue}</li>
-                        ))}
-                      </ul>
-                      <details>
-                        <summary>View Input Fingerprint</summary>
-                        <code className="fingerprint">
-                          {activeRun.input_sha256}
-                        </code>
-                        <p className="helper">
-                          SHA-256 binds the saved project input; it is not a repository file snapshot.
-                        </p>
-                      </details>
-                    </article>
-                  )}
-                </div>
+                <Report
+                  project={project}
+                  run={run}
+                  runs={runs}
+                  download={download}
+                  busy={busy}
+                />
               )}
-            </section>
+            </>
           )}
-          <footer className="page-footer">
-            <span>REQTEST / GROUP 04</span>
+          <footer className="site-footer">
+            <span>REQTEST / REQUIREMENT-AWARE VERIFICATION</span>
             <span>Understand → Measure → Improve → Re-measure</span>
           </footer>
         </main>
       </div>
     </div>
-  );
-}
-function Metric({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <section className="metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </section>
   );
 }

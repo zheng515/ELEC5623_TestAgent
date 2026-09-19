@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from app.schemas import (
     Integration,
@@ -26,36 +26,39 @@ def system_info():
         integrations=[
             Integration(
                 key="storage",
-                name="Project and Run Storage",
+                name="Project and run storage",
                 status="ready",
-                description="SQLite persists projects, requirements, runs, and reports.",
+                description="Projects, requirements, runs, and reports are persisted in SQLite.",
             ),
             Integration(
                 key="api",
-                name="Frontend-Backend API",
+                name="Application API",
                 status="ready",
-                description="Versioned REST API with OpenAPI documentation.",
+                description="Versioned REST endpoints and OpenAPI documentation.",
             ),
             Integration(
                 key="analysis",
-                name="Requirement Analysis and Behavior Mapping",
+                name="Requirement analysis and mapping",
                 status="not_connected",
                 description=(
-                    "Waiting for LLM analysis, code inspection, and verification "
-                    "status assessment."
+                    "Requirement interpretation, code inspection, and evidence "
+                    "evaluation are not connected."
                 ),
             ),
             Integration(
                 key="execution",
-                name="Isolated Test Execution",
+                name="Isolated test execution",
                 status="not_connected",
-                description="Waiting for sandboxing, pytest, and execution evidence collection.",
+                description="Sandbox, pytest execution, and evidence capture are not connected.",
             ),
             Integration(
                 key="diagnosis",
-                name="Failure Diagnosis and Mutation Analysis",
+                name="Diagnosis and mutation analysis",
                 status="not_connected",
-                description="Waiting for evidence diagnosis, test improvement, and re-evaluation.",
+                description=(
+                    "Failure diagnosis, test refinement, and re-evaluation "
+                    "are not connected."
+                ),
             ),
         ]
     )
@@ -95,6 +98,11 @@ def create_run(project_id: str, request: Request):
     run = request.app.state.orchestrator.run(project)
     request.app.state.store.create_run(run)
     return run
+
+
+@router.get("/runs", response_model=list[VerificationRun], tags=["runs"])
+def recent_runs(request: Request, limit: int = Query(default=20, ge=1, le=100)):
+    return request.app.state.store.recent_runs(limit)
 
 
 @router.get("/runs/{run_id}", response_model=VerificationRun, tags=["runs"])

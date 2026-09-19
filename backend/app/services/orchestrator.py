@@ -28,8 +28,8 @@ class ScaffoldOrchestrator:
                     id=str(uuid4()),
                     stage="understand",
                     message=(
-                        "Project input and input fingerprint were recorded; the repository "
-                        "reference is stored as text only."
+                        "Project inputs and fingerprint recorded. Repository "
+                        "reference saved; source code not read."
                     ),
                     created_at=now,
                 ),
@@ -37,20 +37,20 @@ class ScaffoldOrchestrator:
                     id=str(uuid4()),
                     stage="understand",
                     message=(
-                        "Run paused: the requirement analyzer, code inspector, and isolated "
-                        "executor are not connected yet."
+                        "Run blocked: requirement analysis, code inspection, "
+                        "and isolated execution are not connected."
                     ),
                     created_at=now,
                 ),
             ],
             report=VerificationReport(
                 summary=(
-                    "A scaffold integration record has been generated. Requirements have not "
-                    "been analyzed, code has not been read, and tests have not been executed."
+                    "Setup report created. Requirements have not been analyzed, "
+                    "source code has not been read, and no tests have been executed."
                 ),
                 unresolved_issues=[
-                    "Connect the requirement analysis and behavior breakdown module.",
-                    "Connect code and test inspection, behavior mapping, and gap assessment.",
+                    "Connect requirement analysis and behavior decomposition.",
+                    "Connect code inspection, test mapping, and gap evaluation.",
                     "Connect isolated pytest execution, failure diagnosis, and mutation testing.",
                 ],
             ),

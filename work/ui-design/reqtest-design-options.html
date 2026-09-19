@@ -1,0 +1,76 @@
+<style>
+#reqtest-options{--rt-bg:light-dark(#f4f7f6,#13201f);--rt-surface:light-dark(#ffffff,#1d2c29);--rt-text:light-dark(#213a34,#e1ece6);--rt-muted:light-dark(#597168,#adc3b8);--rt-line:light-dark(#d7e3dc,#3a5146);--rt-accent:light-dark(#096e59,#99d9bd);--rt-selected:light-dark(#e1f0e7,#304e40);--rt-warn:light-dark(#815214,#ebc07e);--rt-alert:light-dark(#a44338,#ffb0a3);color:var(--rt-text);font-family:system-ui,sans-serif;font-size:14px;line-height:1.6}
+#reqtest-options *{box-sizing:border-box}#reqtest-options button{font:inherit;color:inherit;cursor:pointer;border:1px solid var(--rt-line);border-radius:6px;background:var(--rt-surface);padding:8px 13px}#reqtest-options button[aria-pressed=true]{background:var(--rt-selected);border-color:var(--rt-accent);color:var(--rt-accent)}#reqtest-options .rt-switch{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px}#reqtest-options .rt-window{background:var(--rt-bg);border:1px solid var(--rt-line);border-radius:12px;overflow:hidden}#reqtest-options .rt-top{padding:16px 20px;background:var(--rt-surface);border-bottom:1px solid var(--rt-line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}#reqtest-options .rt-brand{font-weight:600;color:var(--rt-accent)}#reqtest-options .rt-demo{font-size:12px;color:var(--rt-muted)}#reqtest-options .rt-layout{display:grid;grid-template-columns:155px minmax(0,1fr)}#reqtest-options aside{padding:18px 12px;border-right:1px solid var(--rt-line);background:var(--rt-surface)}#reqtest-options .rt-nav{padding:9px 12px;color:var(--rt-muted);margin-bottom:6px}#reqtest-options .rt-nav.rt-on{background:var(--rt-selected);border-radius:6px;color:var(--rt-accent)}#reqtest-options main{padding:22px;min-width:0}#reqtest-options h3{font-size:20px;font-weight:500;margin:0 0 6px}#reqtest-options h4{font-size:14px;font-weight:500;margin:0 0 12px}#reqtest-options p{margin:5px 0 14px}#reqtest-options .rt-meta{color:var(--rt-muted);font-size:12px}#reqtest-options .rt-panel{background:var(--rt-surface);border:1px solid var(--rt-line);border-radius:8px;padding:17px;margin-top:14px;min-width:0}#reqtest-options .rt-stepbar{display:flex;flex-wrap:wrap;gap:10px;color:var(--rt-muted);font-size:12px;margin:18px 0}#reqtest-options .rt-stepbar .rt-active{color:var(--rt-accent);font-weight:500}#reqtest-options .rt-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--rt-line);flex-wrap:wrap}#reqtest-options .rt-row:last-child{border:0}#reqtest-options .rt-status{font-size:12px;color:var(--rt-warn)}#reqtest-options .rt-good{color:var(--rt-accent)}#reqtest-options .rt-risk{color:var(--rt-alert)}#reqtest-options .rt-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}#reqtest-options .rt-grid .rt-panel{margin-top:0}#reqtest-options .rt-stats{display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;color:var(--rt-muted);font-size:12px}#reqtest-options .rt-stats strong{font-size:18px;color:var(--rt-text);font-weight:500;margin-right:5px}#reqtest-options .rt-select-row{width:100%;text-align:left;display:block;margin:7px 0}#reqtest-options pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:var(--rt-text);padding:12px;background:var(--rt-bg);border-radius:5px}#reqtest-options .rt-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:16px;color:var(--rt-muted);font-size:12px}#reqtest-options .rt-chat{max-width:600px;background:var(--rt-selected);border-radius:10px;padding:15px;margin:16px 0}#reqtest-options .rt-user{margin-left:45px;background:var(--rt-surface);border:1px solid var(--rt-line)}#reqtest-options .rt-composer{border:1px solid var(--rt-line);background:var(--rt-surface);border-radius:8px;padding:14px;color:var(--rt-muted);margin-top:20px}#reqtest-options [hidden]{display:none!important}#reqtest-options .rt-detail{min-height:240px}#reqtest-options.rt-compact .rt-row{padding:7px 0}#reqtest-options.rt-compact .rt-panel{padding:12px}
+@media(max-width:720px){#reqtest-options .rt-layout{grid-template-columns:1fr}#reqtest-options aside{display:flex;gap:5px;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--rt-line);padding:10px}#reqtest-options .rt-nav{font-size:12px;margin:0;padding:5px 8px}#reqtest-options .rt-grid{grid-template-columns:1fr}#reqtest-options main{padding:15px}#reqtest-options .rt-detail{min-height:0}}
+@media(pointer:coarse){#reqtest-options button{min-height:44px}}
+</style>
+<div id="reqtest-options" aria-label="ReqTest interface design options">
+  <div class="rt-switch" aria-label="Switch design option">
+    <button type="button" data-design="guide" aria-pressed="false">A · Guided workflow</button>
+    <button type="button" data-design="evidence" aria-pressed="true">B · Evidence workspace (recommended)</button>
+    <button type="button" data-design="chat" aria-pressed="false">C · Agent conversation</button>
+  </div>
+  <div class="rt-window">
+    <header class="rt-top"><span class="rt-brand">reqtest. / Shipping service</span><span class="rt-demo">Concept mockup · illustrative data, not current system results</span></header>
+    <section data-panel="guide" hidden>
+      <div class="rt-layout"><aside><div class="rt-nav rt-on">New verification</div><div class="rt-nav">Run history</div><div class="rt-nav">Project context</div></aside><main>
+        <h3>Review requirements before verification</h3><div class="rt-meta">New task / requirement review</div>
+        <div class="rt-stepbar"><span>01 Project inputs</span><span>→</span><span class="rt-active">02 Requirement review</span><span>→</span><span>03 Execution</span><span>→</span><span>04 Report</span></div>
+        <div class="rt-panel"><h4>R1 · Free shipping at 100 or more; otherwise charge 10</h4><div class="rt-row"><span>B1 · 0 ≤ amount &lt; 100</span><span class="rt-meta">Expected: shipping fee 10</span></div><div class="rt-row"><span>B2 · amount = 100</span><span class="rt-meta">Expected: shipping fee 0</span></div><div class="rt-row"><span>B3 · amount &gt; 100</span><span class="rt-meta">Expected: shipping fee 0</span></div></div>
+        <div class="rt-panel"><span class="rt-status">Clarification needed · How should negative amounts be handled?</span><p class="rt-meta">Unspecified exception rules remain open questions.</p><button type="button" id="rt-clarify">Show open questions</button><div id="rt-clarification" hidden><div class="rt-row"><span>Exception type / error message / whether zero is allowed</span><span class="rt-status">Needs product owner clarification</span></div></div></div>
+        <div class="rt-foot"><span>Pre-run preview · 3 candidate behaviors</span><span>Next: confirm scope and execution budget →</span></div>
+      </main></div>
+    </section>
+    <section data-panel="evidence">
+      <div class="rt-layout"><aside><div class="rt-nav">Project overview</div><div class="rt-nav rt-on">Requirements & evidence</div><div class="rt-nav">Open issues</div><div class="rt-nav">Run history</div><div class="rt-nav">Report export</div></aside><main>
+        <h3>Which behaviors still have verification gaps?</h3><div class="rt-meta">Run 07 · requirements v2 · code a81c2f · paused for human review</div>
+        <div class="rt-stats"><span><strong>1 / 3</strong>behavior verified</span><span><strong>1</strong>suspected implementation defect</span><span><strong>1</strong>open clarification</span></div>
+        <div class="rt-grid"><div class="rt-panel"><h4>Requirement behaviors</h4>
+          <button type="button" class="rt-select-row" data-behavior="normal" aria-pressed="false">B1 · Below threshold<br><span class="rt-status rt-good">Verified · passing evidence available</span></button>
+          <button type="button" class="rt-select-row" data-behavior="boundary" aria-pressed="true">B2 · At threshold<br><span class="rt-status rt-risk">Unverified · suspected implementation defect</span></button>
+          <button type="button" class="rt-select-row" data-behavior="above" aria-pressed="false">B3 · Above threshold<br><span class="rt-status">Unverified · missing test</span></button>
+        </div><div class="rt-panel rt-detail" aria-live="polite"><h4 id="rt-detail-title">B2 / Evidence chain</h4><div id="rt-detail-body"><p class="rt-meta">Requirement: amount ≥ 100, shipping fee is 0</p><pre>shipping.py:18
+if amount &gt; 100: return 0
+
+test_shipping.py:12
+assert shipping(100) == 0
+
+Actual: 10 → test failed</pre><span class="rt-status rt-risk">Recommendation: retain the failing test and report the suspected defect</span></div></div></div>
+        <div class="rt-foot"><span>Behavior status ≠ test execution status ≠ diagnosis</span><span>Requirement → code → test → execution evidence</span></div>
+      </main></div>
+    </section>
+    <section data-panel="chat" hidden>
+      <div class="rt-layout"><aside><div class="rt-nav rt-on">Verification chat</div><div class="rt-nav">Project context</div><div class="rt-nav">Past reports</div></aside><main>
+        <h3>Inspect requirements with the agent</h3><div class="rt-meta">Shipping service / current session</div>
+        <div class="rt-chat rt-user">Check the shipping rule and find unverified boundaries.</div>
+        <div class="rt-chat"><span class="rt-brand">ReqTest</span><p>The test fails at exactly 100. The requirement expects a shipping fee of 0, but the implementation returns 10.</p><div class="rt-meta">Initial diagnosis: suspected implementation defect · retain the failing test</div></div>
+        <button type="button" id="rt-chat-evidence" aria-expanded="false">Show cited evidence</button><div class="rt-panel" id="rt-chat-detail" hidden><h4>R1 → B2 → test_shipping.py:12</h4><pre>Requirement: amount ≥ 100 gets free shipping
+Implementation: amount &gt; 100
+Input: 100 / expected: 0 / actual: 10</pre></div>
+        <div class="rt-composer" aria-label="Conversation input layout mockup">Ask next: Why should this test not be changed automatically?</div>
+        <div class="rt-foot"><span>Structured evidence cards</span><span>Natural-language explanations and human clarification</span></div>
+      </main></div>
+    </section>
+  </div>
+</div>
+<script>
+(function(){
+  const root=document.getElementById('reqtest-options');
+  const state={design:'evidence',behavior:'boundary',compact:false};
+  const detail={
+    normal:{title:'B1 / Evidence chain',html:'<p class="rt-meta">Requirement: 0 ≤ amount &lt; 100, shipping fee is 10</p><pre>Representative inputs: 0, 50, 99.99\nExpected shipping fee: 10\nMapped tests: 3 passed\nExecution run: Run 07</pre><span class="rt-status rt-good">Verified · for the defined verification points</span>'},
+    boundary:{title:'B2 / Evidence chain',html:'<p class="rt-meta">Requirement: amount ≥ 100, shipping fee is 0</p><pre>shipping.py:18\nif amount &gt; 100: return 0\n\ntest_shipping.py:12\nassert shipping(100) == 0\n\nActual: 10 → test failed</pre><span class="rt-status rt-risk">Recommendation: retain the failing test and report the suspected defect</span>'},
+    above:{title:'B3 / Verification gap',html:'<p class="rt-meta">Requirement: amount &gt; 100, shipping fee is 0</p><pre>Candidate inputs: 100.01, 200\nExpected shipping fee: 0\nMapped tests: none found\nExecution run: none</pre><span class="rt-status">Next: generate a targeted test, execute it, and reassess</span>'}
+  };
+  function restore(saved){if(!saved)return;const s=saved.privateContent||{};if(['guide','evidence','chat'].includes(s.design))state.design=s.design;if(detail[s.behavior])state.behavior=s.behavior;if(typeof s.compact==='boolean')state.compact=s.compact;}
+  function render(){root.classList.toggle('rt-compact',state.compact);root.querySelectorAll('[data-panel]').forEach(p=>p.hidden=p.dataset.panel!==state.design);root.querySelectorAll('[data-design]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.design===state.design)));root.querySelectorAll('[data-behavior]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.behavior===state.behavior)));root.querySelector('#rt-detail-title').textContent=detail[state.behavior].title;root.querySelector('#rt-detail-body').innerHTML=detail[state.behavior].html;}
+  function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{viewed_design:state.design},privateContent:{...state}}).catch(()=>{});}
+  restore(window.openai?.widgetState);render();
+  root.querySelectorAll('[data-design]').forEach(b=>b.addEventListener('click',()=>{state.design=b.dataset.design;render();save();}));
+  root.querySelectorAll('[data-behavior]').forEach(b=>b.addEventListener('click',()=>{state.behavior=b.dataset.behavior;render();save();}));
+  root.querySelector('#rt-clarify').addEventListener('click',()=>{const p=root.querySelector('#rt-clarification');p.hidden=!p.hidden;});
+  root.querySelector('#rt-chat-evidence').addEventListener('click',e=>{const p=root.querySelector('#rt-chat-detail');p.hidden=!p.hidden;e.currentTarget.setAttribute('aria-expanded',String(!p.hidden));});
+  window.addEventListener('openai:set_globals',e=>{if(e.detail?.globals?.widgetState){restore(e.detail.globals.widgetState);render();}});
+  if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:()=>{render();save();}});tweak.addSelect(state,'design',{label:'Information architecture',options:[{label:'Guided workflow',value:'guide'},{label:'Evidence workspace',value:'evidence'},{label:'Agent conversation',value:'chat'}]});tweak.addToggle(state,'compact',{label:'Compact layout'});}
+})();
+</script>

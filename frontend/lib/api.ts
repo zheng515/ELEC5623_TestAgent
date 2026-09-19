@@ -23,7 +23,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       signal: AbortSignal.timeout(15000),
     });
   } catch {
-    throw new Error("Unable to connect to the backend service. Confirm FastAPI is running, then reconnect.");
+    throw new Error(
+      "Unable to reach the API. Check that the backend is running and try again.",
+    );
   }
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
@@ -32,13 +34,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       typeof detail === "string"
         ? detail
         : response.status === 422
-          ? "The input format is invalid. Check the project name and requirement content."
-          : `Request failed (${response.status}). Check the backend service status.`,
+          ? "Check the project name, requirements, and verification goal."
+          : `Request failed (${response.status}). Please try again.`,
     );
   }
   return response.json() as Promise<T>;
 }
 export const api = {
+  recentRuns: () => request<VerificationRun[]>("/runs?limit=5"),
   projects: () => request<Project[]>("/projects"),
   createProject: (payload: ProjectCreate) =>
     request<Project>("/projects", {
