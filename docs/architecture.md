@@ -21,6 +21,7 @@ React workspace → typed API client → /api/v1 → FastAPI routes
 | POST | /projects | Validate and persist a project; 201 |
 | GET | /projects/{id} | Project and original requirements |
 | GET | /projects/{id}/runs | Persisted run history |
+| GET | /runs?limit=5 | Recent runs across projects, newest first; limit 1–100 |
 | POST | /projects/{id}/runs | Record a scaffold run synchronously; 201 |
 | GET | /runs/{id} | Run, events, input fingerprint and report |
 | GET | /runs/{id}/report | JSON report download |

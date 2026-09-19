@@ -3,6 +3,7 @@ export interface ProjectCreate {
   description: string;
   repository_ref: string;
   requirements_text: string;
+  goal: string;
 }
 export interface Project extends ProjectCreate {
   id: string;

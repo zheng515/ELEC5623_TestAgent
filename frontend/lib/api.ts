@@ -23,7 +23,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       signal: AbortSignal.timeout(15000),
     });
   } catch {
-    throw new Error("无法连接后端服务。请确认 FastAPI 已启动，然后重新连接。");
+    throw new Error(
+      "Unable to reach the API. Check that the backend is running and try again.",
+    );
   }
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
@@ -32,13 +34,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       typeof detail === "string"
         ? detail
         : response.status === 422
-          ? "输入格式不正确，请检查项目名称和需求内容。"
-          : `请求失败（${response.status}），请确认后端服务状态。`,
+          ? "Check the project name, requirements, and verification goal."
+          : `Request failed (${response.status}). Please try again.`,
     );
   }
   return response.json() as Promise<T>;
 }
 export const api = {
+  recentRuns: () => request<VerificationRun[]>("/runs?limit=5"),
   projects: () => request<Project[]>("/projects"),
   createProject: (payload: ProjectCreate) =>
     request<Project>("/projects", {

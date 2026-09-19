@@ -10,4 +10,5 @@ cd "$ROOT/backend"
 cd "$ROOT/frontend"
 npm run typecheck
 npm run lint
+npm test
 npm run build

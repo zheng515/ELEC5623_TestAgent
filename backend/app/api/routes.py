@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from app.schemas import (
     Integration,
@@ -26,33 +26,39 @@ def system_info():
         integrations=[
             Integration(
                 key="storage",
-                name="项目与任务存储",
+                name="Project and run storage",
                 status="ready",
-                description="SQLite 持久化项目、需求、任务和报告。",
+                description="Projects, requirements, runs, and reports are persisted in SQLite.",
             ),
             Integration(
                 key="api",
-                name="前后端接口",
+                name="Application API",
                 status="ready",
-                description="版本化 REST API 与 OpenAPI 文档。",
+                description="Versioned REST endpoints and OpenAPI documentation.",
             ),
             Integration(
                 key="analysis",
-                name="需求分析与行为映射",
+                name="Requirement analysis and mapping",
                 status="not_connected",
-                description="等待接入 LLM、代码检查和验证状态评估。",
+                description=(
+                    "Requirement interpretation, code inspection, and evidence "
+                    "evaluation are not connected."
+                ),
             ),
             Integration(
                 key="execution",
-                name="隔离测试执行",
+                name="Isolated test execution",
                 status="not_connected",
-                description="等待接入沙箱、pytest 和执行证据采集。",
+                description="Sandbox, pytest execution, and evidence capture are not connected.",
             ),
             Integration(
                 key="diagnosis",
-                name="失败诊断与变异分析",
+                name="Diagnosis and mutation analysis",
                 status="not_connected",
-                description="等待接入证据诊断、测试改进和重新评估。",
+                description=(
+                    "Failure diagnosis, test refinement, and re-evaluation "
+                    "are not connected."
+                ),
             ),
         ]
     )
@@ -74,7 +80,7 @@ def create_project(payload: ProjectCreate, request: Request):
 def get_project(project_id: str, request: Request):
     project = request.app.state.store.get_project(project_id)
     if project is None:
-        raise HTTPException(404, "项目不存在")
+        raise HTTPException(404, "Project not found")
     return project
 
 
@@ -94,11 +100,16 @@ def create_run(project_id: str, request: Request):
     return run
 
 
+@router.get("/runs", response_model=list[VerificationRun], tags=["runs"])
+def recent_runs(request: Request, limit: int = Query(default=20, ge=1, le=100)):
+    return request.app.state.store.recent_runs(limit)
+
+
 @router.get("/runs/{run_id}", response_model=VerificationRun, tags=["runs"])
 def get_run(run_id: str, request: Request):
     run = request.app.state.store.get_run(run_id)
     if run is None:
-        raise HTTPException(404, "任务不存在")
+        raise HTTPException(404, "Run not found")
     return run
 
 

@@ -24,7 +24,7 @@ def create_project(client):
         "/api/v1/projects",
         json={
             "name": "Shipping",
-            "requirements_text": "订单满 100 元免运费。",
+            "requirements_text": "Orders of at least 100 have free shipping.",
             "repository_ref": "/unread/example",
         },
     )
@@ -107,3 +107,42 @@ def test_system_health_and_cors(client):
         },
     )
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+
+def test_goal_is_persisted_and_recent_runs_are_newest_first(client):
+    payload = {
+        "name": "English UI project",
+        "requirements_text": "Orders over the threshold receive free shipping.",
+        "goal": "Check threshold boundaries.",
+    }
+    project = client.post("/api/v1/projects", json=payload).json()
+    assert client.get(f"/api/v1/projects/{project['id']}").json()["goal"] == payload["goal"]
+    first = client.post(f"/api/v1/projects/{project['id']}/runs").json()
+    second = client.post(f"/api/v1/projects/{project['id']}/runs").json()
+    assert [r["id"] for r in client.get("/api/v1/runs").json()] == [second["id"], first["id"]]
+    assert [r["id"] for r in client.get("/api/v1/runs?limit=1").json()] == [second["id"]]
+    assert client.get("/api/v1/runs?limit=0").status_code == 422
+    assert client.get("/api/v1/runs?limit=101").status_code == 422
+
+
+def test_system_generated_content_is_english(client):
+    import re
+
+    project = create_project(client)
+    run = client.post(f"/api/v1/projects/{project['id']}/runs").json()
+    content = str(run) + str(client.get("/api/v1/system").json())
+    assert not re.search(r"[\u3400-\u9fff]", content)
+    assert client.get("/api/v1/projects/missing").json()["detail"] == "Project not found"
+    assert client.get("/api/v1/runs/missing").json()["detail"] == "Run not found"
+
+
+def test_legacy_project_without_goal_remains_readable():
+    project = Project.model_validate(
+        {
+            "id": "legacy",
+            "name": "Old project",
+            "requirements_text": "A rule.",
+            "created_at": "2026-09-14T10:00:00Z",
+        }
+    )
+    assert project.goal == "Identify verification gaps and improve requirement-based tests."

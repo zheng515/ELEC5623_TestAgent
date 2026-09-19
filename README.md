@@ -1,37 +1,33 @@
-# ReqTest — Requirement-aware Verification Agent
+# ReqTest — Requirement-Aware Verification Agent
 
-USYD ELEC5623 Group 04：从自然语言需求到可追溯测试证据的验证工作台。
+ReqTest is the University of Sydney ELEC5623 Group 04 project. It aims to connect natural-language requirements, Python source code, pytest tests, and execution evidence in an agent-driven verification workflow.
 
-当前是**可运行的前后端框架**：创建项目、保存需求、创建联调任务、查看事件与下载报告已接通。真实 LLM、代码检查、pytest 沙箱和 mutation testing 尚未接入；系统不会将框架联调标记为成功验证。
+This repository currently contains a working **frontend and backend foundation**. Users can save project requirements and a verification goal, create a setup run, inspect its activity record, and download a JSON report. Requirement analysis, repository inspection, test generation, sandboxed execution, failure diagnosis, and mutation testing are planned integrations. The application does not claim that a setup run has verified any behavior.
 
-## 技术栈
+## Technology
 
-- 前端：React 19 + TypeScript + vinext / Vite，中文响应式工作台。
-- 后端：FastAPI + Pydantic，版本化 REST API 与自动 OpenAPI 文档。
-- 存储：SQLite，项目、任务、输入指纹、事件及报告持久化。
-- 检查：pytest、Ruff、TypeScript、ESLint、生产构建；GitHub Actions 配置已提供。
+| Area | Current implementation |
+| --- | --- |
+| Frontend | React 19, TypeScript, vinext/Vite, and an English responsive interface |
+| Backend | FastAPI, Pydantic, and versioned REST endpoints with OpenAPI documentation |
+| Persistence | SQLite for projects, requirements, goals, runs, events, and reports |
+| Checks | pytest, Ruff, TypeScript, ESLint, Vitest, and a production build |
 
-## 本地启动
+## Requirements and setup
 
-需要 Python 3.11+、Node.js 22.13+（推荐使用 `.nvmrc` 中的版本）。当前面向本地单用户开发，无需 LLM API Key。
+Install Python 3.11+ and Node.js 22.13+. The recommended Node version is recorded in `.nvmrc`. No LLM API key is needed for the current foundation.
 
-本次搭建环境未预装 Node，因此已在被 Git 忽略的 `.tools/node` 中放置官方 Node 运行时。根目录脚本会自动使用它，不修改系统全局配置；其他成员新克隆仓库时仍需安装 Node。
-
-在仓库根目录执行：
+From the repository root:
 
 ```bash
-# 如使用 nvm：nvm install && nvm use
+# If you use nvm, run: nvm install && nvm use
 bash scripts/setup.sh
 bash scripts/dev.sh
 ```
 
-- 前端：http://localhost:3000
-- 后端 API：http://127.0.0.1:8000/api/v1
-- 接口文档：http://127.0.0.1:8000/docs
+Open the frontend at http://localhost:3000. The API is available at http://127.0.0.1:8000/api/v1, and its interactive documentation is at http://127.0.0.1:8000/docs. Press `Ctrl+C` to stop both services. The development script checks whether ports 3000 and 8000 are available before starting. On Windows, run the shell scripts in WSL.
 
-`Ctrl+C` 停止两端服务。启动脚本会检查端口占用，不会终止已有服务。Windows 用户可在 WSL 中运行脚本。
-
-也可以分别在两个终端启动（方便后端热更新）：
+To run the services separately, use two terminals after setup:
 
 ```bash
 cd backend
@@ -43,62 +39,62 @@ cd frontend
 npm run dev
 ```
 
-前端通过 `/api` 开发代理访问后端。可将两端 `.env.example` 复制为各自目录中的 `.env` 后修改配置；默认值无需配置即可运行。数据库默认保存在 `backend/data/reqtest.db`（被 Git 忽略）。
+The frontend development server proxies `/api` to the backend. Copy either directory's `.env.example` to `.env` if you need to change the defaults. SQLite data is stored in `backend/data/reqtest.db` and is ignored by Git. The setup script also recognizes an optional, Git-ignored `.tools/node` installation for local development.
 
-## 可以体验的流程
+## What you can do now
 
-1. 点击“新建项目”，填写项目名称、需求原文和可选仓库引用。
-2. 也可以点击“填入运费需求示例”，再保存；示例是输入素材，不是伪造的验证结果。
-3. 在“需求与行为”查看保存的需求。
-4. 点击“创建联调任务”，后端保存输入指纹和任务记录。
-5. 在“任务与报告”查看事件、待接入能力，下载 JSON 报告。
-6. 刷新页面或重启后端，已保存的数据仍在。
+1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
+2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference. You can import a `.txt` or `.md` requirement file, or use the English shipping example.
+3. Submit the form to save the project, create a setup run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
+4. Inspect the workflow stages, recorded events, current metrics, and integration blockers in **Agent workspace**.
+5. Open **Requirements & evidence** to read the saved requirements. Once a future analyzer supplies structured behaviors, this page can filter them by status and show their evidence links.
+6. Open **Runs & reports** to switch between runs and download a JSON report. Page links retain the selected project and run.
 
-联调任务状态为 `blocked`、模式为 `scaffold`，实际测试数为 `0`；行为列表为空，覆盖率和变异分数为 `null`（未评估）。仓库路径或 URL 仅保存为文本，尚不读取、克隆或执行代码。
+A current run has status `blocked` and mode `scaffold`. It records zero executed tests, no analyzed behaviors, and `null` for semantic coverage and mutation score; `null` means *not evaluated*. A repository path or URL is saved as text only. The application does not clone, inspect, or execute repository code yet.
 
-## 项目结构
+## Repository layout
 
 ```text
 backend/
   app/
-    main.py                   # 应用工厂、生命周期、CORS
-    schemas.py                # 需求、行为、任务、报告协议
-    api/routes.py             # /api/v1 路由
-    core/config.py            # 环境配置
-    core/database.py          # SQLite 存取层
-    services/orchestrator.py  # Agent 接口与诚实的 scaffold 实现
-  tests/test_api.py           # 接口、持久化、输入验证、证据约束
+    main.py                   FastAPI app factory and startup
+    schemas.py                Project, behavior, run, and report contracts
+    api/routes.py             Versioned API routes
+    core/config.py            Environment settings
+    core/database.py          SQLite storage
+    services/orchestrator.py  Agent interface and scaffold implementation
+  tests/test_api.py           API and persistence tests
   pyproject.toml
-  requirements-dev.lock       # 已验证的完整开发依赖版本
+  requirements-dev.lock       Pinned development dependencies
 frontend/
-  app/page.tsx                # 工作台和四个功能视图
-  app/layout.tsx              # 应用布局与元信息
-  app/globals.css             # 响应式样式
-  lib/api.ts                 # 统一请求、错误处理、报告下载
-  lib/types.ts               # 前后端数据契约
-  vite.config.ts             # 本地代理与构建
+  app/page.tsx                Navigation, data loading, and task actions
+  app/layout.tsx              Document layout and metadata
+  app/globals.css             Responsive styles
+  components/                Overview, task form, workspace, evidence, report
+  hooks/use-resource.ts       Async loading and error states
+  lib/api.ts                  API client and report download
+  lib/navigation.ts           Hash-based page links
+  lib/types.ts                Frontend API types
+  tests/workspace.test.tsx    Component interaction tests
+  vite.config.ts              Development proxy and build configuration
 scripts/
-  setup.sh                   # 安装依赖
-  dev.sh                     # 启动两端
-  check.sh                   # 完整检查
-docs/architecture.md         # 接口与后续 Agent 接入约定
-.github/workflows/ci.yml
+  setup.sh                    Install dependencies
+  dev.sh                      Start both services
+  check.sh                    Run project checks
+docs/architecture.md          API and future agent integration points
+.github/workflows/ci.yml      Continuous integration checks
 ```
 
-前端沿用 Sites 提供的 vinext 工程结构；`frontend/.openai/hosting.json` 是模板元数据，当前未创建线上站点。此交付是前后端开发框架，服务均在本地运行。
-
-## 验证
+## Checks
 
 ```bash
 bash scripts/check.sh
 ```
 
-检查包含后端 API 流程与持久化测试、静态检查、前端类型检查、Lint 和构建。前端 `npm test` 目前运行类型检查与 Lint，不代表浏览器端到端测试。
+This runs backend lint and API tests, frontend type checking and linting, Vitest component tests, and the frontend build. Component tests use jsdom; they do not replace visual testing in a browser.
 
-## 后续接入
+## Next integration steps
 
-先按 `docs/architecture.md` 固定数据契约，再将 `ScaffoldOrchestrator` 替换成真实工作流。需求分析、测试生成、失败诊断可逐步接入，执行代码前必须先完成隔离 Runner。耗时任务接入时，将当前同步联调接口升级为后台任务和状态查询。
+Use the contracts in `docs/architecture.md` and replace `ScaffoldOrchestrator` with the real verification workflow. Add requirement decomposition and evidence references first, followed by code and test mapping. Build an isolated runner before executing generated tests or mutations. When runs become long-lived, replace the synchronous setup-run endpoint with background execution and status updates.
 
-当前没有账号体系、上传解析、后台队列、自动测试执行或线上部署。若后续分开部署前后端，需要配置 `VITE_API_BASE_URL`、后端 CORS、身份验证与安全的执行环境；开发代理不属于生产 API 网关。
-
-参考：[Vite 官方文档](https://vite.dev/guide/)、[FastAPI 应用生命周期](https://fastapi.tiangolo.com/advanced/events/)。
+The current foundation has no user accounts, repository upload or cloning, background job queue, automatic test execution, or production deployment. A separate production backend would need an API URL, CORS configuration, authentication, and an isolated execution environment. The development proxy is not a production API gateway.
