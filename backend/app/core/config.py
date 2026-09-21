@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = 180.0
     max_requirements: int = 40
 
+    # Repository inspection (FR4). Reading a user-supplied path is a trust-boundary
+    # change, so it stays off until a root is configured, and every path must resolve
+    # inside that root.
+    repository_root: Path | None = None
+    max_inspected_files: int = 60
+    max_inspected_bytes: int = 400_000
+
     # Sandbox for executing generated tests. Disabled unless Docker is running and
     # the image exists; there is no host-execution fallback by design (NFR5).
     sandbox_enabled: bool = True

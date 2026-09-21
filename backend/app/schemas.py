@@ -60,6 +60,27 @@ class RequirementAnalysis(BaseModel):
     notes: str
 
 
+class ModuleInterface(BaseModel):
+    """The importable surface of one source module, as read from its AST (FR4)."""
+
+    module: str
+    path: str
+    docstring: str
+    constants: list[str] = Field(default_factory=list)
+    functions: list[str] = Field(default_factory=list)
+    classes: list[str] = Field(default_factory=list)
+
+
+class RepositorySnapshot(BaseModel):
+    """What was read from the project under test, and what was deliberately not."""
+
+    root: str
+    modules: list[ModuleInterface]
+    skipped: list[str] = Field(default_factory=list)
+    truncated: bool = False
+    sha256: str
+
+
 class GeneratedTest(BaseModel):
     """A generated pytest test and the requirements it claims to cover (FR7, FR8)."""
 
@@ -103,13 +124,23 @@ class ExecutionResult(BaseModel):
 
 class RunEvent(BaseModel):
     id: str
-    stage: Literal["understand", "analyze", "plan", "generate", "measure", "improve", "re_measure"]
+    stage: Literal[
+        "understand",
+        "inspect",
+        "analyze",
+        "plan",
+        "generate",
+        "measure",
+        "improve",
+        "re_measure",
+    ]
     message: str
     created_at: datetime
 
 
 class VerificationReport(BaseModel):
     summary: str
+    repository: RepositorySnapshot | None = None
     requirements: list[RequirementItem] = Field(default_factory=list)
     generated_tests: list[GeneratedTest] = Field(default_factory=list)
     behaviors: list[Behavior] = Field(default_factory=list)
@@ -129,7 +160,9 @@ class VerificationRun(BaseModel):
     project_id: str
     mode: Literal["scaffold", "baseline_b0"] = "scaffold"
     status: Literal["blocked", "completed", "failed"] = "blocked"
-    stage: Literal["understand", "analyze", "generate", "execute", "report"] = "understand"
+    stage: Literal["understand", "inspect", "analyze", "generate", "execute", "report"] = (
+        "understand"
+    )
     created_at: datetime
     input_sha256: str
     events: list[RunEvent]

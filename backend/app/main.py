@@ -29,6 +29,7 @@ def create_app(
             else "scaffold"
         )
         app.state.execution_ready = getattr(app.state.orchestrator, "executes_tests", False)
+        app.state.inspection_ready = getattr(app.state.orchestrator, "inspects_repositories", False)
         yield
 
     app = FastAPI(
@@ -59,11 +60,7 @@ def _default_orchestrator(settings: Settings) -> Orchestrator:
     llm = create_llm(settings)
     if llm is None:
         return ScaffoldOrchestrator()
-    return DirectLLMOrchestrator(
-        llm,
-        runner=create_runner(settings),
-        max_requirements=settings.max_requirements,
-    )
+    return DirectLLMOrchestrator(llm, runner=create_runner(settings), settings=settings)
 
 
 app = create_app()

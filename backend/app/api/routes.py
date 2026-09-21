@@ -25,6 +25,7 @@ def system_info(request: Request):
     mode = getattr(request.app.state, "mode", "scaffold")
     agent_ready = mode == "baseline_b0"
     execution_ready = getattr(request.app.state, "execution_ready", False)
+    inspection_ready = getattr(request.app.state, "inspection_ready", False)
     return SystemInfo(
         mode=mode,
         integrations=[
@@ -63,12 +64,22 @@ def system_info(request: Request):
                 ),
             ),
             Integration(
-                key="retrieval",
-                name="Repository inspection and RAG evidence",
-                status="not_connected",
+                key="inspection",
+                name="Repository inspection",
+                status="ready" if inspection_ready else "not_connected",
                 description=(
-                    "Source-code inspection and retrieval of testing knowledge are not connected."
+                    "The public interface of the project under test is read and given "
+                    "to the generator; file contents are not read."
+                    if inspection_ready
+                    else "Set REQTEST_REPOSITORY_ROOT to let runs read the project under "
+                    "test. Until then, generated tests must guess what to import."
                 ),
+            ),
+            Integration(
+                key="retrieval",
+                name="RAG evidence retrieval",
+                status="not_connected",
+                description="Retrieval of testing knowledge and project evidence is not connected.",
             ),
             Integration(
                 key="execution",

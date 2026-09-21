@@ -37,6 +37,21 @@ export interface GeneratedTest {
   code: string;
   rationale: string;
 }
+export interface ModuleInterface {
+  module: string;
+  path: string;
+  docstring: string;
+  constants: string[];
+  functions: string[];
+  classes: string[];
+}
+export interface RepositorySnapshot {
+  root: string;
+  modules: ModuleInterface[];
+  skipped: string[];
+  truncated: boolean;
+  sha256: string;
+}
 export type TestOutcome = "passed" | "failed" | "error" | "skipped";
 export interface ExecutedTest {
   test_id: string | null;
@@ -48,6 +63,7 @@ export interface ExecutedTest {
 }
 export interface VerificationReport {
   summary: string;
+  repository: RepositorySnapshot | null;
   requirements: RequirementItem[];
   generated_tests: GeneratedTest[];
   behaviors: Behavior[];
@@ -67,7 +83,7 @@ export interface VerificationRun {
   project_id: string;
   mode: RunMode;
   status: "blocked" | "completed" | "failed";
-  stage: "understand" | "analyze" | "generate" | "execute" | "report";
+  stage: "understand" | "inspect" | "analyze" | "generate" | "execute" | "report";
   created_at: string;
   input_sha256: string;
   events: { id: string; stage: string; message: string; created_at: string }[];

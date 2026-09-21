@@ -2,7 +2,7 @@
 
 ReqTest is the University of Sydney ELEC5623 Group 04 project. It aims to connect natural-language requirements, Python source code, pytest tests, and execution evidence in an agent-driven verification workflow.
 
-This repository contains a working **frontend, backend, B0 baseline agent, and execution sandbox**. Users can save project requirements and a verification goal, run requirement analysis, receive pytest tests that stay traceable to the requirement each one came from, and see the outcome of running those tests in an isolated container. Repository inspection, RAG evidence retrieval, failure diagnosis, and mutation testing are still planned integrations. **A passing generated test is not a verification claim**: the system under test is not inspected, so no behavior is reported as Verified.
+This repository contains a working **frontend, backend, B0 baseline agent, repository inspection, and execution sandbox**. A run reads the public interface of the project under test, splits the requirements into testable items, generates pytest tests that stay traceable to the requirement each one came from, executes them against the real project in an isolated container, and records every outcome as evidence. RAG evidence retrieval, failure diagnosis, and mutation testing are still planned integrations. **No behavior is ever reported as `Verified`**: passing tests show the stated behavior held for the cases that were written, not that those cases were enough.
 
 ## Technology
 
@@ -11,6 +11,7 @@ This repository contains a working **frontend, backend, B0 baseline agent, and e
 | Frontend | React 19, TypeScript, vinext/Vite, and an English responsive interface |
 | Backend | FastAPI, Pydantic, and versioned REST endpoints with OpenAPI documentation |
 | Agent | Anthropic Messages API with structured output for requirement analysis and test generation |
+| Inspection | Read-only AST reading of the project under test, confined to a configured root |
 | Execution | pytest inside a Docker sandbox with no network, a read-only filesystem, and resource limits |
 | Persistence | SQLite for projects, requirements, goals, runs, events, and reports |
 | Checks | pytest, Ruff, TypeScript, ESLint, Vitest, and a production build |
@@ -20,6 +21,8 @@ This repository contains a working **frontend, backend, B0 baseline agent, and e
 Install Python 3.11+ and Node.js 22.13+. The recommended Node version is recorded in `.nvmrc`.
 
 The agent stages need an Anthropic API key. Copy `backend/.env.example` to `backend/.env` and set `ANTHROPIC_API_KEY`, or export it in your shell. **Without a key the app still starts**, in scaffold mode: projects and runs are recorded, but no requirement is analysed and no test is generated. `GET /api/v1/system` reports which mode is active.
+
+Reading the project under test needs one more setting. `REQTEST_REPOSITORY_ROOT` is the directory that project repositories live under; a run may only read paths inside it, and only their public interface. Leaving it unset means the saved repository reference is stored but never read, which is the safe default.
 
 Executing generated tests additionally needs Docker. Build the sandbox image once:
 
@@ -66,7 +69,7 @@ The frontend development server proxies `/api` to the backend. Copy either direc
 
 | Mode | When | What a run does |
 | --- | --- | --- |
-| `baseline_b0` | API credentials resolve | Extracts structured requirements, flags ambiguous and untestable ones, generates pytest tests linked to requirement ids, reports coverage gaps, and — when the sandbox is available — executes each test and records its outcome |
+| `baseline_b0` | API credentials resolve | Reads the project interfaces, extracts structured requirements, flags ambiguous and untestable ones, generates pytest tests linked to requirement ids, reports coverage gaps, and — when the sandbox is available — executes each test against the real project and records its outcome |
 | `scaffold` | No credentials, or `REQTEST_LLM_ENABLED=false` | Records the project inputs and their fingerprint only |
 
 A `baseline_b0` run reports two rates, and they measure different things:
@@ -74,7 +77,18 @@ A `baseline_b0` run reports two rates, and they measure different things:
 - `requirement_coverage` — share of testable requirements linked to at least one **generated** test. It measures generation, not execution, and a requirement id the model invents is filtered out before it counts.
 - `execution_success_rate` — share of **executed** tests that passed. `null` means nothing ran.
 
-`semantic_coverage` and `mutation_score` stay `null`; `null` means *not evaluated*. A repository path or URL is saved as text only: the application does not clone or inspect repository code yet, so most generated tests error on import until that lands. That is a real measurement, not a defect to hide.
+`semantic_coverage` and `mutation_score` stay `null`; `null` means *not evaluated*.
+
+Verification statuses follow the evidence, and only ever downward from what was proven:
+
+| Status | Meaning |
+| --- | --- |
+| `Uncertain` | The requirement is ambiguous or not testable as written |
+| `Unverified` | No test ran against the real project, or one of its tests failed or errored |
+| `Partially Verified` | The project was inspected and every test linked to this requirement passed against it |
+| `Verified` | Not reachable yet; it needs test-adequacy analysis (mutation testing) |
+
+Remote repositories are **not** cloned. A reference must be a local path inside `REQTEST_REPOSITORY_ROOT`; a URL is refused with an explanation.
 
 `mode` names the **generation** configuration, which is what the proposal's baselines compare. This is **B0**: one direct pass, no retrieval, no repository context, no refinement loop. Executing the tests does not make it B1 or B2, because no execution result is fed back into generation.
 
@@ -91,12 +105,14 @@ backend/
     services/llm.py           Anthropic client and structured-output wrapper
     services/analyzer.py      Requirement structuring and ambiguity detection
     services/generator.py     Test generation, traceability, and coverage gaps
+    services/inspector.py     Read-only interface extraction from the project under test
     services/runner.py        Docker sandbox execution and result parsing
     services/orchestrator.py  Agent interface, scaffold and B0 implementations
   sandbox/Dockerfile          Image generated tests execute in
   tests/test_api.py           API and persistence tests
   tests/test_agent.py         Agent stage tests against a fake model
   tests/test_runner.py        Sandbox command and result-parsing tests
+  tests/test_inspector.py     Inspection and path-confinement tests
   pyproject.toml
   requirements-dev.lock       Pinned development dependencies
 frontend/
@@ -131,10 +147,10 @@ This runs backend lint and tests, frontend type checking and linting, Vitest com
 
 In proposal order, the remaining work is:
 
-1. **Repository inspection (FR4).** Mount the project under test into the sandbox and give the generator its real interfaces. This is the highest-value next step: it is what turns today's import errors into meaningful pass and fail results, and it is the precondition for any behavior reaching `Partially Verified`.
+1. **Diagnosis and bounded refinement (FR11-FR13).** Feed execution results back to the agent with an iteration limit, and separate a wrong test expectation from a suspected defect in the project. This is the B2 configuration and the remaining half of the closed loop.
 2. **RAG evidence retrieval (FR5).** This turns the B0 baseline into the B1 configuration.
-3. **Diagnosis and bounded refinement (FR11-FR13).** Feed execution results back to the agent with an iteration limit. This is the B2 configuration.
-4. **Mutation testing and the HTML report (FR15).** The last two evaluation metrics in the proposal.
+3. **Mutation testing.** The only route to a `Verified` status, and the proposal's mutation-score metric.
+4. **Requirement documents beyond plain text (FR1) and the HTML report (FR15).**
 
 When runs become long-lived, replace the synchronous run endpoint with background execution and status updates; a B0 run is already slow enough to feel it.
 

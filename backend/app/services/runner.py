@@ -25,7 +25,9 @@ STDERR_LIMIT = 4000
 
 
 class TestRunner(Protocol):
-    def execute(self, tests: list[GeneratedTest]) -> ExecutionResult: ...
+    def execute(
+        self, tests: list[GeneratedTest], repository_root: str | None = None
+    ) -> ExecutionResult: ...
 
 
 class SandboxUnavailable(RuntimeError):
@@ -37,7 +39,9 @@ class DockerTestRunner:
         self._settings = settings
         self._run = run_command
 
-    def execute(self, tests: list[GeneratedTest]) -> ExecutionResult:
+    def execute(
+        self, tests: list[GeneratedTest], repository_root: str | None = None
+    ) -> ExecutionResult:
         if not tests:
             return ExecutionResult(executions=[], exit_code=0, timed_out=False, stderr_excerpt="")
 
@@ -47,7 +51,7 @@ class DockerTestRunner:
             container = f"reqtest-run-{uuid4().hex[:12]}"
             try:
                 completed = self._run(
-                    self._command(workspace, container),
+                    self._command(workspace, container, repository_root),
                     capture_output=True,
                     text=True,
                     timeout=self._settings.sandbox_timeout_seconds,
@@ -81,8 +85,17 @@ class DockerTestRunner:
             modules[name] = test.id
         return modules
 
-    def _command(self, workspace: Path, container: str) -> list[str]:
+    def _command(
+        self, workspace: Path, container: str, repository_root: str | None = None
+    ) -> list[str]:
         settings = self._settings
+        # The project under test is mounted read-only and put on the import path, so a
+        # generated test can import it but cannot modify it.
+        repository = (
+            ["--volume", f"{repository_root}:/repo:ro", "--env", "PYTHONPATH=/repo"]
+            if repository_root
+            else []
+        )
         return [
             settings.docker_binary,
             "run",
@@ -109,6 +122,7 @@ class DockerTestRunner:
             f"{workspace}:/work",
             "--workdir",
             "/work",
+            *repository,
             settings.sandbox_image,
             "-q",
             "--no-header",

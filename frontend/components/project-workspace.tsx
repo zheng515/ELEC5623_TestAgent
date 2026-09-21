@@ -22,6 +22,7 @@ function outcomeTone(outcome: string) {
 
 const EVENT_TITLES: Record<string, string> = {
   understand: "Project inputs recorded",
+  inspect: "Repository inspected",
   analyze: "Requirements analyzed",
   generate: "Tests generated",
   measure: "Tests executed",
@@ -36,6 +37,14 @@ function eventTitle(stage: string, index: number) {
 function stageStates(run?: VerificationRun) {
   const analysed = run?.status === "completed" || run?.stage === "generate";
   return [
+    {
+      name: "Inspect repository",
+      state: run?.report.repository
+        ? "Complete"
+        : run?.status === "completed"
+          ? "Not connected"
+          : "Not started",
+    },
     {
       name: "Analyze requirements",
       state: !run
@@ -328,9 +337,48 @@ export function Evidence({
         <div className="source-footer">
           <span>Repository reference</span>
           <code>{project.repository_ref || "Not provided"}</code>
-          <small>Source code has not been inspected.</small>
+          <small>
+            {run?.report.repository
+              ? `Read the public interface of ${run.report.repository.modules.length} modules. File contents were not read.`
+              : "Source code has not been inspected."}
+          </small>
         </div>
       </section>
+      {run?.report.repository && (
+        <section className="panel">
+          <SectionTitle
+            eyebrow="WHAT THE AGENT COULD SEE"
+            title="Inspected interfaces"
+            action={
+              <Badge>{run.report.repository.modules.length} modules</Badge>
+            }
+          />
+          <ul className="module-list">
+            {run.report.repository.modules.map((module) => (
+              <li key={module.module}>
+                <div className="test-heading">
+                  <code>{module.module}</code>
+                  <small className="muted">{module.path}</small>
+                </div>
+                {module.docstring && <p>{module.docstring}</p>}
+                <pre className="test-code">
+                  {[
+                    ...module.constants,
+                    ...module.functions.map((f) => `def ${f}`),
+                    ...module.classes.map((c) => `class ${c}`),
+                  ].join("\n") || "No public interface."}
+                </pre>
+              </li>
+            ))}
+          </ul>
+          {run.report.repository.truncated && (
+            <p className="small muted">
+              The repository was larger than the inspection limit, so this list
+              is incomplete.
+            </p>
+          )}
+        </section>
+      )}
       <section className="panel">
         <SectionTitle
           eyebrow="BEHAVIOR-LEVEL TRACEABILITY"
@@ -390,7 +438,10 @@ export function Evidence({
                   <strong>{b.description}</strong>
                   <Badge
                     tone={
-                      b.verification_status === "Verified" ? "teal" : "amber"
+                      b.verification_status === "Verified" ||
+                      b.verification_status === "Partially Verified"
+                        ? "teal"
+                        : "amber"
                     }
                   >
                     {b.verification_status}

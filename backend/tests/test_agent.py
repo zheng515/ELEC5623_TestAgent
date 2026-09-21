@@ -12,7 +12,9 @@ from app.schemas import (
     ExecutionResult,
     GeneratedTest,
     GeneratedTestSuite,
+    ModuleInterface,
     Project,
+    RepositorySnapshot,
     RequirementAnalysis,
     RequirementItem,
 )
@@ -91,9 +93,11 @@ class FakeRunner:
     def __init__(self, result):
         self.result = result
         self.received: list[list[GeneratedTest]] = []
+        self.roots: list[str | None] = []
 
-    def execute(self, tests):
+    def execute(self, tests, repository_root=None):
         self.received.append(tests)
+        self.roots.append(repository_root)
         return self.result
 
 
@@ -243,7 +247,7 @@ def test_api_serves_an_agent_run_end_to_end(settings):
 def test_missing_credentials_fall_back_to_scaffold_mode(tmp_path, monkeypatch):
     for name in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"):
         monkeypatch.delenv(name, raising=False)
-    live = Settings(database_path=tmp_path / "live.db", _env_file=None)
+    live = Settings(database_path=tmp_path / "live.db", sandbox_enabled=False, _env_file=None)
 
     with TestClient(create_app(live)) as client:
         assert client.get("/api/v1/system").json()["mode"] == "scaffold"
@@ -256,7 +260,9 @@ def test_missing_credentials_fall_back_to_scaffold_mode(tmp_path, monkeypatch):
 
 def test_configured_credentials_enable_the_agent(tmp_path, monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-not-a-real-key")
-    live = Settings(database_path=tmp_path / "live.db", _env_file=None)
+    # sandbox_enabled=False so the result does not depend on whether the machine
+    # running the suite happens to have Docker started.
+    live = Settings(database_path=tmp_path / "live.db", sandbox_enabled=False, _env_file=None)
 
     with TestClient(create_app(live)) as client:
         body = client.get("/api/v1/system").json()
@@ -265,8 +271,23 @@ def test_configured_credentials_enable_the_agent(tmp_path, monkeypatch):
     assert body["mode"] == "baseline_b0"
     assert statuses["analysis"] == "ready"
     assert statuses["generation"] == "ready"
-    # Execution is still unconnected and must not be advertised as ready.
     assert statuses["execution"] == "not_connected"
+
+
+def test_a_connected_sandbox_is_advertised_as_ready(tmp_path):
+    orchestrator = DirectLLMOrchestrator(
+        FakeLLM(ANALYSIS, SUITE), runner=FakeRunner(execution("passed"))
+    )
+    settings = Settings(database_path=tmp_path / "live.db", _env_file=None)
+
+    with TestClient(create_app(settings, orchestrator=orchestrator)) as client:
+        statuses = {
+            i["key"]: i["status"] for i in client.get("/api/v1/system").json()["integrations"]
+        }
+
+    assert statuses["execution"] == "ready"
+    # Diagnosis and refinement are the next stage and must not be claimed yet.
+    assert statuses["diagnosis"] == "not_connected"
 
 
 def test_executed_outcomes_are_recorded_with_a_success_rate():
@@ -333,3 +354,121 @@ def test_without_a_sandbox_the_run_says_so_instead_of_claiming_execution():
     ]
     assert "not connected" in run.events[-1].message
     assert any("build-sandbox.sh" in issue for issue in run.report.unresolved_issues)
+
+
+def test_a_container_killed_by_the_memory_limit_is_explained_not_just_numbered():
+    killed = ExecutionResult(executions=[], exit_code=137, timed_out=False, stderr_excerpt="")
+
+    report = run_agent(ANALYSIS, SUITE, runner=FakeRunner(killed)).report
+
+    assert report.executed_tests == 0
+    assert report.execution_success_rate is None
+    assert any("REQTEST_SANDBOX_MEMORY" in issue for issue in report.unresolved_issues)
+
+
+def test_a_sandbox_that_collected_nothing_is_not_reported_as_success():
+    empty = ExecutionResult(executions=[], exit_code=4, timed_out=False, stderr_excerpt="no tests")
+
+    report = run_agent(ANALYSIS, SUITE, runner=FakeRunner(empty)).report
+
+    assert report.execution_success_rate is None
+    assert any("Exit code 4" in issue for issue in report.unresolved_issues)
+
+
+REPOSITORY = RepositorySnapshot(
+    root="/repos/shipping",
+    modules=[
+        ModuleInterface(
+            module="shipping",
+            path="shipping.py",
+            docstring="Shipping fees.",
+            constants=["FREE_THRESHOLD"],
+            functions=["fee(amount_cents: int) -> int"],
+            classes=[],
+        )
+    ],
+    sha256="abc",
+)
+
+
+def inspecting_agent(*responses, runner=None, repository=REPOSITORY):
+    """A B0 orchestrator whose inspection step returns a canned snapshot."""
+    orchestrator = DirectLLMOrchestrator(FakeLLM(*responses), runner=runner)
+    orchestrator._inspect = lambda project, events: (repository, [])
+    return orchestrator
+
+
+def test_the_real_interfaces_reach_the_generator_and_the_sandbox():
+    llm = FakeLLM(ANALYSIS, SUITE)
+    runner = FakeRunner(execution("passed"))
+    orchestrator = DirectLLMOrchestrator(llm, runner=runner)
+    orchestrator._inspect = lambda project, events: (REPOSITORY, [])
+
+    run = orchestrator.run(PROJECT)
+
+    assert "module shipping (shipping.py)" in llm.prompts[1]
+    assert "fee(amount_cents: int) -> int" in llm.prompts[1]
+    assert runner.roots == ["/repos/shipping"]
+    assert run.report.repository is not None
+    assert run.report.repository.sha256 == "abc"
+
+
+def test_a_passing_test_against_the_inspected_system_is_partial_evidence():
+    run = inspecting_agent(ANALYSIS, SUITE, runner=FakeRunner(execution("passed"))).run(PROJECT)
+
+    statuses = {b.requirement_id: b.verification_status for b in run.report.behaviors}
+    # Partially Verified, never Verified: adequacy of the tests is not evaluated.
+    assert statuses == {"R1": "Partially Verified", "R2": "Uncertain"}
+
+
+def test_a_failing_test_leaves_the_behavior_unverified():
+    run = inspecting_agent(ANALYSIS, SUITE, runner=FakeRunner(execution("passed", "failed"))).run(
+        PROJECT
+    )
+
+    statuses = {b.requirement_id: b.verification_status for b in run.report.behaviors}
+    assert statuses["R1"] == "Unverified"
+
+
+def test_a_passing_test_without_inspection_is_not_evidence():
+    # Same green result, but the module under test was guessed rather than read.
+    run = run_agent(ANALYSIS, SUITE, runner=FakeRunner(execution("passed")))
+
+    statuses = {b.requirement_id: b.verification_status for b in run.report.behaviors}
+    assert statuses["R1"] == "Unverified"
+    assert run.report.repository is None
+
+
+def test_an_unreadable_repository_reports_the_reason_without_failing_the_run(tmp_path):
+    project = PROJECT.model_copy(update={"repository_ref": "../outside"})
+    settings = Settings(repository_root=tmp_path, _env_file=None)
+    orchestrator = DirectLLMOrchestrator(FakeLLM(ANALYSIS, SUITE), settings=settings)
+
+    run = orchestrator.run(project)
+
+    assert run.status == "completed"
+    assert run.report.repository is None
+    assert any("Repository not read" in issue for issue in run.report.unresolved_issues)
+    assert any(event.stage == "inspect" for event in run.events)
+
+
+def test_a_project_without_a_repository_says_the_tests_must_guess():
+    report = run_agent(ANALYSIS, SUITE).report
+
+    assert any("guess the module" in issue for issue in report.unresolved_issues)
+
+
+def test_inspection_status_follows_the_configured_root(tmp_path):
+    off = Settings(database_path=tmp_path / "a.db", sandbox_enabled=False, _env_file=None)
+    on = off.model_copy(update={"repository_root": tmp_path})
+
+    def statuses(settings):
+        orchestrator = DirectLLMOrchestrator(FakeLLM(), settings=settings)
+        with TestClient(create_app(settings, orchestrator=orchestrator)) as client:
+            body = client.get("/api/v1/system").json()
+        return {i["key"]: i["status"] for i in body["integrations"]}
+
+    assert statuses(off)["inspection"] == "not_connected"
+    assert statuses(on)["inspection"] == "ready"
+    # RAG is a separate integration and is still unbuilt.
+    assert statuses(on)["retrieval"] == "not_connected"

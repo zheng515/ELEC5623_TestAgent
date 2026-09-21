@@ -46,6 +46,7 @@ const run: VerificationRun = {
   ],
   report: {
     summary: "Setup only. No tests executed.",
+    repository: null,
     requirements: [],
     generated_tests: [],
     behaviors: [],
@@ -285,8 +286,8 @@ it("shows generated tests and their requirement links, without claiming executio
   expect(
     screen.getByText(/They have not been executed, so none of them is known/),
   ).toBeTruthy();
-  // Execution and refinement are still unconnected, and the UI must say so.
-  expect(screen.getAllByText("Not connected")).toHaveLength(2);
+  // Inspection, execution and refinement are all unconnected, and the UI says so.
+  expect(screen.getAllByText("Not connected")).toHaveLength(3);
 });
 
 it("reports a failed run as failed instead of showing an empty result", async () => {
@@ -316,6 +317,22 @@ const executedRun: VerificationRun = {
   ...agentRun,
   report: {
     ...agentRun.report,
+    repository: {
+      root: "/repos/shipping",
+      modules: [
+        {
+          module: "shipping",
+          path: "shipping.py",
+          docstring: "Shipping fees.",
+          constants: ["FREE_THRESHOLD_CENTS"],
+          functions: ["fee(amount_cents: int) -> int"],
+          classes: [],
+        },
+      ],
+      skipped: [],
+      truncated: false,
+      sha256: "abc123",
+    },
     executions: [
       {
         test_id: "T1",
@@ -339,9 +356,9 @@ it("shows each executed outcome without turning a green test into verification",
 
   expect(screen.getByText("error")).toBeTruthy();
   expect(screen.getByText(/A passing test is not verification/)).toBeTruthy();
-  // The execute stage is done; refinement is still unconnected.
+  // Inspection, analysis, generation and execution are done; refinement is not.
   expect(screen.getAllByText("Not connected")).toHaveLength(1);
-  expect(screen.getAllByText("Complete")).toHaveLength(3);
+  expect(screen.getAllByText("Complete")).toHaveLength(4);
 });
 
 it("reports execution evidence and a success rate in the report", async () => {
@@ -359,5 +376,21 @@ it("reports execution evidence and a success rate in the report", async () => {
   ).toBeTruthy();
   expect(
     screen.getByText("test_shipping.py::test_free_shipping_at_threshold"),
+  ).toBeTruthy();
+});
+
+it("shows only the interfaces the agent was allowed to see", async () => {
+  vi.mocked(api.runs).mockResolvedValue([executedRun]);
+  window.history.replaceState({}, "", "/#view=evidence&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Requirements & evidence" });
+
+  expect(screen.getByText("Inspected interfaces")).toBeTruthy();
+  expect(screen.getByText("shipping")).toBeTruthy();
+  expect(
+    screen.getByText(/def fee\(amount_cents: int\) -> int/),
+  ).toBeTruthy();
+  expect(
+    screen.getByText(/File contents were not read/),
   ).toBeTruthy();
 });
