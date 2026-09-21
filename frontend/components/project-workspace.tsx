@@ -1,7 +1,70 @@
 import { useState } from "react";
 import type { Behavior, Project, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
-import { Badge, Empty, formatDate, SectionTitle } from "./ui";
+import {
+  Badge,
+  Empty,
+  formatDate,
+  modeLabel,
+  percent,
+  runBadge,
+  SectionTitle,
+} from "./ui";
+
+function outcomesFor(run: VerificationRun | undefined, testId: string) {
+  return (run?.report.executions ?? [])
+    .filter((execution) => execution.test_id === testId)
+    .map((execution) => execution.outcome);
+}
+function outcomeTone(outcome: string) {
+  return outcome === "passed" ? "teal" : outcome === "skipped" ? "neutral" : "amber";
+}
+
+const EVENT_TITLES: Record<string, string> = {
+  understand: "Project inputs recorded",
+  analyze: "Requirements analyzed",
+  generate: "Tests generated",
+  measure: "Tests executed",
+  improve: "Tests refined",
+  re_measure: "Tests re-executed",
+};
+function eventTitle(stage: string, index: number) {
+  return EVENT_TITLES[stage] ?? (index === 0 ? "Run started" : "Workflow event");
+}
+
+/** Stages of the proposed closed loop, with the state this run actually reached. */
+function stageStates(run?: VerificationRun) {
+  const analysed = run?.status === "completed" || run?.stage === "generate";
+  return [
+    {
+      name: "Analyze requirements",
+      state: !run
+        ? "Not started"
+        : run.mode === "scaffold"
+          ? "Blocked"
+          : analysed || run.status === "completed"
+            ? "Complete"
+            : "Failed",
+    },
+    {
+      name: "Generate tests",
+      state: !run
+        ? "Not started"
+        : run.mode === "scaffold"
+          ? "Blocked"
+          : run.status === "completed"
+            ? "Complete"
+            : run.stage === "generate"
+              ? "Failed"
+              : "Not started",
+    },
+    {
+      name: "Execute tests",
+      state: run?.report.executions.length ? "Complete" : "Not connected",
+    },
+    { name: "Diagnose & refine", state: "Not connected" },
+  ];
+}
 
 export function Workspace({
   project,
@@ -18,9 +81,7 @@ export function Workspace({
     <>
       <div className="workspace-heading">
         <div>
-          <Badge tone="amber">
-            {run ? "Blocked · Integration required" : "Ready for setup"}
-          </Badge>
+          <Badge tone={runBadge(run).tone}>{runBadge(run).label}</Badge>
           <h1>Agent workspace</h1>
           <p>{project.goal}</p>
         </div>
@@ -37,24 +98,41 @@ export function Workspace({
           {run ? `RUN ${run.id.slice(0, 8).toUpperCase()}` : "NO RUN SELECTED"}
         </span>
         <span>{run ? formatDate(run.created_at) : "Inputs saved"}</span>
-        <span>Scaffold mode</span>
+        <span>{modeLabel(run?.mode)}</span>
       </div>
       <section className="stage-panel">
         <div>
           <span className="eyebrow">CURRENT STATE</span>
           <h2>
-            {run
-              ? "Inputs recorded. Waiting for agent integration."
-              : "Your verification goal is ready."}
+            {!run
+              ? "Your verification goal is ready."
+              : run.status === "completed"
+                ? `${run.report.requirements.length} requirements analyzed, ${run.report.generated_tests.length} tests generated.`
+                : run.status === "failed"
+                  ? "The run failed before it produced a result."
+                  : "Inputs recorded. Waiting for agent integration."}
           </h2>
-          <p>No requirement analysis or test execution has taken place.</p>
+          <p>
+            {run?.status === "completed"
+              ? "Generated tests have not been executed, so no behavior is verified yet."
+              : "No requirement analysis or test execution has taken place."}
+          </p>
         </div>
         <div className="stages">
-          {["Understand", "Measure", "Improve", "Re-measure"].map((s, i) => (
-            <div key={s} className={i === 0 && run ? "stage blocked" : "stage"}>
+          {stageStates(run).map((stage, i) => (
+            <div
+              key={stage.name}
+              className={
+                stage.state === "Complete"
+                  ? "stage complete"
+                  : stage.state === "Not started"
+                    ? "stage"
+                    : "stage blocked"
+              }
+            >
               <span>0{i + 1}</span>
-              <strong>{s}</strong>
-              <small>{i === 0 && run ? "Blocked" : "Not started"}</small>
+              <strong>{stage.name}</strong>
+              <small>{stage.state}</small>
             </div>
           ))}
         </div>
@@ -75,9 +153,7 @@ export function Workspace({
                     <span className="event-time">
                       {formatDate(event.created_at)} · {event.stage}
                     </span>
-                    <h3>
-                      {i === 0 ? "Project inputs recorded" : "Workflow blocked"}
-                    </h3>
+                    <h3>{eventTitle(event.stage, i)}</h3>
                     <p>{event.message}</p>
                     <details>
                       <summary>View record</summary>
@@ -109,27 +185,21 @@ export function Workspace({
             />
             <div className="snapshot">
               <div>
-                <span>Analyzed behaviors</span>
-                <strong>{run?.report.behaviors.length || "—"}</strong>
+                <span>Requirements analyzed</span>
+                <strong>{run?.report.requirements.length || "—"}</strong>
+              </div>
+              <div>
+                <span>Tests generated</span>
+                <strong>{run?.report.generated_tests.length || "—"}</strong>
               </div>
               <div>
                 <span>Executed tests</span>
                 <strong>{run?.report.executed_tests ?? "—"}</strong>
               </div>
               <div>
-                <span>Semantic coverage</span>
+                <span>Requirement coverage</span>
                 <strong>
-                  {run?.report.semantic_coverage == null
-                    ? "Not evaluated"
-                    : `${run.report.semantic_coverage}%`}
-                </strong>
-              </div>
-              <div>
-                <span>Mutation score</span>
-                <strong>
-                  {run?.report.mutation_score == null
-                    ? "Not evaluated"
-                    : `${run.report.mutation_score}%`}
+                  {percent(run?.report.requirement_coverage) ?? "Not evaluated"}
                 </strong>
               </div>
             </div>
@@ -142,12 +212,16 @@ export function Workspace({
           </section>
           <section className="panel blocker-panel">
             <SectionTitle
-              eyebrow="WHAT IS BLOCKING THIS RUN?"
-              title="Integration needed"
+              eyebrow="WHAT NEEDS ATTENTION?"
+              title={
+                run?.status === "completed"
+                  ? "Unresolved issues"
+                  : "Integration needed"
+              }
             />
             <p>
-              These are implementation dependencies, not business questions for
-              you to approve.
+              Ambiguous requirements, coverage gaps, and missing integrations.
+              Nothing here is a verification claim.
             </p>
             <ul>
               {(
@@ -162,25 +236,53 @@ export function Workspace({
         </div>
       </div>
       <section className="panel">
-        <SectionTitle eyebrow="OUTPUTS" title="Tests & findings" />
-        <div className="outputs-grid">
-          <div>
-            <span className="output-icon">{"{}"}</span>
-            <h3>No test artifacts yet</h3>
-            <p>
-              Generated tests, execution results, and changes will appear after
-              the test-generation and runner modules are connected.
+        <SectionTitle
+          eyebrow="OUTPUTS"
+          title="Generated tests"
+          action={
+            <Badge>{run?.report.generated_tests.length ?? 0} tests</Badge>
+          }
+        />
+        {run?.report.generated_tests.length ? (
+          <>
+            <ul className="test-list">
+              {run.report.generated_tests.map((test) => (
+                <li key={test.id}>
+                  <div className="test-heading">
+                    <code>{test.module}</code>
+                    <span className="test-tags">
+                      <Badge>
+                        {test.requirement_ids.length
+                          ? test.requirement_ids.join(", ")
+                          : "No linked requirement"}
+                      </Badge>
+                      {outcomesFor(run, test.id).map((outcome, index) => (
+                        <Badge key={index} tone={outcomeTone(outcome)}>
+                          {outcome}
+                        </Badge>
+                      ))}
+                    </span>
+                  </div>
+                  <p>{test.rationale || test.name}</p>
+                  <details>
+                    <summary>View generated code</summary>
+                    <pre className="test-code">{test.code}</pre>
+                  </details>
+                </li>
+              ))}
+            </ul>
+            <p className="small muted">
+              {run.report.executed_tests
+                ? "Outcomes come from a sandboxed pytest run. A passing test is not verification: the system under test was not inspected."
+                : "These tests were generated from the requirements alone. They have not been executed, so none of them is known to run or pass."}
             </p>
-          </div>
-          <div>
-            <span className="output-icon">↗</span>
-            <h3>No diagnostic findings yet</h3>
-            <p>
-              Requirement questions and suspected defects will be linked to
-              their supporting evidence here.
-            </p>
-          </div>
-        </div>
+          </>
+        ) : (
+          <Empty title="No test artifacts yet">
+            Generated tests appear here once a run completes. Execution results
+            follow when the sandboxed runner is connected.
+          </Empty>
+        )}
       </section>
     </>
   );
@@ -420,7 +522,13 @@ export function Report({
               >
                 <strong>Run {r.id.slice(0, 8)}</strong>
                 <small>{formatDate(r.created_at)}</small>
-                <Badge tone="amber">Blocked</Badge>
+                <Badge tone={runBadge(r).tone}>
+                  {r.status === "blocked"
+                    ? "Blocked"
+                    : r.status === "failed"
+                      ? "Failed"
+                      : "Generated"}
+                </Badge>
               </a>
             ))}
           </aside>
@@ -429,7 +537,13 @@ export function Report({
               <span className="eyebrow">VERIFICATION REPORT</span>
               <h2>{project.name}</h2>
               <p>{run.report.summary}</p>
-              <Badge tone="amber">Setup only · no executed verification</Badge>
+              <Badge tone={runBadge(run).tone}>
+                {run.status === "completed"
+                  ? "Tests generated · no executed verification"
+                  : run.status === "failed"
+                    ? "Run failed · no result"
+                    : "Setup only · no executed verification"}
+              </Badge>
             </div>
             <section>
               <h3>01 / Scope & goal</h3>
@@ -457,8 +571,24 @@ export function Report({
               <h3>02 / Verification results</h3>
               <div className="report-metrics">
                 <div>
+                  <strong>{run.report.generated_tests.length}</strong>
+                  <span>Generated tests</span>
+                </div>
+                <div>
                   <strong>{run.report.executed_tests}</strong>
                   <span>Executed tests</span>
+                </div>
+                <div>
+                  <strong>
+                    {percent(run.report.requirement_coverage) ?? "—"}
+                  </strong>
+                  <span>Requirement coverage</span>
+                </div>
+                <div>
+                  <strong>
+                    {percent(run.report.execution_success_rate) ?? "—"}
+                  </strong>
+                  <span>Execution success rate</span>
                 </div>
                 <div>
                   <strong>
@@ -483,15 +613,106 @@ export function Report({
               </p>
             </section>
             <section>
-              <h3>03 / Unresolved dependencies</h3>
+              <h3>03 / Requirement to test mapping</h3>
+              {run.report.requirements.length ? (
+                <>
+                  <table className="trace-table">
+                    <thead>
+                      <tr>
+                        <th>Requirement</th>
+                        <th>Testable</th>
+                        <th>Generated tests</th>
+                        <th>Outcome</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {run.report.requirements.map((requirement) => {
+                        const tests = run.report.generated_tests.filter((t) =>
+                          t.requirement_ids.includes(requirement.id),
+                        );
+                        return (
+                          <tr key={requirement.id}>
+                            <td>
+                              <code>{requirement.id}</code> {requirement.text}
+                              {requirement.ambiguity && (
+                                <small className="muted">
+                                  {" "}
+                                  Ambiguity: {requirement.ambiguity}
+                                </small>
+                              )}
+                            </td>
+                            <td>{requirement.testable ? "Yes" : "No"}</td>
+                            <td>
+                              {tests.length
+                                ? tests.map((t) => t.module).join(", ")
+                                : "—"}
+                            </td>
+                            <td>
+                              {run.report.executions
+                                .filter((e) =>
+                                  tests.some((t) => t.id === e.test_id),
+                                )
+                                .map((e) => e.outcome)
+                                .join(", ") || "Not executed"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <p className="small muted">
+                    A listed test was generated from its requirement. It has not
+                    been executed, so the mapping is not verification evidence.
+                  </p>
+                </>
+              ) : (
+                <p className="muted">
+                  No structured requirements were produced by this run.
+                </p>
+              )}
+            </section>
+            <section>
+              <h3>04 / Unresolved issues</h3>
               <ul className="issue-list">
                 {run.report.unresolved_issues.map((i) => (
                   <li key={i}>{i}</li>
                 ))}
               </ul>
             </section>
+            {run.report.executions.length > 0 && (
+              <section>
+                <h3>05 / Execution evidence</h3>
+                <table className="trace-table">
+                  <thead>
+                    <tr>
+                      <th>Test</th>
+                      <th>Outcome</th>
+                      <th>Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {run.report.executions.map((execution, index) => (
+                      <tr key={index}>
+                        <td>
+                          <code>
+                            {execution.module}::{execution.name}
+                          </code>
+                        </td>
+                        <td>{execution.outcome}</td>
+                        <td>{execution.message || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="small muted">
+                  Recorded from a sandboxed pytest run with no network access. A
+                  passing test shows the test ran green, not that the
+                  requirement is satisfied by the real system.
+                </p>
+              </section>
+            )}
             <section>
-              <h3>04 / Activity record</h3>
+              <h3>{run.report.executions.length ? "06" : "05"} / Activity record</h3>
               {run.events.map((e) => (
                 <div className="report-event" key={e.id}>
                   <span>{e.stage}</span>

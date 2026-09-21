@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Project, SystemInfo, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
-import { Badge, Empty, formatDate, SectionTitle } from "./ui";
+import { Badge, Empty, formatDate, runBadge, SectionTitle } from "./ui";
 
 export function Home({
   projects,
@@ -136,7 +136,13 @@ export function Home({
                     Run {run.id.slice(0, 8)} · {formatDate(run.created_at)}
                   </small>
                 </div>
-                <Badge tone="amber">Blocked</Badge>
+                <Badge tone={runBadge(run).tone}>
+                  {run.status === "blocked"
+                    ? "Blocked"
+                    : run.status === "failed"
+                      ? "Failed"
+                      : "Generated"}
+                </Badge>
               </a>
             ))
           ) : (

@@ -927,6 +927,12 @@ textarea {
 .stage.blocked small {
   color: #907241;
 }
+.stage.complete {
+  border-top-color: #6f9c72;
+}
+.stage.complete small {
+  color: #3b7350;
+}
 .workspace-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
@@ -1228,7 +1234,7 @@ details .key-values {
 }
 .report-metrics {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 15px;
   margin-bottom: 20px;
 }
@@ -1681,6 +1687,89 @@ details .key-values {
   textarea,
   select {
     font-size: 16px;
+  }
+}
+.test-list {
+  display: grid;
+  gap: 14px;
+  list-style: none;
+}
+.test-list > li {
+  border: 1px solid #e5ebdc;
+  border-radius: 7px;
+  padding: 16px 18px;
+  background: #fbfcf8;
+}
+.test-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.test-heading code {
+  font-size: 12px;
+  color: #5d7550;
+}
+.test-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.test-list p {
+  font-size: 11px;
+  color: #849077;
+  margin-top: 7px;
+}
+.test-list details {
+  margin-top: 10px;
+}
+.test-list summary {
+  font-size: 10px;
+  color: #6c7b64;
+  cursor: pointer;
+}
+.test-code {
+  margin-top: 9px;
+  padding: 14px;
+  border-radius: 6px;
+  background: #f4f7ee;
+  border: 1px solid #e5ebdc;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #4f6544;
+  overflow-x: auto;
+  white-space: pre;
+}
+.trace-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+.trace-table th {
+  text-align: left;
+  font-weight: 500;
+  color: #6c7b64;
+  border-bottom: 1px solid #e5ebdc;
+  padding: 8px 10px 8px 0;
+}
+.trace-table td {
+  vertical-align: top;
+  color: #7f876a;
+  border-bottom: 1px solid #f0f3ea;
+  padding: 9px 10px 9px 0;
+  line-height: 1.7;
+}
+.trace-table code {
+  color: #5d7550;
+}
+
+@media (max-width: 720px) {
+  .trace-table {
+    display: block;
+    overflow-x: auto;
   }
 }
 @media (prefers-reduced-motion: reduce) {

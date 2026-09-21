@@ -183,7 +183,7 @@ export default function App() {
           ) : route.view === "home" ? (
             <Home {...data} />
           ) : route.view === "new" ? (
-            <NewTask submit={submit} busy={busy} />
+            <NewTask submit={submit} busy={busy} mode={data?.system.mode} />
           ) : !project ? (
             <section className="panel">
               <Empty

@@ -10,7 +10,9 @@ from app.schemas import Project
 
 @pytest.fixture
 def settings(tmp_path):
-    return Settings(database_path=tmp_path / "test.db", _env_file=None)
+    # llm_enabled=False keeps these tests on the scaffold orchestrator, so the suite
+    # behaves the same whether or not the machine running it has model credentials.
+    return Settings(database_path=tmp_path / "test.db", llm_enabled=False, _env_file=None)
 
 
 @pytest.fixture

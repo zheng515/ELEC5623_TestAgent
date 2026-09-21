@@ -46,12 +46,64 @@ const run: VerificationRun = {
   ],
   report: {
     summary: "Setup only. No tests executed.",
+    requirements: [],
+    generated_tests: [],
     behaviors: [],
     evidence: [],
     unresolved_issues: ["Connect requirement analysis."],
+    coverage_gaps: [],
+    executions: [],
     executed_tests: 0,
+    execution_success_rate: null,
+    requirement_coverage: null,
     semantic_coverage: null,
     mutation_score: null,
+  },
+};
+const agentRun: VerificationRun = {
+  ...run,
+  mode: "baseline_b0",
+  status: "completed",
+  stage: "report",
+  events: [
+    {
+      id: "e1",
+      stage: "analyze",
+      created_at: project.created_at,
+      message: "Extracted 2 requirements.",
+    },
+  ],
+  report: {
+    ...run.report,
+    summary: "B0 baseline run.",
+    requirements: [
+      {
+        id: "R1",
+        text: "An order of at least 100 dollars ships free.",
+        source_quote: "Orders of at least 100 dollars ship free.",
+        testable: true,
+        ambiguity: null,
+      },
+      {
+        id: "R2",
+        text: "Large orders are delivered quickly.",
+        source_quote: "Large orders are fast.",
+        testable: false,
+        ambiguity: "'large' has no stated threshold.",
+      },
+    ],
+    generated_tests: [
+      {
+        id: "T1",
+        requirement_ids: ["R1"],
+        name: "test_free_shipping_at_threshold",
+        module: "test_shipping.py",
+        code: "def test_free_shipping_at_threshold():\n    assert True\n",
+        rationale: "Boundary at 100.",
+      },
+    ],
+    unresolved_issues: ["R2 is ambiguous: 'large' has no stated threshold."],
+    requirement_coverage: 1,
   },
 };
 beforeEach(() => {
@@ -105,7 +157,7 @@ it("creates a project and setup run in one submission, then opens the blocked wo
   expect(api.createProject).toHaveBeenCalledWith(sample);
   expect(api.createRun).toHaveBeenCalledWith("p1");
   expect(screen.getByText("Blocked · Integration required")).toBeTruthy();
-  expect(screen.getAllByText("Not evaluated")).toHaveLength(2);
+  expect(screen.getAllByText("Not evaluated")).toHaveLength(1);
   expect(document.body.textContent).not.toMatch(/[\u3400-\u9fff]/);
 });
 it("retains the saved project when run creation fails, allowing a retry", async () => {
@@ -217,4 +269,95 @@ it("filters structured behaviors and reveals their evidence instead of inventing
   });
   expect(screen.queryByText("shipping.py:18")).toBeNull();
   expect(screen.getByText("Negative amounts raise ValueError.")).toBeTruthy();
+});
+
+it("shows generated tests and their requirement links, without claiming execution", async () => {
+  vi.mocked(api.runs).mockResolvedValue([agentRun]);
+  vi.mocked(api.recentRuns).mockResolvedValue([agentRun]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Agent workspace" });
+
+  expect(screen.getByText("Tests generated · not executed")).toBeTruthy();
+  expect(screen.getByText("B0 baseline mode")).toBeTruthy();
+  expect(screen.getByText("test_shipping.py")).toBeTruthy();
+  expect(screen.getByText("Boundary at 100.")).toBeTruthy();
+  expect(
+    screen.getByText(/They have not been executed, so none of them is known/),
+  ).toBeTruthy();
+  // Execution and refinement are still unconnected, and the UI must say so.
+  expect(screen.getAllByText("Not connected")).toHaveLength(2);
+});
+
+it("reports a failed run as failed instead of showing an empty result", async () => {
+  const failed: VerificationRun = {
+    ...agentRun,
+    status: "failed",
+    stage: "analyze",
+    report: {
+      ...run.report,
+      summary: "Run failed during the analyze stage.",
+      unresolved_issues: ["The model API could not be reached."],
+    },
+  };
+  vi.mocked(api.runs).mockResolvedValue([failed]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Agent workspace" });
+
+  expect(
+    screen.getByText("The run failed before it produced a result."),
+  ).toBeTruthy();
+  expect(screen.getByText("The model API could not be reached.")).toBeTruthy();
+  expect(screen.queryByText("Tests generated · not executed")).toBeNull();
+});
+
+const executedRun: VerificationRun = {
+  ...agentRun,
+  report: {
+    ...agentRun.report,
+    executions: [
+      {
+        test_id: "T1",
+        module: "test_shipping.py",
+        name: "test_free_shipping_at_threshold",
+        outcome: "error",
+        duration_seconds: 0.01,
+        message: "ModuleNotFoundError: No module named 'shipping'",
+      },
+    ],
+    executed_tests: 1,
+    execution_success_rate: 0,
+  },
+};
+
+it("shows each executed outcome without turning a green test into verification", async () => {
+  vi.mocked(api.runs).mockResolvedValue([executedRun]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Agent workspace" });
+
+  expect(screen.getByText("error")).toBeTruthy();
+  expect(screen.getByText(/A passing test is not verification/)).toBeTruthy();
+  // The execute stage is done; refinement is still unconnected.
+  expect(screen.getAllByText("Not connected")).toHaveLength(1);
+  expect(screen.getAllByText("Complete")).toHaveLength(3);
+});
+
+it("reports execution evidence and a success rate in the report", async () => {
+  vi.mocked(api.runs).mockResolvedValue([executedRun]);
+  window.history.replaceState({}, "", "/#view=reports&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Runs & reports" });
+
+  expect(
+    screen.getByRole("heading", { name: "05 / Execution evidence" }),
+  ).toBeTruthy();
+  expect(screen.getByText("Execution success rate")).toBeTruthy();
+  expect(
+    screen.getByText("ModuleNotFoundError: No module named 'shipping'"),
+  ).toBeTruthy();
+  expect(
+    screen.getByText("test_shipping.py::test_free_shipping_at_threshold"),
+  ).toBeTruthy();
 });

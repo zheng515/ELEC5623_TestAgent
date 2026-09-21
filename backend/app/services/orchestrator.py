@@ -1,9 +1,25 @@
 import hashlib
+from collections import Counter
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Literal, Protocol
 from uuid import uuid4
 
-from app.schemas import Project, RunEvent, VerificationReport, VerificationRun
+from app.schemas import (
+    Behavior,
+    ExecutedTest,
+    ExecutionResult,
+    GeneratedTest,
+    Project,
+    RequirementItem,
+    RunEvent,
+    VerificationReport,
+    VerificationRun,
+    VerificationStatus,
+)
+from app.services.analyzer import analyze_requirements
+from app.services.generator import coverage_gaps, generate_tests, requirement_coverage
+from app.services.llm import LLMError, StructuredLLM
+from app.services.runner import TestRunner
 
 
 class Orchestrator(Protocol):
@@ -55,3 +71,291 @@ class ScaffoldOrchestrator:
                 ],
             ),
         )
+
+
+class DirectLLMOrchestrator:
+    """B0 baseline: requirements are analysed and tests generated in one pass.
+
+    `mode` names the *generation* configuration, which is what the proposal's
+    baselines compare: no retrieval, no repository inspection, no refinement loop.
+    When a sandbox is available the generated tests are also executed and their
+    outcomes recorded, but nothing is fed back into generation, so this stays B0.
+    """
+
+    def __init__(
+        self,
+        llm: StructuredLLM,
+        *,
+        runner: TestRunner | None = None,
+        max_requirements: int = 40,
+    ):
+        self._llm = llm
+        self._runner = runner
+        self._max_requirements = max_requirements
+
+    @property
+    def executes_tests(self) -> bool:
+        return self._runner is not None
+
+    def run(self, project: Project) -> VerificationRun:
+        now = datetime.now(UTC)
+        digest = hashlib.sha256(project.model_dump_json().encode()).hexdigest()
+        events = [
+            _event(
+                "understand",
+                "Project inputs and fingerprint recorded. Repository reference saved; "
+                "source code not read.",
+                now,
+            )
+        ]
+
+        try:
+            analysis = analyze_requirements(
+                self._llm, project, max_requirements=self._max_requirements
+            )
+        except LLMError as error:
+            return self._failed(project, digest, events, "analyze", str(error), now)
+
+        requirements = analysis.requirements
+        ambiguous = [item for item in requirements if item.ambiguity]
+        untestable = [item for item in requirements if not item.testable]
+        events.append(
+            _event(
+                "analyze",
+                f"Extracted {len(requirements)} requirements: "
+                f"{len(requirements) - len(untestable)} testable, {len(untestable)} not "
+                f"testable as written, {len(ambiguous)} with recorded ambiguity.",
+                datetime.now(UTC),
+            )
+        )
+
+        try:
+            suite = generate_tests(self._llm, project, requirements)
+        except LLMError as error:
+            return self._failed(project, digest, events, "generate", str(error), now, requirements)
+
+        gaps = coverage_gaps(requirements, suite.tests)
+        events.append(
+            _event(
+                "generate",
+                f"Generated {len(suite.tests)} pytest tests covering "
+                f"{len(requirements) - len(untestable) - len(gaps)} testable requirements.",
+                datetime.now(UTC),
+            )
+        )
+
+        execution = self._execute(suite.tests, events)
+        executions = execution.executions if execution else []
+
+        unresolved = [f"{item.id} is ambiguous: {item.ambiguity}" for item in ambiguous] + [
+            f"{item.id} is not testable as written: {item.text}" for item in untestable
+        ]
+        if gaps:
+            unresolved.append(f"{len(gaps)} testable requirements have no generated test.")
+        unresolved.extend(_execution_issues(execution, suite.tests))
+        for note in (analysis.notes, suite.notes):
+            if note.strip():
+                unresolved.append(f"Analyst note: {note.strip()}")
+
+        return VerificationRun(
+            id=str(uuid4()),
+            project_id=project.id,
+            mode="baseline_b0",
+            status="completed",
+            stage="report",
+            created_at=now,
+            input_sha256=digest,
+            events=events,
+            report=VerificationReport(
+                summary=(
+                    f"B0 baseline run. {len(requirements)} requirements extracted and "
+                    f"{len(suite.tests)} pytest tests generated with requirement links. "
+                    + _execution_summary(execution)
+                ),
+                requirements=requirements,
+                generated_tests=suite.tests,
+                behaviors=_behaviors(requirements, suite.tests, executions),
+                evidence=_evidence(executions),
+                unresolved_issues=unresolved,
+                coverage_gaps=gaps,
+                executions=executions,
+                executed_tests=len(executions),
+                execution_success_rate=_success_rate(executions),
+                requirement_coverage=requirement_coverage(requirements, suite.tests),
+            ),
+        )
+
+    def _execute(
+        self, tests: list[GeneratedTest], events: list[RunEvent]
+    ) -> ExecutionResult | None:
+        """Run the generated tests in the sandbox, or record that it is unavailable."""
+        if self._runner is None:
+            events.append(
+                _event(
+                    "measure",
+                    "Test execution is not connected: no sandbox is available, so the "
+                    "generated tests were not run.",
+                    datetime.now(UTC),
+                )
+            )
+            return None
+        if not tests:
+            return None
+
+        result = self._runner.execute(tests)
+        if result.timed_out:
+            events.append(
+                _event(
+                    "measure", f"Execution timed out. {result.stderr_excerpt}", datetime.now(UTC)
+                )
+            )
+            return result
+
+        counts = Counter(execution.outcome for execution in result.executions)
+        events.append(
+            _event(
+                "measure",
+                f"Executed {len(result.executions)} tests in the sandbox: "
+                f"{counts['passed']} passed, {counts['failed']} failed, "
+                f"{counts['error']} errored, {counts['skipped']} skipped.",
+                datetime.now(UTC),
+            )
+        )
+        return result
+
+    def _failed(
+        self,
+        project: Project,
+        digest: str,
+        events: list[RunEvent],
+        stage: Literal["analyze", "generate"],
+        message: str,
+        created_at: datetime,
+        requirements: list[RequirementItem] | None = None,
+    ) -> VerificationRun:
+        events = [*events, _event(stage, f"Run failed: {message}", datetime.now(UTC))]
+        return VerificationRun(
+            id=str(uuid4()),
+            project_id=project.id,
+            mode="baseline_b0",
+            status="failed",
+            stage=stage,
+            created_at=created_at,
+            input_sha256=digest,
+            events=events,
+            report=VerificationReport(
+                summary=f"Run failed during the {stage} stage. No result was produced.",
+                requirements=requirements or [],
+                unresolved_issues=[message],
+            ),
+        )
+
+
+def _event(stage: str, message: str, created_at: datetime) -> RunEvent:
+    return RunEvent(id=str(uuid4()), stage=stage, message=message, created_at=created_at)
+
+
+def _behaviors(
+    requirements: list[RequirementItem],
+    tests: list[GeneratedTest],
+    executions: list[ExecutedTest],
+) -> list[Behavior]:
+    """One behavior per requirement, linked to its tests and their outcomes (FR8)."""
+    behaviors = []
+    for requirement in requirements:
+        linked = [test for test in tests if requirement.id in test.requirement_ids]
+        ids = {test.id for test in linked}
+        evidence_refs = [
+            _evidence_id(index)
+            for index, execution in enumerate(executions, start=1)
+            if execution.test_id in ids
+        ]
+        behaviors.append(
+            Behavior(
+                id=f"B-{requirement.id}",
+                requirement_id=requirement.id,
+                source_quote=requirement.source_quote,
+                description=requirement.text,
+                expected_result=None,
+                # A passing generated test is not verification: the system under test was
+                # never inspected, so nothing here can reach Verified yet.
+                verification_status=(
+                    VerificationStatus.UNCERTAIN
+                    if requirement.ambiguity or not requirement.testable
+                    else VerificationStatus.UNVERIFIED
+                ),
+                test_refs=[test.module for test in linked],
+                evidence_refs=evidence_refs,
+            )
+        )
+    return behaviors
+
+
+def _evidence_id(index: int) -> str:
+    return f"E{index}"
+
+
+def _evidence(executions: list[ExecutedTest]) -> list[dict[str, str]]:
+    """Execution outcomes, in the shape the evidence chain in the UI reads."""
+    return [
+        {
+            "id": _evidence_id(index),
+            "test": f"{execution.module}::{execution.name}",
+            "outcome": execution.outcome,
+            "duration_seconds": f"{execution.duration_seconds:.3f}",
+            "message": execution.message,
+        }
+        for index, execution in enumerate(executions, start=1)
+    ]
+
+
+def _success_rate(executions: list[ExecutedTest]) -> float | None:
+    """Share of executed tests that passed, or None when nothing ran."""
+    if not executions:
+        return None
+    passed = sum(1 for execution in executions if execution.outcome == "passed")
+    return round(passed / len(executions), 4)
+
+
+def _execution_summary(execution: ExecutionResult | None) -> str:
+    if execution is None:
+        return "No test was executed, so no behavior is verified."
+    if execution.timed_out:
+        return "Execution timed out, so no outcome was recorded."
+    counts = Counter(item.outcome for item in execution.executions)
+    return (
+        f"{len(execution.executions)} tests executed in the sandbox "
+        f"({counts['passed']} passed, {counts['failed']} failed, {counts['error']} errored). "
+        "The system under test was not inspected, so no behavior is verified."
+    )
+
+
+def _execution_issues(execution: ExecutionResult | None, tests: list[GeneratedTest]) -> list[str]:
+    if execution is None:
+        if not tests:
+            return []
+        return [
+            "Generated tests were not executed. Start Docker and run "
+            "`bash scripts/build-sandbox.sh` to connect the sandbox."
+        ]
+    if execution.timed_out:
+        return [f"Execution timed out: {execution.stderr_excerpt}"]
+
+    issues = []
+    counts = Counter(item.outcome for item in execution.executions)
+    if counts["error"]:
+        issues.append(
+            f"{counts['error']} generated tests could not run. Without repository "
+            "inspection a generated test has to guess the module it imports."
+        )
+    if counts["failed"]:
+        issues.append(
+            f"{counts['failed']} generated tests ran and failed. Each one is either a "
+            "wrong expectation or a suspected defect; diagnosis is not connected yet."
+        )
+    if not execution.executions and tests:
+        issues.append(
+            "The sandbox ran but collected no test. "
+            f"Exit code {execution.exit_code}. {execution.stderr_excerpt}".strip()
+        )
+    return issues
