@@ -35,7 +35,7 @@ React workspace → typed API client → /api/v1 → FastAPI routes
 | GET | /projects/{id} | Project and original requirements |
 | GET | /projects/{id}/runs | Persisted run history |
 | GET | /runs?limit=5 | Recent runs across projects, newest first; limit 1–100 |
-| POST | /projects/{id}/runs | Record a scaffold run synchronously; 201 |
+| POST | /projects/{id}/runs | Analyze requirements synchronously; 201 |
 | GET | /runs/{id} | Run, events, input fingerprint and report |
 | GET | /runs/{id}/report | JSON report download |
 
@@ -87,7 +87,7 @@ Still to build:
 6. **FailureDiagnoser**: evidence-backed diagnosis before any repair. Preserve legitimate failing tests for suspected code defects.
 7. **MutationRunner**: selected relevant mutations, outcome classification and bounded improvement.
 
-Before integrating a real long-running agent, expand run states to queued/running/blocked/completed/failed, separate events into append-only records, persist source/test snapshots and evidence references, and return 202 for enqueued work. Add polling or server-sent events to the frontend. The current synchronous endpoint is deliberately only for quick scaffold recording.
+Before integrating a real long-running agent, expand run states to queued/running/blocked/completed/failed, separate events into append-only records, persist source/test snapshots and evidence references, and return 202 for enqueued work. Add polling or server-sent events to the frontend. The current synchronous endpoint is limited to quick requirement analysis.
 
 `frontend/lib/types.ts` mirrors the backend schemas by hand, so update both together when adding states. OpenAPI is available at `/openapi.json` for future type generation.
 
