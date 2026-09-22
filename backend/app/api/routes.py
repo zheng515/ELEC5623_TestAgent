@@ -11,6 +11,7 @@ from app.schemas import (
     VerificationReport,
     VerificationRun,
 )
+from app.services.report_renderer import render_html_report
 
 router = APIRouter(prefix="/api/v1")
 
@@ -159,3 +160,16 @@ def get_report(run_id: str, request: Request, response: Response):
     run = get_run(run_id, request)
     response.headers["Content-Disposition"] = f'attachment; filename="report-{run.id}.json"'
     return run.report
+
+
+@router.get("/runs/{run_id}/report.html", response_class=Response, tags=["runs"])
+def get_html_report(run_id: str, request: Request):
+    run = get_run(run_id, request)
+    project = get_project(run.project_id, request)
+    return Response(
+        render_html_report(project, run),
+        media_type="text/html",
+        headers={
+            "Content-Disposition": f'attachment; filename="reqtest-report-{run.id}.html"'
+        },
+    )

@@ -518,12 +518,14 @@ export function Report({
   run,
   runs,
   download,
+  downloadHtml,
   busy,
 }: {
   project: Project;
   run?: VerificationRun;
   runs: VerificationRun[];
   download: () => void;
+  downloadHtml: () => void;
   busy: boolean;
 }) {
   return (
@@ -535,13 +537,14 @@ export function Report({
           <p>Review the scope, outcomes, and unresolved issues of each run.</p>
         </div>
         {run && (
-          <button
-            className="button secondary"
-            onClick={download}
-            disabled={busy}
-          >
-            {busy ? "Preparing…" : "Download JSON ↓"}
-          </button>
+          <div className="report-downloads">
+            <button className="button secondary" onClick={downloadHtml} disabled={busy}>
+              {busy ? "Preparing…" : "Download HTML ↓"}
+            </button>
+            <button className="text-button" onClick={download} disabled={busy}>
+              Download JSON ↓
+            </button>
+          </div>
         )}
       </div>
       {!run ? (

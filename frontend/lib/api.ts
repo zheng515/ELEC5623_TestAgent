@@ -71,3 +71,23 @@ export async function downloadReport(id: string) {
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+export async function downloadHtmlReport(id: string) {
+  let response: Response;
+  try {
+    response = await fetch(`${base}/runs/${encodeURIComponent(id)}/report.html`, {
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch {
+    throw new Error("Unable to reach the API. Check that the backend is running and try again.");
+  }
+  if (!response.ok) throw new Error(`Report download failed (${response.status}).`);
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `reqtest-report-${id}.html`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

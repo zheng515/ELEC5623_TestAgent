@@ -6,7 +6,7 @@ import { NewTask } from "../components/new-task";
 import { Evidence, Report, Workspace } from "../components/project-workspace";
 import { Badge, Empty, ErrorNotice, Loading } from "../components/ui";
 import { useResource } from "../hooks/use-resource";
-import { api, downloadReport } from "../lib/api";
+import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import { navigate, urlFor, useRoute } from "../lib/navigation";
 import type { ProjectCreate } from "../lib/types";
 
@@ -87,6 +87,18 @@ export default function App() {
       setActionError(
         e instanceof Error ? e.message : "Unable to download the report.",
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function downloadHtml() {
+    if (!run) return;
+    setBusy(true);
+    setActionError("");
+    try {
+      await downloadHtmlReport(run.id);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Unable to download the HTML report.");
     } finally {
       setBusy(false);
     }
@@ -272,6 +284,7 @@ export default function App() {
                   run={run}
                   runs={runs}
                   download={download}
+                  downloadHtml={downloadHtml}
                   busy={busy}
                 />
               )}

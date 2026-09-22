@@ -38,6 +38,7 @@ React workspace → typed API client → /api/v1 → FastAPI routes
 | POST | /projects/{id}/runs | Analyze requirements synchronously; 201 |
 | GET | /runs/{id} | Run, events, input fingerprint and report |
 | GET | /runs/{id}/report | JSON report download |
+| GET | /runs/{id}/report.html | Portable HTML report download |
 
 All paths above are prefixed with `/api/v1`. Missing records return 404; invalid project fields return 422. A repository reference is an optional string, not permission or a command to access the filesystem.
 
