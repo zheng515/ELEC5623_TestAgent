@@ -645,6 +645,12 @@ pre {
 .page-heading .eyebrow {
   font-size: 9px;
 }
+.report-downloads {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
 .form-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 260px;

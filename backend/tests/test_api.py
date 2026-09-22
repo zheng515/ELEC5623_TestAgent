@@ -148,3 +148,20 @@ def test_legacy_project_without_goal_remains_readable():
         }
     )
     assert project.goal == "Identify verification gaps and improve requirement-based tests."
+
+
+def test_html_report_is_downloadable_and_escapes_user_content(client):
+    project = client.post(
+        "/api/v1/projects",
+        json={"name": "<script>alert(1)</script>", "requirements_text": "A < B."},
+    ).json()
+    run = client.post(f"/api/v1/projects/{project['id']}/runs").json()
+
+    response = client.get(f"/api/v1/runs/{run['id']}/report.html")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "attachment" in response.headers["content-disposition"]
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in response.text
+    assert "<script>alert(1)</script>" not in response.text
+    assert "Requirement-to-test mapping" in response.text

@@ -10,7 +10,7 @@ import {
 import App from "../app/page";
 import { Evidence } from "../components/project-workspace";
 import { NewTask, sample } from "../components/new-task";
-import { api, downloadReport } from "../lib/api";
+import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import type { Project, VerificationRun } from "../lib/types";
 vi.mock("../lib/api", () => ({
   api: {
@@ -22,6 +22,7 @@ vi.mock("../lib/api", () => ({
     createRun: vi.fn(),
   },
   downloadReport: vi.fn(),
+  downloadHtmlReport: vi.fn(),
 }));
 const project: Project = {
   ...sample,
@@ -120,6 +121,7 @@ beforeEach(() => {
   vi.mocked(api.createProject).mockResolvedValue(project);
   vi.mocked(api.createRun).mockResolvedValue(run);
   vi.mocked(downloadReport).mockResolvedValue();
+  vi.mocked(downloadHtmlReport).mockResolvedValue();
 });
 afterEach(() => {
   cleanup();
@@ -190,6 +192,8 @@ it("restores a report from its URL and downloads the selected run", async () => 
   expect(
     screen.getByText("Setup only · no executed verification"),
   ).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Download HTML ↓" }));
+  await waitFor(() => expect(downloadHtmlReport).toHaveBeenCalledWith("r1"));
 });
 it("does not substitute the latest run for an invalid deep link", async () => {
   window.history.replaceState({}, "", "/#view=reports&project=p1&run=missing");

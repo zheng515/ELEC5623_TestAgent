@@ -63,7 +63,7 @@ The frontend development server proxies `/api` to the backend. Copy either direc
 3. Submit the form to save the project, create a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
 4. Inspect the workflow stages, recorded events, current metrics, and unresolved issues in **Agent workspace**, and read each generated test with the requirements it is linked to.
 5. Open **Requirements & evidence** to read the saved requirements and filter the extracted behaviors by verification status.
-6. Open **Runs & reports** for the requirement-to-test mapping table, the run metrics, and a JSON report download. Page links retain the selected project and run.
+6. Open **Runs & reports** for the requirement-to-test mapping table, run metrics, and portable HTML or JSON report downloads. Page links retain the selected project and run.
 
 ### Run modes
 
@@ -150,7 +150,7 @@ In proposal order, the remaining work is:
 1. **Diagnosis and bounded refinement (FR11-FR13).** Feed execution results back to the agent with an iteration limit, and separate a wrong test expectation from a suspected defect in the project. This is the B2 configuration and the remaining half of the closed loop.
 2. **RAG evidence retrieval (FR5).** This turns the B0 baseline into the B1 configuration.
 3. **Mutation testing.** The only route to a `Verified` status, and the proposal's mutation-score metric.
-4. **Requirement documents beyond plain text (FR1) and the HTML report (FR15).**
+4. **Requirement documents beyond plain text (FR1).**
 
 When runs become long-lived, replace the synchronous run endpoint with background execution and status updates; a B0 run is already slow enough to feel it.
 
