@@ -153,6 +153,7 @@ it("recovers from an API connection failure", async () => {
 });
 it("imports a text requirement file into the editable form", async () => {
   render(<NewTask busy={false} submit={vi.fn()} />);
+  expect(screen.getByText("No file selected")).toBeTruthy();
   const file = new File(["R1: Return zero."], "requirements.txt", {
     type: "text/plain",
   });
@@ -167,6 +168,18 @@ it("imports a text requirement file into the editable form", async () => {
       (screen.getByLabelText(/Requirement text/) as HTMLTextAreaElement).value,
     ).toBe("R1: Return zero."),
   );
+  expect(screen.getByText("requirements.txt")).toBeTruthy();
+});
+it("uses English application validation instead of browser-localized messages", async () => {
+  const submit = vi.fn();
+  render(<NewTask busy={false} submit={submit} />);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Create verification task →" }),
+  );
+  expect((await screen.findByRole("alert")).textContent).toContain(
+    "Enter a project name.",
+  );
+  expect(submit).not.toHaveBeenCalled();
 });
 it("rejects unsupported requirement documents without overwriting the text", async () => {
   render(<NewTask busy={false} submit={vi.fn()} />);

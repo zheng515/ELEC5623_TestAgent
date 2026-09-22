@@ -31,6 +31,7 @@ export function NewTask({
   const [form, setForm] = useState(initial);
   const [error, setError] = useState("");
   const [reading, setReading] = useState(false);
+  const [fileName, setFileName] = useState("No file selected");
   const change = (key: keyof ProjectCreate, value: string) =>
     setForm((p) => ({ ...p, [key]: value }));
   async function importText(event: ChangeEvent<HTMLInputElement>) {
@@ -39,6 +40,7 @@ export function NewTask({
     setError("");
     if (!/\.(txt|md)$/i.test(file.name) || file.size > 200000) {
       setError("Choose a .txt or .md file smaller than 200 KB.");
+      setFileName("No file selected");
       event.target.value = "";
       return;
     }
@@ -48,7 +50,9 @@ export function NewTask({
       if (!text.trim() || text.length > 50000)
         throw new Error("Requirements must contain 1–50,000 characters.");
       change("requirements_text", text);
+      setFileName(file.name);
     } catch (e) {
+      setFileName("No file selected");
       setError(e instanceof Error ? e.message : "Unable to read that file.");
     } finally {
       setReading(false);
@@ -58,6 +62,18 @@ export function NewTask({
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError("");
+    if (!form.name.trim()) {
+      setError("Enter a project name.");
+      return;
+    }
+    if (!form.requirements_text.trim()) {
+      setError("Enter requirement text.");
+      return;
+    }
+    if (!form.goal.trim()) {
+      setError("Enter a verification goal.");
+      return;
+    }
     try {
       await submit(form);
     } catch (e) {
@@ -80,7 +96,7 @@ export function NewTask({
         </a>
       </div>
       <div className="form-layout">
-        <form className="panel task-form" onSubmit={onSubmit}>
+        <form className="panel task-form" onSubmit={onSubmit} noValidate>
           {error && <ErrorNotice message={error} />}
           <fieldset disabled={busy || reading}>
             <div className="form-section">
@@ -144,14 +160,24 @@ export function NewTask({
               />
             </label>
             <div className="input-actions">
-              <label className="file-import">
+              <label className="file-import" htmlFor="requirement-file">
                 Import .txt or .md
-                <input
-                  type="file"
-                  accept=".txt,.md,text/plain,text/markdown"
-                  onChange={importText}
-                />
               </label>
+              <input
+                className="file-input"
+                id="requirement-file"
+                type="file"
+                accept=".txt,.md,text/plain,text/markdown"
+                onChange={importText}
+                aria-describedby="requirement-file-name"
+              />
+              <span
+                className="file-name"
+                id="requirement-file-name"
+                aria-live="polite"
+              >
+                {reading ? "Reading file…" : fileName}
+              </span>
               <button
                 className="text-button"
                 type="button"
@@ -184,13 +210,7 @@ export function NewTask({
               <span>No API key required for setup.</span>
               <button
                 className="button primary"
-                disabled={
-                  busy ||
-                  reading ||
-                  !form.name.trim() ||
-                  !form.requirements_text.trim() ||
-                  !form.goal.trim()
-                }
+                disabled={busy || reading}
                 type="submit"
               >
                 {busy ? "Creating task…" : "Create verification task →"}
