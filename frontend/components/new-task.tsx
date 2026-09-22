@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import type { ProjectCreate } from "../lib/types";
+import type { ProjectCreate, RunMode } from "../lib/types";
 import { urlFor } from "../lib/navigation";
 import { Badge, ErrorNotice } from "./ui";
 
@@ -24,9 +24,11 @@ export const sample: ProjectCreate = {
 export function NewTask({
   submit,
   busy,
+  mode = "scaffold",
 }: {
   submit: (form: ProjectCreate) => Promise<void>;
   busy: boolean;
+  mode?: RunMode;
 }) {
   const [form, setForm] = useState(initial);
   const [error, setError] = useState("");
@@ -219,26 +221,36 @@ export function NewTask({
           </fieldset>
         </form>
         <aside className="task-aside">
-          <Badge tone="teal">Analysis release</Badge>
+          <Badge tone="teal">Foundation release</Badge>
           <h2>
             Set the goal.
             <br />
             Keep the evidence.
           </h2>
           <p>
-            This release saves your inputs and creates a traceable analysis run.
+            This release saves your inputs and creates a traceable setup run.
           </p>
           <ol>
             <li>Record project and requirements</li>
-            <li>Extract traceable behavior candidates</li>
             <li>Capture the input fingerprint</li>
-            <li>Review integration blockers</li>
+            {mode === "baseline_b0" ? (
+              <>
+                <li>Analyze requirements and flag ambiguity</li>
+                <li>Generate traceable pytest tests</li>
+              </>
+            ) : (
+              <>
+                <li>Open the agent workspace</li>
+                <li>Review integration blockers</li>
+              </>
+            )}
           </ol>
           <div className="aside-note">
             <strong>What happens today?</strong>
             <p>
-              Requirements are analyzed automatically. The run remains Blocked
-              until code inspection and test execution are connected.
+              {mode === "baseline_b0"
+                ? "Requirements are split into testable items and pytest tests are generated from them. The tests are not executed, so nothing is reported as verified."
+                : "The run is marked Blocked until analysis and execution modules are connected. No tests are generated or executed."}
             </p>
           </div>
         </aside>

@@ -52,7 +52,7 @@ export default function App() {
         runId = (await api.createRun(created.id)).id;
       } catch (e) {
         setActionError(
-          `Project saved, but the analysis run could not be created. Open the workspace and retry. ${e instanceof Error ? e.message : ""}`,
+          `Project saved, but the setup run could not be created. Open the workspace and retry. ${e instanceof Error ? e.message : ""}`,
         );
       }
       setRevision((n) => n + 1);
@@ -183,7 +183,7 @@ export default function App() {
           ) : route.view === "home" ? (
             <Home {...data} />
           ) : route.view === "new" ? (
-            <NewTask submit={submit} busy={busy} />
+            <NewTask submit={submit} busy={busy} mode={data?.system.mode} />
           ) : !project ? (
             <section className="panel">
               <Empty

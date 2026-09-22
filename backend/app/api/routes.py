@@ -21,8 +21,13 @@ def health():
 
 
 @router.get("/system", response_model=SystemInfo, tags=["system"])
-def system_info():
+def system_info(request: Request):
+    mode = getattr(request.app.state, "mode", "scaffold")
+    agent_ready = mode == "baseline_b0"
+    execution_ready = getattr(request.app.state, "execution_ready", False)
+    inspection_ready = getattr(request.app.state, "inspection_ready", False)
     return SystemInfo(
+        mode=mode,
         integrations=[
             Integration(
                 key="storage",
@@ -38,28 +43,65 @@ def system_info():
             ),
             Integration(
                 key="analysis",
-                name="Requirement analysis and mapping",
-                status="ready",
+                name="Requirement analysis and ambiguity detection",
+                status="ready" if agent_ready else "not_connected",
                 description=(
-                    "Requirement sources are decomposed into traceable behavior candidates."
+                    "Requirements are split into testable items and ambiguities are flagged."
+                    if agent_ready
+                    else "No model credentials resolved, so requirements are stored but "
+                    "not analysed."
                 ),
+            ),
+            Integration(
+                key="generation",
+                name="Test generation and traceability",
+                status="ready" if agent_ready else "not_connected",
+                description=(
+                    "Pytest tests are generated from requirements and linked back to them "
+                    "(B0 baseline: no retrieval, no repository inspection, no refinement)."
+                    if agent_ready
+                    else "Test generation requires model credentials."
+                ),
+            ),
+            Integration(
+                key="inspection",
+                name="Repository inspection",
+                status="ready" if inspection_ready else "not_connected",
+                description=(
+                    "The public interface of the project under test is read and given "
+                    "to the generator; file contents are not read."
+                    if inspection_ready
+                    else "Set REQTEST_REPOSITORY_ROOT to let runs read the project under "
+                    "test. Until then, generated tests must guess what to import."
+                ),
+            ),
+            Integration(
+                key="retrieval",
+                name="RAG evidence retrieval",
+                status="not_connected",
+                description="Retrieval of testing knowledge and project evidence is not connected.",
             ),
             Integration(
                 key="execution",
                 name="Isolated test execution",
-                status="not_connected",
-                description="Sandbox, pytest execution, and evidence capture are not connected.",
+                status="ready" if execution_ready else "not_connected",
+                description=(
+                    "Generated tests run in a Docker sandbox with no network and a "
+                    "read-only filesystem; each outcome is recorded as evidence."
+                    if execution_ready
+                    else "Docker or the sandbox image is unavailable, so generated tests "
+                    "are not executed. Run: bash scripts/build-sandbox.sh"
+                ),
             ),
             Integration(
                 key="diagnosis",
                 name="Diagnosis and mutation analysis",
                 status="not_connected",
                 description=(
-                    "Failure diagnosis, test refinement, and re-evaluation "
-                    "are not connected."
+                    "Failure diagnosis, test refinement, and re-evaluation are not connected."
                 ),
             ),
-        ]
+        ],
     )
 
 

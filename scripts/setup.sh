@@ -13,3 +13,5 @@ python3 -m venv "$ROOT/backend/.venv"
 cd "$ROOT/frontend"
 npm ci
 echo "Ready. Run: bash scripts/dev.sh"
+echo "Set ANTHROPIC_API_KEY in backend/.env to enable the agent stages."
+echo "Run 'bash scripts/build-sandbox.sh' (needs Docker) to execute generated tests."

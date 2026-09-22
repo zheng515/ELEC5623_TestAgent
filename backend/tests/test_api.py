@@ -10,7 +10,9 @@ from app.schemas import Project
 
 @pytest.fixture
 def settings(tmp_path):
-    return Settings(database_path=tmp_path / "test.db", _env_file=None)
+    # llm_enabled=False keeps these tests on the scaffold orchestrator, so the suite
+    # behaves the same whether or not the machine running it has model credentials.
+    return Settings(database_path=tmp_path / "test.db", llm_enabled=False, _env_file=None)
 
 
 @pytest.fixture
@@ -32,14 +34,14 @@ def create_project(client):
     return response.json()
 
 
-def test_project_run_analyzes_requirements_without_claiming_verification(client):
+def test_project_run_report_flow_does_not_claim_verification(client):
     project = create_project(client)
     assert client.get("/api/v1/projects").json() == [project]
     response = client.post(f"/api/v1/projects/{project['id']}/runs")
     assert response.status_code == 201
     run = response.json()
     assert run["status"] == "blocked"
-    assert run["mode"] == "analysis"
+    assert run["mode"] == "scaffold"
     assert (
         run["input_sha256"]
         == hashlib.sha256(Project.model_validate(project).model_dump_json().encode()).hexdigest()
@@ -48,20 +50,8 @@ def test_project_run_analyzes_requirements_without_claiming_verification(client)
     assert client.get(f"/api/v1/projects/{project['id']}/runs").json() == [run]
     report = client.get(f"/api/v1/runs/{run['id']}/report")
     assert report.json()["executed_tests"] == 0
-    assert report.json()["behaviors"] == [
-        {
-            "id": "B-001",
-            "requirement_id": "REQ-001",
-            "source_quote": "Orders of at least 100 have free shipping.",
-            "description": "Orders of at least 100 have free shipping.",
-            "expected_result": None,
-            "verification_status": "Unverified",
-            "code_refs": [],
-            "test_refs": [],
-            "evidence_refs": ["SRC-L1-S1"],
-        }
-    ]
-    assert report.json()["evidence"][0]["location"] == "requirements.txt:1"
+    assert report.json()["behaviors"] == []
+    assert report.json()["evidence"] == []
     assert report.json()["semantic_coverage"] is None
     assert report.json()["mutation_score"] is None
     assert report.json()["unresolved_issues"]
@@ -110,10 +100,7 @@ def test_cannot_create_run_for_unknown_project(client):
 
 def test_system_health_and_cors(client):
     assert client.get("/api/v1/health").json()["status"] == "ok"
-    system = client.get("/api/v1/system").json()
-    assert system["mode"] == "analysis"
-    analysis = next(item for item in system["integrations"] if item["key"] == "analysis")
-    assert analysis["status"] == "ready"
+    assert client.get("/api/v1/system").json()["mode"] == "scaffold"
     response = client.options(
         "/api/v1/projects",
         headers={
@@ -161,31 +148,3 @@ def test_legacy_project_without_goal_remains_readable():
         }
     )
     assert project.goal == "Identify verification gaps and improve requirement-based tests."
-
-
-def test_labeled_multiline_requirements_keep_source_traceability(client):
-    project = client.post(
-        "/api/v1/projects",
-        json={
-            "name": "Checkout",
-            "requirements_text": (
-                "R1: Orders over $50 ship free. Smaller orders cost $5.\n"
-                "- Invalid totals must be rejected."
-            ),
-        },
-    ).json()
-    report = client.post(f"/api/v1/projects/{project['id']}/runs").json()["report"]
-    assert [behavior["requirement_id"] for behavior in report["behaviors"]] == [
-        "R1",
-        "R1",
-        "REQ-002",
-    ]
-    assert [item["location"] for item in report["evidence"]] == [
-        "requirements.txt:1",
-        "requirements.txt:1",
-        "requirements.txt:2",
-    ]
-    assert all(
-        behavior["verification_status"] == "Unverified"
-        for behavior in report["behaviors"]
-    )

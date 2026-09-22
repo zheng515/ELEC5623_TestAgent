@@ -2,7 +2,7 @@
 
 ReqTest is the University of Sydney ELEC5623 Group 04 project. It aims to connect natural-language requirements, Python source code, pytest tests, and execution evidence in an agent-driven verification workflow.
 
-This repository contains a working **requirement-analysis release**. Users can save project requirements and a verification goal, run deterministic requirement decomposition, inspect traceable behavior candidates and source evidence, and download a JSON report. Repository inspection, test generation, sandboxed execution, failure diagnosis, and mutation testing remain planned integrations. The application does not claim that an analyzed behavior has been verified.
+This repository contains a working **frontend, backend, B0 baseline agent, repository inspection, and execution sandbox**. A run reads the public interface of the project under test, splits the requirements into testable items, generates pytest tests that stay traceable to the requirement each one came from, executes them against the real project in an isolated container, and records every outcome as evidence. RAG evidence retrieval, failure diagnosis, and mutation testing are still planned integrations. **No behavior is ever reported as `Verified`**: passing tests show the stated behavior held for the cases that were written, not that those cases were enough.
 
 ## Technology
 
@@ -10,12 +10,27 @@ This repository contains a working **requirement-analysis release**. Users can s
 | --- | --- |
 | Frontend | React 19, TypeScript, vinext/Vite, and an English responsive interface |
 | Backend | FastAPI, Pydantic, and versioned REST endpoints with OpenAPI documentation |
+| Agent | Anthropic Messages API with structured output for requirement analysis and test generation |
+| Inspection | Read-only AST reading of the project under test, confined to a configured root |
+| Execution | pytest inside a Docker sandbox with no network, a read-only filesystem, and resource limits |
 | Persistence | SQLite for projects, requirements, goals, runs, events, and reports |
 | Checks | pytest, Ruff, TypeScript, ESLint, Vitest, and a production build |
 
 ## Requirements and setup
 
-Install Python 3.11+ and Node.js 22.13+. The recommended Node version is recorded in `.nvmrc`. No LLM API key is needed for the current foundation.
+Install Python 3.11+ and Node.js 22.13+. The recommended Node version is recorded in `.nvmrc`.
+
+The agent stages need an Anthropic API key. Copy `backend/.env.example` to `backend/.env` and set `ANTHROPIC_API_KEY`, or export it in your shell. **Without a key the app still starts**, in scaffold mode: projects and runs are recorded, but no requirement is analysed and no test is generated. `GET /api/v1/system` reports which mode is active.
+
+Reading the project under test needs one more setting. `REQTEST_REPOSITORY_ROOT` is the directory that project repositories live under; a run may only read paths inside it, and only their public interface. Leaving it unset means the saved repository reference is stored but never read, which is the safe default.
+
+Executing generated tests additionally needs Docker. Build the sandbox image once:
+
+```bash
+bash scripts/build-sandbox.sh
+```
+
+Without Docker or the image, runs still analyse requirements and generate tests; they report that execution is not connected rather than skipping it silently. **Generated test code is model output and only ever runs inside that container** — there is no host-execution fallback.
 
 From the repository root:
 
@@ -45,12 +60,37 @@ The frontend development server proxies `/api` to the backend. Copy either direc
 
 1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
 2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference. You can import a `.txt` or `.md` requirement file, or use the English shipping example.
-3. Submit the form to save the project, analyze the requirement source, and open **Agent workspace**. If run creation fails, the project remains saved and analysis can be retried from its workspace.
-4. Inspect the analysis events, behavior count, current metrics, and integration blockers in **Agent workspace**.
-5. Open **Requirements & evidence** to filter behavior candidates and trace each one to its original line and source quote.
-6. Open **Runs & reports** to switch between runs and download a JSON report. Page links retain the selected project and run.
+3. Submit the form to save the project, create a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
+4. Inspect the workflow stages, recorded events, current metrics, and unresolved issues in **Agent workspace**, and read each generated test with the requirements it is linked to.
+5. Open **Requirements & evidence** to read the saved requirements and filter the extracted behaviors by verification status.
+6. Open **Runs & reports** for the requirement-to-test mapping table, the run metrics, and a JSON report download. Page links retain the selected project and run.
 
-A current run has status `blocked` and mode `analysis`. It records extracted behavior candidates as `Unverified`, zero executed tests, and `null` for semantic coverage and mutation score; `null` means *not evaluated*. Decomposition is deterministic and source-preserving, so it does not infer missing expected outcomes. A repository path or URL is saved as text only. The application does not clone, inspect, or execute repository code yet.
+### Run modes
+
+| Mode | When | What a run does |
+| --- | --- | --- |
+| `baseline_b0` | API credentials resolve | Reads the project interfaces, extracts structured requirements, flags ambiguous and untestable ones, generates pytest tests linked to requirement ids, reports coverage gaps, and — when the sandbox is available — executes each test against the real project and records its outcome |
+| `scaffold` | No credentials, or `REQTEST_LLM_ENABLED=false` | Records the project inputs and their fingerprint only |
+
+A `baseline_b0` run reports two rates, and they measure different things:
+
+- `requirement_coverage` — share of testable requirements linked to at least one **generated** test. It measures generation, not execution, and a requirement id the model invents is filtered out before it counts.
+- `execution_success_rate` — share of **executed** tests that passed. `null` means nothing ran.
+
+`semantic_coverage` and `mutation_score` stay `null`; `null` means *not evaluated*.
+
+Verification statuses follow the evidence, and only ever downward from what was proven:
+
+| Status | Meaning |
+| --- | --- |
+| `Uncertain` | The requirement is ambiguous or not testable as written |
+| `Unverified` | No test ran against the real project, or one of its tests failed or errored |
+| `Partially Verified` | The project was inspected and every test linked to this requirement passed against it |
+| `Verified` | Not reachable yet; it needs test-adequacy analysis (mutation testing) |
+
+Remote repositories are **not** cloned. A reference must be a local path inside `REQTEST_REPOSITORY_ROOT`; a URL is refused with an explanation.
+
+`mode` names the **generation** configuration, which is what the proposal's baselines compare. This is **B0**: one direct pass, no retrieval, no repository context, no refinement loop. Executing the tests does not make it B1 or B2, because no execution result is fed back into generation.
 
 ## Repository layout
 
@@ -62,9 +102,17 @@ backend/
     api/routes.py             Versioned API routes
     core/config.py            Environment settings
     core/database.py          SQLite storage
-    services/orchestrator.py  Agent workflow and report assembly
-    services/requirement_analyzer.py  Traceable requirement decomposition
+    services/llm.py           Anthropic client and structured-output wrapper
+    services/analyzer.py      Requirement structuring and ambiguity detection
+    services/generator.py     Test generation, traceability, and coverage gaps
+    services/inspector.py     Read-only interface extraction from the project under test
+    services/runner.py        Docker sandbox execution and result parsing
+    services/orchestrator.py  Agent interface, scaffold and B0 implementations
+  sandbox/Dockerfile          Image generated tests execute in
   tests/test_api.py           API and persistence tests
+  tests/test_agent.py         Agent stage tests against a fake model
+  tests/test_runner.py        Sandbox command and result-parsing tests
+  tests/test_inspector.py     Inspection and path-confinement tests
   pyproject.toml
   requirements-dev.lock       Pinned development dependencies
 frontend/
@@ -80,6 +128,7 @@ frontend/
   vite.config.ts              Development proxy and build configuration
 scripts/
   setup.sh                    Install dependencies
+  build-sandbox.sh            Build the test-execution image
   dev.sh                      Start both services
   check.sh                    Run project checks
 docs/architecture.md          API and future agent integration points
@@ -92,10 +141,17 @@ docs/architecture.md          API and future agent integration points
 bash scripts/check.sh
 ```
 
-This runs backend lint and API tests, frontend type checking and linting, Vitest component tests, and the frontend build. Component tests use jsdom; they do not replace visual testing in a browser.
+This runs backend lint and tests, frontend type checking and linting, Vitest component tests, and the frontend build. No check calls a model API or starts a container: the agent stages are tested against a fake model and the sandbox against a captured `docker` command line. Component tests use jsdom; they do not replace visual testing in a browser.
 
 ## Next integration steps
 
-Use the contracts in `docs/architecture.md` to extend the analysis workflow. Add read-only code and test mapping next. Build an isolated runner before executing generated tests or mutations. When runs become long-lived, replace the synchronous analysis endpoint with background execution and status updates.
+In proposal order, the remaining work is:
+
+1. **Diagnosis and bounded refinement (FR11-FR13).** Feed execution results back to the agent with an iteration limit, and separate a wrong test expectation from a suspected defect in the project. This is the B2 configuration and the remaining half of the closed loop.
+2. **RAG evidence retrieval (FR5).** This turns the B0 baseline into the B1 configuration.
+3. **Mutation testing.** The only route to a `Verified` status, and the proposal's mutation-score metric.
+4. **Requirement documents beyond plain text (FR1) and the HTML report (FR15).**
+
+When runs become long-lived, replace the synchronous run endpoint with background execution and status updates; a B0 run is already slow enough to feel it.
 
 The current foundation has no user accounts, repository upload or cloning, background job queue, automatic test execution, or production deployment. A separate production backend would need an API URL, CORS configuration, authentication, and an isolated execution environment. The development proxy is not a production API gateway.
