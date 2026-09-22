@@ -32,7 +32,7 @@ const run: VerificationRun = {
   id: "r1",
   project_id: "p1",
   created_at: project.created_at,
-  mode: "scaffold",
+  mode: "analysis",
   status: "blocked",
   stage: "understand",
   input_sha256: "abc123",
@@ -93,7 +93,7 @@ async function go(hash: string) {
     window.dispatchEvent(new HashChangeEvent("hashchange"));
   });
 }
-it("creates a project and setup run in one submission, then opens the blocked workspace", async () => {
+it("creates a project and analysis run in one submission, then opens the blocked workspace", async () => {
   render(<App />);
   await screen.findByText("Projects");
   await go("view=new");
@@ -123,7 +123,7 @@ it("retains the saved project when run creation fails, allowing a retry", async 
   expect(api.createProject).toHaveBeenCalledTimes(1);
   await screen.findByRole("heading", { name: "Agent workspace" });
   fireEvent.click(
-    screen.getByRole("button", { name: /Create another setup run/ }),
+    screen.getByRole("button", { name: /Analyze requirements again/ }),
   );
   await waitFor(() => expect(api.createRun).toHaveBeenCalledTimes(2));
   expect(api.createProject).toHaveBeenCalledTimes(1);

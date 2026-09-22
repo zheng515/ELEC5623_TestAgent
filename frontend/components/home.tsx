@@ -57,11 +57,11 @@ export function Home({
       <div className="readiness">
         <span className="status-dot" />
         <strong>Workspace ready</strong>
-        <span>
-          Inputs and reports are saved. Autonomous analysis and test execution
-          are pending integration.
+          <span>
+          Requirement analysis is ready. Code inspection and test execution are
+          pending integration.
         </span>
-        <Badge>Foundation release</Badge>
+        <Badge>Analysis release</Badge>
       </div>
       <section className="panel">
         <SectionTitle

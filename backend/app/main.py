@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
 from app.core.config import Settings
 from app.core.database import Store
-from app.services.orchestrator import Orchestrator, ScaffoldOrchestrator
+from app.services.orchestrator import AnalysisOrchestrator, Orchestrator
 
 
 def create_app(
@@ -20,12 +20,12 @@ def create_app(
     async def lifespan(app: FastAPI):
         store.initialize()
         app.state.store = store
-        app.state.orchestrator = orchestrator or ScaffoldOrchestrator()
+        app.state.orchestrator = orchestrator or AnalysisOrchestrator()
         yield
 
     app = FastAPI(
         title="ReqTest API",
-        description="Requirement-aware verification framework. Agent execution is not connected.",
+        description="Requirement-aware analysis API. Agent execution is not connected.",
         version="0.1.0",
         lifespan=lifespan,
     )

@@ -63,7 +63,7 @@ class VerificationReport(BaseModel):
 class VerificationRun(BaseModel):
     id: str
     project_id: str
-    mode: Literal["scaffold"] = "scaffold"
+    mode: Literal["scaffold", "analysis"] = "analysis"
     status: Literal["blocked"] = "blocked"
     stage: Literal["understand"] = "understand"
     created_at: datetime
@@ -81,5 +81,5 @@ class Integration(BaseModel):
 
 class SystemInfo(BaseModel):
     version: str = "0.1.0"
-    mode: Literal["scaffold"] = "scaffold"
+    mode: Literal["scaffold", "analysis"] = "analysis"
     integrations: list[Integration]

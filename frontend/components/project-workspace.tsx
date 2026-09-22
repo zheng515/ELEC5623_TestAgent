@@ -28,8 +28,8 @@ export function Workspace({
           {busy
             ? "Creating run…"
             : run
-              ? "Create another setup run ↗"
-              : "Create setup run ↗"}
+              ? "Analyze requirements again ↗"
+              : "Analyze requirements ↗"}
         </button>
       </div>
       <div className="run-context">
@@ -37,24 +37,29 @@ export function Workspace({
           {run ? `RUN ${run.id.slice(0, 8).toUpperCase()}` : "NO RUN SELECTED"}
         </span>
         <span>{run ? formatDate(run.created_at) : "Inputs saved"}</span>
-        <span>Scaffold mode</span>
+        <span>{run?.mode === "analysis" ? "Analysis mode" : "Setup mode"}</span>
       </div>
       <section className="stage-panel">
         <div>
           <span className="eyebrow">CURRENT STATE</span>
           <h2>
             {run
-              ? "Inputs recorded. Waiting for agent integration."
+              ? `${run.report.behaviors.length} behavior candidates identified.`
               : "Your verification goal is ready."}
           </h2>
-          <p>No requirement analysis or test execution has taken place.</p>
+          <p>
+            Requirement sources are traceable. Code inspection and test
+            execution are waiting for integration.
+          </p>
         </div>
         <div className="stages">
           {["Understand", "Measure", "Improve", "Re-measure"].map((s, i) => (
             <div key={s} className={i === 0 && run ? "stage blocked" : "stage"}>
               <span>0{i + 1}</span>
               <strong>{s}</strong>
-              <small>{i === 0 && run ? "Blocked" : "Not started"}</small>
+              <small>
+                {i === 0 && run ? "Analyzed" : i === 1 && run ? "Blocked" : "Not started"}
+              </small>
             </div>
           ))}
         </div>
@@ -76,7 +81,11 @@ export function Workspace({
                       {formatDate(event.created_at)} · {event.stage}
                     </span>
                     <h3>
-                      {i === 0 ? "Project inputs recorded" : "Workflow blocked"}
+                      {i === 0
+                        ? "Project inputs recorded"
+                        : i === 1
+                          ? "Requirements analyzed"
+                          : "Workflow blocked"}
                     </h3>
                     <p>{event.message}</p>
                     <details>
@@ -96,8 +105,8 @@ export function Workspace({
             </ol>
           ) : (
             <Empty title="No actions recorded yet">
-              Create a setup run to record the project inputs and integration
-              status.
+              Start a run to analyze the requirement source and record its
+              integration status.
             </Empty>
           )}
         </section>
@@ -152,7 +161,7 @@ export function Workspace({
             <ul>
               {(
                 run?.report.unresolved_issues ?? [
-                  "Connect the requirement analyzer and isolated test runner.",
+                  "Connect code inspection and the isolated test runner.",
                 ]
               ).map((issue) => (
                 <li key={issue}>{issue}</li>
@@ -265,12 +274,12 @@ export function Evidence({
             title={
               behaviors.length
                 ? "No matching behaviors"
-                : "Behavior analysis is not connected"
+                : "No behaviors analyzed"
             }
           >
             {behaviors.length
               ? "Adjust your search or status filter."
-              : "Your requirements are saved. Behaviors and evidence links will appear when the analyzer returns structured results."}
+              : "Start an analysis run to create traceable behavior candidates from the requirement source."}
           </Empty>
         ) : (
           <div className="evidence-grid">
@@ -328,7 +337,7 @@ function BehaviorDetail({
       {[
         ["Implementation", b.code_refs],
         ["Tests", b.test_refs],
-        ["Execution evidence", b.evidence_refs],
+        ["Source evidence", b.evidence_refs],
       ].map(([title, refs]) => (
         <div key={title as string}>
           <h4>{title}</h4>
@@ -337,7 +346,7 @@ function BehaviorDetail({
               {(refs as string[]).map((ref) => (
                 <li key={ref}>
                   <code>{ref}</code>
-                  {title === "Execution evidence" && (
+                  {title === "Source evidence" && (
                     <pre>
                       {JSON.stringify(
                         run?.report.evidence.find((e) => e.id === ref) ?? {
@@ -404,7 +413,7 @@ export function Report({
               </a>
             }
           >
-            Create a setup run to generate the first record for this project.
+            Analyze the requirements to generate the first record for this project.
           </Empty>
         </section>
       ) : (

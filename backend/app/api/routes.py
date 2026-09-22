@@ -39,10 +39,9 @@ def system_info():
             Integration(
                 key="analysis",
                 name="Requirement analysis and mapping",
-                status="not_connected",
+                status="ready",
                 description=(
-                    "Requirement interpretation, code inspection, and evidence "
-                    "evaluation are not connected."
+                    "Requirement sources are decomposed into traceable behavior candidates."
                 ),
             ),
             Integration(

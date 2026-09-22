@@ -34,7 +34,7 @@ export interface VerificationReport {
 export interface VerificationRun {
   id: string;
   project_id: string;
-  mode: "scaffold";
+  mode: "scaffold" | "analysis";
   status: "blocked";
   stage: "understand";
   created_at: string;
@@ -44,7 +44,7 @@ export interface VerificationRun {
 }
 export interface SystemInfo {
   version: string;
-  mode: "scaffold";
+  mode: "scaffold" | "analysis";
   integrations: {
     key: string;
     name: string;

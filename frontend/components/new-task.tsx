@@ -219,26 +219,26 @@ export function NewTask({
           </fieldset>
         </form>
         <aside className="task-aside">
-          <Badge tone="teal">Foundation release</Badge>
+          <Badge tone="teal">Analysis release</Badge>
           <h2>
             Set the goal.
             <br />
             Keep the evidence.
           </h2>
           <p>
-            This release saves your inputs and creates a traceable setup run.
+            This release saves your inputs and creates a traceable analysis run.
           </p>
           <ol>
             <li>Record project and requirements</li>
+            <li>Extract traceable behavior candidates</li>
             <li>Capture the input fingerprint</li>
-            <li>Open the agent workspace</li>
             <li>Review integration blockers</li>
           </ol>
           <div className="aside-note">
             <strong>What happens today?</strong>
             <p>
-              The run is marked Blocked until analysis and execution modules are
-              connected. No tests are generated or executed.
+              Requirements are analyzed automatically. The run remains Blocked
+              until code inspection and test execution are connected.
             </p>
           </div>
         </aside>

@@ -52,7 +52,7 @@ export default function App() {
         runId = (await api.createRun(created.id)).id;
       } catch (e) {
         setActionError(
-          `Project saved, but the setup run could not be created. Open the workspace and retry. ${e instanceof Error ? e.message : ""}`,
+          `Project saved, but the analysis run could not be created. Open the workspace and retry. ${e instanceof Error ? e.message : ""}`,
         );
       }
       setRevision((n) => n + 1);

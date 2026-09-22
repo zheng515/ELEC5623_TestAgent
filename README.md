@@ -2,7 +2,7 @@
 
 ReqTest is the University of Sydney ELEC5623 Group 04 project. It aims to connect natural-language requirements, Python source code, pytest tests, and execution evidence in an agent-driven verification workflow.
 
-This repository currently contains a working **frontend and backend foundation**. Users can save project requirements and a verification goal, create a setup run, inspect its activity record, and download a JSON report. Requirement analysis, repository inspection, test generation, sandboxed execution, failure diagnosis, and mutation testing are planned integrations. The application does not claim that a setup run has verified any behavior.
+This repository contains a working **requirement-analysis release**. Users can save project requirements and a verification goal, run deterministic requirement decomposition, inspect traceable behavior candidates and source evidence, and download a JSON report. Repository inspection, test generation, sandboxed execution, failure diagnosis, and mutation testing remain planned integrations. The application does not claim that an analyzed behavior has been verified.
 
 ## Technology
 
@@ -45,12 +45,12 @@ The frontend development server proxies `/api` to the backend. Copy either direc
 
 1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
 2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference. You can import a `.txt` or `.md` requirement file, or use the English shipping example.
-3. Submit the form to save the project, create a setup run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
-4. Inspect the workflow stages, recorded events, current metrics, and integration blockers in **Agent workspace**.
-5. Open **Requirements & evidence** to read the saved requirements. Once a future analyzer supplies structured behaviors, this page can filter them by status and show their evidence links.
+3. Submit the form to save the project, analyze the requirement source, and open **Agent workspace**. If run creation fails, the project remains saved and analysis can be retried from its workspace.
+4. Inspect the analysis events, behavior count, current metrics, and integration blockers in **Agent workspace**.
+5. Open **Requirements & evidence** to filter behavior candidates and trace each one to its original line and source quote.
 6. Open **Runs & reports** to switch between runs and download a JSON report. Page links retain the selected project and run.
 
-A current run has status `blocked` and mode `scaffold`. It records zero executed tests, no analyzed behaviors, and `null` for semantic coverage and mutation score; `null` means *not evaluated*. A repository path or URL is saved as text only. The application does not clone, inspect, or execute repository code yet.
+A current run has status `blocked` and mode `analysis`. It records extracted behavior candidates as `Unverified`, zero executed tests, and `null` for semantic coverage and mutation score; `null` means *not evaluated*. Decomposition is deterministic and source-preserving, so it does not infer missing expected outcomes. A repository path or URL is saved as text only. The application does not clone, inspect, or execute repository code yet.
 
 ## Repository layout
 
@@ -62,7 +62,8 @@ backend/
     api/routes.py             Versioned API routes
     core/config.py            Environment settings
     core/database.py          SQLite storage
-    services/orchestrator.py  Agent interface and scaffold implementation
+    services/orchestrator.py  Agent workflow and report assembly
+    services/requirement_analyzer.py  Traceable requirement decomposition
   tests/test_api.py           API and persistence tests
   pyproject.toml
   requirements-dev.lock       Pinned development dependencies
@@ -95,6 +96,6 @@ This runs backend lint and API tests, frontend type checking and linting, Vitest
 
 ## Next integration steps
 
-Use the contracts in `docs/architecture.md` and replace `ScaffoldOrchestrator` with the real verification workflow. Add requirement decomposition and evidence references first, followed by code and test mapping. Build an isolated runner before executing generated tests or mutations. When runs become long-lived, replace the synchronous setup-run endpoint with background execution and status updates.
+Use the contracts in `docs/architecture.md` to extend the analysis workflow. Add read-only code and test mapping next. Build an isolated runner before executing generated tests or mutations. When runs become long-lived, replace the synchronous analysis endpoint with background execution and status updates.
 
 The current foundation has no user accounts, repository upload or cloning, background job queue, automatic test execution, or production deployment. A separate production backend would need an API URL, CORS configuration, authentication, and an isolated execution environment. The development proxy is not a production API gateway.
