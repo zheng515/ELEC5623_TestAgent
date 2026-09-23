@@ -62,7 +62,7 @@ class FakeDocker:
         if self.raises and command[1] == "run":
             raise self.raises
         if command[1] == "run":
-            workspace = Path(command[command.index("--volume") + 1].split(":")[0])
+            workspace = Path(command[command.index("--volume") + 1].rsplit(":", 1)[0])
             self.written = sorted(path.name for path in workspace.glob("*.py"))
             if self.report is not None:
                 (workspace / "report.xml").write_text(self.report)

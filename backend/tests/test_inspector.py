@@ -89,8 +89,13 @@ def test_a_symlink_cannot_be_used_to_read_outside_the_repository(repository, set
     outside = tmp_path / "secrets"
     outside.mkdir()
     (outside / "private.py").write_text("TOKEN = 'secret'")
-    (repository / "escape.py").symlink_to(outside / "private.py")
-    (repository / "escape_dir").symlink_to(outside)
+    try:
+        (repository / "escape.py").symlink_to(outside / "private.py")
+        (repository / "escape_dir").symlink_to(outside, target_is_directory=True)
+    except OSError as error:
+        if getattr(error, "winerror", None) == 1314:
+            pytest.skip("Windows requires Developer Mode or elevated privileges for symlinks.")
+        raise
 
     snapshot = inspect_repository("repo", settings)
 

@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from conftest import register
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
@@ -229,6 +230,7 @@ def test_coverage_helpers_return_none_when_nothing_is_testable():
 def test_api_serves_an_agent_run_end_to_end(settings):
     app = create_app(settings, orchestrator=DirectLLMOrchestrator(FakeLLM(ANALYSIS, SUITE)))
     with TestClient(app) as client:
+        register(client)
         assert client.get("/api/v1/system").json()["mode"] == "baseline_b0"
         project = client.post(
             "/api/v1/projects",

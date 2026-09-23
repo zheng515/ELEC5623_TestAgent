@@ -26,6 +26,26 @@ React workspace → typed API client → /api/v1 → FastAPI routes
 
 ## API v1
 
+Authentication endpoints are `/auth/register` (POST, 201), `/auth/login` (POST, 200),
+`/auth/me` (GET, 200/401), and `/auth/logout` (POST, 204), all under `/api/v1`.
+Registration accepts `name`, `email`, and `password`; login accepts `email` and `password`.
+Both establish a revocable server-side session through an HttpOnly, SameSite=Lax cookie.
+Public user objects contain only `id`, `name`, `email`, and `created_at`.
+Passwords are salted scrypt hashes; stored session tokens are SHA-256 digests.
+
+Project and run routes require a session and enforce project ownership, including both report
+formats and recent runs. Their existing URLs and payloads remain unchanged. Foreign records
+return 404, and missing/expired sessions return 401. `/health` and `/system` stay public.
+All POST requests require `Content-Type: application/json`, including bodyless requests;
+untrusted browser Origins are rejected. Credentials-enabled CORS uses explicit allowed origins.
+Auth endpoints throttle attempts per client IP in SQLite; all API responses use `no-store`.
+
+The database migrates existing installations by adding `users`, `sessions`, `auth_attempts`,
+and `projects.owner_id`. Legacy projects retain their contents and remain unowned/inaccessible
+until explicitly assigned by an administrator. Session and ownership checks apply after restart.
+The frontend mounts the workspace only after resolving `/auth/me`, clears it on sign-out/401,
+and rechecks authentication on window focus and cross-tab session changes.
+
 | Method | Path | Result |
 | --- | --- | --- |
 | GET | /health | Service health and version |
@@ -98,4 +118,8 @@ The dev frontend proxies `/api` to `BACKEND_URL` (default `http://127.0.0.1:8000
 
 The orchestrator, the runner and the inspection setting are all resolved once, at startup. Starting Docker, exporting a key, or setting a repository root while the server is running has no effect until it restarts. Secrets, databases and installed dependencies are ignored by Git.
 
-Do not expose this local, unauthenticated scaffold to untrusted networks. Production authentication, jobs, deployment and execution isolation are separate future work. Frontend build success does not constitute a deployment or end-to-end browser verification.
+Accounts protect persisted projects and reports. Repository access still uses a shared configured root;
+it is not per-user repository authorization. Public hosting additionally needs HTTPS with secure
+cookies, trusted proxy configuration, repository permissions, and production execution isolation.
+Background jobs and production deployment remain future work. Frontend build success alone does
+not constitute a deployment or end-to-end browser verification.

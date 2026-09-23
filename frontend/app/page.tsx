@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { AuthGate } from "../components/auth";
 import { Home } from "../components/home";
 import { NewTask } from "../components/new-task";
 import { Evidence, Report, Workspace } from "../components/project-workspace";
@@ -8,9 +9,19 @@ import { Badge, Empty, ErrorNotice, Loading } from "../components/ui";
 import { useResource } from "../hooks/use-resource";
 import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import { navigate, urlFor, useRoute } from "../lib/navigation";
-import type { ProjectCreate } from "../lib/types";
+import type { ProjectCreate, User } from "../lib/types";
 
 export default function App() {
+  return <AuthGate workspace={WorkspaceApp} />;
+}
+
+function WorkspaceApp({
+  user,
+  signOut,
+}: {
+  user: User;
+  signOut: () => Promise<void>;
+}) {
   const route = useRoute();
   const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -41,6 +52,22 @@ export default function App() {
     setActionError("");
     setRevision((n) => n + 1);
   };
+
+  async function logout() {
+    setBusy(true);
+    setActionError("");
+    try {
+      await signOut();
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to sign out. Please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function submit(form: ProjectCreate) {
     setBusy(true);
@@ -98,7 +125,9 @@ export default function App() {
     try {
       await downloadHtmlReport(run.id);
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Unable to download the HTML report.");
+      setActionError(
+        e instanceof Error ? e.message : "Unable to download the HTML report.",
+      );
     } finally {
       setBusy(false);
     }
@@ -183,7 +212,15 @@ export default function App() {
               : data
                 ? "API connected"
                 : "API offline"}
-            <span className="avatar">G4</span>
+            <span className="account-name" title={user.email}>
+              {user.name}
+            </span>
+            <span className="avatar" aria-hidden="true">
+              {user.name.slice(0, 2).toUpperCase()}
+            </span>
+            <button className="text-button" onClick={logout} disabled={busy}>
+              Sign out
+            </button>
           </div>
         </header>
         <main className="main-content">

@@ -1,3 +1,17 @@
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string;
+}
+export interface Credentials {
+  email: string;
+  password: string;
+}
+export interface RegisterRequest extends Credentials {
+  name: string;
+}
+
 export interface ProjectCreate {
   name: string;
   description: string;
@@ -83,7 +97,8 @@ export interface VerificationRun {
   project_id: string;
   mode: RunMode;
   status: "blocked" | "completed" | "failed";
-  stage: "understand" | "inspect" | "analyze" | "generate" | "execute" | "report";
+  stage:
+    "understand" | "inspect" | "analyze" | "generate" | "execute" | "report";
   created_at: string;
   input_sha256: string;
   events: { id: string; stage: string; message: string; created_at: string }[];
