@@ -2,7 +2,7 @@
 
 ReqTest is the University of Sydney ELEC5623 Group 04 project. It aims to connect natural-language requirements, Python source code, pytest tests, and execution evidence in an agent-driven verification workflow.
 
-This repository contains a working **frontend, backend, B0 baseline agent, repository inspection, and execution sandbox**. A run reads the public interface of the project under test, splits the requirements into testable items, generates pytest tests that stay traceable to the requirement each one came from, executes them against the real project in an isolated container, and records every outcome as evidence. RAG evidence retrieval, failure diagnosis, and mutation testing are still planned integrations. **No behavior is ever reported as `Verified`**: passing tests show the stated behavior held for the cases that were written, not that those cases were enough.
+This repository contains a working **frontend, backend, B0/B2 agent, repository inspection, and execution sandbox**. A run reads the public interface of the project under test, splits requirements into testable items, generates traceable pytest tests, executes them in an isolated container, and records every outcome as evidence. With both model access and the sandbox available, execution errors trigger one evidence-grounded refinement and re-execution attempt. RAG retrieval and mutation testing remain planned integrations. **No behavior is ever reported as `Verified`**: passing tests show the stated behavior held for the cases that were written, not that those cases were enough.
 
 ## Technology
 
@@ -69,10 +69,11 @@ The frontend development server proxies `/api` to the backend. Copy either direc
 
 | Mode | When | What a run does |
 | --- | --- | --- |
-| `baseline_b0` | API credentials resolve | Reads the project interfaces, extracts structured requirements, flags ambiguous and untestable ones, generates pytest tests linked to requirement ids, reports coverage gaps, and — when the sandbox is available — executes each test against the real project and records its outcome |
+| `baseline_b0` | API credentials resolve without a sandbox | Reads available project interfaces, extracts structured requirements, flags ambiguous and untestable ones, generates pytest tests linked to requirement ids, and reports coverage gaps |
+| `baseline_b2` | API credentials and sandbox resolve | Runs the B0 stages, diagnoses execution errors, refines invalid tests once, and re-executes only those tests; assertion failures remain suspected product defects |
 | `scaffold` | No credentials, or `REQTEST_LLM_ENABLED=false` | Records the project inputs and their fingerprint only |
 
-A `baseline_b0` run reports two rates, and they measure different things:
+A completed agent run reports two rates, and they measure different things:
 
 - `requirement_coverage` — share of testable requirements linked to at least one **generated** test. It measures generation, not execution, and a requirement id the model invents is filtered out before it counts.
 - `execution_success_rate` — share of **executed** tests that passed. `null` means nothing ran.
@@ -90,7 +91,7 @@ Verification statuses follow the evidence, and only ever downward from what was 
 
 Remote repositories are **not** cloned. A reference must be a local path inside `REQTEST_REPOSITORY_ROOT`; a URL is refused with an explanation.
 
-`mode` names the **generation** configuration, which is what the proposal's baselines compare. This is **B0**: one direct pass, no retrieval, no repository context, no refinement loop. Executing the tests does not make it B1 or B2, because no execution result is fed back into generation.
+`mode` records the active workflow. `baseline_b0` is one direct generation pass without retrieval or feedback. `baseline_b2` adds execution feedback and one bounded repair attempt for invalid tests. Neither mode includes RAG retrieval yet.
 
 ## Repository layout
 
@@ -147,10 +148,9 @@ This runs backend lint and tests, frontend type checking and linting, Vitest com
 
 In proposal order, the remaining work is:
 
-1. **Diagnosis and bounded refinement (FR11-FR13).** Feed execution results back to the agent with an iteration limit, and separate a wrong test expectation from a suspected defect in the project. This is the B2 configuration and the remaining half of the closed loop.
-2. **RAG evidence retrieval (FR5).** This turns the B0 baseline into the B1 configuration.
-3. **Mutation testing.** The only route to a `Verified` status, and the proposal's mutation-score metric.
-4. **Requirement documents beyond plain text (FR1).**
+1. **RAG evidence retrieval (FR5).** This turns the B0 baseline into the B1 configuration.
+2. **Mutation testing.** The only route to a `Verified` status, and the proposal's mutation-score metric.
+3. **Requirement documents beyond plain text (FR1).**
 
 When runs become long-lived, replace the synchronous run endpoint with background execution and status updates; a B0 run is already slow enough to feel it.
 

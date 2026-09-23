@@ -24,9 +24,10 @@ def health():
 @router.get("/system", response_model=SystemInfo, tags=["system"])
 def system_info(request: Request):
     mode = getattr(request.app.state, "mode", "scaffold")
-    agent_ready = mode == "baseline_b0"
+    agent_ready = mode in {"baseline_b0", "baseline_b2"}
     execution_ready = getattr(request.app.state, "execution_ready", False)
     inspection_ready = getattr(request.app.state, "inspection_ready", False)
+    diagnosis_ready = getattr(request.app.state, "diagnosis_ready", False)
     return SystemInfo(
         mode=mode,
         integrations=[
@@ -58,8 +59,12 @@ def system_info(request: Request):
                 name="Test generation and traceability",
                 status="ready" if agent_ready else "not_connected",
                 description=(
-                    "Pytest tests are generated from requirements and linked back to them "
-                    "(B0 baseline: no retrieval, no repository inspection, no refinement)."
+                    "Pytest tests are generated from requirements and linked back to them. "
+                    + (
+                        "Sandbox feedback enables one bounded B2 refinement attempt."
+                        if mode == "baseline_b2"
+                        else "B0 generation has no execution feedback or refinement."
+                    )
                     if agent_ready
                     else "Test generation requires model credentials."
                 ),
@@ -96,10 +101,13 @@ def system_info(request: Request):
             ),
             Integration(
                 key="diagnosis",
-                name="Diagnosis and mutation analysis",
-                status="not_connected",
+                name="Failure diagnosis and bounded refinement",
+                status="ready" if diagnosis_ready else "not_connected",
                 description=(
-                    "Failure diagnosis, test refinement, and re-evaluation are not connected."
+                    "Execution errors are diagnosed, invalid tests are refined once, and the "
+                    "refined tests are re-executed. Assertion failures remain suspected defects."
+                    if diagnosis_ready
+                    else "Diagnosis and refinement require both model access and the sandbox."
                 ),
             ),
         ],

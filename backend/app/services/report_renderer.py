@@ -35,6 +35,11 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
         "</tr>"
         for item in report.executions
     )
+    diagnoses = "".join(
+        f"<li><strong>{escape(item.test_id or 'Unmatched test')}</strong>: "
+        f"{escape(item.classification)} - {escape(item.explanation)}</li>"
+        for item in report.diagnoses
+    )
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
@@ -63,6 +68,8 @@ th{{background:#edf3e7}} code{{overflow-wrap:anywhere}} .muted{{color:#61756d}} 
 <h2>Requirement-to-test mapping</h2><table><thead><tr><th>Requirement</th><th>Testable</th><th>Tests</th><th>Outcome</th></tr></thead><tbody>{''.join(mappings) or '<tr><td colspan="4">No structured requirements.</td></tr>'}</tbody></table>
 <h2>Coverage gaps</h2><ul>{gaps or '<li>None recorded.</li>'}</ul>
 <h2>Unresolved issues</h2><ul>{issues or '<li>None recorded.</li>'}</ul>
+<h2>Failure diagnosis</h2><p>Refinement iterations: {report.refinement_iterations}</p>
+<ul>{diagnoses or '<li>No failing or invalid test required diagnosis.</li>'}</ul>
 <h2>Execution evidence</h2><table><thead><tr><th>Test</th><th>Outcome</th><th>Detail</th></tr></thead><tbody>{executions or '<tr><td colspan="3">No tests executed.</td></tr>'}</tbody></table>
 <h2>Input fingerprint</h2><code>{escape(run.input_sha256)}</code>
 </body></html>"""

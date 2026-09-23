@@ -122,6 +122,14 @@ class ExecutionResult(BaseModel):
     stderr_excerpt: str
 
 
+class TestDiagnosis(BaseModel):
+    """Conservative classification of an observed test outcome (FR11)."""
+
+    test_id: str | None
+    classification: Literal["invalid_test", "suspected_defect", "inconclusive"]
+    explanation: str
+
+
 class RunEvent(BaseModel):
     id: str
     stage: Literal[
@@ -148,6 +156,8 @@ class VerificationReport(BaseModel):
     unresolved_issues: list[str] = Field(default_factory=list)
     coverage_gaps: list[str] = Field(default_factory=list)
     executions: list[ExecutedTest] = Field(default_factory=list)
+    diagnoses: list[TestDiagnosis] = Field(default_factory=list)
+    refinement_iterations: int = 0
     executed_tests: int = 0
     execution_success_rate: float | None = None
     requirement_coverage: float | None = None
@@ -158,7 +168,7 @@ class VerificationReport(BaseModel):
 class VerificationRun(BaseModel):
     id: str
     project_id: str
-    mode: Literal["scaffold", "baseline_b0"] = "scaffold"
+    mode: Literal["scaffold", "baseline_b0", "baseline_b2"] = "scaffold"
     status: Literal["blocked", "completed", "failed"] = "blocked"
     stage: Literal["understand", "inspect", "analyze", "generate", "execute", "report"] = (
         "understand"
@@ -178,5 +188,5 @@ class Integration(BaseModel):
 
 class SystemInfo(BaseModel):
     version: str = "0.1.0"
-    mode: Literal["scaffold", "baseline_b0"] = "scaffold"
+    mode: Literal["scaffold", "baseline_b0", "baseline_b2"] = "scaffold"
     integrations: list[Integration]

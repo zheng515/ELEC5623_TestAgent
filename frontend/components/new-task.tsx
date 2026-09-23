@@ -233,7 +233,7 @@ export function NewTask({
           <ol>
             <li>Record project and requirements</li>
             <li>Capture the input fingerprint</li>
-            {mode === "baseline_b0" ? (
+            {mode !== "scaffold" ? (
               <>
                 <li>Analyze requirements and flag ambiguity</li>
                 <li>Generate traceable pytest tests</li>
@@ -248,7 +248,7 @@ export function NewTask({
           <div className="aside-note">
             <strong>What happens today?</strong>
             <p>
-              {mode === "baseline_b0"
+              {mode !== "scaffold"
                 ? "Requirements are split into testable items and pytest tests are generated from them. The tests are not executed, so nothing is reported as verified."
                 : "The run is marked Blocked until analysis and execution modules are connected. No tests are generated or executed."}
             </p>

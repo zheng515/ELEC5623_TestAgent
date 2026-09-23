@@ -13,7 +13,7 @@ React workspace → typed API client → /api/v1 → FastAPI routes
                                              ├─ SQLite Store
                                              └─ Orchestrator protocol
                                                   ├─ ScaffoldOrchestrator  (no credentials)
-                                                  └─ DirectLLMOrchestrator (B0 baseline)
+                                                  └─ DirectLLMOrchestrator (B0 / B2)
                                                        ├─ inspector → RepositorySnapshot
                                                        ├─ analyzer  → RequirementAnalysis
                                                        ├─ generator → GeneratedTestSuite
@@ -57,13 +57,14 @@ Create-project body:
 
 - Project inputs are immutable through this API version. Runs refer to an existing project.
 - Each run stores UTC timestamps, ordered events, a report and SHA-256 of the serialized project input. This fingerprint is **not** a source-code snapshot.
-- Run mode is `scaffold` (status `blocked`) or `baseline_b0` (status `completed` or `failed`). A failed run keeps whatever it had already extracted and records why it stopped; it never substitutes a plausible result.
+- Run mode is `scaffold`, `baseline_b0` without execution, or `baseline_b2` when the sandbox enables the bounded feedback loop. A failed run keeps whatever it had already extracted and records why it stopped; it never substitutes a plausible result.
 - `executed_tests = 0`; `semantic_coverage = null`; `mutation_score = null` in every mode. Null means not evaluated, not 0% coverage.
 - `requirement_coverage` is the share of testable requirements linked to at least one generated test. It is derived from `GeneratedTest.requirement_ids`, which is filtered against the extracted requirement ids, so a reference the model invents cannot inflate it. It measures generation, not execution.
 - `execution_success_rate` is the share of executed tests that passed, and `null` when nothing ran. `executed_tests` counts cases pytest actually reported, so a sandbox that produced no readable report counts as zero rather than as success.
 - `coverage_gaps` lists testable requirements that no generated test references (FR14).
 - Verification status is decided in `_status` and never rises above what was proven. `Uncertain` when the requirement is ambiguous or untestable. `Unverified` when the project was not inspected, when no linked test ran, or when any linked test failed or errored — a green test against a *guessed* module is not evidence. `Partially Verified` when the project was inspected and every linked test passed against it. `Verified` is deliberately unreachable: passing tests show the behavior held for the cases that were written, and nothing yet evaluates whether those cases were adequate. Mutation testing is what unlocks it.
 - `evidence` holds one record per executed test, and each behavior's `evidence_refs` point at the outcomes of its own tests, which is the requirement → test → evidence chain the UI walks.
+- In B2 mode, an execution error is classified as an invalid test and may be refined once using the requirement, repository interface, and error message. Assertion failures remain suspected defects and are never rewritten merely to match observed output. The one-iteration bound prevents uncontrolled repair loops.
 - The behavior contract reserves the proposal's four statuses: Verified, Partially Verified, Unverified, Uncertain. No synthetic behaviors are inserted.
 - SQLite connections are per operation with transactions and foreign keys. This is local persistence, not a distributed job queue. Schema migrations will be needed when the schema changes.
 
@@ -85,7 +86,7 @@ Implemented:
 Still to build:
 
 5. **EvidenceRetriever**: the RAG store that turns B0 into B1.
-6. **FailureDiagnoser**: evidence-backed diagnosis before any repair. Preserve legitimate failing tests for suspected code defects.
+6. **Failure diagnosis and bounded refinement**: execution errors may be repaired once; legitimate assertion failures are preserved as suspected code defects.
 7. **MutationRunner**: selected relevant mutations, outcome classification and bounded improvement.
 
 Before integrating a real long-running agent, expand run states to queued/running/blocked/completed/failed, separate events into append-only records, persist source/test snapshots and evidence references, and return 202 for enqueued work. Add polling or server-sent events to the frontend. The current synchronous endpoint is limited to quick requirement analysis.

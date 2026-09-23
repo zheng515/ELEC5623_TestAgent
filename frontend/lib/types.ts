@@ -61,6 +61,11 @@ export interface ExecutedTest {
   duration_seconds: number;
   message: string;
 }
+export interface TestDiagnosis {
+  test_id: string | null;
+  classification: "invalid_test" | "suspected_defect" | "inconclusive";
+  explanation: string;
+}
 export interface VerificationReport {
   summary: string;
   repository: RepositorySnapshot | null;
@@ -71,13 +76,15 @@ export interface VerificationReport {
   unresolved_issues: string[];
   coverage_gaps: string[];
   executions: ExecutedTest[];
+  diagnoses?: TestDiagnosis[];
+  refinement_iterations?: number;
   executed_tests: number;
   execution_success_rate: number | null;
   requirement_coverage: number | null;
   semantic_coverage: number | null;
   mutation_score: number | null;
 }
-export type RunMode = "scaffold" | "baseline_b0";
+export type RunMode = "scaffold" | "baseline_b0" | "baseline_b2";
 export interface VerificationRun {
   id: string;
   project_id: string;
