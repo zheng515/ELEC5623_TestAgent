@@ -23,13 +23,10 @@ def create_app(
         store.initialize()
         app.state.store = store
         app.state.orchestrator = orchestrator or _default_orchestrator(settings)
-        app.state.mode = (
-            "baseline_b0"
-            if isinstance(app.state.orchestrator, DirectLLMOrchestrator)
-            else "scaffold"
-        )
+        app.state.mode = getattr(app.state.orchestrator, "mode", "scaffold")
         app.state.execution_ready = getattr(app.state.orchestrator, "executes_tests", False)
         app.state.inspection_ready = getattr(app.state.orchestrator, "inspects_repositories", False)
+        app.state.diagnosis_ready = app.state.mode == "baseline_b2"
         yield
 
     app = FastAPI(

@@ -80,8 +80,14 @@ def generate_tests(
         output_format=GeneratedTestSuite,
     )
     known = {requirement.id for requirement in testable}
+    return normalize_suite(suite, known)
+
+
+def normalize_suite(suite: GeneratedTestSuite, known_ids: set[str]) -> GeneratedTestSuite:
     return GeneratedTestSuite(
-        tests=[_normalize(test, known, position) for position, test in enumerate(suite.tests, 1)],
+        tests=[
+            _normalize(test, known_ids, position) for position, test in enumerate(suite.tests, 1)
+        ],
         notes=suite.notes,
     )
 

@@ -91,9 +91,12 @@ export function runBadge(run?: VerificationRun): { label: string; tone: string }
   if (run.status === "failed") return { label: "Failed", tone: "amber" };
   if (run.status === "blocked")
     return { label: "Blocked · Integration required", tone: "amber" };
+  if (run.report.executed_tests)
+    return { label: "Execution evidence recorded", tone: "teal" };
   return { label: "Tests generated · not executed", tone: "teal" };
 }
 export function modeLabel(mode?: string) {
+  if (mode === "baseline_b2") return "B2 closed-loop mode";
   return mode === "baseline_b0" ? "B0 baseline mode" : "Scaffold mode";
 }
 export function percent(value: number | null | undefined) {

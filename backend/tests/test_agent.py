@@ -101,6 +101,17 @@ class FakeRunner:
         return self.result
 
 
+class SequenceRunner(FakeRunner):
+    def __init__(self, *results):
+        super().__init__(None)
+        self.results = list(results)
+
+    def execute(self, tests, repository_root=None):
+        self.received.append(tests)
+        self.roots.append(repository_root)
+        return self.results.pop(0)
+
+
 def execution(*outcomes) -> ExecutionResult:
     return ExecutionResult(
         executions=[
@@ -281,13 +292,12 @@ def test_a_connected_sandbox_is_advertised_as_ready(tmp_path):
     settings = Settings(database_path=tmp_path / "live.db", _env_file=None)
 
     with TestClient(create_app(settings, orchestrator=orchestrator)) as client:
-        statuses = {
-            i["key"]: i["status"] for i in client.get("/api/v1/system").json()["integrations"]
-        }
+        system = client.get("/api/v1/system").json()
+        statuses = {i["key"]: i["status"] for i in system["integrations"]}
 
+    assert system["mode"] == "baseline_b2"
     assert statuses["execution"] == "ready"
-    # Diagnosis and refinement are the next stage and must not be claimed yet.
-    assert statuses["diagnosis"] == "not_connected"
+    assert statuses["diagnosis"] == "ready"
 
 
 def test_executed_outcomes_are_recorded_with_a_success_rate():
@@ -324,9 +334,9 @@ def test_errored_and_failed_tests_are_reported_as_distinct_problems():
     report = run_agent(ANALYSIS, SUITE, runner=FakeRunner(execution("error", "failed"))).report
 
     issues = " ".join(report.unresolved_issues)
-    assert "1 generated tests could not run" in issues
+    assert "1 generated tests still could not run" in issues
     assert "1 generated tests ran and failed" in issues
-    assert "suspected defect" in issues
+    assert "suspected product defects" in issues
 
 
 def test_a_timed_out_execution_records_no_outcome():
@@ -428,6 +438,39 @@ def test_a_failing_test_leaves_the_behavior_unverified():
 
     statuses = {b.requirement_id: b.verification_status for b in run.report.behaviors}
     assert statuses["R1"] == "Unverified"
+
+
+def test_invalid_test_is_refined_and_reexecuted_once():
+    refined = GeneratedTestSuite(
+        tests=[
+            SUITE.tests[0].model_copy(
+                update={"code": "def test_free_shipping_at_threshold():\n    assert 1 == 1\n"}
+            )
+        ],
+        notes="Corrected the invalid test construction.",
+    )
+    runner = SequenceRunner(execution("error"), execution("passed"))
+
+    run = inspecting_agent(ANALYSIS, SUITE, refined, runner=runner).run(PROJECT)
+
+    assert run.mode == "baseline_b2"
+    assert len(runner.received) == 2
+    assert runner.received[1][0].code == refined.tests[0].code
+    assert [item.outcome for item in run.report.executions] == ["passed"]
+    assert run.report.refinement_iterations == 1
+    assert run.report.diagnoses[0].classification == "invalid_test"
+    assert [event.stage for event in run.events][-2:] == ["improve", "re_measure"]
+
+
+def test_assertion_failure_is_preserved_as_a_suspected_defect():
+    runner = FakeRunner(execution("failed"))
+
+    run = inspecting_agent(ANALYSIS, SUITE, runner=runner).run(PROJECT)
+
+    assert len(runner.received) == 1
+    assert run.report.refinement_iterations == 0
+    assert run.report.diagnoses[0].classification == "suspected_defect"
+    assert any("human review" in issue for issue in run.report.unresolved_issues)
 
 
 def test_a_passing_test_without_inspection_is_not_evidence():

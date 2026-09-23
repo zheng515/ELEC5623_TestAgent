@@ -14,6 +14,7 @@ from app.schemas import (
     RepositorySnapshot,
     RequirementItem,
     RunEvent,
+    TestDiagnosis,
     VerificationReport,
     VerificationRun,
     VerificationStatus,
@@ -22,6 +23,7 @@ from app.services.analyzer import analyze_requirements
 from app.services.generator import coverage_gaps, generate_tests, requirement_coverage
 from app.services.inspector import RepositoryError, inspect_repository, repository_available
 from app.services.llm import LLMError, StructuredLLM
+from app.services.refiner import refine_tests
 from app.services.runner import TestRunner
 
 
@@ -77,12 +79,11 @@ class ScaffoldOrchestrator:
 
 
 class DirectLLMOrchestrator:
-    """B0 baseline: requirements are analysed and tests generated in one pass.
+    """B0 generation with optional B2 execution feedback and bounded refinement.
 
     `mode` names the *generation* configuration, which is what the proposal's
-    baselines compare: no retrieval, no repository inspection, no refinement loop.
-    When a sandbox is available the generated tests are also executed and their
-    outcomes recorded, but nothing is fed back into generation, so this stays B0.
+    With no sandbox, generation remains B0. With a sandbox, invalid tests may be
+    refined and re-executed once, which makes the configured workflow B2.
     """
 
     def __init__(
@@ -104,6 +105,10 @@ class DirectLLMOrchestrator:
     @property
     def inspects_repositories(self) -> bool:
         return repository_available(self._settings)
+
+    @property
+    def mode(self) -> str:
+        return "baseline_b2" if self._runner is not None else "baseline_b0"
 
     def run(self, project: Project) -> VerificationRun:
         now = datetime.now(UTC)
@@ -156,6 +161,41 @@ class DirectLLMOrchestrator:
 
         execution = self._execute(suite.tests, repository, events)
         executions = execution.executions if execution else []
+        diagnoses = _diagnose(executions)
+        tests = suite.tests
+        refinement_iterations = 0
+        repairable = [item for item in executions if item.outcome == "error" and item.test_id]
+        if repairable and repository is not None and self._runner is not None:
+            try:
+                refined = refine_tests(
+                    self._llm, project, requirements, tests, repairable, repository
+                )
+                if refined.tests:
+                    tests = _replace_tests(tests, refined.tests)
+                    events.append(
+                        _event(
+                            "improve",
+                            f"Refined {len(refined.tests)} invalid tests from execution evidence.",
+                            datetime.now(UTC),
+                        )
+                    )
+                    rerun = self._execute(
+                        refined.tests, repository, events, stage="re_measure"
+                    )
+                    if rerun is not None:
+                        refined_ids = {test.id for test in refined.tests}
+                        executions = [
+                            item for item in executions if item.test_id not in refined_ids
+                        ] + rerun.executions
+                    refinement_iterations = 1
+            except LLMError as error:
+                events.append(
+                    _event(
+                        "improve",
+                        f"Refinement stopped after the model error: {error}",
+                        datetime.now(UTC),
+                    )
+                )
 
         unresolved = [
             *repository_issues,
@@ -164,7 +204,11 @@ class DirectLLMOrchestrator:
         ]
         if gaps:
             unresolved.append(f"{len(gaps)} testable requirements have no generated test.")
-        unresolved.extend(_execution_issues(execution, suite.tests))
+        final_execution = (
+            execution.model_copy(update={"executions": executions}) if execution else None
+        )
+        unresolved.extend(_execution_issues(final_execution, tests))
+        unresolved.extend(_diagnosis_issues(diagnoses, refinement_iterations))
         for note in (analysis.notes, suite.notes):
             if note.strip():
                 unresolved.append(f"Analyst note: {note.strip()}")
@@ -172,7 +216,7 @@ class DirectLLMOrchestrator:
         return VerificationRun(
             id=str(uuid4()),
             project_id=project.id,
-            mode="baseline_b0",
+            mode=self.mode,
             status="completed",
             stage="report",
             created_at=now,
@@ -180,13 +224,14 @@ class DirectLLMOrchestrator:
             events=events,
             report=VerificationReport(
                 summary=(
-                    f"B0 baseline run. {len(requirements)} requirements extracted and "
-                    f"{len(suite.tests)} pytest tests generated with requirement links. "
-                    + _execution_summary(execution)
+                    f"{self.mode.replace('_', ' ').upper()} run. "
+                    f"{len(requirements)} requirements extracted and "
+                    f"{len(tests)} pytest tests generated with requirement links. "
+                    + _execution_summary_from_items(executions, execution)
                 ),
                 repository=repository,
                 requirements=requirements,
-                generated_tests=suite.tests,
+                generated_tests=tests,
                 behaviors=_behaviors(
                     requirements, suite.tests, executions, inspected=repository is not None
                 ),
@@ -194,6 +239,8 @@ class DirectLLMOrchestrator:
                 unresolved_issues=unresolved,
                 coverage_gaps=gaps,
                 executions=executions,
+                diagnoses=diagnoses,
+                refinement_iterations=refinement_iterations,
                 executed_tests=len(executions),
                 execution_success_rate=_success_rate(executions),
                 requirement_coverage=requirement_coverage(requirements, suite.tests),
@@ -242,12 +289,13 @@ class DirectLLMOrchestrator:
         tests: list[GeneratedTest],
         repository: RepositorySnapshot | None,
         events: list[RunEvent],
+        stage: Literal["measure", "re_measure"] = "measure",
     ) -> ExecutionResult | None:
         """Run the generated tests in the sandbox, or record that it is unavailable."""
         if self._runner is None:
             events.append(
                 _event(
-                    "measure",
+                    stage,
                     "Test execution is not connected: no sandbox is available, so the "
                     "generated tests were not run.",
                     datetime.now(UTC),
@@ -261,7 +309,7 @@ class DirectLLMOrchestrator:
         if result.timed_out:
             events.append(
                 _event(
-                    "measure", f"Execution timed out. {result.stderr_excerpt}", datetime.now(UTC)
+                    stage, f"Execution timed out. {result.stderr_excerpt}", datetime.now(UTC)
                 )
             )
             return result
@@ -269,7 +317,7 @@ class DirectLLMOrchestrator:
         counts = Counter(execution.outcome for execution in result.executions)
         events.append(
             _event(
-                "measure",
+                stage,
                 f"Executed {len(result.executions)} tests in the sandbox: "
                 f"{counts['passed']} passed, {counts['failed']} failed, "
                 f"{counts['error']} errored, {counts['skipped']} skipped.",
@@ -292,7 +340,7 @@ class DirectLLMOrchestrator:
         return VerificationRun(
             id=str(uuid4()),
             project_id=project.id,
-            mode="baseline_b0",
+            mode=self.mode,
             status="failed",
             stage=stage,
             created_at=created_at,
@@ -387,6 +435,68 @@ def _success_rate(executions: list[ExecutedTest]) -> float | None:
     return round(passed / len(executions), 4)
 
 
+def _diagnose(executions: list[ExecutedTest]) -> list[TestDiagnosis]:
+    """Classify only what the observed outcome supports; never repair assertion failures."""
+    diagnoses = []
+    for execution in executions:
+        if execution.outcome == "error":
+            diagnoses.append(
+                TestDiagnosis(
+                    test_id=execution.test_id,
+                    classification="invalid_test",
+                    explanation=(
+                        "The test could not execute. Its collection or runtime error must be "
+                        "repaired before it can provide verification evidence."
+                    ),
+                )
+            )
+        elif execution.outcome == "failed":
+            diagnoses.append(
+                TestDiagnosis(
+                    test_id=execution.test_id,
+                    classification="suspected_defect",
+                    explanation=(
+                        "The test executed and its assertion failed. The requirement expectation "
+                        "is preserved for human review rather than rewritten to match the output."
+                    ),
+                )
+            )
+        elif execution.outcome == "skipped":
+            diagnoses.append(
+                TestDiagnosis(
+                    test_id=execution.test_id,
+                    classification="inconclusive",
+                    explanation="The skipped test produced no pass or fail evidence.",
+                )
+            )
+    return diagnoses
+
+
+def _replace_tests(
+    original: list[GeneratedTest], refined: list[GeneratedTest]
+) -> list[GeneratedTest]:
+    replacements = {test.id: test for test in refined}
+    return [replacements.get(test.id, test) for test in original]
+
+
+def _diagnosis_issues(
+    diagnoses: list[TestDiagnosis], refinement_iterations: int
+) -> list[str]:
+    issues = []
+    suspected = sum(item.classification == "suspected_defect" for item in diagnoses)
+    invalid = sum(item.classification == "invalid_test" for item in diagnoses)
+    if suspected:
+        issues.append(
+            f"{suspected} failing tests are suspected product defects and require human review."
+        )
+    if invalid and not refinement_iterations:
+        issues.append(
+            f"{invalid} invalid tests could not be refined because repository evidence or "
+            "a refinement result was unavailable."
+        )
+    return issues
+
+
 def _execution_summary(execution: ExecutionResult | None) -> str:
     if execution is None:
         return "No test was executed, so no behavior is verified."
@@ -397,6 +507,19 @@ def _execution_summary(execution: ExecutionResult | None) -> str:
         f"{len(execution.executions)} tests executed in the sandbox "
         f"({counts['passed']} passed, {counts['failed']} failed, {counts['error']} errored). "
         "The system under test was not inspected, so no behavior is verified."
+    )
+
+
+def _execution_summary_from_items(
+    executions: list[ExecutedTest], original: ExecutionResult | None
+) -> str:
+    if original is None or original.timed_out:
+        return _execution_summary(original)
+    counts = Counter(item.outcome for item in executions)
+    return (
+        f"{len(executions)} final test outcomes recorded "
+        f"({counts['passed']} passed, {counts['failed']} failed, {counts['error']} errored). "
+        "Verification status remains bounded by the recorded evidence."
     )
 
 
@@ -415,13 +538,13 @@ def _execution_issues(execution: ExecutionResult | None, tests: list[GeneratedTe
     counts = Counter(item.outcome for item in execution.executions)
     if counts["error"]:
         issues.append(
-            f"{counts['error']} generated tests could not run. Without repository "
-            "inspection a generated test has to guess the module it imports."
+            f"{counts['error']} generated tests still could not run after the available "
+            "diagnosis and refinement steps."
         )
     if counts["failed"]:
         issues.append(
-            f"{counts['failed']} generated tests ran and failed. Each one is either a "
-            "wrong expectation or a suspected defect; diagnosis is not connected yet."
+            f"{counts['failed']} generated tests ran and failed. Their stated expectations "
+            "were preserved as suspected product defects for human review."
         )
     if not execution.executions and tests:
         # 137 is SIGKILL, which in a limited container almost always means the

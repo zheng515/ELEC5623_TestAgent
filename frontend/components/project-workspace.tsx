@@ -71,7 +71,16 @@ function stageStates(run?: VerificationRun) {
       name: "Execute tests",
       state: run?.report.executions.length ? "Complete" : "Not connected",
     },
-    { name: "Diagnose & refine", state: "Not connected" },
+    {
+      name: "Diagnose & refine",
+      state: run?.report.refinement_iterations
+        ? `Complete · ${run.report.refinement_iterations} iteration`
+        : run?.report.diagnoses?.length
+          ? "Diagnosed · no safe repair"
+          : run?.mode === "baseline_b2"
+            ? "Ready · not needed"
+            : "Not connected",
+    },
   ];
 }
 
@@ -293,6 +302,28 @@ export function Workspace({
           </Empty>
         )}
       </section>
+      {!!run?.report.diagnoses?.length && (
+        <section className="panel">
+          <SectionTitle
+            eyebrow="EXECUTION FEEDBACK"
+            title="Failure diagnosis"
+            action={
+              <Badge>{run.report.refinement_iterations ?? 0} refinement iteration</Badge>
+            }
+          />
+          <ul className="issue-list">
+            {run.report.diagnoses.map((diagnosis, index) => (
+              <li key={`${diagnosis.test_id}-${index}`}>
+                <strong>{diagnosis.test_id || "Unmatched test"}</strong>{" "}
+                <Badge tone="amber">
+                  {diagnosis.classification.replaceAll("_", " ")}
+                </Badge>
+                <p>{diagnosis.explanation}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }
@@ -593,7 +624,9 @@ export function Report({
               <p>{run.report.summary}</p>
               <Badge tone={runBadge(run).tone}>
                 {run.status === "completed"
-                  ? "Tests generated · no executed verification"
+                  ? run.report.executed_tests
+                    ? "Execution evidence recorded"
+                    : "Tests generated · not executed"
                   : run.status === "failed"
                     ? "Run failed · no result"
                     : "Setup only · no executed verification"}
@@ -715,8 +748,8 @@ export function Report({
                     </tbody>
                   </table>
                   <p className="small muted">
-                    A listed test was generated from its requirement. It has not
-                    been executed, so the mapping is not verification evidence.
+                    A listed test was generated from its requirement. Outcomes
+                    are shown only when sandbox execution evidence exists.
                   </p>
                 </>
               ) : (

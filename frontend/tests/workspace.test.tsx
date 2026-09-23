@@ -365,6 +365,50 @@ const executedRun: VerificationRun = {
   },
 };
 
+const refinedRun: VerificationRun = {
+  ...executedRun,
+  mode: "baseline_b2",
+  events: [
+    ...executedRun.events,
+    {
+      id: "e2",
+      stage: "improve",
+      created_at: project.created_at,
+      message: "Refined 1 invalid test from execution evidence.",
+    },
+    {
+      id: "e3",
+      stage: "re_measure",
+      created_at: project.created_at,
+      message: "Re-executed the refined test.",
+    },
+  ],
+  report: {
+    ...executedRun.report,
+    diagnoses: [
+      {
+        test_id: "T1",
+        classification: "invalid_test",
+        explanation: "The test could not execute and required repair.",
+      },
+    ],
+    refinement_iterations: 1,
+  },
+};
+
+it("shows the bounded B2 diagnosis and refinement result", async () => {
+  vi.mocked(api.runs).mockResolvedValue([refinedRun]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Failure diagnosis" });
+
+  expect(screen.getByText("B2 closed-loop mode")).toBeTruthy();
+  expect(screen.getByText("invalid test")).toBeTruthy();
+  expect(screen.getByText("Complete · 1 iteration")).toBeTruthy();
+  expect(screen.getByText("Tests refined")).toBeTruthy();
+  expect(screen.getByText("Tests re-executed")).toBeTruthy();
+});
+
 it("shows each executed outcome without turning a green test into verification", async () => {
   vi.mocked(api.runs).mockResolvedValue([executedRun]);
   window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
