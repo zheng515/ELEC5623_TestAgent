@@ -58,6 +58,56 @@ The frontend development server proxies `/api` to the backend. Copy either direc
 
 ## What you can do now
 
+Sign in with an email and password, or select **Create account** to register. Registration
+signs you in immediately. Passwords must contain 8–128 characters. The workspace restores
+your session on reload, and **Sign out** revokes the current session. Projects, runs, and
+report downloads are private to the account that created them.
+
+### Authentication API
+
+Authentication follows the existing versioned JSON REST design:
+
+| Method | Path | Result |
+| --- | --- | --- |
+| POST | `/api/v1/auth/register` | `{name, email, password}` → user and session cookie; 201 |
+| POST | `/api/v1/auth/login` | `{email, password}` → user and session cookie; 200 |
+| GET | `/api/v1/auth/me` | Current user; 200, or 401 when signed out |
+| POST | `/api/v1/auth/logout` | Revoke the session and clear its cookie; 204 |
+
+User responses contain `id`, `name`, `email`, and `created_at`; never password hashes or
+session tokens. Email addresses are validated with `email-validator`, normalized (including
+internationalized domains), and stored in lowercase. This validates syntax but does not prove
+that the mailbox exists or belongs to the user; that requires an email-verification flow.
+Duplicate emails return 409, invalid inputs return 422, and invalid credentials return 401. Registration and
+login share a persistent limit of 20 attempts per client IP per 15 minutes (429 when exceeded).
+
+Existing project/run/report paths and JSON response structures are unchanged, but require
+the session cookie. Another user's records return 404. Health and integration status remain
+public. Send `Content-Type: application/json` on every POST, including bodyless run creation
+and logout. Browser clients must send credentials; cross-origin frontend URLs must be listed
+in `REQTEST_CORS_ORIGINS`. Keep frontend and API on the same site, preferably using `/api`
+through a reverse proxy. Cookie sessions do not use browser local storage.
+
+Passwords use salted scrypt (`N=131072`, `r=8`, `p=1`). Random session tokens are stored only
+as SHA-256 hashes in SQLite; cookies are HttpOnly and SameSite=Lax. Sessions expire after
+seven days by default (`REQTEST_SESSION_TTL_SECONDS`). For HTTPS, set
+`REQTEST_SESSION_COOKIE_SECURE=true`. JSON-only writes and Origin checks protect cookie
+authentication against cross-site form submissions. API responses disable caching.
+
+Startup adds authentication tables and a nullable project owner column to existing SQLite
+databases without deleting existing data. Legacy projects remain unowned and hidden; they are
+not automatically claimed by the first registered account. An administrator can assign a
+known legacy project explicitly after backing up the database, for example with parameterized
+SQL: `UPDATE projects SET owner_id = ? WHERE id = ? AND owner_id IS NULL`. Run ownership follows
+its project. Email verification, password reset, and third-party sign-in are not included.
+
+The repository inspection root is still shared server configuration, not a per-user repository
+permission system. Run this as a trusted local/team tool; public multi-tenant repository hosting
+requires separate repository permissions and deployment controls. Behind a reverse proxy,
+configure trusted proxy addresses before relying on per-client throttling.
+
+### Verification workspace
+
 1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
 2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference. You can import a `.txt` or `.md` requirement file, or use the English shipping example.
 3. Submit the form to save the project, create a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
@@ -154,4 +204,4 @@ In proposal order, the remaining work is:
 
 When runs become long-lived, replace the synchronous run endpoint with background execution and status updates; a B0 run is already slow enough to feel it.
 
-The current foundation has no user accounts, repository upload or cloning, background job queue, automatic test execution, or production deployment. A separate production backend would need an API URL, CORS configuration, authentication, and an isolated execution environment. The development proxy is not a production API gateway.
+The current foundation has no repository upload or cloning, background job queue, or production deployment. A separate production backend needs an API URL, explicit CORS origins, HTTPS with secure session cookies, and an isolated execution environment. The development proxy is not a production API gateway.

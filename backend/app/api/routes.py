@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
+from app.core.auth import CurrentUser
 from app.schemas import (
     Integration,
     Project,
@@ -115,65 +116,65 @@ def system_info(request: Request):
 
 
 @router.get("/projects", response_model=list[Project], tags=["projects"])
-def list_projects(request: Request):
-    return request.app.state.store.list_projects()
+def list_projects(request: Request, user: CurrentUser):
+    return request.app.state.store.list_projects(user.id)
 
 
 @router.post("/projects", response_model=Project, status_code=201, tags=["projects"])
-def create_project(payload: ProjectCreate, request: Request):
+def create_project(payload: ProjectCreate, request: Request, user: CurrentUser):
     project = Project(**payload.model_dump(), id=str(uuid4()), created_at=datetime.now(UTC))
-    request.app.state.store.create_project(project)
+    request.app.state.store.create_project(project, user.id)
     return project
 
 
 @router.get("/projects/{project_id}", response_model=Project, tags=["projects"])
-def get_project(project_id: str, request: Request):
-    project = request.app.state.store.get_project(project_id)
+def get_project(project_id: str, request: Request, user: CurrentUser):
+    project = request.app.state.store.get_project(project_id, user.id)
     if project is None:
         raise HTTPException(404, "Project not found")
     return project
 
 
 @router.get("/projects/{project_id}/runs", response_model=list[VerificationRun], tags=["runs"])
-def list_runs(project_id: str, request: Request):
-    get_project(project_id, request)
+def list_runs(project_id: str, request: Request, user: CurrentUser):
+    get_project(project_id, request, user)
     return request.app.state.store.list_runs(project_id)
 
 
 @router.post(
     "/projects/{project_id}/runs", response_model=VerificationRun, status_code=201, tags=["runs"]
 )
-def create_run(project_id: str, request: Request):
-    project = get_project(project_id, request)
+def create_run(project_id: str, request: Request, user: CurrentUser):
+    project = get_project(project_id, request, user)
     run = request.app.state.orchestrator.run(project)
     request.app.state.store.create_run(run)
     return run
 
 
 @router.get("/runs", response_model=list[VerificationRun], tags=["runs"])
-def recent_runs(request: Request, limit: int = Query(default=20, ge=1, le=100)):
-    return request.app.state.store.recent_runs(limit)
+def recent_runs(request: Request, user: CurrentUser, limit: int = Query(default=20, ge=1, le=100)):
+    return request.app.state.store.recent_runs(user.id, limit)
 
 
 @router.get("/runs/{run_id}", response_model=VerificationRun, tags=["runs"])
-def get_run(run_id: str, request: Request):
-    run = request.app.state.store.get_run(run_id)
+def get_run(run_id: str, request: Request, user: CurrentUser):
+    run = request.app.state.store.get_run(run_id, user.id)
     if run is None:
         raise HTTPException(404, "Run not found")
     return run
 
 
 @router.get("/runs/{run_id}/report", response_model=VerificationReport, tags=["runs"])
-def get_report(run_id: str, request: Request, response: Response):
-    run = get_run(run_id, request)
+def get_report(run_id: str, request: Request, response: Response, user: CurrentUser):
+    run = get_run(run_id, request, user)
     response.headers["Content-Disposition"] = f'attachment; filename="report-{run.id}.json"'
     return run.report
 
 
 @router.get("/runs/{run_id}/report.html", response_class=Response, tags=["runs"])
-def get_html_report(run_id: str, request: Request):
-    run = get_run(run_id, request)
-    project = get_project(run.project_id, request)
+def get_html_report(run_id: str, request: Request, user: CurrentUser):
+    run = get_run(run_id, request, user)
+    project = get_project(run.project_id, request, user)
     return Response(
         render_html_report(project, run),
         media_type="text/html",
