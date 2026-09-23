@@ -117,6 +117,8 @@ Before integrating a real long-running agent, expand run states to queued/runnin
 
 The dev frontend proxies `/api` to `BACKEND_URL` (default `http://127.0.0.1:8000`). A separate hosted API can be selected via the build-time `VITE_API_BASE_URL`; it is a public URL and must never contain credentials. Backend settings use the `REQTEST_` prefix, except `ANTHROPIC_API_KEY`, which keeps the SDK's own name. Leaving it unset is a supported configuration, not an error: the app falls back to scaffold mode and says so through `/api/v1/system`. The same applies to a missing Docker daemon or sandbox image, which leaves execution unconnected.
 
+A blank value in `.env` is normalised to `None`, because `Path("")` resolves to the process working directory and would otherwise switch repository inspection on silently. Image availability is checked with `docker image ls --quiet`, not `docker image inspect`: with the containerd image store, `inspect` fails for a short reference that `docker run` accepts, which would disable execution for a working image.
+
 The orchestrator, the runner and the inspection setting are all resolved once, at startup. Starting Docker, exporting a key, or setting a repository root while the server is running has no effect until it restarts. Secrets, databases and installed dependencies are ignored by Git.
 
 Accounts protect persisted projects and reports. Repository access still uses a shared configured root;

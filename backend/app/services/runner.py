@@ -211,7 +211,7 @@ def create_runner(settings: Settings) -> DockerTestRunner | None:
                 "The Docker daemon is not running; generated tests will not be executed."
             )
             return None
-        if not _succeeds([settings.docker_binary, "image", "inspect", settings.sandbox_image]):
+        if not _image_exists(settings):
             logger.warning(
                 "The sandbox image %s is missing. Run: bash scripts/build-sandbox.sh",
                 settings.sandbox_image,
@@ -227,3 +227,19 @@ def create_runner(settings: Settings) -> DockerTestRunner | None:
 
 def _succeeds(command: list[str]) -> bool:
     return subprocess.run(command, capture_output=True, text=True, timeout=30).returncode == 0
+
+
+def _image_exists(settings: Settings) -> bool:
+    """Ask for the image id rather than inspecting it.
+
+    With Docker's containerd image store, `docker image inspect <short-name>` fails
+    for an image that `docker run <short-name>` starts happily, because inspect does
+    not normalise the reference. Listing the id works on both image stores.
+    """
+    result = subprocess.run(
+        [settings.docker_binary, "image", "ls", "--quiet", settings.sandbox_image],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    return result.returncode == 0 and bool(result.stdout.strip())

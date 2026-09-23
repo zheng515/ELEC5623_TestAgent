@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,3 +39,13 @@ class Settings(BaseSettings):
     sandbox_memory: str = "512m"
     sandbox_cpus: str = "1"
     sandbox_pids_limit: int = 128
+
+    @field_validator("repository_root", "anthropic_api_key", mode="before")
+    @classmethod
+    def _blank_means_unset(cls, value):
+        """An empty value in .env means "not configured", not "the current directory".
+
+        Copying .env.example leaves these blank, and Path("") resolves to the process
+        working directory, which would silently switch repository inspection on.
+        """
+        return None if isinstance(value, str) and not value.strip() else value

@@ -146,3 +146,25 @@ def test_the_digest_changes_when_the_interface_changes(repository, settings):
     (repository / "shipping.py").write_text(SOURCE + "\n\ndef refund(x):\n    return x\n")
 
     assert inspect_repository("repo", settings).sha256 != before
+
+
+def test_a_blank_setting_does_not_silently_enable_inspection(tmp_path):
+    """Copying .env.example leaves the root blank; Path("") would mean the CWD."""
+    env = tmp_path / ".env"
+    env.write_text("REQTEST_REPOSITORY_ROOT=\nANTHROPIC_API_KEY=\n")
+
+    settings = Settings(_env_file=str(env))
+
+    assert settings.repository_root is None
+    assert settings.anthropic_api_key is None
+    assert repository_available(settings) is False
+
+
+def test_a_configured_root_is_still_read_from_the_env_file(tmp_path):
+    env = tmp_path / ".env"
+    env.write_text(f"REQTEST_REPOSITORY_ROOT={tmp_path}\n")
+
+    settings = Settings(_env_file=str(env))
+
+    assert settings.repository_root == tmp_path
+    assert repository_available(settings) is True

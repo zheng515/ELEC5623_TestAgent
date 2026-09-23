@@ -7,7 +7,7 @@ import pytest
 
 from app.core.config import Settings
 from app.schemas import GeneratedTest
-from app.services.runner import DockerTestRunner, create_runner
+from app.services.runner import DockerTestRunner, _image_exists, create_runner
 
 JUNIT = """<?xml version="1.0" encoding="utf-8"?>
 <testsuites><testsuite name="pytest" tests="3">
@@ -214,11 +214,35 @@ def test_no_runner_is_created_without_a_sandbox(monkeypatch):
 
 def test_no_runner_is_created_when_the_image_is_missing(monkeypatch):
     monkeypatch.setattr("app.services.runner.shutil.which", lambda _: "/usr/local/bin/docker")
-    monkeypatch.setattr("app.services.runner._succeeds", lambda command: command[1] == "info")
+    monkeypatch.setattr("app.services.runner._succeeds", lambda command: True)
+    monkeypatch.setattr("app.services.runner._image_exists", lambda settings: False)
     assert create_runner(Settings(_env_file=None)) is None
 
 
 def test_a_runner_is_created_when_docker_and_the_image_are_present(monkeypatch):
     monkeypatch.setattr("app.services.runner.shutil.which", lambda _: "/usr/local/bin/docker")
     monkeypatch.setattr("app.services.runner._succeeds", lambda command: True)
+    monkeypatch.setattr("app.services.runner._image_exists", lambda settings: True)
     assert isinstance(create_runner(Settings(_env_file=None)), DockerTestRunner)
+
+
+def test_the_image_is_looked_up_by_id_not_by_inspecting_it(monkeypatch):
+    """`docker image inspect <short-name>` gives a false negative on the containerd
+    image store, for an image `docker run <short-name>` starts fine."""
+    commands = []
+
+    def fake_run(command, **kwargs):
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 0, "d8166849c6e8\n", "")
+
+    monkeypatch.setattr("app.services.runner.subprocess.run", fake_run)
+    assert _image_exists(Settings(_env_file=None)) is True
+    assert commands[0][1:4] == ["image", "ls", "--quiet"]
+
+
+def test_an_empty_image_listing_means_the_image_is_absent(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.runner.subprocess.run",
+        lambda command, **kwargs: subprocess.CompletedProcess(command, 0, "\n", ""),
+    )
+    assert _image_exists(Settings(_env_file=None)) is False

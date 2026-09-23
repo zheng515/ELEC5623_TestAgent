@@ -42,6 +42,18 @@ bash scripts/dev.sh
 
 Open the frontend at http://localhost:3000. The API is available at http://127.0.0.1:8000/api/v1, and its interactive documentation is at http://127.0.0.1:8000/docs. Press `Ctrl+C` to stop both services. The development script checks whether ports 3000 and 8000 are available before starting. On Windows, run the shell scripts in WSL.
 
+**Those two commands start the application, but a run will do nothing on its own.** With no further configuration the app starts in scaffold mode: it records projects and runs, and every agent capability reports `not_connected`. Each capability is switched on by one piece of configuration:
+
+| To get | Do this | Then `/api/v1/system` reports |
+| --- | --- | --- |
+| Requirement analysis and test generation | Set `ANTHROPIC_API_KEY` in `backend/.env` or your shell | `analysis`, `generation` ready; mode `baseline_b0` |
+| Reading the project under test | Set `REQTEST_REPOSITORY_ROOT` to the directory your repositories live under | `inspection` ready |
+| Running the generated tests | Start Docker, then `bash scripts/build-sandbox.sh` | `execution` ready |
+
+Copy `backend/.env.example` to `backend/.env` and fill in the values you want. A blank value means *not configured*, so copying the file without editing it changes nothing. Open http://localhost:3000 and check the **Integration status** panel, or `curl http://127.0.0.1:8000/api/v1/system`, to see which capabilities are live — the app always reports what it can and cannot do rather than failing silently.
+
+Settings are read once at startup, so restart the backend after changing them.
+
 To run the services separately, use two terminals after setup:
 
 ```bash
