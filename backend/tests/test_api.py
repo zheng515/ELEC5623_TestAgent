@@ -1,6 +1,7 @@
 import hashlib
 
 import pytest
+from conftest import ACCOUNT, register
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
@@ -18,6 +19,7 @@ def settings(tmp_path):
 @pytest.fixture
 def client(settings):
     with TestClient(create_app(settings)) as client:
+        register(client)
         yield client
 
 
@@ -60,9 +62,11 @@ def test_project_run_report_flow_does_not_claim_verification(client):
 
 def test_data_survives_app_restart(settings):
     with TestClient(create_app(settings)) as first:
+        register(first)
         project = create_project(first)
         run = first.post(f"/api/v1/projects/{project['id']}/runs").json()
     with TestClient(create_app(settings)) as second:
+        second.post("/api/v1/auth/login", json={key: ACCOUNT[key] for key in ("email", "password")})
         assert second.get(f"/api/v1/projects/{project['id']}").json() == project
         assert second.get(f"/api/v1/runs/{run['id']}").json() == run
 

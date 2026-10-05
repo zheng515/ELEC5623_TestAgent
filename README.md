@@ -42,6 +42,18 @@ bash scripts/dev.sh
 
 Open the frontend at http://localhost:3000. The API is available at http://127.0.0.1:8000/api/v1, and its interactive documentation is at http://127.0.0.1:8000/docs. Press `Ctrl+C` to stop both services. The development script checks whether ports 3000 and 8000 are available before starting. On Windows, run the shell scripts in WSL.
 
+**Those two commands start the application, but a run will do nothing on its own.** With no further configuration the app starts in scaffold mode: it records projects and runs, and every agent capability reports `not_connected`. Each capability is switched on by one piece of configuration:
+
+| To get | Do this | Then `/api/v1/system` reports |
+| --- | --- | --- |
+| Requirement analysis, test planning, and generation | Set `ANTHROPIC_API_KEY` in `backend/.env` or your shell | `analysis`, `planning`, `generation` ready; mode `baseline_b0` |
+| Reading the project under test | Set `REQTEST_REPOSITORY_ROOT` to the directory your repositories live under | `inspection` ready |
+| Running the generated tests | Start Docker, then `bash scripts/build-sandbox.sh` | `execution` ready |
+
+Copy `backend/.env.example` to `backend/.env` and fill in the values you want. A blank value means *not configured*, so copying the file without editing it changes nothing. Open http://localhost:3000 and check the **Integration status** panel, or `curl http://127.0.0.1:8000/api/v1/system`, to see which capabilities are live — the app always reports what it can and cannot do rather than failing silently.
+
+Settings are read once at startup, so restart the backend after changing them.
+
 To run the services separately, use two terminals after setup:
 
 ```bash
@@ -57,6 +69,56 @@ npm run dev
 The frontend development server proxies `/api` to the backend. Copy either directory's `.env.example` to `.env` if you need to change the defaults. SQLite data is stored in `backend/data/reqtest.db` and is ignored by Git. The setup script also recognizes an optional, Git-ignored `.tools/node` installation for local development.
 
 ## What you can do now
+
+Sign in with an email and password, or select **Create account** to register. Registration
+signs you in immediately. Passwords must contain 8–128 characters. The workspace restores
+your session on reload, and **Sign out** revokes the current session. Projects, runs, and
+report downloads are private to the account that created them.
+
+### Authentication API
+
+Authentication follows the existing versioned JSON REST design:
+
+| Method | Path | Result |
+| --- | --- | --- |
+| POST | `/api/v1/auth/register` | `{name, email, password}` → user and session cookie; 201 |
+| POST | `/api/v1/auth/login` | `{email, password}` → user and session cookie; 200 |
+| GET | `/api/v1/auth/me` | Current user; 200, or 401 when signed out |
+| POST | `/api/v1/auth/logout` | Revoke the session and clear its cookie; 204 |
+
+User responses contain `id`, `name`, `email`, and `created_at`; never password hashes or
+session tokens. Email addresses are validated with `email-validator`, normalized (including
+internationalized domains), and stored in lowercase. This validates syntax but does not prove
+that the mailbox exists or belongs to the user; that requires an email-verification flow.
+Duplicate emails return 409, invalid inputs return 422, and invalid credentials return 401. Registration and
+login share a persistent limit of 20 attempts per client IP per 15 minutes (429 when exceeded).
+
+Existing project/run/report paths and JSON response structures are unchanged, but require
+the session cookie. Another user's records return 404. Health and integration status remain
+public. Send `Content-Type: application/json` on every POST, including bodyless run creation
+and logout. Browser clients must send credentials; cross-origin frontend URLs must be listed
+in `REQTEST_CORS_ORIGINS`. Keep frontend and API on the same site, preferably using `/api`
+through a reverse proxy. Cookie sessions do not use browser local storage.
+
+Passwords use salted scrypt (`N=131072`, `r=8`, `p=1`). Random session tokens are stored only
+as SHA-256 hashes in SQLite; cookies are HttpOnly and SameSite=Lax. Sessions expire after
+seven days by default (`REQTEST_SESSION_TTL_SECONDS`). For HTTPS, set
+`REQTEST_SESSION_COOKIE_SECURE=true`. JSON-only writes and Origin checks protect cookie
+authentication against cross-site form submissions. API responses disable caching.
+
+Startup adds authentication tables and a nullable project owner column to existing SQLite
+databases without deleting existing data. Legacy projects remain unowned and hidden; they are
+not automatically claimed by the first registered account. An administrator can assign a
+known legacy project explicitly after backing up the database, for example with parameterized
+SQL: `UPDATE projects SET owner_id = ? WHERE id = ? AND owner_id IS NULL`. Run ownership follows
+its project. Email verification, password reset, and third-party sign-in are not included.
+
+The repository inspection root is still shared server configuration, not a per-user repository
+permission system. Run this as a trusted local/team tool; public multi-tenant repository hosting
+requires separate repository permissions and deployment controls. Behind a reverse proxy,
+configure trusted proxy addresses before relying on per-client throttling.
+
+### Verification workspace
 
 1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
 2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference. You can import a `.txt` or `.md` requirement file, or use the English shipping example.
@@ -165,4 +227,4 @@ In proposal order, the remaining work is:
 
 When runs become long-lived, replace the synchronous run endpoint with background execution and status updates; a B0 run is already slow enough to feel it.
 
-The current foundation has no user accounts, repository upload or cloning, background job queue, or production deployment. A separate production backend would need an API URL, CORS configuration, authentication, and an isolated execution environment. The development proxy is not a production API gateway.
+The current foundation has no repository upload or cloning, background job queue, or production deployment. A separate production backend needs an API URL, explicit CORS origins, HTTPS with secure session cookies, and an isolated execution environment. The development proxy is not a production API gateway.

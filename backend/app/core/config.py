@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +9,8 @@ class Settings(BaseSettings):
 
     database_path: Path = Path("data/reqtest.db")
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    session_cookie_secure: bool = False
+    session_ttl_seconds: int = Field(default=604800, ge=60, le=2592000)
 
     # Agent configuration. Without credentials the app falls back to the scaffold
     # orchestrator, so the API stays usable and the test suite never calls the network.
@@ -38,3 +40,13 @@ class Settings(BaseSettings):
     sandbox_memory: str = "512m"
     sandbox_cpus: str = "1"
     sandbox_pids_limit: int = 128
+
+    @field_validator("repository_root", "anthropic_api_key", mode="before")
+    @classmethod
+    def _blank_means_unset(cls, value):
+        """An empty value in .env means "not configured", not "the current directory".
+
+        Copying .env.example leaves these blank, and Path("") resolves to the process
+        working directory, which would silently switch repository inspection on.
+        """
+        return None if isinstance(value, str) and not value.strip() else value

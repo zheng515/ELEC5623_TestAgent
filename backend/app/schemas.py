@@ -2,7 +2,50 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from email_validator import EmailNotValidError, validate_email
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+
+
+class Credentials(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str = Field(max_length=254)
+    password: SecretStr = Field(min_length=1, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        """Store one canonical form so case variants cannot create duplicate accounts."""
+        try:
+            result = validate_email(
+                value.strip(),
+                check_deliverability=False,
+                allow_display_name=False,
+                strict=True,
+            )
+        except EmailNotValidError as error:
+            raise ValueError("Enter a valid email address.") from error
+        return result.normalized.lower()
+
+
+class RegisterRequest(Credentials):
+    name: str = Field(min_length=1, max_length=100)
+    password: SecretStr = Field(min_length=8, max_length=128)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Enter your name.")
+        return value
+
+
+class User(BaseModel):
+    id: str
+    name: str
+    email: str
+    created_at: datetime
 
 
 class VerificationStatus(StrEnum):

@@ -1,3 +1,17 @@
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string;
+}
+export interface Credentials {
+  email: string;
+  password: string;
+}
+export interface RegisterRequest extends Credentials {
+  name: string;
+}
+
 export interface ProjectCreate {
   name: string;
   description: string;

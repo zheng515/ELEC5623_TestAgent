@@ -15,6 +15,8 @@ import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import type { Project, VerificationRun } from "../lib/types";
 vi.mock("../lib/api", () => ({
   api: {
+    me: vi.fn(),
+    logout: vi.fn(),
     projects: vi.fn(),
     system: vi.fn(),
     recentRuns: vi.fn(),
@@ -111,6 +113,13 @@ const agentRun: VerificationRun = {
 };
 beforeEach(() => {
   window.history.replaceState({}, "", "/");
+  vi.mocked(api.me).mockResolvedValue({
+    id: "u1",
+    name: "Test User",
+    email: "test@example.com",
+    created_at: project.created_at,
+  });
+  vi.mocked(api.logout).mockResolvedValue();
   vi.mocked(api.projects).mockResolvedValue([project]);
   vi.mocked(api.system).mockResolvedValue({
     version: "0.1.0",

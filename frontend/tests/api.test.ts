@@ -18,6 +18,14 @@ it("gives synchronous agent runs time for planning while keeping read requests b
   expect(fetchMock.mock.calls[0][0]).toBe(
     "/api/v1/projects/project%2Fone/runs",
   );
+  expect(fetchMock.mock.calls[0][1]).toEqual(
+    expect.objectContaining({
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
   await api.projects();
   expect(timeout).toHaveBeenLastCalledWith(15000);
 });

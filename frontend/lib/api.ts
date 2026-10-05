@@ -1,4 +1,7 @@
 import type {
+  Credentials,
+  RegisterRequest,
+  User,
   Project,
   ProjectCreate,
   SystemInfo,
@@ -10,6 +13,20 @@ const base = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(
   /\/$/,
   "",
 );
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+function sessionExpired() {
+  window.dispatchEvent(new Event("reqtest:session-expired"));
+}
 
 // Runs are synchronous and include several model calls plus sandbox execution.
 const configuredRunTimeout = Number(import.meta.env.VITE_RUN_TIMEOUT_MS);
@@ -27,8 +44,12 @@ async function request<T>(
   try {
     response = await fetch(`${base}${path}`, {
       ...options,
+      credentials: "include",
+      cache: "no-store",
       headers: {
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(options.method && options.method !== "GET"
+          ? { "Content-Type": "application/json" }
+          : {}),
         ...options.headers,
       },
       signal: AbortSignal.timeout(timeoutMs),
@@ -51,17 +72,34 @@ async function request<T>(
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
     const detail = payload?.detail;
-    throw new Error(
+    if (response.status === 401 && !path.startsWith("/auth/")) sessionExpired();
+    throw new ApiError(
       typeof detail === "string"
         ? detail
         : response.status === 422
-          ? "Check the project name, requirements, and verification goal."
+          ? path.startsWith("/auth/")
+            ? "Check your email and password. Use 8–128 characters for a new password."
+            : "Check the project name, requirements, and verification goal."
           : `Request failed (${response.status}). Please try again.`,
+      response.status,
     );
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 export const api = {
+  me: () => request<User>("/auth/me"),
+  register: (payload: RegisterRequest) =>
+    request<User>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  login: (payload: Credentials) =>
+    request<User>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  logout: () => request<void>("/auth/logout", { method: "POST" }),
   recentRuns: () => request<VerificationRun[]>("/runs?limit=5"),
   projects: () => request<Project[]>("/projects"),
   createProject: (payload: ProjectCreate) =>
@@ -101,6 +139,8 @@ export async function downloadHtmlReport(id: string) {
     response = await fetch(
       `${base}/runs/${encodeURIComponent(id)}/report.html`,
       {
+        credentials: "include",
+        cache: "no-store",
         signal: AbortSignal.timeout(15000),
       },
     );
@@ -109,8 +149,13 @@ export async function downloadHtmlReport(id: string) {
       "Unable to reach the API. Check that the backend is running and try again.",
     );
   }
-  if (!response.ok)
-    throw new Error(`Report download failed (${response.status}).`);
+  if (!response.ok) {
+    if (response.status === 401) sessionExpired();
+    throw new ApiError(
+      `Report download failed (${response.status}).`,
+      response.status,
+    );
+  }
   const url = URL.createObjectURL(await response.blob());
   const link = document.createElement("a");
   link.href = url;
