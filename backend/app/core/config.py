@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 16000
     llm_timeout_seconds: float = 180.0
     max_requirements: int = 40
+    max_scenarios: int = Field(default=80, ge=1, le=200)
 
     # Repository inspection (FR4). Reading a user-supplied path is a trust-boundary
     # change, so it stays off until a root is configured, and every path must resolve

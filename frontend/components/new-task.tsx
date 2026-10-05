@@ -134,12 +134,12 @@ export function NewTask({
                 maxLength={500}
                 value={form.repository_ref}
                 onChange={(e) => change("repository_ref", e.target.value)}
-                placeholder="Repository URL or local path"
+                placeholder="Local path within the configured repository root"
               />
             </label>
             <p className="field-help">
-              Saved as a reference only. Cloning, uploads, and source inspection
-              are not connected.
+              Local paths can be inspected when repository access is configured.
+              Remote cloning and repository uploads are not connected.
             </p>
             <div className="form-section">
               <span className="section-number">02</span>
@@ -209,7 +209,11 @@ export function NewTask({
               />
             </label>
             <div className="form-bottom">
-              <span>No API key required for setup.</span>
+              <span>
+                {mode === "scaffold"
+                  ? "No API key required for setup."
+                  : "The agent runs automatically. Results appear when the run finishes."}
+              </span>
               <button
                 className="button primary"
                 disabled={busy || reading}
@@ -228,7 +232,9 @@ export function NewTask({
             Keep the evidence.
           </h2>
           <p>
-            This release saves your inputs and creates a traceable setup run.
+            {mode === "scaffold"
+              ? "Save your inputs and create a traceable setup run."
+              : "Give the agent a verification goal and review its traceable results."}
           </p>
           <ol>
             <li>Record project and requirements</li>
@@ -236,7 +242,11 @@ export function NewTask({
             {mode !== "scaffold" ? (
               <>
                 <li>Analyze requirements and flag ambiguity</li>
+                <li>Plan scenarios, inputs, and expected results</li>
                 <li>Generate traceable pytest tests</li>
+                {mode === "baseline_b2" && (
+                  <li>Execute in the sandbox and refine invalid tests once</li>
+                )}
               </>
             ) : (
               <>
@@ -248,9 +258,11 @@ export function NewTask({
           <div className="aside-note">
             <strong>What happens today?</strong>
             <p>
-              {mode !== "scaffold"
-                ? "Requirements are split into testable items and pytest tests are generated from them. The tests are not executed, so nothing is reported as verified."
-                : "The run is marked Blocked until analysis and execution modules are connected. No tests are generated or executed."}
+              {mode === "baseline_b2"
+                ? "The agent analyzes requirements, creates a test plan, generates pytest tests, and executes them when the project can be inspected. Execution errors may trigger one repair attempt. Review the recorded evidence and gaps."
+                : mode === "baseline_b0"
+                  ? "The agent analyzes requirements, creates a test plan, and generates pytest tests. Execution is not connected; generated tests are not verification evidence."
+                  : "The run is marked Blocked until analysis and execution modules are connected. No tests are generated or executed."}
             </p>
           </div>
         </aside>

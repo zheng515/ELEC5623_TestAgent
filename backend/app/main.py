@@ -37,8 +37,9 @@ def create_app(
     app = FastAPI(
         title="ReqTest API",
         description=(
-            "Requirement-aware verification framework. Requirements are analysed and "
-            "pytest tests are generated; test execution is not connected."
+            "Requirement-aware verification agent. Requirements are analyzed, structured "
+            "scenarios are planned, and pytest tests are generated. Available integrations "
+            "enable sandbox execution and bounded refinement."
         ),
         version="0.1.0",
         lifespan=lifespan,

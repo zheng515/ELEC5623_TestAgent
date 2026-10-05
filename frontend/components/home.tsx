@@ -50,7 +50,11 @@ export function Home({
             </div>
           ))}
           <span className="loop-note">
-            Execution modules are not connected yet.
+            {system.mode === "baseline_b2"
+              ? "Sandbox execution and one repair attempt are available."
+              : system.mode === "baseline_b0"
+                ? "Analysis, test planning, and generation are available."
+                : "Agent integrations are not connected yet."}
           </span>
         </div>
       </section>
@@ -58,8 +62,9 @@ export function Home({
         <span className="status-dot" />
         <strong>Workspace ready</strong>
         <span>
-          Inputs and reports are saved. Autonomous analysis and test execution
-          are pending integration.
+          {system.mode === "scaffold"
+            ? "Inputs and reports are saved. Configure model access to enable the agent."
+            : "Submit one goal. The agent analyzes requirements, plans scenarios, and generates traceable tests automatically."}
         </span>
         <Badge>Foundation release</Badge>
       </div>

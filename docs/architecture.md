@@ -2,7 +2,7 @@
 
 ## Scope and trust boundary
 
-The current product is a local development tool. SQLite stores real input and run records. The B0 orchestrator reads the project under test, calls an LLM to analyse requirements and generate pytest tests, then executes those tests against that project in a container. Input documents and repository contents are evidence to analyse, never instructions granting tool permissions: both agent prompts state this, and the requirement text is passed inside delimiters as data.
+The current product is a local development tool. SQLite stores real input and run records. The B0 orchestrator reads the project under test, calls an LLM to analyse requirements, plan structured scenarios, and generate pytest tests, then executes those tests against that project in a container. Input documents and repository contents are evidence to analyse, never instructions granting tool permissions: the agent prompts state this, and the requirement text is passed inside delimiters as data.
 
 **A repository reference is user input, so reading it is a trust boundary.** Inspection stays off until `REQTEST_REPOSITORY_ROOT` is set; every path must resolve inside that root, symlinks are never followed, remote URLs are refused rather than cloned, and only the public interface of each module is read — signatures, class names, docstrings, never whole file bodies. The repository is mounted into the sandbox read-only.
 
@@ -16,6 +16,7 @@ React workspace → typed API client → /api/v1 → FastAPI routes
                                                   └─ DirectLLMOrchestrator (B0 / B2)
                                                        ├─ inspector → RepositorySnapshot
                                                        ├─ analyzer  → RequirementAnalysis
+                                                       ├─ planner   → TestPlan
                                                        ├─ generator → GeneratedTestSuite
                                                        └─ runner    → ExecutionResult
                                                             └─ docker run (no network,
@@ -55,7 +56,7 @@ and rechecks authentication on window focus and cross-tab session changes.
 | GET | /projects/{id} | Project and original requirements |
 | GET | /projects/{id}/runs | Persisted run history |
 | GET | /runs?limit=5 | Recent runs across projects, newest first; limit 1–100 |
-| POST | /projects/{id}/runs | Analyze requirements synchronously; 201 |
+| POST | /projects/{id}/runs | Run analysis, planning, generation, and available execution synchronously; 201 |
 | GET | /runs/{id} | Run, events, input fingerprint and report |
 | GET | /runs/{id}/report | JSON report download |
 | GET | /runs/{id}/report.html | Portable HTML report download |
@@ -78,12 +79,14 @@ Create-project body:
 - Project inputs are immutable through this API version. Runs refer to an existing project.
 - Each run stores UTC timestamps, ordered events, a report and SHA-256 of the serialized project input. This fingerprint is **not** a source-code snapshot.
 - Run mode is `scaffold`, `baseline_b0` without execution, or `baseline_b2` when the sandbox enables the bounded feedback loop. A failed run keeps whatever it had already extracted and records why it stopped; it never substitutes a plausible result.
-- `executed_tests = 0`; `semantic_coverage = null`; `mutation_score = null` in every mode. Null means not evaluated, not 0% coverage.
-- `requirement_coverage` is the share of testable requirements linked to at least one generated test. It is derived from `GeneratedTest.requirement_ids`, which is filtered against the extracted requirement ids, so a reference the model invents cannot inflate it. It measures generation, not execution.
+- `semantic_coverage = null` and `mutation_score = null` in every mode. Null means not evaluated, not 0% coverage. `executed_tests` is zero when no execution outcomes were recorded.
+- `requirement_coverage` is the share of testable requirements linked to at least one generated test. It is derived from `GeneratedTest.requirement_ids`, which the generator derives from validated `scenario_ids` and their testable requirement links, so an unknown reference cannot inflate it. It measures generation, not execution.
 - `execution_success_rate` is the share of executed tests that passed, and `null` when nothing ran. `executed_tests` counts cases pytest actually reported, so a sandbox that produced no readable report counts as zero rather than as success.
+- `test_plan` stores the planner output before generation. `planning_gaps` lists testable requirements without scenarios; `uncovered_scenarios` lists planned scenarios without generated tests. These are distinct from requirement coverage and execution outcomes.
+- A planning failure preserves extracted requirements and repository interfaces; a generation failure also preserves the plan. A legacy report without these fields loads with `test_plan = null` and empty gap lists; legacy tests default to empty `scenario_ids`. SQLite stores report JSON, so this additive change needs no database migration.
 - `coverage_gaps` lists testable requirements that no generated test references (FR14).
 - Verification status is decided in `_status` and never rises above what was proven. `Uncertain` when the requirement is ambiguous or untestable. `Unverified` when the project was not inspected, when no linked test ran, or when any linked test failed or errored — a green test against a *guessed* module is not evidence. `Partially Verified` when the project was inspected and every linked test passed against it. `Verified` is deliberately unreachable: passing tests show the behavior held for the cases that were written, and nothing yet evaluates whether those cases were adequate. Mutation testing is what unlocks it.
-- `evidence` holds one record per executed test, and each behavior's `evidence_refs` point at the outcomes of its own tests, which is the requirement → test → evidence chain the UI walks.
+- `evidence` holds one record per executed test, and each behavior's `evidence_refs` point at the outcomes of its own tests, which is the requirement → scenario → test → evidence chain the UI walks for new runs.
 - In B2 mode, an execution error is classified as an invalid test and may be refined once using the requirement, repository interface, and error message. Assertion failures remain suspected defects and are never rewritten merely to match observed output. The one-iteration bound prevents uncontrolled repair loops.
 - The behavior contract reserves the proposal's four statuses: Verified, Partially Verified, Unverified, Uncertain. No synthetic behaviors are inserted.
 - SQLite connections are per operation with transactions and foreign keys. This is local persistence, not a distributed job queue. Schema migrations will be needed when the schema changes.
@@ -95,21 +98,24 @@ Create-project body:
 Implemented:
 
 1. **RequirementAnalyzer** (`services/analyzer.py`): structured requirements with verbatim source quotes, testability, and ambiguity findings. Ids are renumbered on collision because traceability depends on them.
-2. **TestGenerator** (`services/generator.py`): pytest artifacts linked to requirement ids, plus coverage gaps. Generated is distinct from executed everywhere in the report.
+2. **TestPlanner** (`services/planner.py`): independent structured scenarios with normal, boundary, and negative categories, preconditions, inputs, steps, expected results, source references, and assumptions. It filters links to known testable requirements and available interfaces, renumbers scenarios as `S1`, `S2`, etc., and applies `REQTEST_MAX_SCENARIOS`. A prompt asks for source-grounded expectations; reference validation does not prove their semantic correctness.
 
-3. **SandboxRunner** (`services/runner.py`): `docker run` with `--network none`, `--read-only`, `--cap-drop ALL`, `--security-opt no-new-privileges`, and memory, CPU, PID and wall-clock limits. Results are read from pytest's own JUnit XML; a timeout force-removes the container. `--continue-on-collection-errors` is required, not cosmetic: without it one uncollectable generated module aborts the session and every other result is lost.
+3. **TestGenerator** (`services/generator.py`): pytest artifacts generated from the saved plan, linked to validated scenario ids and their derived requirement ids, plus coverage gaps. Generated is distinct from executed everywhere in the report.
+
+4. **SandboxRunner** (`services/runner.py`): `docker run` with `--network none`, `--read-only`, `--cap-drop ALL`, `--security-opt no-new-privileges`, and memory, CPU, PID and wall-clock limits. Results are read from pytest's own JUnit XML; a timeout force-removes the container. `--continue-on-collection-errors` is required, not cosmetic: without it one uncollectable generated module aborts the session and every other result is lost.
 
    The guarantees were checked by running probe tests inside the image rather than by trusting the flags: outbound sockets fail, `/` and `/home/sandbox` are unwritable, `/tmp` and the mounted workspace are writable (pytest needs both), the process runs as uid 10001, and `mount()` fails because capabilities are dropped. A container that exceeds its memory limit is killed with exit 137 and produces no report, which is recorded as zero executions and an explanatory issue — never as a pass. Re-run those probes after changing any flag in `_command`.
 
-4. **ArtifactInspector** (`services/inspector.py`): `ast`-based interface extraction confined to `REQTEST_REPOSITORY_ROOT`. Module names are derived as they would be imported from the mount root, so `pkg/orders.py` becomes `pkg.orders`; the root directory's own `__init__.py` is skipped because nothing imports it from there. The snapshot carries a SHA-256 of the interfaces, so a run can be tied to exactly what it read (NFR6).
+5. **ArtifactInspector** (`services/inspector.py`): `ast`-based interface extraction confined to `REQTEST_REPOSITORY_ROOT`. Module names are derived as they would be imported from the mount root, so `pkg/orders.py` becomes `pkg.orders`; the root directory's own `__init__.py` is skipped because nothing imports it from there. The snapshot carries a SHA-256 of the interfaces, so a run can be tied to exactly what it read (NFR6).
+
+6. **Bounded refinement** (`services/refiner.py`): execution errors may be repaired once; assertion failures are preserved as suspected code defects. Replacements retain their original requirement links, scenario links, and module paths. Current failure classification is based on pytest outcomes and needs more detailed diagnosis.
 
 Still to build:
 
-5. **EvidenceRetriever**: the RAG store that turns B0 into B1.
-6. **Failure diagnosis and bounded refinement**: execution errors may be repaired once; legitimate assertion failures are preserved as suspected code defects.
-7. **MutationRunner**: selected relevant mutations, outcome classification and bounded improvement.
+7. **EvidenceRetriever**: the RAG store that turns B0 into B1.
+8. **MutationRunner**: selected relevant mutations, outcome classification and bounded improvement.
 
-Before integrating a real long-running agent, expand run states to queued/running/blocked/completed/failed, separate events into append-only records, persist source/test snapshots and evidence references, and return 202 for enqueued work. Add polling or server-sent events to the frontend. The current synchronous endpoint is limited to quick requirement analysis.
+For resumable long-running agent execution, expand run states to queued/running/blocked/completed/failed, separate events into append-only records, persist source/test snapshots and evidence references, and return 202 for enqueued work. Add polling or server-sent events to the frontend. The current endpoint waits for the whole workflow and only then persists the run. The frontend uses a separate run timeout (`VITE_RUN_TIMEOUT_MS`, default 20 minutes) while read requests retain their 15-second timeout; this does not provide streaming progress or recovery after a server restart.
 
 `frontend/lib/types.ts` mirrors the backend schemas by hand, so update both together when adding states. OpenAPI is available at `/openapi.json` for future type generation.
 

@@ -28,7 +28,18 @@ function sessionExpired() {
   window.dispatchEvent(new Event("reqtest:session-expired"));
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+// Runs are synchronous and include several model calls plus sandbox execution.
+const configuredRunTimeout = Number(import.meta.env.VITE_RUN_TIMEOUT_MS);
+const runTimeout =
+  Number.isInteger(configuredRunTimeout) && configuredRunTimeout >= 15000
+    ? configuredRunTimeout
+    : 1200000;
+
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+  timeoutMs = 15000,
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${base}${path}`, {
@@ -41,9 +52,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
           : {}),
         ...options.headers,
       },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
-  } catch {
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "name" in error &&
+      error.name === "TimeoutError"
+    ) {
+      throw new Error(
+        "The request timed out. The backend may still be processing the run; refresh its workspace before starting another run.",
+      );
+    }
     throw new Error(
       "Unable to reach the API. Check that the backend is running and try again.",
     );
@@ -89,9 +110,11 @@ export const api = {
   runs: (id: string) =>
     request<VerificationRun[]>(`/projects/${encodeURIComponent(id)}/runs`),
   createRun: (id: string) =>
-    request<VerificationRun>(`/projects/${encodeURIComponent(id)}/runs`, {
-      method: "POST",
-    }),
+    request<VerificationRun>(
+      `/projects/${encodeURIComponent(id)}/runs`,
+      { method: "POST" },
+      runTimeout,
+    ),
   system: () => request<SystemInfo>("/system"),
   report: (id: string) =>
     request<VerificationReport>(`/runs/${encodeURIComponent(id)}/report`),

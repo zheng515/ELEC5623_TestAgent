@@ -19,9 +19,16 @@ from app.schemas import (
     RequirementAnalysis,
     RequirementItem,
 )
+from app.schemas import (
+    TestPlan as ScenarioPlan,
+)
+from app.schemas import (
+    TestScenario as Scenario,
+)
 from app.services.generator import coverage_gaps, generate_tests, requirement_coverage
 from app.services.llm import LLMError
 from app.services.orchestrator import DirectLLMOrchestrator
+from app.services.planner import plan_tests
 
 PROJECT = Project(
     id="p1",
@@ -53,11 +60,30 @@ ANALYSIS = RequirementAnalysis(
     notes="",
 )
 
+PLAN = ScenarioPlan(
+    scenarios=[
+        Scenario(
+            id="S1",
+            requirement_ids=["R1"],
+            title="Free shipping at threshold",
+            category="boundary",
+            preconditions=[],
+            inputs=["amount = 100 dollars"],
+            steps=["Calculate the shipping fee."],
+            expected_result="Free shipping.",
+            evidence_refs=["requirement:R1"],
+            assumptions=[],
+        )
+    ],
+    notes="",
+)
+
 SUITE = GeneratedTestSuite(
     tests=[
         GeneratedTest(
             id="T1",
             requirement_ids=["R1"],
+            scenario_ids=["S1"],
             name="test_free_shipping_at_threshold",
             module="test_shipping.py",
             code="def test_free_shipping_at_threshold():\n    assert True\n",
@@ -80,6 +106,7 @@ class FakeLLM:
         response = self.responses.pop(0)
         if isinstance(response, Exception):
             raise response
+        assert isinstance(response, output_format)
         return response
 
 
@@ -137,7 +164,7 @@ def run_agent(*responses, runner=None):
 
 
 def test_b0_run_records_requirements_tests_and_traceability():
-    run = run_agent(ANALYSIS, SUITE)
+    run = run_agent(ANALYSIS, PLAN, SUITE)
 
     assert run.mode == "baseline_b0"
     assert run.status == "completed"
@@ -145,6 +172,8 @@ def test_b0_run_records_requirements_tests_and_traceability():
     assert run.report.generated_tests[0].requirement_ids == ["R1"]
     assert run.report.requirement_coverage == 1.0
     assert run.report.coverage_gaps == []
+    assert run.report.test_plan == PLAN
+    assert run.report.generated_tests[0].scenario_ids == ["S1"]
     # R1 is covered by a test but nothing ran, so it is still unverified, not verified.
     statuses = {b.requirement_id: b.verification_status for b in run.report.behaviors}
     assert statuses == {"R1": "Unverified", "R2": "Uncertain"}
@@ -152,7 +181,7 @@ def test_b0_run_records_requirements_tests_and_traceability():
 
 
 def test_b0_run_never_claims_execution_or_measurement():
-    report = run_agent(ANALYSIS, SUITE).report
+    report = run_agent(ANALYSIS, PLAN, SUITE).report
 
     assert report.executed_tests == 0
     assert report.semantic_coverage is None
@@ -163,7 +192,7 @@ def test_b0_run_never_claims_execution_or_measurement():
 
 
 def test_ambiguity_and_untestable_requirements_are_reported_not_invented():
-    report = run_agent(ANALYSIS, SUITE).report
+    report = run_agent(ANALYSIS, PLAN, SUITE).report
 
     assert any("R2 is ambiguous" in issue for issue in report.unresolved_issues)
     assert any("R2 is not testable as written" in issue for issue in report.unresolved_issues)
@@ -171,7 +200,7 @@ def test_ambiguity_and_untestable_requirements_are_reported_not_invented():
 
 def test_uncovered_testable_requirement_becomes_a_gap():
     empty = GeneratedTestSuite(tests=[], notes="")
-    report = run_agent(ANALYSIS, empty).report
+    report = run_agent(ANALYSIS, PLAN, empty).report
 
     assert report.coverage_gaps == ["R1: An order of at least 100 dollars ships free."]
     assert report.requirement_coverage == 0.0
@@ -184,6 +213,7 @@ def test_invented_requirement_references_are_dropped():
             GeneratedTest(
                 id="T1",
                 requirement_ids=["R1", "R99"],
+                scenario_ids=["S1", "S99"],
                 name="test_x",
                 module="test_x",
                 code="def test_x():\n    assert True\n",
@@ -192,7 +222,7 @@ def test_invented_requirement_references_are_dropped():
         ],
         notes="",
     )
-    report = run_agent(ANALYSIS, suite).report
+    report = run_agent(ANALYSIS, PLAN, suite).report
 
     assert report.generated_tests[0].requirement_ids == ["R1"]
     assert report.generated_tests[0].module == "test_x.py"
@@ -200,7 +230,7 @@ def test_invented_requirement_references_are_dropped():
 
 def test_untestable_requirements_are_not_sent_to_the_generator():
     llm = FakeLLM(SUITE)
-    generate_tests(llm, PROJECT, ANALYSIS.requirements)
+    generate_tests(llm, PROJECT, ANALYSIS.requirements, plan=PLAN)
 
     assert "R1" in llm.prompts[0]
     assert "R2" not in llm.prompts[0]
@@ -208,7 +238,9 @@ def test_untestable_requirements_are_not_sent_to_the_generator():
 
 def test_generator_is_skipped_when_nothing_is_testable():
     llm = FakeLLM()
-    suite = generate_tests(llm, PROJECT, [ANALYSIS.requirements[1]])
+    suite = generate_tests(
+        llm, PROJECT, [ANALYSIS.requirements[1]], plan=ScenarioPlan(scenarios=[], notes="")
+    )
 
     assert suite.tests == []
     assert llm.prompts == []
@@ -224,11 +256,13 @@ def test_model_failure_produces_a_failed_run_not_a_fake_result():
 
 
 def test_generation_failure_keeps_the_requirements_already_extracted():
-    run = run_agent(ANALYSIS, LLMError("rate limited"))
+    run = run_agent(ANALYSIS, PLAN, LLMError("rate limited"))
 
     assert run.status == "failed"
     assert run.stage == "generate"
+    assert run.report.test_plan == PLAN
     assert [r.id for r in run.report.requirements] == ["R1", "R2"]
+    assert run.report.uncovered_scenarios == ["S1: Free shipping at threshold"]
 
 
 def test_coverage_helpers_return_none_when_nothing_is_testable():
@@ -239,7 +273,7 @@ def test_coverage_helpers_return_none_when_nothing_is_testable():
 
 
 def test_api_serves_an_agent_run_end_to_end(settings):
-    app = create_app(settings, orchestrator=DirectLLMOrchestrator(FakeLLM(ANALYSIS, SUITE)))
+    app = create_app(settings, orchestrator=DirectLLMOrchestrator(FakeLLM(ANALYSIS, PLAN, SUITE)))
     with TestClient(app) as client:
         register(client)
         assert client.get("/api/v1/system").json()["mode"] == "baseline_b0"
@@ -255,6 +289,15 @@ def test_api_serves_an_agent_run_end_to_end(settings):
         report = client.get(f"/api/v1/runs/{run['id']}/report").json()
         assert report["generated_tests"][0]["module"] == "test_shipping.py"
         assert report["requirement_coverage"] == 1.0
+        assert report["test_plan"]["scenarios"][0]["expected_result"] == "Free shipping."
+        assert report["generated_tests"][0]["scenario_ids"] == ["S1"]
+        html = client.get(f"/api/v1/runs/{run['id']}/report.html").text
+        assert "Test plan" in html
+        assert "Free shipping at threshold" in html
+        assert "Orders of at least 100 dollars ship free." in html
+    with TestClient(create_app(settings)) as restarted:
+        restarted.cookies.update(client.cookies)
+        assert restarted.get(f"/api/v1/runs/{run['id']}").json() == run
 
 
 def test_missing_credentials_fall_back_to_scaffold_mode(tmp_path, monkeypatch):
@@ -289,7 +332,7 @@ def test_configured_credentials_enable_the_agent(tmp_path, monkeypatch):
 
 def test_a_connected_sandbox_is_advertised_as_ready(tmp_path):
     orchestrator = DirectLLMOrchestrator(
-        FakeLLM(ANALYSIS, SUITE), runner=FakeRunner(execution("passed"))
+        FakeLLM(ANALYSIS, PLAN, SUITE), runner=FakeRunner(execution("passed"))
     )
     settings = Settings(database_path=tmp_path / "live.db", _env_file=None)
 
@@ -305,7 +348,7 @@ def test_a_connected_sandbox_is_advertised_as_ready(tmp_path):
 def test_executed_outcomes_are_recorded_with_a_success_rate():
     runner = FakeRunner(execution("passed", "failed", "error"))
 
-    report = run_agent(ANALYSIS, SUITE, runner=runner).report
+    report = run_agent(ANALYSIS, PLAN, SUITE, runner=runner).report
 
     assert runner.received == [SUITE.tests]
     assert report.executed_tests == 3
@@ -314,7 +357,7 @@ def test_executed_outcomes_are_recorded_with_a_success_rate():
 
 
 def test_execution_does_not_promote_a_behavior_to_verified():
-    report = run_agent(ANALYSIS, SUITE, runner=FakeRunner(execution("passed"))).report
+    report = run_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed"))).report
 
     statuses = {b.requirement_id: b.verification_status for b in report.behaviors}
     # The system under test was never inspected, so a green test verifies nothing.
@@ -322,7 +365,9 @@ def test_execution_does_not_promote_a_behavior_to_verified():
 
 
 def test_each_behavior_links_to_the_outcomes_of_its_own_tests():
-    report = run_agent(ANALYSIS, SUITE, runner=FakeRunner(execution("passed", "failed"))).report
+    report = run_agent(
+        ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed", "failed"))
+    ).report
 
     behaviors = {b.requirement_id: b for b in report.behaviors}
     assert behaviors["R1"].evidence_refs == ["E1", "E2"]
@@ -333,7 +378,9 @@ def test_each_behavior_links_to_the_outcomes_of_its_own_tests():
 
 
 def test_errored_and_failed_tests_are_reported_as_distinct_problems():
-    report = run_agent(ANALYSIS, SUITE, runner=FakeRunner(execution("error", "failed"))).report
+    report = run_agent(
+        ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("error", "failed"))
+    ).report
 
     issues = " ".join(report.unresolved_issues)
     assert "1 generated tests still could not run" in issues
@@ -346,7 +393,7 @@ def test_a_timed_out_execution_records_no_outcome():
         executions=[], exit_code=-1, timed_out=True, stderr_excerpt="Execution exceeded 120s"
     )
 
-    run = run_agent(ANALYSIS, SUITE, runner=FakeRunner(timed_out))
+    run = run_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(timed_out))
 
     assert run.status == "completed"
     assert run.report.executed_tests == 0
@@ -356,11 +403,12 @@ def test_a_timed_out_execution_records_no_outcome():
 
 
 def test_without_a_sandbox_the_run_says_so_instead_of_claiming_execution():
-    run = run_agent(ANALYSIS, SUITE)
+    run = run_agent(ANALYSIS, PLAN, SUITE)
 
     assert [event.stage for event in run.events] == [
         "understand",
         "analyze",
+        "plan",
         "generate",
         "measure",
     ]
@@ -371,7 +419,7 @@ def test_without_a_sandbox_the_run_says_so_instead_of_claiming_execution():
 def test_a_container_killed_by_the_memory_limit_is_explained_not_just_numbered():
     killed = ExecutionResult(executions=[], exit_code=137, timed_out=False, stderr_excerpt="")
 
-    report = run_agent(ANALYSIS, SUITE, runner=FakeRunner(killed)).report
+    report = run_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(killed)).report
 
     assert report.executed_tests == 0
     assert report.execution_success_rate is None
@@ -381,7 +429,7 @@ def test_a_container_killed_by_the_memory_limit_is_explained_not_just_numbered()
 def test_a_sandbox_that_collected_nothing_is_not_reported_as_success():
     empty = ExecutionResult(executions=[], exit_code=4, timed_out=False, stderr_excerpt="no tests")
 
-    report = run_agent(ANALYSIS, SUITE, runner=FakeRunner(empty)).report
+    report = run_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(empty)).report
 
     assert report.execution_success_rate is None
     assert any("Exit code 4" in issue for issue in report.unresolved_issues)
@@ -411,22 +459,24 @@ def inspecting_agent(*responses, runner=None, repository=REPOSITORY):
 
 
 def test_the_real_interfaces_reach_the_generator_and_the_sandbox():
-    llm = FakeLLM(ANALYSIS, SUITE)
+    llm = FakeLLM(ANALYSIS, PLAN, SUITE)
     runner = FakeRunner(execution("passed"))
     orchestrator = DirectLLMOrchestrator(llm, runner=runner)
     orchestrator._inspect = lambda project, events: (REPOSITORY, [])
 
     run = orchestrator.run(PROJECT)
 
-    assert "module shipping (shipping.py)" in llm.prompts[1]
-    assert "fee(amount_cents: int) -> int" in llm.prompts[1]
+    assert "module shipping (shipping.py)" in llm.prompts[2]
+    assert "fee(amount_cents: int) -> int" in llm.prompts[2]
     assert runner.roots == ["/repos/shipping"]
     assert run.report.repository is not None
     assert run.report.repository.sha256 == "abc"
 
 
 def test_a_passing_test_against_the_inspected_system_is_partial_evidence():
-    run = inspecting_agent(ANALYSIS, SUITE, runner=FakeRunner(execution("passed"))).run(PROJECT)
+    run = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed"))).run(
+        PROJECT
+    )
 
     statuses = {b.requirement_id: b.verification_status for b in run.report.behaviors}
     # Partially Verified, never Verified: adequacy of the tests is not evaluated.
@@ -434,9 +484,9 @@ def test_a_passing_test_against_the_inspected_system_is_partial_evidence():
 
 
 def test_a_failing_test_leaves_the_behavior_unverified():
-    run = inspecting_agent(ANALYSIS, SUITE, runner=FakeRunner(execution("passed", "failed"))).run(
-        PROJECT
-    )
+    run = inspecting_agent(
+        ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed", "failed"))
+    ).run(PROJECT)
 
     statuses = {b.requirement_id: b.verification_status for b in run.report.behaviors}
     assert statuses["R1"] == "Unverified"
@@ -453,7 +503,7 @@ def test_invalid_test_is_refined_and_reexecuted_once():
     )
     runner = SequenceRunner(execution("error"), execution("passed"))
 
-    run = inspecting_agent(ANALYSIS, SUITE, refined, runner=runner).run(PROJECT)
+    run = inspecting_agent(ANALYSIS, PLAN, SUITE, refined, runner=runner).run(PROJECT)
 
     assert run.mode == "baseline_b2"
     assert len(runner.received) == 2
@@ -467,7 +517,7 @@ def test_invalid_test_is_refined_and_reexecuted_once():
 def test_assertion_failure_is_preserved_as_a_suspected_defect():
     runner = FakeRunner(execution("failed"))
 
-    run = inspecting_agent(ANALYSIS, SUITE, runner=runner).run(PROJECT)
+    run = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=runner).run(PROJECT)
 
     assert len(runner.received) == 1
     assert run.report.refinement_iterations == 0
@@ -477,7 +527,7 @@ def test_assertion_failure_is_preserved_as_a_suspected_defect():
 
 def test_a_passing_test_without_inspection_is_not_evidence():
     # Same green result, but the module under test was guessed rather than read.
-    run = run_agent(ANALYSIS, SUITE, runner=FakeRunner(execution("passed")))
+    run = run_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed")))
 
     statuses = {b.requirement_id: b.verification_status for b in run.report.behaviors}
     assert statuses["R1"] == "Unverified"
@@ -487,7 +537,7 @@ def test_a_passing_test_without_inspection_is_not_evidence():
 def test_an_unreadable_repository_reports_the_reason_without_failing_the_run(tmp_path):
     project = PROJECT.model_copy(update={"repository_ref": "../outside"})
     settings = Settings(repository_root=tmp_path, _env_file=None)
-    orchestrator = DirectLLMOrchestrator(FakeLLM(ANALYSIS, SUITE), settings=settings)
+    orchestrator = DirectLLMOrchestrator(FakeLLM(ANALYSIS, PLAN, SUITE), settings=settings)
 
     run = orchestrator.run(project)
 
@@ -498,7 +548,7 @@ def test_an_unreadable_repository_reports_the_reason_without_failing_the_run(tmp
 
 
 def test_a_project_without_a_repository_says_the_tests_must_guess():
-    report = run_agent(ANALYSIS, SUITE).report
+    report = run_agent(ANALYSIS, PLAN, SUITE).report
 
     assert any("guess the module" in issue for issue in report.unresolved_issues)
 
@@ -517,3 +567,158 @@ def test_inspection_status_follows_the_configured_root(tmp_path):
     assert statuses(on)["inspection"] == "ready"
     # RAG is a separate integration and is still unbuilt.
     assert statuses(on)["retrieval"] == "not_connected"
+
+
+def test_planning_failure_keeps_requirements_and_stops_generation():
+    llm = FakeLLM(ANALYSIS, LLMError("Planning response was unavailable."))
+    run = DirectLLMOrchestrator(llm).run(PROJECT)
+
+    assert run.status == "failed"
+    assert run.stage == "plan"
+    assert run.report.requirements == ANALYSIS.requirements
+    assert run.report.test_plan is None
+    assert run.report.generated_tests == []
+    assert len(llm.prompts) == 2
+
+
+def test_planner_filters_unknown_sources_and_assigns_unique_scenario_ids():
+    candidate = PLAN.scenarios[0].model_copy(
+        update={
+            "id": "duplicate",
+            "requirement_ids": ["R1", "R1", "R2", "invented"],
+            "evidence_refs": ["requirement:R2", "requirement:invented", "repository:secret.py"],
+        }
+    )
+    invalid = candidate.model_copy(update={"requirement_ids": ["R2", "invented"]})
+    llm = FakeLLM(ScenarioPlan(scenarios=[candidate, candidate, invalid], notes=""))
+
+    plan = plan_tests(llm, PROJECT, ANALYSIS.requirements, REPOSITORY)
+
+    assert [scenario.id for scenario in plan.scenarios] == ["S1", "S2"]
+    assert all(item.requirement_ids == ["R1"] for item in plan.scenarios)
+    assert all(item.evidence_refs == ["requirement:R1"] for item in plan.scenarios)
+    assert "no testable requirement link" in plan.notes
+    assert '"repository:shipping.py"' in llm.prompts[0]
+    assert "Orders of at least 100 dollars ship free." in llm.prompts[0]
+
+
+def test_planner_bounds_scenarios_and_reports_truncation():
+    llm = FakeLLM(ScenarioPlan(scenarios=PLAN.scenarios * 3, notes=""))
+    plan = plan_tests(llm, PROJECT, ANALYSIS.requirements, max_scenarios=2)
+
+    assert len(plan.scenarios) == 2
+    assert "remaining ones omitted" in plan.notes
+
+
+def test_no_testable_requirement_skips_both_planning_and_generation():
+    analysis = RequirementAnalysis(requirements=[ANALYSIS.requirements[1]], notes="")
+    llm = FakeLLM(analysis)
+    run = DirectLLMOrchestrator(llm).run(PROJECT)
+
+    assert len(llm.prompts) == 1
+    assert run.report.test_plan.scenarios == []
+    assert run.report.generated_tests == []
+    assert run.report.requirement_coverage is None
+
+
+def test_empty_plan_records_planning_gap_without_generating_unplanned_tests():
+    llm = FakeLLM(ANALYSIS, ScenarioPlan(scenarios=[], notes="Missing interface."))
+    run = DirectLLMOrchestrator(llm).run(PROJECT)
+
+    assert len(llm.prompts) == 2
+    assert run.report.generated_tests == []
+    assert run.report.planning_gaps == ["R1: An order of at least 100 dollars ships free."]
+    assert run.report.requirement_coverage == 0
+    assert any("no planned scenario" in item for item in run.report.unresolved_issues)
+
+
+def test_generator_uses_plan_oracle_and_rejects_unlinked_tests():
+    invented = SUITE.tests[0].model_copy(
+        update={
+            "scenario_ids": ["invented"],
+            "requirement_ids": ["R1"],
+        }
+    )
+    llm = FakeLLM(GeneratedTestSuite(tests=[invented], notes=""))
+    suite = generate_tests(llm, PROJECT, ANALYSIS.requirements, REPOSITORY, plan=PLAN)
+
+    assert "Free shipping." in llm.prompts[0]
+    assert "amount = 100 dollars" in llm.prompts[0]
+    assert suite.tests == []
+    assert "no valid scenario link" in suite.notes
+
+
+def test_unimplemented_scenario_is_reported_separately_from_requirement_coverage():
+    second = PLAN.scenarios[0].model_copy(
+        update={
+            "id": "S2",
+            "title": "Above the shipping threshold",
+        }
+    )
+    plan = ScenarioPlan(scenarios=[*PLAN.scenarios, second], notes="")
+    run = run_agent(ANALYSIS, plan, SUITE)
+
+    assert run.report.requirement_coverage == 1
+    assert run.report.uncovered_scenarios == ["S2: Above the shipping threshold"]
+    assert any(
+        "planned scenarios have no generated test" in item for item in run.report.unresolved_issues
+    )
+
+
+def test_refinement_cannot_rewrite_requirement_or_scenario_lineage():
+    replacement = SUITE.tests[0].model_copy(
+        update={
+            "requirement_ids": ["R2"],
+            "scenario_ids": ["invented"],
+            "module": "test_other.py",
+        }
+    )
+    runner = SequenceRunner(execution("error"), execution("passed"))
+    run = inspecting_agent(
+        ANALYSIS,
+        PLAN,
+        SUITE,
+        GeneratedTestSuite(tests=[replacement], notes=""),
+        runner=runner,
+    ).run(PROJECT)
+
+    assert run.report.generated_tests[0].requirement_ids == ["R1"]
+    assert run.report.generated_tests[0].scenario_ids == ["S1"]
+    assert runner.received[1][0].module == "test_shipping.py"
+
+
+def test_html_plan_escapes_model_text_and_links_execution_outcomes():
+    from app.services.report_renderer import render_html_report
+
+    run = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed"))).run(
+        PROJECT
+    )
+    scenario = run.report.test_plan.scenarios[0].model_copy(
+        update={
+            "title": "<script>alert(1)</script>",
+            "expected_result": "<img src=x onerror=alert(1)>",
+            "evidence_refs": ["requirement:R1", "repository:shipping.py"],
+        }
+    )
+    run.report.test_plan = ScenarioPlan(scenarios=[scenario], notes="")
+    html = render_html_report(PROJECT, run)
+
+    assert "<script>alert(1)</script>" not in html
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+    assert "<img src=x" not in html
+    assert "&lt;img src=x onerror=alert(1)&gt;" in html
+    assert "fee(amount_cents: int) -&gt; int" in html
+    assert "test_1: passed" in html
+
+
+def test_legacy_run_without_a_plan_remains_readable():
+    from app.schemas import VerificationRun
+
+    run = run_agent(ANALYSIS, PLAN, SUITE).model_dump()
+    for key in ("test_plan", "planning_gaps", "uncovered_scenarios"):
+        run["report"].pop(key)
+    run["report"]["generated_tests"][0].pop("scenario_ids")
+
+    legacy = VerificationRun.model_validate(run)
+    assert legacy.report.test_plan is None
+    assert legacy.report.generated_tests[0].scenario_ids == []
