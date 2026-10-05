@@ -15,6 +15,7 @@ from app.schemas import (
     RequirementItem,
     RunEvent,
     TestDiagnosis,
+    TestPlan,
     VerificationReport,
     VerificationRun,
     VerificationStatus,
@@ -23,6 +24,7 @@ from app.services.analyzer import analyze_requirements
 from app.services.generator import coverage_gaps, generate_tests, requirement_coverage
 from app.services.inspector import RepositoryError, inspect_repository, repository_available
 from app.services.llm import LLMError, StructuredLLM
+from app.services.planner import plan_tests, planning_gaps
 from app.services.refiner import refine_tests
 from app.services.runner import TestRunner
 
@@ -81,8 +83,7 @@ class ScaffoldOrchestrator:
 class DirectLLMOrchestrator:
     """B0 generation with optional B2 execution feedback and bounded refinement.
 
-    `mode` names the *generation* configuration, which is what the proposal's
-    With no sandbox, generation remains B0. With a sandbox, invalid tests may be
+    Without a sandbox, planning and generation remain B0. With a sandbox, invalid tests may be
     refined and re-executed once, which makes the configured workflow B2.
     """
 
@@ -129,7 +130,9 @@ class DirectLLMOrchestrator:
                 self._llm, project, max_requirements=self._max_requirements
             )
         except LLMError as error:
-            return self._failed(project, digest, events, "analyze", str(error), now)
+            return self._failed(
+                project, digest, events, "analyze", str(error), now, repository=repository
+            )
 
         requirements = analysis.requirements
         ambiguous = [item for item in requirements if item.ambiguity]
@@ -145,9 +148,48 @@ class DirectLLMOrchestrator:
         )
 
         try:
-            suite = generate_tests(self._llm, project, requirements, repository)
+            plan = plan_tests(
+                self._llm,
+                project,
+                requirements,
+                repository,
+                max_scenarios=self._settings.max_scenarios,
+            )
         except LLMError as error:
-            return self._failed(project, digest, events, "generate", str(error), now, requirements)
+            return self._failed(
+                project,
+                digest,
+                events,
+                "plan",
+                str(error),
+                now,
+                requirements,
+                repository=repository,
+            )
+        plan_gaps = planning_gaps(requirements, plan)
+        events.append(
+            _event(
+                "plan",
+                f"Planned {len(plan.scenarios)} test scenarios; "
+                f"{len(plan_gaps)} testable requirements have no scenario.",
+                datetime.now(UTC),
+            )
+        )
+
+        try:
+            suite = generate_tests(self._llm, project, requirements, repository, plan=plan)
+        except LLMError as error:
+            return self._failed(
+                project,
+                digest,
+                events,
+                "generate",
+                str(error),
+                now,
+                requirements,
+                plan=plan,
+                repository=repository,
+            )
 
         gaps = coverage_gaps(requirements, suite.tests)
         events.append(
@@ -168,7 +210,7 @@ class DirectLLMOrchestrator:
         if repairable and repository is not None and self._runner is not None:
             try:
                 refined = refine_tests(
-                    self._llm, project, requirements, tests, repairable, repository
+                    self._llm, project, requirements, tests, repairable, repository, plan=plan
                 )
                 if refined.tests:
                     tests = _replace_tests(tests, refined.tests)
@@ -179,9 +221,7 @@ class DirectLLMOrchestrator:
                             datetime.now(UTC),
                         )
                     )
-                    rerun = self._execute(
-                        refined.tests, repository, events, stage="re_measure"
-                    )
+                    rerun = self._execute(refined.tests, repository, events, stage="re_measure")
                     if rerun is not None:
                         refined_ids = {test.id for test in refined.tests}
                         executions = [
@@ -202,6 +242,16 @@ class DirectLLMOrchestrator:
             *(f"{item.id} is ambiguous: {item.ambiguity}" for item in ambiguous),
             *(f"{item.id} is not testable as written: {item.text}" for item in untestable),
         ]
+        if plan_gaps:
+            unresolved.append(f"{len(plan_gaps)} testable requirements have no planned scenario.")
+        implemented = {ref for test in tests for ref in test.scenario_ids}
+        uncovered_scenarios = [
+            f"{item.id}: {item.title}" for item in plan.scenarios if item.id not in implemented
+        ]
+        if uncovered_scenarios:
+            unresolved.append(
+                f"{len(uncovered_scenarios)} planned scenarios have no generated test."
+            )
         if gaps:
             unresolved.append(f"{len(gaps)} testable requirements have no generated test.")
         final_execution = (
@@ -209,7 +259,7 @@ class DirectLLMOrchestrator:
         )
         unresolved.extend(_execution_issues(final_execution, tests))
         unresolved.extend(_diagnosis_issues(diagnoses, refinement_iterations))
-        for note in (analysis.notes, suite.notes):
+        for note in (analysis.notes, plan.notes, suite.notes):
             if note.strip():
                 unresolved.append(f"Analyst note: {note.strip()}")
 
@@ -226,14 +276,18 @@ class DirectLLMOrchestrator:
                 summary=(
                     f"{self.mode.replace('_', ' ').upper()} run. "
                     f"{len(requirements)} requirements extracted and "
+                    f"{len(plan.scenarios)} scenarios planned. "
                     f"{len(tests)} pytest tests generated with requirement links. "
                     + _execution_summary_from_items(executions, execution)
                 ),
                 repository=repository,
                 requirements=requirements,
+                test_plan=plan,
+                planning_gaps=plan_gaps,
+                uncovered_scenarios=uncovered_scenarios,
                 generated_tests=tests,
                 behaviors=_behaviors(
-                    requirements, suite.tests, executions, inspected=repository is not None
+                    requirements, tests, executions, inspected=repository is not None
                 ),
                 evidence=_evidence(executions),
                 unresolved_issues=unresolved,
@@ -243,7 +297,7 @@ class DirectLLMOrchestrator:
                 refinement_iterations=refinement_iterations,
                 executed_tests=len(executions),
                 execution_success_rate=_success_rate(executions),
-                requirement_coverage=requirement_coverage(requirements, suite.tests),
+                requirement_coverage=requirement_coverage(requirements, tests),
             ),
         )
 
@@ -308,9 +362,7 @@ class DirectLLMOrchestrator:
         result = self._runner.execute(tests, repository.root if repository else None)
         if result.timed_out:
             events.append(
-                _event(
-                    stage, f"Execution timed out. {result.stderr_excerpt}", datetime.now(UTC)
-                )
+                _event(stage, f"Execution timed out. {result.stderr_excerpt}", datetime.now(UTC))
             )
             return result
 
@@ -331,10 +383,13 @@ class DirectLLMOrchestrator:
         project: Project,
         digest: str,
         events: list[RunEvent],
-        stage: Literal["analyze", "generate"],
+        stage: Literal["analyze", "plan", "generate"],
         message: str,
         created_at: datetime,
         requirements: list[RequirementItem] | None = None,
+        *,
+        plan: TestPlan | None = None,
+        repository: RepositorySnapshot | None = None,
     ) -> VerificationRun:
         events = [*events, _event(stage, f"Run failed: {message}", datetime.now(UTC))]
         return VerificationRun(
@@ -347,8 +402,16 @@ class DirectLLMOrchestrator:
             input_sha256=digest,
             events=events,
             report=VerificationReport(
-                summary=f"Run failed during the {stage} stage. No result was produced.",
+                summary=(
+                    f"Run failed during the {stage} stage. Completed stage outputs are retained."
+                ),
                 requirements=requirements or [],
+                test_plan=plan,
+                repository=repository,
+                planning_gaps=planning_gaps(requirements or [], plan) if plan else [],
+                uncovered_scenarios=(
+                    [f"{item.id}: {item.title}" for item in plan.scenarios] if plan else []
+                ),
                 unresolved_issues=[message],
             ),
         )
@@ -479,9 +542,7 @@ def _replace_tests(
     return [replacements.get(test.id, test) for test in original]
 
 
-def _diagnosis_issues(
-    diagnoses: list[TestDiagnosis], refinement_iterations: int
-) -> list[str]:
+def _diagnosis_issues(diagnoses: list[TestDiagnosis], refinement_iterations: int) -> list[str]:
     issues = []
     suspected = sum(item.classification == "suspected_defect" for item in diagnoses)
     invalid = sum(item.classification == "invalid_test" for item in diagnoses)

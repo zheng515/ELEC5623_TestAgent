@@ -32,10 +32,27 @@ export interface RequirementItem {
 export interface GeneratedTest {
   id: string;
   requirement_ids: string[];
+  scenario_ids?: string[];
   name: string;
   module: string;
   code: string;
   rationale: string;
+}
+export interface TestScenario {
+  id: string;
+  requirement_ids: string[];
+  title: string;
+  category: "nominal" | "boundary" | "negative";
+  preconditions: string[];
+  inputs: string[];
+  steps: string[];
+  expected_result: string;
+  evidence_refs: string[];
+  assumptions: string[];
+}
+export interface TestPlan {
+  scenarios: TestScenario[];
+  notes: string;
 }
 export interface ModuleInterface {
   module: string;
@@ -70,6 +87,9 @@ export interface VerificationReport {
   summary: string;
   repository: RepositorySnapshot | null;
   requirements: RequirementItem[];
+  test_plan?: TestPlan | null;
+  planning_gaps?: string[];
+  uncovered_scenarios?: string[];
   generated_tests: GeneratedTest[];
   behaviors: Behavior[];
   evidence: Record<string, string>[];
@@ -90,7 +110,14 @@ export interface VerificationRun {
   project_id: string;
   mode: RunMode;
   status: "blocked" | "completed" | "failed";
-  stage: "understand" | "inspect" | "analyze" | "generate" | "execute" | "report";
+  stage:
+    | "understand"
+    | "inspect"
+    | "analyze"
+    | "plan"
+    | "generate"
+    | "execute"
+    | "report";
   created_at: string;
   input_sha256: string;
   events: { id: string; stage: string; message: string; created_at: string }[];

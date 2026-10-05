@@ -40,6 +40,7 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
         f"{escape(item.classification)} - {escape(item.explanation)}</li>"
         for item in report.diagnoses
     )
+    plan_html = _render_plan(run)
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
@@ -65,11 +66,12 @@ th{{background:#edf3e7}} code{{overflow-wrap:anywhere}} .muted{{color:#61756d}} 
 <div class="card"><strong>{report.executed_tests}</strong><br>Executed tests</div>
 <div class="card"><strong>{_percent(report.requirement_coverage)}</strong><br>Requirement coverage</div>
 <div class="card"><strong>{_percent(report.execution_success_rate)}</strong><br>Execution success</div></div>
-<h2>Requirement-to-test mapping</h2><table><thead><tr><th>Requirement</th><th>Testable</th><th>Tests</th><th>Outcome</th></tr></thead><tbody>{''.join(mappings) or '<tr><td colspan="4">No structured requirements.</td></tr>'}</tbody></table>
-<h2>Coverage gaps</h2><ul>{gaps or '<li>None recorded.</li>'}</ul>
-<h2>Unresolved issues</h2><ul>{issues or '<li>None recorded.</li>'}</ul>
+<h2>Requirement-to-test mapping</h2><table><thead><tr><th>Requirement</th><th>Testable</th><th>Tests</th><th>Outcome</th></tr></thead><tbody>{"".join(mappings) or '<tr><td colspan="4">No structured requirements.</td></tr>'}</tbody></table>
+<h2>Test plan</h2>{plan_html}
+<h2>Coverage gaps</h2><ul>{gaps or "<li>None recorded.</li>"}</ul>
+<h2>Unresolved issues</h2><ul>{issues or "<li>None recorded.</li>"}</ul>
 <h2>Failure diagnosis</h2><p>Refinement iterations: {report.refinement_iterations}</p>
-<ul>{diagnoses or '<li>No failing or invalid test required diagnosis.</li>'}</ul>
+<ul>{diagnoses or "<li>No failing or invalid test required diagnosis.</li>"}</ul>
 <h2>Execution evidence</h2><table><thead><tr><th>Test</th><th>Outcome</th><th>Detail</th></tr></thead><tbody>{executions or '<tr><td colspan="3">No tests executed.</td></tr>'}</tbody></table>
 <h2>Input fingerprint</h2><code>{escape(run.input_sha256)}</code>
 </body></html>"""
@@ -77,3 +79,74 @@ th{{background:#edf3e7}} code{{overflow-wrap:anywhere}} .muted{{color:#61756d}} 
 
 def _percent(value: float | None) -> str:
     return "Not evaluated" if value is None else f"{value * 100:.0f}%"
+
+
+def _items(values: list[str]) -> str:
+    return (
+        "<ul>" + "".join(f"<li>{escape(value)}</li>" for value in values) + "</ul>"
+        if values
+        else "<p>None specified.</p>"
+    )
+
+
+def _render_plan(run: VerificationRun) -> str:
+    report = run.report
+    plan = report.test_plan
+    if plan is None:
+        return "<p>No test plan recorded for this run.</p>"
+    sections = ["<p>Planned checks are distinct from generated tests and execution evidence.</p>"]
+    if not plan.scenarios:
+        sections.append("<p>No executable scenarios were planned.</p>")
+    for scenario in plan.scenarios:
+        tests = [test for test in report.generated_tests if scenario.id in test.scenario_ids]
+        sources = []
+        for ref in scenario.evidence_refs:
+            requirement = next(
+                (item for item in report.requirements if ref == f"requirement:{item.id}"), None
+            )
+            module = (
+                next(
+                    (
+                        item
+                        for item in report.repository.modules
+                        if ref == f"repository:{item.path}"
+                    ),
+                    None,
+                )
+                if report.repository
+                else None
+            )
+            detail = (
+                requirement.source_quote
+                if requirement
+                else "; ".join([*module.functions, *module.classes])
+                if module
+                else ""
+            )
+            sources.append(ref + (f": {detail}" if detail else ""))
+        outcomes = [
+            f"{item.name}: {item.outcome}"
+            for item in report.executions
+            if any(test.id == item.test_id for test in tests)
+        ]
+        sections.append(
+            f'<section class="card"><h3>{escape(scenario.id)}: {escape(scenario.title)}</h3>'
+            f"<p>{escape(scenario.category)} | Requirements: {escape(', '.join(scenario.requirement_ids))}</p>"
+            f"<h4>Preconditions</h4>{_items(scenario.preconditions)}"
+            f"<h4>Inputs</h4>{_items(scenario.inputs)}"
+            f"<h4>Steps</h4>{_items(scenario.steps)}"
+            f"<h4>Expected result</h4><p>{escape(scenario.expected_result)}</p>"
+            f"<h4>Assumptions</h4>{_items(scenario.assumptions)}"
+            f"<h4>Source evidence</h4>{_items(sources)}"
+            f"<h4>Generated tests</h4>{_items([f'{test.id} ({test.module})' for test in tests])}"
+            f"<h4>Execution outcomes</h4>{_items(outcomes) if outcomes else '<p>Not executed.</p>'}</section>"
+        )
+    if plan.notes:
+        sections.append(f"<h3>Planning notes</h3><p>{escape(plan.notes)}</p>")
+    if report.planning_gaps:
+        sections.append(f"<h3>Requirements without scenarios</h3>{_items(report.planning_gaps)}")
+    if report.uncovered_scenarios:
+        sections.append(
+            f"<h3>Scenarios without generated tests</h3>{_items(report.uncovered_scenarios)}"
+        )
+    return "".join(sections)

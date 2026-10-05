@@ -81,11 +81,36 @@ class RepositorySnapshot(BaseModel):
     sha256: str
 
 
+class TestScenario(BaseModel):
+    """A planned check grounded in requirements and available interfaces (FR6)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    id: str
+    requirement_ids: list[str]
+    title: str = Field(min_length=1)
+    category: Literal["nominal", "boundary", "negative"]
+    preconditions: list[str]
+    inputs: list[str]
+    steps: list[str] = Field(min_length=1)
+    expected_result: str = Field(min_length=1)
+    evidence_refs: list[str]
+    assumptions: list[str]
+
+
+class TestPlan(BaseModel):
+    """Persisted output of the planning stage, distinct from executable tests."""
+
+    scenarios: list[TestScenario]
+    notes: str
+
+
 class GeneratedTest(BaseModel):
     """A generated pytest test and the requirements it claims to cover (FR7, FR8)."""
 
     id: str
     requirement_ids: list[str]
+    scenario_ids: list[str] = Field(default_factory=list)
     name: str
     module: str
     code: str
@@ -150,6 +175,9 @@ class VerificationReport(BaseModel):
     summary: str
     repository: RepositorySnapshot | None = None
     requirements: list[RequirementItem] = Field(default_factory=list)
+    test_plan: TestPlan | None = None
+    planning_gaps: list[str] = Field(default_factory=list)
+    uncovered_scenarios: list[str] = Field(default_factory=list)
     generated_tests: list[GeneratedTest] = Field(default_factory=list)
     behaviors: list[Behavior] = Field(default_factory=list)
     evidence: list[dict[str, str]] = Field(default_factory=list)
@@ -170,7 +198,7 @@ class VerificationRun(BaseModel):
     project_id: str
     mode: Literal["scaffold", "baseline_b0", "baseline_b2"] = "scaffold"
     status: Literal["blocked", "completed", "failed"] = "blocked"
-    stage: Literal["understand", "inspect", "analyze", "generate", "execute", "report"] = (
+    stage: Literal["understand", "inspect", "analyze", "plan", "generate", "execute", "report"] = (
         "understand"
     )
     created_at: datetime

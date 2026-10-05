@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Behavior, Project, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
+import { TestPlanDetails } from "./test-plan";
 import {
   Badge,
   Empty,
@@ -17,25 +18,35 @@ function outcomesFor(run: VerificationRun | undefined, testId: string) {
     .map((execution) => execution.outcome);
 }
 function outcomeTone(outcome: string) {
-  return outcome === "passed" ? "teal" : outcome === "skipped" ? "neutral" : "amber";
+  return outcome === "passed"
+    ? "teal"
+    : outcome === "skipped"
+      ? "neutral"
+      : "amber";
 }
 
 const EVENT_TITLES: Record<string, string> = {
   understand: "Project inputs recorded",
   inspect: "Repository inspected",
   analyze: "Requirements analyzed",
+  plan: "Test plan created",
   generate: "Tests generated",
   measure: "Tests executed",
   improve: "Tests refined",
   re_measure: "Tests re-executed",
 };
 function eventTitle(stage: string, index: number) {
-  return EVENT_TITLES[stage] ?? (index === 0 ? "Run started" : "Workflow event");
+  return (
+    EVENT_TITLES[stage] ?? (index === 0 ? "Run started" : "Workflow event")
+  );
 }
 
 /** Stages of the proposed closed loop, with the state this run actually reached. */
 function stageStates(run?: VerificationRun) {
-  const analysed = run?.status === "completed" || run?.stage === "generate";
+  const analysed =
+    run?.status === "completed" ||
+    run?.stage === "generate" ||
+    run?.stage === "plan";
   return [
     {
       name: "Inspect repository",
@@ -54,6 +65,16 @@ function stageStates(run?: VerificationRun) {
           : analysed || run.status === "completed"
             ? "Complete"
             : "Failed",
+    },
+    {
+      name: "Plan tests",
+      state: run?.report.test_plan
+        ? "Complete"
+        : run?.stage === "plan" && run.status === "failed"
+          ? "Failed"
+          : run?.mode === "scaffold"
+            ? "Blocked"
+            : "Not recorded",
     },
     {
       name: "Generate tests",
@@ -106,9 +127,11 @@ export function Workspace({
         <button className="button primary" disabled={busy} onClick={start}>
           {busy
             ? "Creating run…"
-            : run
-              ? "Create another setup run ↗"
-              : "Create setup run ↗"}
+            : run && run.mode !== "scaffold"
+              ? "Run verification again ↗"
+              : run
+                ? "Create another setup run ↗"
+                : "Create setup run ↗"}
         </button>
       </div>
       <div className="run-context">
@@ -127,13 +150,17 @@ export function Workspace({
               : run.status === "completed"
                 ? `${run.report.requirements.length} requirements analyzed, ${run.report.generated_tests.length} tests generated.`
                 : run.status === "failed"
-                  ? "The run failed before it produced a result."
+                  ? run.report.requirements.length || run.report.test_plan
+                    ? "The run stopped. Completed stage outputs are retained."
+                    : "The run failed before it produced a result."
                   : "Inputs recorded. Waiting for agent integration."}
           </h2>
           <p>
-            {run?.status === "completed"
-              ? "Generated tests have not been executed, so no behavior is verified yet."
-              : "No requirement analysis or test execution has taken place."}
+            {run?.report.executed_tests
+              ? "Review recorded execution evidence and remaining gaps. Passing tests alone do not establish complete verification."
+              : run?.report.requirements.length
+                ? "Review the saved requirements, test plan, and gaps. No execution evidence has been recorded."
+                : "No requirement analysis or test execution has taken place."}
           </p>
         </div>
         <div className="stages">
@@ -255,6 +282,21 @@ export function Workspace({
       </div>
       <section className="panel">
         <SectionTitle
+          eyebrow="REQUIREMENT → SCENARIO → TEST"
+          title="Test plan"
+          action={
+            <Badge>
+              {run?.report.test_plan?.scenarios.length ?? 0}{" "}
+              {run?.report.test_plan?.scenarios.length === 1
+                ? "scenario"
+                : "scenarios"}
+            </Badge>
+          }
+        />
+        <TestPlanDetails report={run?.report} />
+      </section>
+      <section className="panel">
+        <SectionTitle
           eyebrow="OUTPUTS"
           title="Generated tests"
           action={
@@ -274,6 +316,9 @@ export function Workspace({
                           ? test.requirement_ids.join(", ")
                           : "No linked requirement"}
                       </Badge>
+                      {!!test.scenario_ids?.length && (
+                        <Badge>{test.scenario_ids.join(", ")}</Badge>
+                      )}
                       {outcomesFor(run, test.id).map((outcome, index) => (
                         <Badge key={index} tone={outcomeTone(outcome)}>
                           {outcome}
@@ -291,8 +336,8 @@ export function Workspace({
             </ul>
             <p className="small muted">
               {run.report.executed_tests
-                ? "Outcomes come from a sandboxed pytest run. A passing test is not verification: the system under test was not inspected."
-                : "These tests were generated from the requirements alone. They have not been executed, so none of them is known to run or pass."}
+                ? "Outcomes come from a sandboxed pytest run. A passing test is not verification of test adequacy; review source links and coverage gaps."
+                : "These tests were generated from the requirements and available test plan. They have not been executed, so none of them is known to run or pass."}
             </p>
           </>
         ) : (
@@ -308,7 +353,9 @@ export function Workspace({
             eyebrow="EXECUTION FEEDBACK"
             title="Failure diagnosis"
             action={
-              <Badge>{run.report.refinement_iterations ?? 0} refinement iteration</Badge>
+              <Badge>
+                {run.report.refinement_iterations ?? 0} refinement iteration
+              </Badge>
             }
           />
           <ul className="issue-list">
@@ -375,6 +422,27 @@ export function Evidence({
           </small>
         </div>
       </section>
+      {!behaviors.length && !!run?.report.requirements.length && (
+        <section className="panel">
+          <SectionTitle
+            title="Analyzed requirements"
+            action={<Badge>Retained outputs</Badge>}
+          />
+          {run.report.requirements.map((requirement) => (
+            <div className="scenario-card" key={requirement.id}>
+              <strong>{requirement.id}</strong>
+              <p>{requirement.text}</p>
+              <Badge>
+                {requirement.testable ? "Testable" : "Not testable as written"}
+              </Badge>
+              <blockquote>{requirement.source_quote}</blockquote>
+              {requirement.ambiguity && (
+                <p>Ambiguity: {requirement.ambiguity}</p>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
       {run?.report.repository && (
         <section className="panel">
           <SectionTitle
@@ -446,12 +514,16 @@ export function Evidence({
             title={
               behaviors.length
                 ? "No matching behaviors"
-                : "Behavior analysis is not connected"
+                : run?.report.requirements.length
+                  ? "No behavior results recorded"
+                  : "Behavior analysis is not connected"
             }
           >
             {behaviors.length
               ? "Adjust your search or status filter."
-              : "Your requirements are saved. Behaviors and evidence links will appear when the analyzer returns structured results."}
+              : run?.report.requirements.length
+                ? "Analyzed requirements are retained above. This run did not produce a behavior-to-test mapping."
+                : "Your requirements are saved. Behaviors and evidence links will appear when the analyzer returns structured results."}
           </Empty>
         ) : (
           <div className="evidence-grid">
@@ -569,7 +641,11 @@ export function Report({
         </div>
         {run && (
           <div className="report-downloads">
-            <button className="button secondary" onClick={downloadHtml} disabled={busy}>
+            <button
+              className="button secondary"
+              onClick={downloadHtml}
+              disabled={busy}
+            >
               {busy ? "Preparing…" : "Download HTML ↓"}
             </button>
             <button className="text-button" onClick={download} disabled={busy}>
@@ -628,7 +704,7 @@ export function Report({
                     ? "Execution evidence recorded"
                     : "Tests generated · not executed"
                   : run.status === "failed"
-                    ? "Run failed · no result"
+                    ? "Run failed · review retained outputs"
                     : "Setup only · no executed verification"}
               </Badge>
             </div>
@@ -698,6 +774,10 @@ export function Report({
                 An em dash means not evaluated. No verification claims are made
                 without execution evidence.
               </p>
+            </section>
+            <section>
+              <h3>Test plan</h3>
+              <TestPlanDetails report={run.report} />
             </section>
             <section>
               <h3>03 / Requirement to test mapping</h3>
@@ -799,7 +879,9 @@ export function Report({
               </section>
             )}
             <section>
-              <h3>{run.report.executions.length ? "06" : "05"} / Activity record</h3>
+              <h3>
+                {run.report.executions.length ? "06" : "05"} / Activity record
+              </h3>
               {run.events.map((e) => (
                 <div className="report-event" key={e.id}>
                   <span>{e.stage}</span>

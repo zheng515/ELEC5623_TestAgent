@@ -55,6 +55,17 @@ def system_info(request: Request):
                 ),
             ),
             Integration(
+                key="planning",
+                name="Structured test planning",
+                status="ready" if agent_ready else "not_connected",
+                description=(
+                    "Requirements and available interfaces inform traceable nominal, "
+                    "boundary, and negative test scenarios."
+                    if agent_ready
+                    else "Test planning requires model credentials."
+                ),
+            ),
+            Integration(
                 key="generation",
                 name="Test generation and traceability",
                 status="ready" if agent_ready else "not_connected",
@@ -177,7 +188,5 @@ def get_html_report(run_id: str, request: Request):
     return Response(
         render_html_report(project, run),
         media_type="text/html",
-        headers={
-            "Content-Disposition": f'attachment; filename="reqtest-report-{run.id}.html"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="reqtest-report-{run.id}.html"'},
     )

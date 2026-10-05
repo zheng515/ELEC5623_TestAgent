@@ -2,7 +2,7 @@
 
 ReqTest is the University of Sydney ELEC5623 Group 04 project. It aims to connect natural-language requirements, Python source code, pytest tests, and execution evidence in an agent-driven verification workflow.
 
-This repository contains a working **frontend, backend, B0/B2 agent, repository inspection, and execution sandbox**. A run reads the public interface of the project under test, splits requirements into testable items, generates traceable pytest tests, executes them in an isolated container, and records every outcome as evidence. With both model access and the sandbox available, execution errors trigger one evidence-grounded refinement and re-execution attempt. RAG retrieval and mutation testing remain planned integrations. **No behavior is ever reported as `Verified`**: passing tests show the stated behavior held for the cases that were written, not that those cases were enough.
+This repository contains a working **frontend, backend, B0/B2 agent, repository inspection, and execution sandbox**. A run reads the public interface of the project under test, splits requirements into testable items, builds a structured test plan, generates traceable pytest tests from its scenarios, executes them in an isolated container, and records every outcome as evidence. With both model access and the sandbox available, execution errors trigger one evidence-grounded refinement and re-execution attempt. RAG retrieval and mutation testing remain planned integrations. **No behavior is ever reported as `Verified`**: passing tests show the stated behavior held for the cases that were written, not that those cases were enough.
 
 ## Technology
 
@@ -10,7 +10,7 @@ This repository contains a working **frontend, backend, B0/B2 agent, repository 
 | --- | --- |
 | Frontend | React 19, TypeScript, vinext/Vite, and an English responsive interface |
 | Backend | FastAPI, Pydantic, and versioned REST endpoints with OpenAPI documentation |
-| Agent | Anthropic Messages API with structured output for requirement analysis and test generation |
+| Agent | Anthropic Messages API with structured output for requirement analysis, scenario planning, and test generation |
 | Inspection | Read-only AST reading of the project under test, confined to a configured root |
 | Execution | pytest inside a Docker sandbox with no network, a read-only filesystem, and resource limits |
 | Persistence | SQLite for projects, requirements, goals, runs, events, and reports |
@@ -30,7 +30,7 @@ Executing generated tests additionally needs Docker. Build the sandbox image onc
 bash scripts/build-sandbox.sh
 ```
 
-Without Docker or the image, runs still analyse requirements and generate tests; they report that execution is not connected rather than skipping it silently. **Generated test code is model output and only ever runs inside that container** — there is no host-execution fallback.
+Without Docker or the image, runs still analyse requirements, plan scenarios, and generate tests; they report that execution is not connected rather than skipping it silently. **Generated test code is model output and only ever runs inside that container** — there is no host-execution fallback.
 
 From the repository root:
 
@@ -61,21 +61,31 @@ The frontend development server proxies `/api` to the backend. Copy either direc
 1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
 2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference. You can import a `.txt` or `.md` requirement file, or use the English shipping example.
 3. Submit the form to save the project, create a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
-4. Inspect the workflow stages, recorded events, current metrics, and unresolved issues in **Agent workspace**, and read each generated test with the requirements it is linked to.
+4. Inspect the workflow stages, recorded events, current metrics, and unresolved issues in **Agent workspace**. Expand **Test plan** scenarios to see their normal, boundary, or negative category, preconditions, inputs, steps, expected result, source evidence, assumptions, linked tests, and execution outcomes.
 5. Open **Requirements & evidence** to read the saved requirements and filter the extracted behaviors by verification status.
-6. Open **Runs & reports** for the requirement-to-test mapping table, run metrics, and portable HTML or JSON report downloads. Page links retain the selected project and run.
+6. Open **Runs & reports** for the saved test plan, requirement-to-test mapping table, run metrics, and portable HTML or JSON report downloads. Page links retain the selected project and run.
+
+### Verify the test-plan workflow
+
+1. Configure model credentials in `backend/.env` and restart the backend. Confirm `/api/v1/system` shows `baseline_b0` or `baseline_b2` and **Structured test planning** is ready.
+2. Create a task using **Use shipping example**, then submit once. The agent performs analysis, planning, and generation automatically; no manual approval is required between stages.
+3. In **Agent workspace**, check **Plan tests** and the **Test plan created** event. Expand a scenario and compare its expected result and source quote with the submitted requirements. Category counts and scenario content depend on the model and the stated requirements; missing business rules should remain gaps or assumptions.
+4. Confirm each generated test names its scenario ID and requirement ID. Review **Requirements without scenarios** and **Scenarios without generated tests** when present; a generated-test coverage rate does not mean every planned scenario was implemented.
+5. Open **Runs & reports**, download HTML and JSON, and check that the plan and references are preserved. Refresh the page to verify persistence. Older runs display **No test plan recorded for this run** rather than inventing one.
+
+`REQTEST_MAX_SCENARIOS` caps retained scenarios (default 80). The run endpoint remains synchronous: the UI receives its events and report after completion. `VITE_RUN_TIMEOUT_MS` controls the browser's run request timeout (default 20 minutes); other API requests use 15 seconds. Live progress and resumable background jobs are still future work.
 
 ### Run modes
 
 | Mode | When | What a run does |
 | --- | --- | --- |
-| `baseline_b0` | API credentials resolve without a sandbox | Reads available project interfaces, extracts structured requirements, flags ambiguous and untestable ones, generates pytest tests linked to requirement ids, and reports coverage gaps |
+| `baseline_b0` | API credentials resolve without a sandbox | Reads available project interfaces, extracts structured requirements, flags ambiguous and untestable ones, plans scenarios with source references and expected results, generates pytest tests linked to those scenarios and their requirement ids, and reports coverage gaps |
 | `baseline_b2` | API credentials and sandbox resolve | Runs the B0 stages, diagnoses execution errors, refines invalid tests once, and re-executes only those tests; assertion failures remain suspected product defects |
 | `scaffold` | No credentials, or `REQTEST_LLM_ENABLED=false` | Records the project inputs and their fingerprint only |
 
 A completed agent run reports two rates, and they measure different things:
 
-- `requirement_coverage` — share of testable requirements linked to at least one **generated** test. It measures generation, not execution, and a requirement id the model invents is filtered out before it counts.
+- `requirement_coverage` — share of testable requirements linked to at least one **generated** test. It measures generation, not execution, and requirement links are derived from validated scenario links before they count.
 - `execution_success_rate` — share of **executed** tests that passed. `null` means nothing ran.
 
 `semantic_coverage` and `mutation_score` stay `null`; `null` means *not evaluated*.
@@ -105,7 +115,8 @@ backend/
     core/database.py          SQLite storage
     services/llm.py           Anthropic client and structured-output wrapper
     services/analyzer.py      Requirement structuring and ambiguity detection
-    services/generator.py     Test generation, traceability, and coverage gaps
+    services/planner.py       Structured scenarios, source links, and planning gaps
+    services/generator.py     Plan-driven test generation, traceability, and coverage gaps
     services/inspector.py     Read-only interface extraction from the project under test
     services/runner.py        Docker sandbox execution and result parsing
     services/orchestrator.py  Agent interface, scaffold and B0 implementations
@@ -154,4 +165,4 @@ In proposal order, the remaining work is:
 
 When runs become long-lived, replace the synchronous run endpoint with background execution and status updates; a B0 run is already slow enough to feel it.
 
-The current foundation has no user accounts, repository upload or cloning, background job queue, automatic test execution, or production deployment. A separate production backend would need an API URL, CORS configuration, authentication, and an isolated execution environment. The development proxy is not a production API gateway.
+The current foundation has no user accounts, repository upload or cloning, background job queue, or production deployment. A separate production backend would need an API URL, CORS configuration, authentication, and an isolated execution environment. The development proxy is not a production API gateway.

@@ -10,6 +10,7 @@ import {
 import App from "../app/page";
 import { Evidence } from "../components/project-workspace";
 import { NewTask, sample } from "../components/new-task";
+import { TestPlanDetails } from "../components/test-plan";
 import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import type { Project, VerificationRun } from "../lib/types";
 vi.mock("../lib/api", () => ({
@@ -448,10 +449,119 @@ it("shows only the interfaces the agent was allowed to see", async () => {
 
   expect(screen.getByText("Inspected interfaces")).toBeTruthy();
   expect(screen.getByText("shipping")).toBeTruthy();
+  expect(screen.getByText(/def fee\(amount_cents: int\) -> int/)).toBeTruthy();
+  expect(screen.getByText(/File contents were not read/)).toBeTruthy();
+});
+
+const plannedRun: VerificationRun = {
+  ...executedRun,
+  report: {
+    ...executedRun.report,
+    test_plan: {
+      scenarios: [
+        {
+          id: "S1",
+          requirement_ids: ["R1"],
+          title: "Free shipping at the exact threshold",
+          category: "boundary",
+          preconditions: ["Shipping module is available."],
+          inputs: ["amount_cents = 10000"],
+          steps: ["Call shipping.fee(10000)."],
+          expected_result: "The shipping fee is zero.",
+          evidence_refs: ["requirement:R1", "repository:shipping.py"],
+          assumptions: ["Amounts use integer cents."],
+        },
+      ],
+      notes: "No threshold was stated for large orders.",
+    },
+    generated_tests: executedRun.report.generated_tests.map((test) => ({
+      ...test,
+      scenario_ids: ["S1"],
+    })),
+    planning_gaps: ["R3: Refunds follow the original payment method."],
+    uncovered_scenarios: [],
+  },
+};
+
+it("traces a scenario through its source, generated test, and execution outcome", () => {
+  render(<TestPlanDetails report={plannedRun.report} />);
+  fireEvent.click(screen.getByText(/Free shipping at the exact threshold/));
+  expect(screen.getByText("amount_cents = 10000")).toBeTruthy();
+  expect(screen.getByText("The shipping fee is zero.")).toBeTruthy();
+  expect(screen.getByText("Amounts use integer cents.")).toBeTruthy();
   expect(
-    screen.getByText(/def fee\(amount_cents: int\) -> int/),
+    screen.getByText("Orders of at least 100 dollars ship free."),
   ).toBeTruthy();
   expect(
-    screen.getByText(/File contents were not read/),
+    screen.getByText(/shipping: fee\(amount_cents: int\) -> int/),
   ).toBeTruthy();
+  expect(screen.getByText("T1 (test_shipping.py)")).toBeTruthy();
+  expect(
+    screen.getByText("test_free_shipping_at_threshold: error"),
+  ).toBeTruthy();
+  expect(screen.getByText("Requirements without scenarios")).toBeTruthy();
+  expect(document.body.textContent).not.toMatch(/[\u3400-\u9fff]/);
+});
+
+it("shows missing scenario implementations separately from execution results", () => {
+  render(
+    <TestPlanDetails
+      report={{
+        ...plannedRun.report,
+        generated_tests: [],
+        uncovered_scenarios: ["S1: Free shipping at the exact threshold"],
+      }}
+    />,
+  );
+  expect(screen.getByText("No generated test")).toBeTruthy();
+  expect(screen.getByText("Not executed")).toBeTruthy();
+  expect(screen.getByText("Scenarios without generated tests")).toBeTruthy();
+  expect(
+    screen.queryByText("test_free_shipping_at_threshold: error"),
+  ).toBeNull();
+});
+
+it("keeps legacy runs readable without inferring a test plan", () => {
+  render(<TestPlanDetails report={agentRun.report} />);
+  expect(screen.getByText("No test plan recorded for this run.")).toBeTruthy();
+  expect(screen.queryByText("Expected result")).toBeNull();
+});
+
+it("displays the saved test plan in both the workspace and report", async () => {
+  vi.mocked(api.runs).mockResolvedValue([plannedRun]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Test plan" });
+  expect(screen.getByText("Plan tests")).toBeTruthy();
+  expect(screen.getByText("1 scenario")).toBeTruthy();
+  await go("view=reports&project=p1&run=r1");
+  await screen.findByRole("heading", { name: "Test plan" });
+  expect(screen.getByText(/Free shipping at the exact threshold/)).toBeTruthy();
+});
+
+it("retains analyzed requirements when planning fails", async () => {
+  const failed: VerificationRun = {
+    ...agentRun,
+    status: "failed",
+    stage: "plan",
+    report: {
+      ...agentRun.report,
+      generated_tests: [],
+      summary: "Run failed during the plan stage.",
+      unresolved_issues: ["Planning model unavailable."],
+    },
+  };
+  vi.mocked(api.runs).mockResolvedValue([failed]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByText("Planning model unavailable.");
+  expect(
+    screen.getByText("Plan tests").closest(".stage")?.textContent,
+  ).toContain("Failed");
+  expect(
+    screen.getByText("Analyze requirements").closest(".stage")?.textContent,
+  ).toContain("Complete");
+  expect(screen.getByText("No test plan recorded for this run.")).toBeTruthy();
+  await go("view=evidence&project=p1&run=r1");
+  await screen.findByText("An order of at least 100 dollars ships free.");
 });
