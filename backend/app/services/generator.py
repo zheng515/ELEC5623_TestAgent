@@ -9,6 +9,7 @@ from app.schemas import (
     TestPlan,
 )
 from app.services.llm import StructuredLLM
+from app.services.oracle_review import has_current_oracle_support
 from app.services.test_validator import validate_test
 
 SYSTEM = """You write pytest tests from structured test scenarios and requirements.
@@ -86,6 +87,22 @@ def generate_tests(
             notes="No testable scenario was planned, so no test was generated.",
         )
 
+    eligible = [scenario for scenario in plan.scenarios if has_current_oracle_support(scenario)]
+    excluded = [scenario.id for scenario in plan.scenarios if scenario not in eligible]
+    exclusion_note = (
+        f"Skipped scenarios without current source support: {', '.join(excluded)}."
+        if excluded
+        else ""
+    )
+    if not eligible:
+        return GeneratedTestSuite(
+            tests=[],
+            notes="No source-supported scenarios are available; test generation was skipped. "
+            + exclusion_note,
+        )
+    generation_plan = plan.model_copy(update={"scenarios": eligible, "notes": ""})
+    eligible_requirements = {ref for scenario in eligible for ref in scenario.requirement_ids}
+
     suite = llm.parse(
         system=SYSTEM,
         prompt=PROMPT.format(
@@ -96,9 +113,10 @@ def generate_tests(
                 f"- {requirement.id}: {requirement.text}"
                 + (f" [ambiguity: {requirement.ambiguity}]" if requirement.ambiguity else "")
                 for requirement in testable
+                if requirement.id in eligible_requirements
             ),
             context=_context(project, repository),
-            plan=plan.model_dump_json(),
+            plan=generation_plan.model_dump_json(),
         ),
         output_format=GeneratedTestSuite,
     )
@@ -108,6 +126,8 @@ def generate_tests(
     tests = []
     used_ids: set[str] = set()
     notes = [normalized.notes] if normalized.notes.strip() else []
+    if exclusion_note:
+        notes.append(exclusion_note)
     for test in normalized.tests:
         refs = list(dict.fromkeys(ref for ref in test.scenario_ids if ref in scenarios))
         if not refs:

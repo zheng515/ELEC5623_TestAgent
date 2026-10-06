@@ -338,7 +338,9 @@ class DirectLLMOrchestrator:
 
         checkpoint(
             "execute",
-            "Executing generated tests in the available sandbox.",
+            "Executing generated tests in the available sandbox."
+            if suite.tests
+            else "No tests generated; recording gaps without sandbox execution.",
             generated_tests=suite.tests,
             validation_version=VALIDATION_VERSION,
             outcome_mapping_version=OUTCOME_MAPPING_VERSION,

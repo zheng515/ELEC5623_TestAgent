@@ -16,6 +16,7 @@ import { ExecutionHistory } from "../components/execution-history";
 import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import type { Project, VerificationRun } from "../lib/types";
 import { requirementOutcomes } from "../lib/outcome-mapping";
+import { runBadge } from "../components/ui";
 vi.mock("../lib/api", () => ({
   api: {
     me: vi.fn(),
@@ -951,4 +952,37 @@ it("warns that historical requirement conclusions have not been remapped", async
   await screen.findByText(
     /This run predates function-level requirement outcome mapping/,
   );
+});
+
+it("does not claim tests were generated when a completed run produced none", () => {
+  const empty: VerificationRun = {
+    ...plannedRun,
+    status: "completed",
+    report: { ...plannedRun.report, generated_tests: [], executed_tests: 0 },
+  };
+  expect(runBadge(empty).label).toBe("No tests generated");
+  const blocked: VerificationRun = {
+    ...empty,
+    report: {
+      ...empty.report,
+      test_plan: {
+        ...empty.report.test_plan!,
+        scenarios: empty.report.test_plan!.scenarios.map((scenario) => ({
+          ...scenario,
+          oracle_grounding: {
+            version: 1,
+            status: "needs_review",
+            verdict: "insufficient",
+            rationale: "The source does not specify the fee.",
+            citations: [],
+            issues: ["Missing source support."],
+            scenario_sha256: "scenario",
+            source_sha256: "source",
+          },
+        })),
+      },
+    },
+  };
+  expect(runBadge(blocked).label).toBe("Review needed · no tests generated");
+  expect(runBadge(blocked).tone).toBe("amber");
 });
