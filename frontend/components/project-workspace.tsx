@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { Behavior, Project, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
 import { TestPlanDetails } from "./test-plan";
+import { isRunActive } from "../lib/types";
+import { ExecutionHistory } from "./execution-history";
 import {
   Badge,
   Empty,
@@ -26,6 +28,8 @@ function outcomeTone(outcome: string) {
 }
 
 const EVENT_TITLES: Record<string, string> = {
+  queue: "Run queued",
+  interrupt: "Run interrupted",
   understand: "Project inputs recorded",
   inspect: "Repository inspected",
   analyze: "Requirements analyzed",
@@ -46,8 +50,9 @@ function stageStates(run?: VerificationRun) {
   const analysed =
     run?.status === "completed" ||
     run?.stage === "generate" ||
-    run?.stage === "plan";
-  return [
+    run?.stage === "plan" ||
+    !!run?.events.some((event) => event.stage === "analyze");
+  const stages = [
     {
       name: "Inspect repository",
       state: run?.report.repository
@@ -62,7 +67,9 @@ function stageStates(run?: VerificationRun) {
         ? "Not started"
         : run.mode === "scaffold"
           ? "Blocked"
-          : analysed || run.status === "completed"
+          : analysed ||
+              run.status === "completed" ||
+              run.report.generated_tests.length > 0
             ? "Complete"
             : "Failed",
     },
@@ -82,7 +89,7 @@ function stageStates(run?: VerificationRun) {
         ? "Not started"
         : run.mode === "scaffold"
           ? "Blocked"
-          : run.status === "completed"
+          : run.status === "completed" || run.report.generated_tests.length > 0
             ? "Complete"
             : run.stage === "generate"
               ? "Failed"
@@ -90,7 +97,13 @@ function stageStates(run?: VerificationRun) {
     },
     {
       name: "Execute tests",
-      state: run?.report.executions.length ? "Complete" : "Not connected",
+      state: run?.report.execution_attempts?.at(-1)?.result.timed_out
+        ? "Timed out"
+        : run?.report.executions.length
+          ? "Complete"
+          : run?.report.execution_attempts?.length
+            ? "No outcomes recorded"
+            : "Not connected",
     },
     {
       name: "Diagnose & refine",
@@ -103,6 +116,33 @@ function stageStates(run?: VerificationRun) {
             : "Not connected",
     },
   ];
+  if (!isRunActive(run)) return stages;
+  const current = {
+    understand: 0,
+    inspect: 0,
+    analyze: 1,
+    plan: 2,
+    generate: 3,
+    execute: 4,
+    improve: 5,
+    re_measure: 5,
+    report: 6,
+  }[run!.stage];
+  return stages.map((stage, index) => ({
+    ...stage,
+    state:
+      run?.status === "queued"
+        ? index === 0
+          ? "Queued"
+          : "Not started"
+        : index === current
+          ? "Running"
+          : index > current
+            ? "Not started"
+            : index === 0 && !run?.report.repository
+              ? "Not available"
+              : "Complete",
+  }));
 }
 
 export function Workspace({
@@ -110,11 +150,13 @@ export function Workspace({
   run,
   start,
   busy,
+  activeRun,
 }: {
   project: Project;
   run?: VerificationRun;
   start: () => void;
   busy: boolean;
+  activeRun?: VerificationRun;
 }) {
   return (
     <>
@@ -124,16 +166,43 @@ export function Workspace({
           <h1>Agent workspace</h1>
           <p>{project.goal}</p>
         </div>
-        <button className="button primary" disabled={busy} onClick={start}>
+        <button
+          className="button primary"
+          disabled={busy || !!activeRun || isRunActive(run)}
+          onClick={start}
+        >
           {busy
             ? "Creating run…"
-            : run && run.mode !== "scaffold"
-              ? "Run verification again ↗"
-              : run
-                ? "Create another setup run ↗"
-                : "Create setup run ↗"}
+            : activeRun || isRunActive(run)
+              ? "Run in progress"
+              : run && run.mode !== "scaffold"
+                ? "Run verification again ↗"
+                : run
+                  ? "Create another setup run ↗"
+                  : "Create setup run ↗"}
         </button>
       </div>
+      {isRunActive(run) && (
+        <div className="run-live" role="status">
+          <strong>
+            {run?.status === "queued"
+              ? "Waiting for the worker"
+              : "Agent is working"}
+          </strong>
+          <p>{run?.report.summary}</p>
+          <span>
+            Updates automatically every 2 seconds. You can leave this page and
+            return to this run.
+          </span>
+        </div>
+      )}
+      {activeRun && activeRun.id !== run?.id && (
+        <p>
+          <a href={urlFor("workspace", project.id, activeRun.id)}>
+            Open the active run →
+          </a>
+        </p>
+      )}
       <div className="run-context">
         <span>
           {run ? `RUN ${run.id.slice(0, 8).toUpperCase()}` : "NO RUN SELECTED"}
@@ -149,18 +218,22 @@ export function Workspace({
               ? "Your verification goal is ready."
               : run.status === "completed"
                 ? `${run.report.requirements.length} requirements analyzed, ${run.report.generated_tests.length} tests generated.`
-                : run.status === "failed"
-                  ? run.report.requirements.length || run.report.test_plan
-                    ? "The run stopped. Completed stage outputs are retained."
-                    : "The run failed before it produced a result."
-                  : "Inputs recorded. Waiting for agent integration."}
+                : isRunActive(run)
+                  ? run.report.summary
+                  : run.status === "failed"
+                    ? run.report.requirements.length || run.report.test_plan
+                      ? "The run stopped. Completed stage outputs are retained."
+                      : "The run failed before it produced a result."
+                    : "Inputs recorded. Waiting for agent integration."}
           </h2>
           <p>
             {run?.report.executed_tests
               ? "Review recorded execution evidence and remaining gaps. Passing tests alone do not establish complete verification."
               : run?.report.requirements.length
                 ? "Review the saved requirements, test plan, and gaps. No execution evidence has been recorded."
-                : "No requirement analysis or test execution has taken place."}
+                : isRunActive(run)
+                  ? "Results will appear as the agent completes each stage."
+                  : "No requirement analysis or test execution has taken place."}
           </p>
         </div>
         <div className="stages">
@@ -170,9 +243,11 @@ export function Workspace({
               className={
                 stage.state === "Complete"
                   ? "stage complete"
-                  : stage.state === "Not started"
-                    ? "stage"
-                    : "stage blocked"
+                  : stage.state === "Running"
+                    ? "stage running"
+                    : stage.state === "Not started"
+                      ? "stage"
+                      : "stage blocked"
               }
             >
               <span>0{i + 1}</span>
@@ -342,11 +417,20 @@ export function Workspace({
           </>
         ) : (
           <Empty title="No test artifacts yet">
-            Generated tests appear here once a run completes. Execution results
-            follow when the sandboxed runner is connected.
+            Generated tests appear here after the generation stage. Execution
+            results follow when the sandboxed runner is connected.
           </Empty>
         )}
       </section>
+      {!!run?.report.execution_attempts?.length && (
+        <section className="panel">
+          <SectionTitle
+            title="Execution history"
+            eyebrow="ORIGINAL AND REPAIRED TEST ARTIFACTS"
+          />
+          <ExecutionHistory report={run.report} />
+        </section>
+      )}
       {!!run?.report.diagnoses?.length && (
         <section className="panel">
           <SectionTitle
@@ -644,11 +728,15 @@ export function Report({
             <button
               className="button secondary"
               onClick={downloadHtml}
-              disabled={busy}
+              disabled={busy || isRunActive(run)}
             >
               {busy ? "Preparing…" : "Download HTML ↓"}
             </button>
-            <button className="text-button" onClick={download} disabled={busy}>
+            <button
+              className="text-button"
+              onClick={download}
+              disabled={busy || isRunActive(run)}
+            >
               Download JSON ↓
             </button>
           </div>
@@ -684,11 +772,15 @@ export function Report({
                 <strong>Run {r.id.slice(0, 8)}</strong>
                 <small>{formatDate(r.created_at)}</small>
                 <Badge tone={runBadge(r).tone}>
-                  {r.status === "blocked"
-                    ? "Blocked"
-                    : r.status === "failed"
-                      ? "Failed"
-                      : "Generated"}
+                  {isRunActive(r)
+                    ? r.status === "queued"
+                      ? "Queued"
+                      : "Running"
+                    : r.status === "blocked"
+                      ? "Blocked"
+                      : r.status === "failed"
+                        ? "Failed"
+                        : "Generated"}
                 </Badge>
               </a>
             ))}
@@ -703,9 +795,11 @@ export function Report({
                   ? run.report.executed_tests
                     ? "Execution evidence recorded"
                     : "Tests generated · not executed"
-                  : run.status === "failed"
-                    ? "Run failed · review retained outputs"
-                    : "Setup only · no executed verification"}
+                  : isRunActive(run)
+                    ? "Run in progress · interim results"
+                    : run.status === "failed"
+                      ? "Run failed · review retained outputs"
+                      : "Setup only · no executed verification"}
               </Badge>
             </div>
             <section>
@@ -771,14 +865,21 @@ export function Report({
                 </div>
               </div>
               <p className="small muted">
-                An em dash means not evaluated. No verification claims are made
-                without execution evidence.
+                Requirement coverage measures generated links, not execution or
+                test adequacy. An em dash means not evaluated. Active runs show
+                interim results; downloads become available when the run stops.
               </p>
             </section>
             <section>
               <h3>Test plan</h3>
               <TestPlanDetails report={run.report} />
             </section>
+            {!!run.report.execution_attempts?.length && (
+              <section>
+                <h3>Execution history</h3>
+                <ExecutionHistory report={run.report} />
+              </section>
+            )}
             <section>
               <h3>03 / Requirement to test mapping</h3>
               {run.report.requirements.length ? (

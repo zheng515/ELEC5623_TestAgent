@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
-from conftest import register
+from conftest import register, wait_for_run
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
@@ -149,7 +149,13 @@ def execution(*outcomes) -> ExecutionResult:
                 name=f"test_{index}",
                 outcome=outcome,
                 duration_seconds=0.01,
-                message="" if outcome == "passed" else f"{outcome} detail",
+                message=(
+                    ""
+                    if outcome == "passed"
+                    else "fixture 'missing_fixture' not found"
+                    if outcome == "error"
+                    else f"{outcome} detail"
+                ),
             )
             for index, outcome in enumerate(outcomes, start=1)
         ],
@@ -281,7 +287,9 @@ def test_api_serves_an_agent_run_end_to_end(settings):
             "/api/v1/projects",
             json={"name": "Shipping", "requirements_text": PROJECT.requirements_text},
         ).json()
-        run = client.post(f"/api/v1/projects/{project['id']}/runs").json()
+        response = client.post(f"/api/v1/projects/{project['id']}/runs")
+        assert response.status_code == 202
+        run = wait_for_run(client, response.json()["id"])
 
         assert run["mode"] == "baseline_b0"
         stored = client.get(f"/api/v1/runs/{run['id']}").json()
@@ -510,7 +518,12 @@ def test_invalid_test_is_refined_and_reexecuted_once():
     assert runner.received[1][0].code == refined.tests[0].code
     assert [item.outcome for item in run.report.executions] == ["passed"]
     assert run.report.refinement_iterations == 1
-    assert run.report.diagnoses[0].classification == "invalid_test"
+    assert run.report.diagnoses == []
+    assert run.report.execution_attempts[0].diagnoses[0].classification == "invalid_test"
+    assert [item.result.executions[0].outcome for item in run.report.execution_attempts] == [
+        "error",
+        "passed",
+    ]
     assert [event.stage for event in run.events][-2:] == ["improve", "re_measure"]
 
 
@@ -722,3 +735,126 @@ def test_legacy_run_without_a_plan_remains_readable():
     legacy = VerificationRun.model_validate(run)
     assert legacy.report.test_plan is None
     assert legacy.report.generated_tests[0].scenario_ids == []
+
+
+@pytest.mark.parametrize("quote", ["", "   ", "A fabricated source quote."])
+def test_invalid_source_quote_stops_before_planning(quote):
+    analysis = ANALYSIS.model_copy(
+        update={
+            "requirements": [ANALYSIS.requirements[0].model_copy(update={"source_quote": quote})]
+        }
+    )
+    llm = FakeLLM(analysis)
+    run = DirectLLMOrchestrator(llm).run(PROJECT)
+    assert run.status == "failed"
+    assert run.stage == "analyze"
+    assert run.report.requirements == []
+    assert "source evidence could not be validated" in run.report.unresolved_issues[0]
+    assert len(llm.prompts) == 1
+
+
+def test_unexecuted_linked_test_prevents_partial_verification():
+    second = SUITE.tests[0].model_copy(update={"id": "T2", "module": "test_other.py"})
+    suite = GeneratedTestSuite(tests=[SUITE.tests[0], second], notes="")
+    run = inspecting_agent(ANALYSIS, PLAN, suite, runner=FakeRunner(execution("passed"))).run(
+        PROJECT
+    )
+    assert run.report.behaviors[0].verification_status == "Unverified"
+    assert run.report.execution_gaps == ["T2: test_other.py"]
+
+
+def test_missing_planned_scenario_prevents_partial_verification():
+    second = PLAN.scenarios[0].model_copy(update={"id": "S2", "title": "Above threshold"})
+    plan = ScenarioPlan(scenarios=[*PLAN.scenarios, second], notes="")
+    run = inspecting_agent(ANALYSIS, plan, SUITE, runner=FakeRunner(execution("passed"))).run(
+        PROJECT
+    )
+    assert run.report.behaviors[0].verification_status == "Unverified"
+    assert run.report.uncovered_scenarios == ["S2: Above threshold"]
+
+
+def test_repair_timeout_preserves_both_attempts_and_uses_latest_execution_metadata():
+    timeout = ExecutionResult(
+        executions=[], exit_code=-1, timed_out=True, stderr_excerpt="Repair exceeded 120s."
+    )
+    refined = SUITE.model_copy(
+        update={
+            "tests": [
+                SUITE.tests[0].model_copy(
+                    update={"code": "def test_repaired():\n    assert True\n"}
+                )
+            ]
+        }
+    )
+    runner = SequenceRunner(execution("error"), timeout)
+    run = inspecting_agent(ANALYSIS, PLAN, SUITE, refined, runner=runner).run(PROJECT)
+    assert "latest sandbox attempt timed out" in run.report.summary
+    assert any("Repair exceeded 120s" in item for item in run.report.unresolved_issues)
+    assert not any("Exit code 1" in item for item in run.report.unresolved_issues)
+    assert run.report.executions == []
+    assert run.report.behaviors[0].verification_status == "Unverified"
+    assert run.report.execution_attempts[0].tests[0].code == SUITE.tests[0].code
+    assert run.report.execution_attempts[0].result.executions[0].outcome == "error"
+    assert run.report.execution_attempts[1].result.timed_out
+    assert run.report.execution_attempts[1].tests[0].code == refined.tests[0].code
+
+
+def test_unknown_environment_error_is_not_automatically_repaired():
+    result = execution("error")
+    result.executions[0].message = "ModuleNotFoundError: No module named 'numpy'"
+    runner = FakeRunner(result)
+    run = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=runner).run(PROJECT)
+    assert len(runner.received) == 1
+    assert run.report.refinement_iterations == 0
+    assert run.report.diagnoses[0].classification == "inconclusive"
+
+
+def test_duplicate_generated_test_ids_are_distinct_traceable_artifacts():
+    second = SUITE.tests[0].model_copy(update={"module": "test_other.py"})
+    suite = generate_tests(
+        FakeLLM(GeneratedTestSuite(tests=[SUITE.tests[0], second], notes="")),
+        PROJECT,
+        ANALYSIS.requirements,
+        plan=PLAN,
+    )
+    assert len({test.id for test in suite.tests}) == 2
+    assert suite.tests[1].module == "test_other.py"
+    assert suite.tests[1].scenario_ids == ["S1"]
+    assert "Renumbered duplicate test id" in suite.notes
+
+
+def test_html_archives_original_and_repaired_artifacts_and_escapes_code():
+    from app.services.report_renderer import render_html_report
+
+    repaired = SUITE.model_copy(
+        update={
+            "tests": [
+                SUITE.tests[0].model_copy(
+                    update={
+                        "code": (
+                            "# <script>alert(1)</script>\ndef test_repaired():\n    assert True\n"
+                        )
+                    }
+                )
+            ]
+        }
+    )
+    run = inspecting_agent(
+        ANALYSIS,
+        PLAN,
+        SUITE,
+        repaired,
+        runner=SequenceRunner(
+            execution("error"),
+            ExecutionResult(
+                executions=[], exit_code=-1, timed_out=True, stderr_excerpt="Repair timed out."
+            ),
+        ),
+    ).run(PROJECT)
+    html = render_html_report(PROJECT, run)
+    assert "Execution history" in html
+    assert "Attempt 1" in html and "Attempt 2" in html
+    assert "Repair timed out." in html
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+    assert "<script>alert(1)</script>" not in html
+    assert "T1: test_shipping.py" in html

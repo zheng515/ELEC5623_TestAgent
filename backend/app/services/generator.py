@@ -93,6 +93,7 @@ def generate_tests(
     normalized = normalize_suite(suite, known)
     scenarios = {item.id: item for item in plan.scenarios}
     tests = []
+    used_ids: set[str] = set()
     notes = [normalized.notes] if normalized.notes.strip() else []
     for test in normalized.tests:
         refs = list(dict.fromkeys(ref for ref in test.scenario_ids if ref in scenarios))
@@ -103,9 +104,17 @@ def generate_tests(
         requirement_ids = list(
             dict.fromkeys(req for ref in refs for req in scenarios[ref].requirement_ids)
         )
+        identifier = test.id
+        if identifier in used_ids:
+            identifier = f"T{len(tests) + 1}"
+            while identifier in used_ids:
+                identifier += "x"
+            notes.append(f"Renumbered duplicate test id {test.id} as {identifier}.")
+        used_ids.add(identifier)
         tests.append(
             test.model_copy(
                 update={
+                    "id": identifier,
                     "scenario_ids": refs,
                     "requirement_ids": requirement_ids,
                 }

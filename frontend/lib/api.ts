@@ -28,13 +28,6 @@ function sessionExpired() {
   window.dispatchEvent(new Event("reqtest:session-expired"));
 }
 
-// Runs are synchronous and include several model calls plus sandbox execution.
-const configuredRunTimeout = Number(import.meta.env.VITE_RUN_TIMEOUT_MS);
-const runTimeout =
-  Number.isInteger(configuredRunTimeout) && configuredRunTimeout >= 15000
-    ? configuredRunTimeout
-    : 1200000;
-
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -110,11 +103,9 @@ export const api = {
   runs: (id: string) =>
     request<VerificationRun[]>(`/projects/${encodeURIComponent(id)}/runs`),
   createRun: (id: string) =>
-    request<VerificationRun>(
-      `/projects/${encodeURIComponent(id)}/runs`,
-      { method: "POST" },
-      runTimeout,
-    ),
+    request<VerificationRun>(`/projects/${encodeURIComponent(id)}/runs`, {
+      method: "POST",
+    }),
   system: () => request<SystemInfo>("/system"),
   report: (id: string) =>
     request<VerificationReport>(`/runs/${encodeURIComponent(id)}/report`),

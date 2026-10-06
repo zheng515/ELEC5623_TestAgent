@@ -212,7 +212,7 @@ export function NewTask({
               <span>
                 {mode === "scaffold"
                   ? "No API key required for setup."
-                  : "The agent runs automatically. Results appear when the run finishes."}
+                  : "The agent runs in the background. Follow its progress in the workspace."}
               </span>
               <button
                 className="button primary"

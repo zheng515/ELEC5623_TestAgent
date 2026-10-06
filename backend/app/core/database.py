@@ -1,8 +1,14 @@
+import json
 import sqlite3
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
-from app.schemas import Project, User, VerificationRun
+from app.schemas import Project, RunEvent, User, VerificationRun
+
+
+class RunQueueFull(RuntimeError):
+    pass
 
 
 class Store:
@@ -66,6 +72,21 @@ class Store:
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id, created_at)"
             )
+            run_columns = {row[1] for row in connection.execute("PRAGMA table_info(runs)")}
+            for name in ("status", "worker_id"):
+                if name not in run_columns:
+                    connection.execute(f"ALTER TABLE runs ADD COLUMN {name} TEXT")
+            for run_id, payload in connection.execute(
+                "SELECT id, payload FROM runs WHERE status IS NULL"
+            ).fetchall():
+                connection.execute(
+                    "UPDATE runs SET status = ? WHERE id = ?",
+                    (json.loads(payload).get("status", "blocked"), run_id),
+                )
+            connection.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_runs_active_project ON runs(project_id) "
+                "WHERE status IN ('queued', 'running')"
+            )
 
     def create_project(self, project: Project, owner_id: str):
         with self.connection() as connection:
@@ -93,9 +114,85 @@ class Store:
     def create_run(self, run: VerificationRun):
         with self.connection() as connection:
             connection.execute(
-                "INSERT INTO runs VALUES (?, ?, ?, ?)",
-                (run.id, run.project_id, run.created_at.isoformat(), run.model_dump_json()),
+                "INSERT INTO runs (id, project_id, created_at, payload, status) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    run.id,
+                    run.project_id,
+                    run.created_at.isoformat(),
+                    run.model_dump_json(),
+                    run.status,
+                ),
             )
+
+    def reserve_run(
+        self, run: VerificationRun, worker_id: str, capacity: int
+    ) -> tuple[VerificationRun, bool]:
+        """Persist before dispatch; serialize submissions so double clicks reuse active work."""
+        with self.connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT payload FROM runs WHERE project_id = ? AND status IN ('queued', 'running')",
+                (run.project_id,),
+            ).fetchone()
+            if existing:
+                return VerificationRun.model_validate_json(existing[0]), False
+            count = connection.execute(
+                "SELECT COUNT(*) FROM runs WHERE status IN ('queued', 'running')"
+            ).fetchone()[0]
+            if count >= capacity:
+                raise RunQueueFull("The run queue is full. Wait for an active run to finish.")
+            connection.execute(
+                "INSERT INTO runs (id, project_id, created_at, payload, status, worker_id) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    run.id,
+                    run.project_id,
+                    run.created_at.isoformat(),
+                    run.model_dump_json(),
+                    run.status,
+                    worker_id,
+                ),
+            )
+        return run, True
+
+    def update_active_run(self, run: VerificationRun, worker_id: str) -> bool:
+        """A stopped or superseded worker cannot overwrite an interrupted run."""
+        with self.connection() as connection:
+            result = connection.execute(
+                "UPDATE runs SET payload = ?, status = ? WHERE id = ? AND worker_id = ? "
+                "AND status IN ('queued', 'running')",
+                (run.model_dump_json(), run.status, run.id, worker_id),
+            )
+            return result.rowcount == 1
+
+    def interrupt_runs(self, message: str, worker_id: str | None = None):
+        with self.connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            rows = connection.execute(
+                "SELECT payload FROM runs WHERE status IN ('queued', 'running') "
+                + ("AND worker_id = ?" if worker_id else ""),
+                (worker_id,) if worker_id else (),
+            ).fetchall()
+            for (payload,) in rows:
+                run = VerificationRun.model_validate_json(payload)
+                now = datetime.now(UTC)
+                run.status = "failed"
+                run.updated_at = now
+                run.events.append(
+                    RunEvent(
+                        id=f"interrupted-{run.id}",
+                        stage="interrupt",
+                        created_at=now,
+                        message=message,
+                    )
+                )
+                run.report.summary = message + " Completed stage outputs are retained."
+                run.report.unresolved_issues.append(message)
+                connection.execute(
+                    "UPDATE runs SET payload = ?, status = 'failed' WHERE id = ?",
+                    (run.model_dump_json(), run.id),
+                )
 
     def list_runs(self, project_id: str) -> list[VerificationRun]:
         with self.connection() as connection:

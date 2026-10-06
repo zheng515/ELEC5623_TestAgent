@@ -2,7 +2,7 @@ import sqlite3
 import time
 
 import pytest
-from conftest import ACCOUNT, register
+from conftest import ACCOUNT, register, wait_for_run
 from fastapi.testclient import TestClient
 
 from app.core.auth import COOKIE_NAME, hash_password, token_digest, verify_password
@@ -160,7 +160,7 @@ def test_users_cannot_access_each_others_projects_runs_or_reports(client):
     project = client.post(
         "/api/v1/projects", json={"name": "Private", "requirements_text": "Rule"}
     ).json()
-    run = client.post(f"/api/v1/projects/{project['id']}/runs").json()
+    run = wait_for_run(client, client.post(f"/api/v1/projects/{project['id']}/runs").json()["id"])
     assert client.get("/api/v1/runs").json() == [run]
     assert client.get(f"/api/v1/runs/{run['id']}/report.html").status_code == 200
     client.post("/api/v1/auth/logout")

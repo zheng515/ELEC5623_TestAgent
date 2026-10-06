@@ -122,10 +122,10 @@ configure trusted proxy addresses before relying on per-client throttling.
 
 1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
 2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference. You can import a `.txt` or `.md` requirement file, or use the English shipping example.
-3. Submit the form to save the project, create a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
-4. Inspect the workflow stages, recorded events, current metrics, and unresolved issues in **Agent workspace**. Expand **Test plan** scenarios to see their normal, boundary, or negative category, preconditions, inputs, steps, expected result, source evidence, assumptions, linked tests, and execution outcomes.
+3. Submit the form to save the project, queue a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
+4. Follow live workflow stages (refreshed every two seconds), recorded events, current metrics, and unresolved issues in **Agent workspace**. Expand **Test plan** scenarios to see their normal, boundary, or negative category, preconditions, inputs, steps, expected result, source evidence, assumptions, linked tests, and execution outcomes.
 5. Open **Requirements & evidence** to read the saved requirements and filter the extracted behaviors by verification status.
-6. Open **Runs & reports** for the saved test plan, requirement-to-test mapping table, run metrics, and portable HTML or JSON report downloads. Page links retain the selected project and run.
+6. Open **Runs & reports** for the saved test plan, requirement-to-test mapping table, run metrics, and portable HTML or JSON report downloads. Page links retain the selected project and run. Downloads are available after the run stops. Expand **Execution history** to compare original and repaired test code, outcomes, and sandbox diagnostics.
 
 ### Verify the test-plan workflow
 
@@ -135,7 +135,11 @@ configure trusted proxy addresses before relying on per-client throttling.
 4. Confirm each generated test names its scenario ID and requirement ID. Review **Requirements without scenarios** and **Scenarios without generated tests** when present; a generated-test coverage rate does not mean every planned scenario was implemented.
 5. Open **Runs & reports**, download HTML and JSON, and check that the plan and references are preserved. Refresh the page to verify persistence. Older runs display **No test plan recorded for this run** rather than inventing one.
 
-`REQTEST_MAX_SCENARIOS` caps retained scenarios (default 80). The run endpoint remains synchronous: the UI receives its events and report after completion. `VITE_RUN_TIMEOUT_MS` controls the browser's run request timeout (default 20 minutes); other API requests use 15 seconds. Live progress and resumable background jobs are still future work.
+`REQTEST_MAX_SCENARIOS` caps retained scenarios (default 80). Run submission returns **202 Accepted** with a persisted queued record and a `Location` pointing to `/api/v1/runs/{id}`. The browser polls saved progress every two seconds while a run is queued or running. All browser API requests use a 15-second timeout; model and sandbox time limits remain backend settings.
+
+The local worker executes one job at a time. `REQTEST_MAX_ACTIVE_RUNS` limits queued and running jobs combined (default 20); a full queue returns 429. Submitting the same project while it has an active run returns that run. You can leave the page and return through its link without stopping the job. Temporary polling failures retain the last saved view and retry automatically.
+
+Use one API process with this SQLite worker. On shutdown or restart, unfinished runs become failed and retain their saved stage outputs; start a new run to retry. Automatic continuation, cancellation, and distributed workers are not implemented. Existing in-flight model or sandbox calls may take until their configured timeout to end.
 
 ### Run modes
 
@@ -158,7 +162,7 @@ Verification statuses follow the evidence, and only ever downward from what was 
 | --- | --- |
 | `Uncertain` | The requirement is ambiguous or not testable as written |
 | `Unverified` | No test ran against the real project, or one of its tests failed or errored |
-| `Partially Verified` | The project was inspected and every test linked to this requirement passed against it |
+| `Partially Verified` | The project was inspected, every planned scenario for this requirement has an implementation, and every linked generated test has a final passing execution outcome |
 | `Verified` | Not reachable yet; it needs test-adequacy analysis (mutation testing) |
 
 Remote repositories are **not** cloned. A reference must be a local path inside `REQTEST_REPOSITORY_ROOT`; a URL is refused with an explanation.
@@ -225,6 +229,6 @@ In proposal order, the remaining work is:
 2. **Mutation testing.** The only route to a `Verified` status, and the proposal's mutation-score metric.
 3. **Requirement documents beyond plain text (FR1).**
 
-When runs become long-lived, replace the synchronous run endpoint with background execution and status updates; a B0 run is already slow enough to feel it.
+Next, validate the background workflow against a representative local Python repository and a real sandbox before expanding retrieval. Source quotes are checked as nonblank, verbatim excerpts of the submitted text; this proves quote provenance, not the semantic correctness or completeness of the analysis.
 
-The current foundation has no repository upload or cloning, background job queue, or production deployment. A separate production backend needs an API URL, explicit CORS origins, HTTPS with secure session cookies, and an isolated execution environment. The development proxy is not a production API gateway.
+The current foundation has no repository upload or cloning, automatic job resumption, distributed queue, or production deployment. A separate production backend needs an API URL, explicit CORS origins, HTTPS with secure session cookies, and an isolated execution environment. The development proxy is not a production API gateway.

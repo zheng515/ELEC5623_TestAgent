@@ -190,6 +190,17 @@ class ExecutionResult(BaseModel):
     stderr_excerpt: str
 
 
+class ExecutionAttempt(BaseModel):
+    """Immutable test artifacts and results for one sandbox invocation."""
+
+    number: int
+    stage: Literal["measure", "re_measure"]
+    created_at: datetime
+    tests: list[GeneratedTest]
+    result: ExecutionResult
+    diagnoses: list["TestDiagnosis"] = Field(default_factory=list)
+
+
 class TestDiagnosis(BaseModel):
     """Conservative classification of an observed test outcome (FR11)."""
 
@@ -201,6 +212,8 @@ class TestDiagnosis(BaseModel):
 class RunEvent(BaseModel):
     id: str
     stage: Literal[
+        "queue",
+        "interrupt",
         "understand",
         "inspect",
         "analyze",
@@ -227,6 +240,8 @@ class VerificationReport(BaseModel):
     unresolved_issues: list[str] = Field(default_factory=list)
     coverage_gaps: list[str] = Field(default_factory=list)
     executions: list[ExecutedTest] = Field(default_factory=list)
+    execution_attempts: list[ExecutionAttempt] = Field(default_factory=list)
+    execution_gaps: list[str] = Field(default_factory=list)
     diagnoses: list[TestDiagnosis] = Field(default_factory=list)
     refinement_iterations: int = 0
     executed_tests: int = 0
@@ -240,11 +255,20 @@ class VerificationRun(BaseModel):
     id: str
     project_id: str
     mode: Literal["scaffold", "baseline_b0", "baseline_b2"] = "scaffold"
-    status: Literal["blocked", "completed", "failed"] = "blocked"
-    stage: Literal["understand", "inspect", "analyze", "plan", "generate", "execute", "report"] = (
-        "understand"
-    )
+    status: Literal["queued", "running", "blocked", "completed", "failed"] = "blocked"
+    stage: Literal[
+        "understand",
+        "inspect",
+        "analyze",
+        "plan",
+        "generate",
+        "execute",
+        "improve",
+        "re_measure",
+        "report",
+    ] = "understand"
     created_at: datetime
+    updated_at: datetime | None = None
     input_sha256: str
     events: list[RunEvent]
     report: VerificationReport

@@ -6,7 +6,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("gives synchronous agent runs time for planning while keeping read requests bounded", async () => {
+it("queues runs with cookie authentication and a bounded request timeout", async () => {
   const timeout = vi.spyOn(AbortSignal, "timeout");
   const fetchMock = vi.fn().mockResolvedValue({
     ok: true,
@@ -14,7 +14,7 @@ it("gives synchronous agent runs time for planning while keeping read requests b
   });
   vi.stubGlobal("fetch", fetchMock);
   await api.createRun("project/one");
-  expect(timeout).toHaveBeenLastCalledWith(1200000);
+  expect(timeout).toHaveBeenLastCalledWith(15000);
   expect(fetchMock.mock.calls[0][0]).toBe(
     "/api/v1/projects/project%2Fone/runs",
   );

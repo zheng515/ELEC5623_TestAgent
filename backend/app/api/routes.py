@@ -4,6 +4,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from app.core.auth import CurrentUser
+from app.core.database import RunQueueFull
 from app.schemas import (
     Integration,
     Project,
@@ -12,6 +13,7 @@ from app.schemas import (
     VerificationReport,
     VerificationRun,
 )
+from app.services.jobs import JobInterrupted
 from app.services.report_renderer import render_html_report
 
 router = APIRouter(prefix="/api/v1")
@@ -153,12 +155,17 @@ def list_runs(project_id: str, request: Request, user: CurrentUser):
 
 
 @router.post(
-    "/projects/{project_id}/runs", response_model=VerificationRun, status_code=201, tags=["runs"]
+    "/projects/{project_id}/runs", response_model=VerificationRun, status_code=202, tags=["runs"]
 )
-def create_run(project_id: str, request: Request, user: CurrentUser):
+def create_run(project_id: str, request: Request, response: Response, user: CurrentUser):
     project = get_project(project_id, request, user)
-    run = request.app.state.orchestrator.run(project)
-    request.app.state.store.create_run(run)
+    try:
+        run = request.app.state.run_manager.submit(project)
+    except RunQueueFull as error:
+        raise HTTPException(429, str(error), headers={"Retry-After": "5"}) from error
+    except JobInterrupted as error:
+        raise HTTPException(503, str(error)) from error
+    response.headers["Location"] = f"/api/v1/runs/{run.id}"
     return run
 
 
