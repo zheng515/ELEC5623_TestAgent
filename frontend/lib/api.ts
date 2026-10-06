@@ -1,4 +1,5 @@
 import type {
+  RequirementDocument,
   Credentials,
   RegisterRequest,
   User,
@@ -55,7 +56,9 @@ async function request<T>(
       error.name === "TimeoutError"
     ) {
       throw new Error(
-        "The request timed out. The backend may still be processing the run; refresh its workspace before starting another run.",
+        path === "/documents/import"
+          ? "Document import timed out. Try a smaller or simpler file."
+          : "The request timed out. The backend may still be processing the run; refresh its workspace before starting another run.",
       );
     }
     throw new Error(
@@ -70,9 +73,11 @@ async function request<T>(
       typeof detail === "string"
         ? detail
         : response.status === 422
-          ? path.startsWith("/auth/")
-            ? "Check your email and password. Use 8–128 characters for a new password."
-            : "Check the project name, requirements, and verification goal."
+          ? path === "/documents/import"
+            ? "Check the document name, format, and size."
+            : path.startsWith("/auth/")
+              ? "Check your email and password. Use 8–128 characters for a new password."
+              : "Check the project name, requirements, and verification goal."
           : `Request failed (${response.status}). Please try again.`,
       response.status,
     );
@@ -81,6 +86,15 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 export const api = {
+  importDocument: (filename: string, content_base64: string) =>
+    request<RequirementDocument>(
+      "/documents/import",
+      {
+        method: "POST",
+        body: JSON.stringify({ filename, content_base64 }),
+      },
+      30000,
+    ),
   me: () => request<User>("/auth/me"),
   register: (payload: RegisterRequest) =>
     request<User>("/auth/register", {

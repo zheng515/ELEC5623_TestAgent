@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import type { ProjectCreate, RunMode } from "../lib/types";
+import type { ProjectCreate, RunMode, RequirementDocument } from "../lib/types";
+import { api } from "../lib/api";
 import { urlFor } from "../lib/navigation";
 import { Badge, ErrorNotice } from "./ui";
 
@@ -32,35 +33,78 @@ export function NewTask({
   submit: (form: ProjectCreate) => Promise<void>;
   busy: boolean;
   mode?: RunMode;
-  project?: ProjectCreate;
+  project?: ProjectCreate & {
+    requirement_document?: RequirementDocument | null;
+  };
   editing?: boolean;
   cancelHref?: string;
 }) {
-  const [form, setForm] = useState(project ?? initial);
+  const [form, setForm] = useState<ProjectCreate>(() =>
+    project
+      ? {
+          name: project.name,
+          description: project.description,
+          repository_ref: project.repository_ref,
+          requirements_text: project.requirements_text,
+          goal: project.goal,
+          requirement_document_id: project.requirement_document_id ?? null,
+        }
+      : initial,
+  );
   const [error, setError] = useState("");
   const [reading, setReading] = useState(false);
-  const [fileName, setFileName] = useState("No file selected");
-  const change = (key: keyof ProjectCreate, value: string) =>
-    setForm((p) => ({ ...p, [key]: value }));
+  const [fileName, setFileName] = useState(
+    project?.requirement_document?.filename ?? "No file selected",
+  );
+  const [document, setDocument] = useState<RequirementDocument | null>(
+    project?.requirement_document ?? null,
+  );
+  const sourceCharacters = Array.from(document?.text ?? "");
+  const [sourceCleared, setSourceCleared] = useState(false);
+  const change = (key: keyof ProjectCreate, value: string) => {
+    if (key === "requirements_text" && document) {
+      setDocument(null);
+      setSourceCleared(true);
+      setFileName("No file selected");
+      setForm((p) => ({ ...p, [key]: value, requirement_document_id: null }));
+    } else setForm((p) => ({ ...p, [key]: value }));
+  };
   async function importText(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     setError("");
-    if (!/\.(txt|md)$/i.test(file.name) || file.size > 200000) {
-      setError("Choose a .txt or .md file smaller than 200 KB.");
-      setFileName("No file selected");
+    if (!/\.(txt|md|pdf|docx)$/i.test(file.name) || file.size > 5000000) {
+      setError(
+        "Choose a .txt, .md, PDF, or .docx file no larger than 5 MB. Convert .doc to .docx first.",
+      );
       event.target.value = "";
       return;
     }
     setReading(true);
     try {
-      const text = await file.text();
+      let imported: RequirementDocument | null = null;
+      let text: string;
+      if (/\.(pdf|docx)$/i.test(file.name)) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        let binary = "";
+        for (let offset = 0; offset < bytes.length; offset += 8192)
+          binary += String.fromCharCode(
+            ...bytes.subarray(offset, offset + 8192),
+          );
+        imported = await api.importDocument(file.name, btoa(binary));
+        text = imported.text;
+      } else text = (await file.text()).trim();
       if (!text.trim() || text.length > 50000)
         throw new Error("Requirements must contain 1–50,000 characters.");
-      change("requirements_text", text);
+      setForm((p) => ({
+        ...p,
+        requirements_text: text,
+        requirement_document_id: imported?.id ?? null,
+      }));
+      setDocument(imported);
+      setSourceCleared(false);
       setFileName(file.name);
     } catch (e) {
-      setFileName("No file selected");
       setError(e instanceof Error ? e.message : "Unable to read that file.");
     } finally {
       setReading(false);
@@ -186,13 +230,13 @@ export function NewTask({
             </label>
             <div className="input-actions">
               <label className="file-import" htmlFor="requirement-file">
-                Import .txt or .md
+                Import .txt, .md, PDF, or Word (.docx)
               </label>
               <input
                 className="file-input"
                 id="requirement-file"
                 type="file"
-                accept=".txt,.md,text/plain,text/markdown"
+                accept=".txt,.md,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={importText}
                 aria-describedby="requirement-file-name"
               />
@@ -206,7 +250,12 @@ export function NewTask({
               <button
                 className="text-button"
                 type="button"
-                onClick={() => setForm(sample)}
+                onClick={() => {
+                  setForm(sample);
+                  setDocument(null);
+                  setSourceCleared(false);
+                  setFileName("No file selected");
+                }}
               >
                 Use shipping example
               </button>
@@ -214,6 +263,43 @@ export function NewTask({
                 {form.requirements_text.length.toLocaleString("en-US")} / 50,000
               </span>
             </div>
+            <p className="field-help">
+              Text-based PDF and .docx import only. Scanned documents require
+              OCR, which is not supported.
+            </p>
+            {sourceCleared && (
+              <p role="status">
+                Text was edited. Original file locations were cleared; reimport
+                to restore them.
+              </p>
+            )}
+            {document && (
+              <div className="aside-note">
+                <strong>Imported source: {document.filename}</strong>
+                {document.warnings.map((warning) => (
+                  <p key={warning}>{warning}</p>
+                ))}
+                <details>
+                  <summary>
+                    Extracted text by source location (
+                    {document.segments.length})
+                  </summary>
+                  {document.segments.map((segment) => (
+                    <div key={segment.start}>
+                      <p>
+                        {segment.kind === "page" ? "Page" : "Paragraph"}{" "}
+                        {segment.number}
+                      </p>
+                      <pre className="requirement-source">
+                        {sourceCharacters
+                          .slice(segment.start, segment.end)
+                          .join("")}
+                      </pre>
+                    </div>
+                  ))}
+                </details>
+              </div>
+            )}
             <div className="form-section">
               <span className="section-number">03</span>
               <div>

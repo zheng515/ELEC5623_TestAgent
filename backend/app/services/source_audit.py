@@ -2,7 +2,14 @@
 
 import re
 
-from app.schemas import RequirementItem, SourceAnalysisAudit, SourceFragment, SourceLink
+from app.schemas import (
+    DocumentLocation,
+    RequirementDocument,
+    RequirementItem,
+    SourceAnalysisAudit,
+    SourceFragment,
+    SourceLink,
+)
 
 
 def audit_source(
@@ -11,6 +18,7 @@ def audit_source(
     *,
     extraction_limit: int,
     returned_requirements: int,
+    document: RequirementDocument | None = None,
 ) -> SourceAnalysisAudit:
     positions: dict[tuple[int, int], list[str]] = {}
     ambiguous = []
@@ -79,7 +87,18 @@ def audit_source(
         "not whether every rule was extracted or interpreted correctly. "
         "Validated requirement links apply only to extracted testable requirements."
     )
+    if document:
+        issues.extend(document.warnings)
+        for fragment in [*links, *fragments]:
+            fragment.locations = [
+                DocumentLocation(
+                    filename=segment.filename, kind=segment.kind, number=segment.number
+                )
+                for segment in document.segments
+                if segment.start < fragment.end and segment.end > fragment.start
+            ]
     return SourceAnalysisAudit(
+        document=document,
         extraction_limit=extraction_limit,
         limit_reached=limit_reached,
         returned_requirements=returned_requirements,

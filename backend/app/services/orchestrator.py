@@ -93,6 +93,7 @@ class ScaffoldOrchestrator:
                 ),
             ],
             report=VerificationReport(
+                requirement_document=project.requirement_document,
                 summary=(
                     "Setup report created. Requirements have not been analyzed, "
                     "source code has not been read, and no tests have been executed."
@@ -152,7 +153,9 @@ class DirectLLMOrchestrator:
         ]
 
         run_id = str(uuid4())
-        progress_report = VerificationReport(summary="Agent run started.")
+        progress_report = VerificationReport(
+            summary="Agent run started.", requirement_document=project.requirement_document
+        )
 
         def checkpoint(stage: str, message: str, **updates):
             nonlocal progress_report
@@ -240,6 +243,7 @@ class DirectLLMOrchestrator:
                 input_sha256=digest,
                 events=events,
                 report=VerificationReport(
+                    requirement_document=project.requirement_document,
                     summary="Project setup blocked test planning and generation. "
                     "No tests were executed.",
                     repository=repository,
@@ -344,7 +348,9 @@ class DirectLLMOrchestrator:
 
         checkpoint(
             "execute",
-            "Executing generated tests in the available sandbox.",
+            "Executing generated tests in the available sandbox."
+            if suite.tests
+            else "No tests generated; recording gaps without sandbox execution.",
             generated_tests=suite.tests,
             validation_version=VALIDATION_VERSION,
             outcome_mapping_version=OUTCOME_MAPPING_VERSION,
@@ -492,6 +498,7 @@ class DirectLLMOrchestrator:
             input_sha256=digest,
             events=events,
             report=VerificationReport(
+                requirement_document=project.requirement_document,
                 validation_version=VALIDATION_VERSION,
                 outcome_mapping_version=OUTCOME_MAPPING_VERSION,
                 source_audit=analysis.source_audit,
@@ -680,6 +687,7 @@ class DirectLLMOrchestrator:
             input_sha256=digest,
             events=events,
             report=VerificationReport(
+                requirement_document=project.requirement_document,
                 summary=(
                     f"Run failed during the {stage} stage. Completed stage outputs are retained."
                 ),

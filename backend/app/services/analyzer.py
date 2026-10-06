@@ -80,6 +80,7 @@ def analyze_requirements(
             requirements,
             extraction_limit=max_requirements,
             returned_requirements=len(analysis.requirements),
+            document=project.requirement_document,
         ),
     )
 

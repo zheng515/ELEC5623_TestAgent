@@ -55,6 +55,33 @@ class VerificationStatus(StrEnum):
     UNCERTAIN = "Uncertain"
 
 
+class DocumentLocation(BaseModel):
+    filename: str
+    kind: Literal["page", "paragraph"]
+    number: int
+
+
+class DocumentSegment(DocumentLocation):
+    start: int
+    end: int
+
+
+class RequirementDocument(BaseModel):
+    id: str
+    filename: str
+    format: Literal["pdf", "docx"]
+    sha256: str
+    text: str
+    segments: list[DocumentSegment]
+    warnings: list[str]
+
+
+class DocumentImport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    filename: str = Field(min_length=1, max_length=255)
+    content_base64: str = Field(min_length=1, max_length=7_000_000)
+
+
 class ProjectCreate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
@@ -62,6 +89,7 @@ class ProjectCreate(BaseModel):
     description: str = Field(default="", max_length=2000)
     repository_ref: str = Field(default="", max_length=500)
     requirements_text: str = Field(min_length=1, max_length=50000)
+    requirement_document_id: str | None = Field(default=None, max_length=36)
     goal: str = Field(
         default="Identify verification gaps and improve requirement-based tests.",
         min_length=1,
@@ -74,6 +102,7 @@ class ProjectUpdate(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
+    requirement_document_id: str | None = Field(default=None, max_length=36)
     name: str | None = Field(default=None, min_length=1, max_length=100)
     description: str | None = Field(default=None, max_length=2000)
     repository_ref: str | None = Field(default=None, max_length=500)
@@ -82,6 +111,7 @@ class ProjectUpdate(BaseModel):
 
 
 class Project(ProjectCreate):
+    requirement_document: RequirementDocument | None = None
     id: str
     created_at: datetime
 
@@ -116,6 +146,7 @@ class RequirementAnalysis(BaseModel):
 
 
 class SourceFragment(BaseModel):
+    locations: list[DocumentLocation] = Field(default_factory=list)
     text: str
     start: int
     end: int
@@ -130,6 +161,7 @@ class SourceAnalysisAudit(BaseModel):
     """Server-computed quote provenance; not a semantic completeness assessment."""
 
     version: int = 1
+    document: RequirementDocument | None = None
     extraction_limit: int
     limit_reached: bool
     returned_requirements: int
@@ -407,6 +439,7 @@ class RunEvent(BaseModel):
 
 
 class VerificationReport(BaseModel):
+    requirement_document: RequirementDocument | None = None
     summary: str
     validation_version: int | None = None
     outcome_mapping_version: int | None = None

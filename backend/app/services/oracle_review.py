@@ -29,6 +29,21 @@ def scenario_fingerprint(scenario) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
+def has_current_oracle_support(scenario) -> bool:
+    grounding = scenario.oracle_grounding
+    return bool(
+        scenario.check is not None
+        and not scenario.preconditions
+        and not scenario.assumptions
+        and grounding is not None
+        and grounding.version == 1
+        and grounding.status == "supported"
+        and grounding.verdict == "supported"
+        and not grounding.issues
+        and grounding.scenario_sha256 == scenario_fingerprint(scenario)
+    )
+
+
 def review_oracles(
     llm: StructuredLLM,
     project: Project,

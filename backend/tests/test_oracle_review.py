@@ -62,8 +62,10 @@ def test_wrong_plan_oracle_is_excluded_even_when_generated_code_matches_it(verdi
     assert grounding.status == "needs_review"
     assert grounding.verdict == verdict
     assert "free, not 999" in grounding.rationale
-    assert run.report.generated_tests[0].code == suite.tests[0].code
-    assert run.report.generated_tests[0].validation_status == "needs_review"
+    assert run.report.generated_tests == []
+    assert "generation was skipped" in run.report.summary or any(
+        "generation was skipped" in issue for issue in run.report.unresolved_issues
+    )
     assert run.report.requirement_coverage == 0
     assert run.report.executed_tests == 0
     assert runner.received == []
