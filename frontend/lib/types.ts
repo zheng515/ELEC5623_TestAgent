@@ -187,6 +187,7 @@ export interface VerificationReport {
   project_readiness?: ProjectReadiness | null;
   source_audit?: SourceAnalysisAudit | null;
   validation_version?: number | null;
+  outcome_mapping_version?: number | null;
   summary: string;
   repository: RepositorySnapshot | null;
   requirements: RequirementItem[];

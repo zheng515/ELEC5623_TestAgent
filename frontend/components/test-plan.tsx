@@ -26,6 +26,7 @@ export function TestPlanDetails({ report }: { report?: VerificationReport }) {
           tests.some(
             (test) =>
               test.id === item.test_id &&
+              test.module === item.module &&
               (test.validation_status === "validated"
                 ? test.validated_checks?.some(
                     (check) =>

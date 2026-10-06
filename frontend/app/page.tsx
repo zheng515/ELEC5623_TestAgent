@@ -9,6 +9,7 @@ import { Badge, Empty, ErrorNotice, Loading } from "../components/ui";
 import { useResource } from "../hooks/use-resource";
 import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import { navigate, urlFor, useRoute } from "../lib/navigation";
+import { OUTCOME_MAPPING_VERSION } from "../lib/outcome-mapping";
 import type { ProjectCreate, User } from "../lib/types";
 import { isRunActive, VALIDATION_VERSION } from "../lib/types";
 import type { VerificationRun } from "../lib/types";
@@ -241,6 +242,14 @@ function WorkspaceApp({
                 This run predates the current code-to-plan checks. Historical
                 coverage and conclusions have not been revalidated. Start a new
                 run to check for unplanned assertions and unchecked calls.
+              </p>
+            )}
+          {!!run?.report.generated_tests.length &&
+            run.report.outcome_mapping_version !== OUTCOME_MAPPING_VERSION && (
+              <p className="notice" role="note">
+                This run predates function-level requirement outcome mapping.
+                Historical conclusions have not been recalculated. Start a new
+                run to attribute results to the relevant test functions.
               </p>
             )}
           {resource.error && data && (

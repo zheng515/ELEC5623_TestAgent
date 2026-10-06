@@ -351,6 +351,7 @@ class RunEvent(BaseModel):
 class VerificationReport(BaseModel):
     summary: str
     validation_version: int | None = None
+    outcome_mapping_version: int | None = None
     source_audit: SourceAnalysisAudit | None = None
     repository: RepositorySnapshot | None = None
     project_readiness: ProjectReadiness | None = None

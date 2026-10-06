@@ -28,6 +28,12 @@ from app.services.analyzer import analyze_requirements
 from app.services.generator import coverage_gaps, generate_tests, requirement_coverage
 from app.services.inspector import RepositoryError, inspect_repository, repository_available
 from app.services.llm import LLMError, StructuredLLM
+from app.services.outcome_mapping import (
+    OUTCOME_MAPPING_VERSION,
+    matches_function,
+    requirement_checks,
+    requirement_outcomes,
+)
 from app.services.planner import plan_tests, planning_gaps
 from app.services.project_readiness import check_project_readiness
 from app.services.refiner import refine_tests
@@ -313,6 +319,7 @@ class DirectLLMOrchestrator:
             "Executing generated tests in the available sandbox.",
             generated_tests=suite.tests,
             validation_version=VALIDATION_VERSION,
+            outcome_mapping_version=OUTCOME_MAPPING_VERSION,
             coverage_gaps=gaps,
             requirement_coverage=requirement_coverage(requirements, suite.tests),
             behaviors=_behaviors(requirements, suite.tests, [], inspected=False, plan=plan),
@@ -458,6 +465,7 @@ class DirectLLMOrchestrator:
             events=events,
             report=VerificationReport(
                 validation_version=VALIDATION_VERSION,
+                outcome_mapping_version=OUTCOME_MAPPING_VERSION,
                 source_audit=analysis.source_audit,
                 project_readiness=readiness,
                 summary=(
@@ -664,11 +672,7 @@ def _behaviors(
     for requirement in requirements:
         linked = [test for test in tests if requirement.id in test.requirement_ids]
         ids = {test.id for test in linked}
-        outcomes = [
-            (index, execution)
-            for index, execution in enumerate(executions, start=1)
-            if execution.test_id in ids
-        ]
+        outcomes = requirement_outcomes(requirement.id, linked, executions, plan)
         planned_ids = (
             {
                 scenario.id
@@ -693,7 +697,11 @@ def _behaviors(
                 if plan
                 else None,
                 code_refs=sorted(
-                    {check.target for test in linked for check in test.validated_checks}
+                    {
+                        check.target
+                        for test in linked
+                        for check in requirement_checks(test, requirement.id, plan)
+                    }
                 ),
                 verification_status=_status(
                     requirement,
@@ -705,11 +713,11 @@ def _behaviors(
                     and all(test.validation_status == "validated" for test in linked)
                     and all(
                         any(
-                            outcome.test_id == test.id and outcome.name == check.function_name
+                            matches_function(outcome, test, check.function_name)
                             for _, outcome in outcomes
                         )
                         for test in linked
-                        for check in test.validated_checks
+                        for check in requirement_checks(test, requirement.id, plan)
                     ),
                 ),
                 test_refs=[test.module for test in linked],

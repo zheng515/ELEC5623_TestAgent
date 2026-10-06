@@ -3,6 +3,7 @@
 from html import escape
 
 from app.schemas import Project, VerificationRun
+from app.services.outcome_mapping import OUTCOME_MAPPING_VERSION, requirement_outcomes
 from app.services.test_validator import VALIDATION_VERSION
 
 
@@ -16,6 +17,13 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
         else "This run predates the current code-to-plan checks. Historical coverage "
         "and conclusions have not been revalidated. Start a new run to check for "
         "unplanned assertions and unchecked calls."
+    )
+    mapping_notice = (
+        "Requirement outcomes are attributed by validated scenario and test function. "
+        "A function shared by multiple requirements supplies the same outcome to each."
+        if report.outcome_mapping_version == OUTCOME_MAPPING_VERSION
+        else "This run predates function-level requirement outcome mapping. "
+        "Historical conclusions have not been recalculated; start a new run."
     )
     readiness = report.project_readiness
     readiness_html = "<p>No project readiness checks recorded.</p>"
@@ -37,16 +45,17 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
     for requirement in report.requirements:
         tests = [test for test in report.generated_tests if requirement.id in test.requirement_ids]
         outcomes = [
-            execution.outcome
-            for execution in report.executions
-            if any(test.id == execution.test_id for test in tests)
+            f"{execution.name}: {execution.outcome}"
+            for _, execution in requirement_outcomes(
+                requirement.id, tests, report.executions, report.test_plan
+            )
         ]
         mappings.append(
             "<tr>"
             f"<td><strong>{escape(requirement.id)}</strong><br>{escape(requirement.text)}</td>"
             f"<td>{'Yes' if requirement.testable else 'No'}</td>"
             f"<td>{escape(', '.join(test.module for test in tests) or 'None')}</td>"
-            f"<td>{escape(', '.join(outcomes) or 'Not executed')}</td>"
+            f"<td>{escape(', '.join(outcomes) or 'No attributable outcome')}</td>"
             "</tr>"
         )
 
@@ -155,7 +164,7 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 <div class="card"><strong>{report.executed_tests}</strong><br>Executed tests</div>
 <div class="card"><strong>{_percent(report.requirement_coverage)}</strong><br>Extracted requirement links</div>
 <div class="card"><strong>{_percent(report.execution_success_rate)}</strong><br>Execution success</div></div>
-<h2>Requirement-to-test mapping</h2><table><thead><tr><th>Requirement</th><th>Testable</th><th>Tests</th><th>Outcome</th></tr></thead><tbody>{"".join(mappings) or '<tr><td colspan="4">No structured requirements.</td></tr>'}</tbody></table>
+<h2>Requirement-to-test mapping</h2><p>{mapping_notice}</p><table><thead><tr><th>Requirement</th><th>Testable</th><th>Tests</th><th>Outcome</th></tr></thead><tbody>{"".join(mappings) or '<tr><td colspan="4">No structured requirements.</td></tr>'}</tbody></table>
 <h2>Specification analysis scope</h2>{source_html}
 <h2>Project setup checks</h2>{readiness_html}
 <h2>Code version used for verification</h2>{version_html}
@@ -277,6 +286,7 @@ def _render_plan(run: VerificationRun) -> str:
             for item in report.executions
             if any(
                 test.id == item.test_id
+                and test.module == item.module
                 and (
                     any(
                         check.scenario_id == scenario.id and check.function_name == item.name
