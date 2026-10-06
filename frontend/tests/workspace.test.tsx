@@ -265,6 +265,27 @@ it("rejects unsupported requirement documents without overwriting the text", asy
     (screen.getByLabelText(/Requirement text/) as HTMLTextAreaElement).value,
   ).toBe(sample.requirements_text);
 });
+
+it("prefills saved inputs when editing and offers a rerun", () => {
+  render(
+    <NewTask
+      busy={false}
+      submit={vi.fn()}
+      project={sample}
+      editing
+      cancelHref="#view=workspace&project=p1"
+    />,
+  );
+  expect(
+    screen.getByRole("heading", { name: "Edit inputs and rerun" }),
+  ).toBeTruthy();
+  expect(
+    (screen.getByLabelText(/GitHub repository URL/) as HTMLInputElement).value,
+  ).toBe(sample.repository_ref);
+  expect(
+    screen.getByRole("button", { name: "Save changes and rerun →" }),
+  ).toBeTruthy();
+});
 it("filters structured behaviors and reveals their evidence instead of inventing it", () => {
   const populated: VerificationRun = {
     ...run,
@@ -613,6 +634,9 @@ it("restores active work from its URL, polls without hiding it, and stops after 
   });
   expect(screen.getByRole("heading", { name: "Agent workspace" })).toBeTruthy();
   expect(screen.getByText("Waiting for the worker")).toBeTruthy();
+  expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
+    "5",
+  );
   expect(
     screen
       .getByRole("button", { name: "Run in progress" })

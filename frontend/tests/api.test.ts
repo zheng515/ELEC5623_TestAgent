@@ -39,3 +39,23 @@ it("explains that a timed out run may still be processing", async () => {
     "The backend may still be processing the run",
   );
 });
+
+it("updates project inputs through the versioned project endpoint", async () => {
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ id: "p1" }),
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  await api.updateProject("project/one", {
+    name: "Revised",
+    description: "",
+    repository_ref: "https://github.com/example/project",
+    requirements_text: "R1: Revised.",
+    goal: "Verify the revision.",
+  });
+  expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/projects/project%2Fone");
+  expect(fetchMock.mock.calls[0][1]).toEqual(
+    expect.objectContaining({ method: "PATCH" }),
+  );
+});

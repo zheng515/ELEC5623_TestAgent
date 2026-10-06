@@ -10,6 +10,7 @@ from app.schemas import (
     Integration,
     Project,
     ProjectCreate,
+    ProjectUpdate,
     RepositoryWatch,
     SystemInfo,
     VerificationReport,
@@ -193,6 +194,23 @@ def get_project(project_id: str, request: Request, user: CurrentUser):
     return project
 
 
+@router.patch("/projects/{project_id}", response_model=Project, tags=["projects"])
+def update_project(project_id: str, payload: ProjectUpdate, request: Request, user: CurrentUser):
+    project = get_project(project_id, request, user)
+    changes = payload.model_dump(exclude_unset=True)
+    repository_ref = changes.get("repository_ref", project.repository_ref)
+    if contains_credentials(repository_ref):
+        raise HTTPException(422, CREDENTIALS)
+    if request.app.state.store.has_active_run(project_id):
+        raise HTTPException(409, "Wait for the active run to finish before editing this project.")
+    updated = Project.model_validate({**project.model_dump(), **changes})
+    request.app.state.store.update_project(updated, user.id)
+    if _unwatchable(updated.repository_ref):
+        # Its watch could never succeed again, and the panel for it is no longer shown.
+        request.app.state.store.set_watch(project_id, enabled=False)
+    return updated
+
+
 @router.get("/projects/{project_id}/runs", response_model=list[VerificationRun], tags=["runs"])
 def list_runs(project_id: str, request: Request, user: CurrentUser):
     get_project(project_id, request, user)
@@ -235,16 +253,9 @@ def update_watch(project_id: str, payload: WatchUpdate, request: Request, user: 
             "Repository watching is unavailable: it needs model credentials, GitHub downloads "
             "and REQTEST_WATCH_ENABLED=true on the server.",
         )
-    if not is_remote(project.repository_ref):
-        raise HTTPException(422, "Only projects with a GitHub repository URL can be watched.")
-    try:
-        fixed = names_fixed_commit(project.repository_ref)
-    except GitHubError as error:
-        raise HTTPException(422, str(error)) from error
-    if fixed:
-        raise HTTPException(
-            422, "A commit URL never changes. Watch a branch URL such as .../tree/main instead."
-        )
+    problem = _unwatchable(project.repository_ref)
+    if problem:
+        raise HTTPException(422, problem)
     # Start from the code the latest completed run read, so only later commits trigger.
     latest = store.latest_completed_run(project_id)
     repository = latest.report.repository if latest else None
@@ -252,6 +263,19 @@ def update_watch(project_id: str, payload: WatchUpdate, request: Request, user: 
     store.set_watch(project_id, enabled=True, last_commit=commit)
     watcher.wake()
     return _watch(request, project_id)
+
+
+def _unwatchable(reference: str) -> str | None:
+    """Why a repository reference cannot be watched, or None when it can."""
+    if not is_remote(reference):
+        return "Only projects with a GitHub repository URL can be watched."
+    try:
+        fixed = names_fixed_commit(reference)
+    except GitHubError as error:
+        return str(error)
+    if fixed:
+        return "A commit URL never changes. Watch a branch URL such as .../tree/main instead."
+    return None
 
 
 def _watch(request: Request, project_id: str) -> RepositoryWatch:
@@ -293,6 +317,8 @@ def get_report(run_id: str, request: Request, response: Response, user: CurrentU
 def get_html_report(run_id: str, request: Request, user: CurrentUser):
     run = get_run(run_id, request, user)
     project = get_project(run.project_id, request, user)
+    if run.inputs is not None:
+        project = Project(**run.inputs.model_dump(), id=project.id, created_at=project.created_at)
     return Response(
         render_html_report(project, run),
         media_type="text/html",

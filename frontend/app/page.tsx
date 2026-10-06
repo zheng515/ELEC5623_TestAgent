@@ -58,6 +58,8 @@ function WorkspaceApp({
   const project = data?.projects.find((p) => p.id === route.projectId);
   const runs = runResource.data ?? [];
   const run = route.runId ? runs.find((r) => r.id === route.runId) : runs[0];
+  const runProject =
+    project && run?.inputs ? { ...project, ...run.inputs } : project;
   const projectView = ["workspace", "evidence", "reports"].includes(route.view);
   const refresh = () => {
     setActionError("");
@@ -111,6 +113,19 @@ function WorkspaceApp({
       setActionError(
         e instanceof Error ? e.message : "Unable to create a run.",
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function updateAndRun(form: ProjectCreate) {
+    if (!project) return;
+    setBusy(true);
+    setActionError("");
+    try {
+      await api.updateProject(project.id, form);
+      const created = await api.createRun(project.id);
+      setRevision((n) => n + 1);
+      navigate("workspace", project.id, created.id);
     } finally {
       setBusy(false);
     }
@@ -211,9 +226,11 @@ function WorkspaceApp({
             <strong>
               {projectView
                 ? (project?.name ?? "Project")
-                : route.view === "new"
-                  ? "New task"
-                  : "Overview"}
+                : route.view === "edit"
+                  ? "Edit inputs"
+                  : route.view === "new"
+                    ? "New task"
+                    : "Overview"}
             </strong>
           </div>
           <div className="connection">
@@ -267,6 +284,15 @@ function WorkspaceApp({
             <Home {...data} />
           ) : route.view === "new" ? (
             <NewTask submit={submit} busy={busy} mode={data?.system.mode} />
+          ) : route.view === "edit" && project ? (
+            <NewTask
+              submit={updateAndRun}
+              busy={busy}
+              mode={data.system.mode}
+              project={project}
+              editing
+              cancelHref={urlFor("workspace", project.id, run?.id)}
+            />
           ) : !project ? (
             <section className="panel">
               <Empty
@@ -309,6 +335,16 @@ function WorkspaceApp({
                   ← All projects
                 </a>
                 <div>
+                  <a
+                    className="text-button"
+                    href={urlFor("edit", project.id, run?.id)}
+                    aria-disabled={!!runs.find(isRunActive)}
+                    onClick={(event) => {
+                      if (runs.find(isRunActive)) event.preventDefault();
+                    }}
+                  >
+                    Edit inputs & rerun
+                  </a>
                   <Badge>Python / pytest</Badge>
                   <label className="run-picker">
                     <span className="sr-only">Selected run</span>
@@ -338,7 +374,7 @@ function WorkspaceApp({
               </div>
               {route.view === "workspace" ? (
                 <Workspace
-                  project={project}
+                  project={runProject ?? project}
                   run={run}
                   start={start}
                   busy={busy}
@@ -348,12 +384,12 @@ function WorkspaceApp({
               ) : route.view === "evidence" ? (
                 <Evidence
                   key={run?.id ?? project.id}
-                  project={project}
+                  project={runProject ?? project}
                   run={run}
                 />
               ) : (
                 <Report
-                  project={project}
+                  project={runProject ?? project}
                   run={run}
                   runs={runs}
                   download={download}

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
-export type View = "home" | "new" | "workspace" | "evidence" | "reports";
+export type View =
+  "home" | "new" | "edit" | "workspace" | "evidence" | "reports";
 export type Route = { view: View; projectId?: string; runId?: string };
 const subscribe = (listener: () => void) => {
   window.addEventListener("hashchange", listener);
@@ -14,7 +15,8 @@ export function useRoute(): Route {
   const params = new URLSearchParams(hash.replace(/^#/, ""));
   const requested = params.get("view");
   const view: View =
-    requested && ["new", "workspace", "evidence", "reports"].includes(requested)
+    requested &&
+    ["new", "edit", "workspace", "evidence", "reports"].includes(requested)
       ? (requested as View)
       : "home";
   return {

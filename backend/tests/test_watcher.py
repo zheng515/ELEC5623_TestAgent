@@ -251,3 +251,19 @@ def test_a_branch_named_commit_can_still_be_watched(app_parts):
     project = create(client, "https://github.com/example/shipping/tree/commit/fixes")
 
     assert watch(client, project["id"]).status_code == 200
+
+
+def test_editing_a_watched_project_to_an_unwatchable_reference_stops_the_watch(app_parts):
+    client, _, _, _ = app_parts
+    project = create(client)
+    watch(client, project["id"])
+
+    moved = client.patch(
+        f"/api/v1/projects/{project['id']}",
+        json={"repository_ref": "https://github.com/example/shipping/tree/release"},
+    )
+    assert moved.status_code == 200
+    assert client.get(f"/api/v1/projects/{project['id']}/watch").json()["enabled"] is True
+
+    client.patch(f"/api/v1/projects/{project['id']}", json={"repository_ref": "shipping"})
+    assert client.get(f"/api/v1/projects/{project['id']}/watch").json()["enabled"] is False

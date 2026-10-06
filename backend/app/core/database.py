@@ -120,6 +120,23 @@ class Store:
             ).fetchone()
         return Project.model_validate_json(row[0]) if row else None
 
+    def update_project(self, project: Project, owner_id: str) -> bool:
+        with self.connection() as connection:
+            result = connection.execute(
+                "UPDATE projects SET payload = ? WHERE id = ? AND owner_id = ?",
+                (project.model_dump_json(), project.id, owner_id),
+            )
+        return result.rowcount == 1
+
+    def has_active_run(self, project_id: str) -> bool:
+        with self.connection() as connection:
+            row = connection.execute(
+                "SELECT 1 FROM runs WHERE project_id = ? "
+                "AND status IN ('queued', 'running') LIMIT 1",
+                (project_id,),
+            ).fetchone()
+        return row is not None
+
     def create_run(self, run: VerificationRun):
         with self.connection() as connection:
             connection.execute(

@@ -277,6 +277,7 @@ export interface VerificationRun {
   created_at: string;
   updated_at?: string | null;
   input_sha256: string;
+  inputs?: ProjectCreate | null;
   events: { id: string; stage: string; message: string; created_at: string }[];
   report: VerificationReport;
 }
