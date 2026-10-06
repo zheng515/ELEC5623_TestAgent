@@ -93,7 +93,15 @@ export interface ModuleInterface {
   functions: string[];
   classes: string[];
 }
+export interface CodeSnapshot {
+  id: string;
+  content_sha256: string;
+  files: { path: string; size: number; sha256: string; mode: number }[];
+  directories: string[];
+  excluded: string[];
+}
 export interface RepositorySnapshot {
+  artifact?: CodeSnapshot | null;
   root: string;
   modules: ModuleInterface[];
   skipped: string[];
@@ -124,6 +132,8 @@ export interface ExecutionAttempt {
     exit_code: number;
     timed_out: boolean;
     stderr_excerpt: string;
+    repository_content_sha256?: string | null;
+    snapshot_error?: string | null;
   };
   diagnoses: TestDiagnosis[];
 }

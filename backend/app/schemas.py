@@ -140,6 +140,21 @@ class ModuleInterface(BaseModel):
     classes: list[str] = Field(default_factory=list)
 
 
+class SnapshotFile(BaseModel):
+    path: str
+    size: int
+    sha256: str
+    mode: int
+
+
+class CodeSnapshot(BaseModel):
+    id: str
+    content_sha256: str
+    files: list[SnapshotFile]
+    directories: list[str]
+    excluded: list[str] = Field(default_factory=list)
+
+
 class RepositorySnapshot(BaseModel):
     """What was read from the project under test, and what was deliberately not."""
 
@@ -148,6 +163,7 @@ class RepositorySnapshot(BaseModel):
     skipped: list[str] = Field(default_factory=list)
     truncated: bool = False
     sha256: str
+    artifact: CodeSnapshot | None = None
 
 
 LiteralScalar = str | int | float | bool | None
@@ -256,6 +272,8 @@ class ExecutionResult(BaseModel):
     exit_code: int
     timed_out: bool
     stderr_excerpt: str
+    repository_content_sha256: str | None = None
+    snapshot_error: str | None = None
 
 
 class ExecutionAttempt(BaseModel):

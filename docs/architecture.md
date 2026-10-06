@@ -4,7 +4,7 @@
 
 The current product is a local development tool. SQLite stores real input and run records. The B0 orchestrator reads the project under test, calls an LLM to analyse requirements, plan structured scenarios, and generate pytest tests, then executes those tests against that project in a container. Input documents and repository contents are evidence to analyse, never instructions granting tool permissions: the agent prompts state this, and the requirement text is passed inside delimiters as data.
 
-**A repository reference is user input, so reading it is a trust boundary.** Inspection stays off until `REQTEST_REPOSITORY_ROOT` is set; every path must resolve inside that root, symlinks are never followed, remote URLs are refused rather than cloned, and only the public interface of each module is read — signatures, class names, docstrings, never whole file bodies. The repository is mounted into the sandbox read-only.
+**A repository reference is user input, so reading it is a trust boundary.** Inspection stays off until `REQTEST_REPOSITORY_ROOT` is set; every path must resolve inside that root, symlinks are never followed, remote URLs are refused rather than cloned, and a bounded code copy is saved locally. Only public interfaces are sent to the model: signatures, class names and docstrings. Interfaces are extracted from the saved copy, which is mounted into the sandbox read-only.
 
 **Generated test code is untrusted model output and never runs on the host.** It executes only inside the sandbox image, and when Docker is unavailable it does not execute at all. There is no subprocess fallback, deliberately.
 
@@ -107,7 +107,7 @@ Implemented:
 
    The guarantees were checked by running probe tests inside the image rather than by trusting the flags: outbound sockets fail, `/` and `/home/sandbox` are unwritable, `/tmp` and the mounted workspace are writable (pytest needs both), the process runs as uid 10001, and `mount()` fails because capabilities are dropped. A container that exceeds its memory limit is killed with exit 137 and produces no report, which is recorded as zero executions and an explanatory issue — never as a pass. Re-run those probes after changing any flag in `_command`.
 
-5. **ArtifactInspector** (`services/inspector.py`): `ast`-based interface extraction confined to `REQTEST_REPOSITORY_ROOT`. Module names are derived as they would be imported from the mount root, so `pkg/orders.py` becomes `pkg.orders`; the root directory's own `__init__.py` is skipped because nothing imports it from there. The snapshot carries a SHA-256 of the interfaces, so a run can be tied to exactly what it read (NFR6).
+5. **ArtifactInspector** (`services/inspector.py`): `ast`-based interface extraction confined to `REQTEST_REPOSITORY_ROOT`. Module names are derived as they would be imported from the mount root, so `pkg/orders.py` becomes `pkg.orders`; the root directory's own `__init__.py` is skipped because nothing imports it from there. The report preserves both the interface SHA-256 and a separate manifest fingerprint of copied file bytes, paths, executable permissions and directories (NFR6).
 
 6. **Bounded refinement** (`services/refiner.py`, `services/repair_guard.py`): the model proposes repairs, but the server accepts only removal of an unused fixture parameter named by a recorded missing-fixture error. Both modules must parse; after that one transformation, the complete AST must match. Assertions, input expressions, imports, helpers, decorators, control flow, exception checks, and project calls cannot change. Each original test must contain a nonconstant check and its module must contain an identifiable project API call. Dynamic namespace access prevents proving that a fixture is unused and is rejected. Unparseable originals and other edits have no supported automatic repair. Invalid and duplicate candidates are excluded, with rejection reasons retained in the report; accepted replacements retain their original lineage, name, and module. Rejected repairs retain original failures and do not trigger a rerun. Structural preservation is not a semantic coverage or adequacy proof; first-generation tests use the separate code-to-plan validator, and accepted repairs must pass it again.
 
@@ -160,3 +160,23 @@ testable requirements with validated code-to-plan links. Even when all text is
 linked, semantic completeness is **not established**: a quote spanning multiple
 rules does not prove that every rule was extracted or interpreted correctly. The
 agent continues automatically for known requirements while reporting these limits.
+
+### Saved code snapshots
+
+`services/repository_snapshot.py` captures bounded ordinary files and directories
+before interface extraction. It uses directory descriptors and refuses file
+symlinks, checks for changes during copying with a second full scan, and saves a
+manifest alongside the copy. Read-only file permissions preserve executable bits.
+The manifest fingerprint covers relative paths, bytes, file sizes, normalized file
+permissions and directories. `RepositorySnapshot.sha256` remains the interface
+fingerprint for compatibility; `artifact.content_sha256` identifies copied content.
+
+Both initial and repair execution use the same saved copy. Integrity checks before
+and after every attempt compare the copy against the report's recorded manifest.
+Missing, modified or legacy copies cannot fall back to the live repository. Failed
+integrity checks produce no trusted outcomes and are reported as snapshot errors,
+not product defects. Successful attempts store the content fingerprint in their
+execution result. Copies are retained in the configured snapshot store and are
+separate from the project-input fingerprint. Capture is not an atomic filesystem
+snapshot and does not pin Docker images or dependency versions. There is currently
+no automatic storage-retention policy.

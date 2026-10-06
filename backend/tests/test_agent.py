@@ -497,9 +497,22 @@ REPOSITORY = RepositorySnapshot(
 )
 
 
+def pin_stub_repository(repository, settings):
+    from app.services.repository_snapshot import capture_repository, snapshot_store
+
+    if repository is None:
+        return None
+    root = snapshot_store(settings).parent / "fixture-repository"
+    root.mkdir(exist_ok=True)
+    (root / "shipping.py").write_text("def fee(amount_cents: int) -> int:\n    return 0\n")
+    artifact, _ = capture_repository(root, settings)
+    return repository.model_copy(update={"artifact": artifact})
+
+
 def inspecting_agent(*responses, runner=None, repository=REPOSITORY):
     """A B0 orchestrator whose inspection step returns a canned snapshot."""
     orchestrator = DirectLLMOrchestrator(FakeLLM(*responses), runner=runner)
+    repository = pin_stub_repository(repository, orchestrator._settings)
     orchestrator._inspect = lambda project, events: (repository, [])
     return orchestrator
 
@@ -508,13 +521,19 @@ def test_the_real_interfaces_reach_the_generator_and_the_sandbox():
     llm = FakeLLM(ANALYSIS, PLAN, SUITE)
     runner = FakeRunner(execution("passed"))
     orchestrator = DirectLLMOrchestrator(llm, runner=runner)
-    orchestrator._inspect = lambda project, events: (REPOSITORY, [])
+    repository = pin_stub_repository(REPOSITORY, orchestrator._settings)
+    orchestrator._inspect = lambda project, events: (repository, [])
 
     run = orchestrator.run(PROJECT)
 
     assert "module shipping (shipping.py)" in llm.prompts[2]
     assert "fee(amount_cents: int) -> int" in llm.prompts[2]
-    assert runner.roots == ["/repos/shipping"]
+    from app.services.repository_snapshot import verified_snapshot_root
+
+    assert runner.roots == [
+        str(verified_snapshot_root(repository.artifact, orchestrator._settings))
+    ]
+    assert runner.roots != [REPOSITORY.root]
     assert run.report.repository is not None
     assert run.report.repository.sha256 == "abc"
 
@@ -913,3 +932,95 @@ def test_source_audit_survives_planning_failure_and_progress_checkpoint():
     assert run.report.source_audit == next(
         snapshot.report.source_audit for snapshot in snapshots if snapshot.stage == "plan"
     )
+
+
+def test_live_edits_after_inspection_do_not_change_execution_input(tmp_path):
+    from pathlib import Path
+
+    source = tmp_path / "project"
+    source.mkdir()
+    original = "def fee(amount_cents: int) -> int:\n    return 0\n"
+    (source / "shipping.py").write_text(original)
+    settings = Settings(repository_root=tmp_path, _env_file=None)
+    project = PROJECT.model_copy(update={"repository_ref": "project"})
+
+    class EditingLLM(FakeLLM):
+        def parse(self, **kwargs):
+            if kwargs["output_format"] is RequirementAnalysis:
+                (source / "shipping.py").write_text(
+                    "def fee(amount_cents: int) -> int:\n    return 999\n"
+                )
+            return super().parse(**kwargs)
+
+    class ReadingRunner(FakeRunner):
+        def execute(self, tests, repository_root=None):
+            assert Path(repository_root, "shipping.py").read_text() == original
+            return super().execute(tests, repository_root)
+
+    runner = ReadingRunner(execution("passed"))
+    run = DirectLLMOrchestrator(
+        EditingLLM(ANALYSIS, PLAN, SUITE), runner=runner, settings=settings
+    ).run(project)
+    assert run.report.behaviors[0].verification_status == "Partially Verified"
+    assert (
+        run.report.execution_attempts[0].result.repository_content_sha256
+        == run.report.repository.artifact.content_sha256
+    )
+    assert runner.roots != [str(source)]
+
+
+@pytest.mark.parametrize("when", ["before", "during"])
+def test_snapshot_tampering_never_produces_trusted_passing_outcomes(when):
+
+    from app.services.repository_snapshot import verified_snapshot_root
+
+    runner = FakeRunner(execution("passed"))
+    agent = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=runner)
+    repository, _ = agent._inspect(PROJECT, [])
+    root = verified_snapshot_root(repository.artifact, agent._settings)
+
+    def tamper():
+        file = root / "shipping.py"
+        file.chmod(0o644)
+        file.write_text("def fee(amount_cents): return 999\n")
+        file.chmod(0o444)
+
+    if when == "before":
+        tamper()
+    else:
+        execute = runner.execute
+
+        def change_during_execution(*args, **kwargs):
+            result = execute(*args, **kwargs)
+            tamper()
+            return result
+
+        runner.execute = change_during_execution
+    run = agent.run(PROJECT)
+    assert run.report.executions == []
+    assert run.report.execution_success_rate is None
+    assert run.report.behaviors[0].verification_status == "Unverified"
+    assert run.report.execution_attempts[0].result.snapshot_error
+    assert any("integrity check failed" in issue for issue in run.report.unresolved_issues)
+    assert len(runner.received) == (0 if when == "before" else 1)
+
+
+def test_repaired_tests_execute_against_the_same_saved_code_version():
+    runner = SequenceRunner(execution("error"), execution("passed"))
+    run = inspecting_agent(ANALYSIS, PLAN, INVALID_SUITE, SUITE, runner=runner).run(PROJECT)
+    assert len(runner.roots) == 2
+    assert len(set(runner.roots)) == 1
+    fingerprints = {
+        attempt.result.repository_content_sha256 for attempt in run.report.execution_attempts
+    }
+    assert fingerprints == {run.report.repository.artifact.content_sha256}
+
+
+def test_legacy_interface_snapshot_is_not_an_execution_input():
+    runner = FakeRunner(execution("passed"))
+    agent = DirectLLMOrchestrator(FakeLLM(ANALYSIS, PLAN, SUITE), runner=runner)
+    agent._inspect = lambda project, events: (REPOSITORY, [])
+    run = agent.run(PROJECT)
+    assert runner.received == []
+    assert run.report.executions == []
+    assert any("live repository is refused" in issue for issue in run.report.unresolved_issues)

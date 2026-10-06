@@ -461,7 +461,9 @@ it("shows only the interfaces the agent was allowed to see", async () => {
   expect(screen.getByText("Inspected interfaces")).toBeTruthy();
   expect(screen.getByText("shipping")).toBeTruthy();
   expect(screen.getByText(/def fee\(amount_cents: int\) -> int/)).toBeTruthy();
-  expect(screen.getByText(/File contents were not read/)).toBeTruthy();
+  expect(
+    screen.getByText(/Only public interfaces were sent to the model/),
+  ).toBeTruthy();
 });
 
 const plannedRun: VerificationRun = {

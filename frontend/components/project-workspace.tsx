@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Behavior, Project, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
+import { RepositoryVersion } from "./repository-version";
 import { SourceAudit } from "./source-audit";
 import { TestPlanDetails } from "./test-plan";
 import { isRunActive } from "../lib/types";
@@ -379,6 +380,7 @@ export function Workspace({
             </Badge>
           }
         />
+        <RepositoryVersion repository={run?.report.repository} />
         <SourceAudit report={run?.report} />
         <TestPlanDetails report={run?.report} />
       </section>
@@ -549,11 +551,12 @@ export function Evidence({
           <code>{project.repository_ref || "Not provided"}</code>
           <small>
             {run?.report.repository
-              ? `Read the public interface of ${run.report.repository.modules.length} modules. File contents were not read.`
+              ? `Read the public interface of ${run.report.repository.modules.length} modules. Only public interfaces were sent to the model.`
               : "Source code has not been inspected."}
           </small>
         </div>
       </section>
+      <RepositoryVersion repository={run?.report.repository} />
       <SourceAudit report={run?.report} />
       {!behaviors.length && !!run?.report.requirements.length && (
         <section className="panel">
@@ -929,6 +932,7 @@ export function Report({
             </section>
             <section>
               <h3>Test plan</h3>
+              <RepositoryVersion repository={run.report.repository} />
               <SourceAudit report={run.report} />
               <TestPlanDetails report={run.report} />
             </section>

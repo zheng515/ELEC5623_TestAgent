@@ -1,3 +1,11 @@
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def isolated_snapshot_storage(tmp_path, monkeypatch):
+    monkeypatch.setenv("REQTEST_REPOSITORY_SNAPSHOT_ROOT", str(tmp_path / "snapshot-storage"))
+
+
 ACCOUNT = {"name": "Test User", "email": "tester@example.com", "password": "test-passphrase-123"}
 
 

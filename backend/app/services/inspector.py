@@ -3,7 +3,8 @@
 A repository reference is user input, so this is a trust boundary. Inspection is off
 until `REQTEST_REPOSITORY_ROOT` is configured, every path must resolve inside that
 root, symlinks are never followed, and only the importable surface of each module is
-read: signatures, class names and docstrings, never whole file bodies.
+sent to the model: signatures, class names and docstrings, never whole file bodies.
+The complete bounded file copy is saved locally before these interfaces are read.
 """
 
 import ast
@@ -13,21 +14,8 @@ from pathlib import Path
 
 from app.core.config import Settings
 from app.schemas import ModuleInterface, RepositorySnapshot
+from app.services.repository_snapshot import SKIPPED_DIRECTORIES, SnapshotError, capture_repository
 
-SKIPPED_DIRECTORIES = {
-    ".git",
-    ".venv",
-    "venv",
-    "node_modules",
-    "__pycache__",
-    ".tox",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    "dist",
-    "build",
-    ".eggs",
-}
 MAX_FILE_BYTES = 200_000
 DOCSTRING_LIMIT = 200
 
@@ -42,20 +30,24 @@ def repository_available(settings: Settings) -> bool:
 
 def inspect_repository(reference: str, settings: Settings) -> RepositorySnapshot:
     root = _resolve(reference, settings)
+    try:
+        artifact, captured_root = capture_repository(root, settings)
+    except SnapshotError as error:
+        raise RepositoryError(str(error)) from error
     modules: list[ModuleInterface] = []
-    skipped: list[str] = []
+    skipped: list[str] = list(artifact.excluded)
     budget = settings.max_inspected_bytes
     truncated = False
 
-    for path in _python_files(root, skipped):
+    for path in _python_files(captured_root, skipped):
         if len(modules) >= settings.max_inspected_files or budget <= 0:
             truncated = True
             break
         size = path.stat().st_size
         if size > MAX_FILE_BYTES:
-            skipped.append(f"{_relative(path, root)}: larger than {MAX_FILE_BYTES} bytes")
+            skipped.append(f"{_relative(path, captured_root)}: larger than {MAX_FILE_BYTES} bytes")
             continue
-        interface = _interface(path, root, skipped)
+        interface = _interface(path, captured_root, skipped)
         if interface is not None:
             modules.append(interface)
             budget -= size
@@ -66,6 +58,7 @@ def inspect_repository(reference: str, settings: Settings) -> RepositorySnapshot
         skipped=skipped,
         truncated=truncated,
         sha256=_digest(modules),
+        artifact=artifact,
     )
 
 
