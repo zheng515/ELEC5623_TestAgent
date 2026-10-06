@@ -1,7 +1,7 @@
 import hashlib
 
 import pytest
-from conftest import ACCOUNT, register
+from conftest import ACCOUNT, register, wait_for_run
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
@@ -40,8 +40,8 @@ def test_project_run_report_flow_does_not_claim_verification(client):
     project = create_project(client)
     assert client.get("/api/v1/projects").json() == [project]
     response = client.post(f"/api/v1/projects/{project['id']}/runs")
-    assert response.status_code == 201
-    run = response.json()
+    assert response.status_code == 202
+    run = wait_for_run(client, response.json()["id"])
     assert run["status"] == "blocked"
     assert run["mode"] == "scaffold"
     assert (
@@ -64,7 +64,7 @@ def test_data_survives_app_restart(settings):
     with TestClient(create_app(settings)) as first:
         register(first)
         project = create_project(first)
-        run = first.post(f"/api/v1/projects/{project['id']}/runs").json()
+        run = wait_for_run(first, first.post(f"/api/v1/projects/{project['id']}/runs").json()["id"])
     with TestClient(create_app(settings)) as second:
         second.post("/api/v1/auth/login", json={key: ACCOUNT[key] for key in ("email", "password")})
         assert second.get(f"/api/v1/projects/{project['id']}").json() == project
@@ -123,8 +123,10 @@ def test_goal_is_persisted_and_recent_runs_are_newest_first(client):
     }
     project = client.post("/api/v1/projects", json=payload).json()
     assert client.get(f"/api/v1/projects/{project['id']}").json()["goal"] == payload["goal"]
-    first = client.post(f"/api/v1/projects/{project['id']}/runs").json()
-    second = client.post(f"/api/v1/projects/{project['id']}/runs").json()
+    first = wait_for_run(client, client.post(f"/api/v1/projects/{project['id']}/runs").json()["id"])
+    second = wait_for_run(
+        client, client.post(f"/api/v1/projects/{project['id']}/runs").json()["id"]
+    )
     assert [r["id"] for r in client.get("/api/v1/runs").json()] == [second["id"], first["id"]]
     assert [r["id"] for r in client.get("/api/v1/runs?limit=1").json()] == [second["id"]]
     assert client.get("/api/v1/runs?limit=0").status_code == 422
@@ -135,7 +137,7 @@ def test_system_generated_content_is_english(client):
     import re
 
     project = create_project(client)
-    run = client.post(f"/api/v1/projects/{project['id']}/runs").json()
+    run = wait_for_run(client, client.post(f"/api/v1/projects/{project['id']}/runs").json()["id"])
     content = str(run) + str(client.get("/api/v1/system").json())
     assert not re.search(r"[\u3400-\u9fff]", content)
     assert client.get("/api/v1/projects/missing").json()["detail"] == "Project not found"
@@ -159,7 +161,7 @@ def test_html_report_is_downloadable_and_escapes_user_content(client):
         "/api/v1/projects",
         json={"name": "<script>alert(1)</script>", "requirements_text": "A < B."},
     ).json()
-    run = client.post(f"/api/v1/projects/{project['id']}/runs").json()
+    run = wait_for_run(client, client.post(f"/api/v1/projects/{project['id']}/runs").json()["id"])
 
     response = client.get(f"/api/v1/runs/{run['id']}/report.html")
 

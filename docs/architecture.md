@@ -11,7 +11,8 @@ The current product is a local development tool. SQLite stores real input and ru
 ```text
 React workspace → typed API client → /api/v1 → FastAPI routes
                                              ├─ SQLite Store
-                                             └─ Orchestrator protocol
+                                             └─ RunManager (persisted queue, one local thread)
+                                                  └─ Orchestrator protocol
                                                   ├─ ScaffoldOrchestrator  (no credentials)
                                                   └─ DirectLLMOrchestrator (B0 / B2)
                                                        ├─ inspector → RepositorySnapshot
@@ -56,7 +57,7 @@ and rechecks authentication on window focus and cross-tab session changes.
 | GET | /projects/{id} | Project and original requirements |
 | GET | /projects/{id}/runs | Persisted run history |
 | GET | /runs?limit=5 | Recent runs across projects, newest first; limit 1–100 |
-| POST | /projects/{id}/runs | Run analysis, planning, generation, and available execution synchronously; 201 |
+| POST | /projects/{id}/runs | Persist queued run and return 202; Location identifies its polling URL |
 | GET | /runs/{id} | Run, events, input fingerprint and report |
 | GET | /runs/{id}/report | JSON report download |
 | GET | /runs/{id}/report.html | Portable HTML report download |
@@ -85,11 +86,11 @@ Create-project body:
 - `test_plan` stores the planner output before generation. `planning_gaps` lists testable requirements without scenarios; `uncovered_scenarios` lists planned scenarios without generated tests. These are distinct from requirement coverage and execution outcomes.
 - A planning failure preserves extracted requirements and repository interfaces; a generation failure also preserves the plan. A legacy report without these fields loads with `test_plan = null` and empty gap lists; legacy tests default to empty `scenario_ids`. SQLite stores report JSON, so this additive change needs no database migration.
 - `coverage_gaps` lists testable requirements that no generated test references (FR14).
-- Verification status is decided in `_status` and never rises above what was proven. `Uncertain` when the requirement is ambiguous or untestable. `Unverified` when the project was not inspected, when no linked test ran, or when any linked test failed or errored — a green test against a *guessed* module is not evidence. `Partially Verified` when the project was inspected and every linked test passed against it. `Verified` is deliberately unreachable: passing tests show the behavior held for the cases that were written, and nothing yet evaluates whether those cases were adequate. Mutation testing is what unlocks it.
+- Verification status is decided in `_status` and never rises above what was proven. `Uncertain` when the requirement is ambiguous or untestable. `Unverified` when the project was not inspected, when no linked test ran, or when any linked generated test lacks a final outcome, when a planned scenario lacks an implementation, or when any linked test failed or errored — a green test against a *guessed* module is not evidence. `Partially Verified` when the project was inspected, every planned scenario was implemented, and every linked generated test has a final passing outcome. `Verified` is deliberately unreachable: passing tests show the behavior held for the cases that were written, and nothing yet evaluates whether those cases were adequate. Mutation testing is what unlocks it.
 - `evidence` holds one record per executed test, and each behavior's `evidence_refs` point at the outcomes of its own tests, which is the requirement → scenario → test → evidence chain the UI walks for new runs.
-- In B2 mode, an execution error is classified as an invalid test and may be refined once using the requirement, repository interface, and error message. Assertion failures remain suspected defects and are never rewritten merely to match observed output. The one-iteration bound prevents uncontrolled repair loops.
+- In B2 mode, only recognized generated-test syntax errors or missing fixtures are classified as invalid tests and may be refined once; other execution errors remain inconclusive using the requirement, repository interface, and error message. Assertion failures remain suspected defects and are never rewritten merely to match observed output. The one-iteration bound prevents uncontrolled repair loops.
 - The behavior contract reserves the proposal's four statuses: Verified, Partially Verified, Unverified, Uncertain. No synthetic behaviors are inserted.
-- SQLite connections are per operation with transactions and foreign keys. This is local persistence, not a distributed job queue. Schema migrations will be needed when the schema changes.
+- SQLite connections are per operation with transactions and foreign keys. This is local persistence, not a distributed job queue. Startup migrations add run status and worker ownership columns and a unique partial index preventing two active runs for a project.
 
 ## Agent integration points
 
@@ -108,14 +109,20 @@ Implemented:
 
 5. **ArtifactInspector** (`services/inspector.py`): `ast`-based interface extraction confined to `REQTEST_REPOSITORY_ROOT`. Module names are derived as they would be imported from the mount root, so `pkg/orders.py` becomes `pkg.orders`; the root directory's own `__init__.py` is skipped because nothing imports it from there. The snapshot carries a SHA-256 of the interfaces, so a run can be tied to exactly what it read (NFR6).
 
-6. **Bounded refinement** (`services/refiner.py`): execution errors may be repaired once; assertion failures are preserved as suspected code defects. Replacements retain their original requirement links, scenario links, and module paths. Current failure classification is based on pytest outcomes and needs more detailed diagnosis.
+6. **Bounded refinement** (`services/refiner.py`): recognized generated-test syntax errors or missing fixtures may be repaired once; other errors remain inconclusive; assertion failures are preserved as suspected code defects. Replacements retain their original requirement links, scenario links, and module paths. Current failure classification is based on pytest outcomes and needs more detailed diagnosis.
 
 Still to build:
 
 7. **EvidenceRetriever**: the RAG store that turns B0 into B1.
 8. **MutationRunner**: selected relevant mutations, outcome classification and bounded improvement.
 
-For resumable long-running agent execution, expand run states to queued/running/blocked/completed/failed, separate events into append-only records, persist source/test snapshots and evidence references, and return 202 for enqueued work. Add polling or server-sent events to the frontend. The current endpoint waits for the whole workflow and only then persists the run. The frontend uses a separate run timeout (`VITE_RUN_TIMEOUT_MS`, default 20 minutes) while read requests retain their 15-second timeout; this does not provide streaming progress or recovery after a server restart.
+The run endpoint reserves a queued record transactionally before returning 202. `RunManager` owns one daemon worker and saves running checkpoints before each stage. A checkpoint includes the current report, generated artifacts, and ordered events in the run JSON; events are not separate append-only database records. GET `/runs/{id}` and project run lists expose the latest snapshot. The frontend polls every two seconds while active and retains its last snapshot through connection failures. Browser requests use a 15-second timeout.
+
+Active duplicate submissions for a project return the existing run. `REQTEST_MAX_ACTIVE_RUNS` (default 20) bounds queued plus running jobs globally; a full queue returns 429 and `Retry-After: 5`. Unexpected worker failures preserve the latest checkpoint and do not kill processing of the next job. Worker ownership and active-state checks prevent late callbacks from overwriting an interrupted run.
+
+This is a single-process local queue: do not run multiple API workers against the same database. Startup and orderly shutdown mark unfinished jobs failed with an interruption event, preserving saved outputs. In-flight external calls cannot be forcibly cancelled by the thread; subsequent checkpoints stop further stages. No automatic resumption, cancellation endpoint, or distributed queue is provided.
+
+Analysis rejects blank or fabricated source quotes before planning. Execution archives each attempt's test code, outcomes, diagnostics, exit code, and timeout flag. Repair outcomes replace the corresponding original outcomes; missing rerun results cannot reuse old passes. `execution_gaps` lists generated artifacts without final outcomes. Final summaries use the latest attempt metadata, while the archived first attempt remains visible in HTML, JSON, and the workspace. These provenance and completeness checks do not prove semantic correctness or test adequacy.
 
 `frontend/lib/types.ts` mirrors the backend schemas by hand, so update both together when adding states. OpenAPI is available at `/openapi.json` for future type generation.
 
@@ -130,5 +137,5 @@ The orchestrator, the runner and the inspection setting are all resolved once, a
 Accounts protect persisted projects and reports. Repository access still uses a shared configured root;
 it is not per-user repository authorization. Public hosting additionally needs HTTPS with secure
 cookies, trusted proxy configuration, repository permissions, and production execution isolation.
-Background jobs and production deployment remain future work. Frontend build success alone does
+Automatic job resumption, distributed workers, and production deployment remain future work. Frontend build success alone does
 not constitute a deployment or end-to-end browser verification.

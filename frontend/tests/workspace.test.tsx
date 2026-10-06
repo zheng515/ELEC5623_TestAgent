@@ -11,6 +11,7 @@ import App from "../app/page";
 import { Evidence } from "../components/project-workspace";
 import { NewTask, sample } from "../components/new-task";
 import { TestPlanDetails } from "../components/test-plan";
+import { ExecutionHistory } from "../components/execution-history";
 import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import type { Project, VerificationRun } from "../lib/types";
 vi.mock("../lib/api", () => ({
@@ -135,6 +136,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.clearAllMocks();
 });
 it("uses English interface text across every first-release page", async () => {
@@ -573,4 +575,132 @@ it("retains analyzed requirements when planning fails", async () => {
   expect(screen.getByText("No test plan recorded for this run.")).toBeTruthy();
   await go("view=evidence&project=p1&run=r1");
   await screen.findByText("An order of at least 100 dollars ships free.");
+});
+
+it("restores active work from its URL, polls without hiding it, and stops after completion", async () => {
+  vi.useFakeTimers();
+  const queued: VerificationRun = {
+    ...run,
+    mode: "baseline_b0",
+    status: "queued",
+    report: { ...run.report, summary: "Run queued." },
+  };
+  const generating: VerificationRun = {
+    ...plannedRun,
+    status: "running",
+    stage: "generate",
+    report: {
+      ...plannedRun.report,
+      summary: "Generating pytest tests.",
+      generated_tests: [],
+      executions: [],
+      executed_tests: 0,
+    },
+  };
+  vi.mocked(api.runs).mockResolvedValue([queued]);
+  vi.mocked(api.recentRuns).mockResolvedValue([queued]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  await act(async () => {
+    render(<App />);
+  });
+  expect(screen.getByRole("heading", { name: "Agent workspace" })).toBeTruthy();
+  expect(screen.getByText("Waiting for the worker")).toBeTruthy();
+  expect(
+    screen
+      .getByRole("button", { name: "Run in progress" })
+      .hasAttribute("disabled"),
+  ).toBe(true);
+  expect(api.createRun).not.toHaveBeenCalled();
+
+  vi.mocked(api.runs).mockResolvedValue([generating]);
+  vi.mocked(api.recentRuns).mockResolvedValue([generating]);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(2000);
+  });
+  expect(
+    screen.getByText("Generate tests").closest(".stage")?.textContent,
+  ).toContain("Running");
+  expect(screen.getByText(/Free shipping at the exact threshold/)).toBeTruthy();
+  const scenario = screen
+    .getByText(/Free shipping at the exact threshold/)
+    .closest("details")!;
+  scenario.setAttribute("open", "");
+  vi.mocked(api.runs).mockRejectedValueOnce(
+    new Error("Connection temporarily unavailable."),
+  );
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(2000);
+  });
+  expect(screen.getByText("Connection temporarily unavailable.")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Agent workspace" })).toBeTruthy();
+  expect(scenario.hasAttribute("open")).toBe(true);
+
+  vi.mocked(api.runs).mockResolvedValue([plannedRun]);
+  vi.mocked(api.recentRuns).mockResolvedValue([plannedRun]);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(2000);
+  });
+  expect(screen.queryByText("Connection temporarily unavailable.")).toBeNull();
+  expect(
+    screen
+      .getByRole("button", { name: "Run verification again ↗" })
+      .hasAttribute("disabled"),
+  ).toBe(false);
+  expect(scenario.hasAttribute("open")).toBe(true);
+  const count = vi.mocked(api.runs).mock.calls.length;
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(4000);
+  });
+  expect(api.runs).toHaveBeenCalledTimes(count);
+});
+
+it("preserves original test evidence beside a repaired attempt that timed out", () => {
+  render(
+    <ExecutionHistory
+      report={{
+        ...agentRun.report,
+        executions: [],
+        executed_tests: 0,
+        execution_gaps: ["T1: test_shipping.py"],
+        execution_attempts: [
+          {
+            number: 1,
+            stage: "measure",
+            created_at: project.created_at,
+            tests: agentRun.report.generated_tests,
+            result: {
+              executions: executedRun.report.executions,
+              exit_code: 1,
+              timed_out: false,
+              stderr_excerpt: "Initial attempt diagnostic.",
+            },
+            diagnoses: [],
+          },
+          {
+            number: 2,
+            stage: "re_measure",
+            created_at: project.created_at,
+            tests: agentRun.report.generated_tests,
+            result: {
+              executions: [],
+              exit_code: -1,
+              timed_out: true,
+              stderr_excerpt: "Repair exceeded the execution limit.",
+            },
+            diagnoses: [],
+          },
+        ],
+      }}
+    />,
+  );
+  expect(screen.getByText(/Attempt 1 · Initial execution/)).toBeTruthy();
+  expect(screen.getByText(/Attempt 2 · After repair/)).toBeTruthy();
+  expect(screen.getByText("Timed out")).toBeTruthy();
+  expect(
+    screen.getByText("ModuleNotFoundError: No module named 'shipping'"),
+  ).toBeTruthy();
+  expect(
+    screen.getByText("Tests without final execution outcomes"),
+  ).toBeTruthy();
+  expect(screen.getAllByText(/Artifact T1/)).toHaveLength(2);
 });

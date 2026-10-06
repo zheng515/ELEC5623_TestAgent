@@ -1148,6 +1148,16 @@ textarea {
   gap: 15px;
   margin-top: 26px;
 }
+.run-live {
+  border: 1px solid #a5b899;
+  border-radius: 9px;
+  padding: 18px 24px;
+  background: #edf3e7;
+  margin-bottom: 20px;
+}
+.run-live p { margin: 8px 0; }
+.run-live span { font-size: 12px; color: #61756d; }
+.stage.running { border-top-color: #52764d; background: #e5eedc; }
 .stage {
   display: grid;
   grid-template-columns: 25px 1fr;

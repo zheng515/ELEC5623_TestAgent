@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Project, SystemInfo, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
 import { Badge, Empty, formatDate, runBadge, SectionTitle } from "./ui";
+import { isRunActive } from "../lib/types";
 
 export function Home({
   projects,
@@ -142,11 +143,15 @@ export function Home({
                   </small>
                 </div>
                 <Badge tone={runBadge(run).tone}>
-                  {run.status === "blocked"
-                    ? "Blocked"
-                    : run.status === "failed"
-                      ? "Failed"
-                      : "Generated"}
+                  {isRunActive(run)
+                    ? run.status === "queued"
+                      ? "Queued"
+                      : "Running"
+                    : run.status === "blocked"
+                      ? "Blocked"
+                      : run.status === "failed"
+                        ? "Failed"
+                        : "Generated"}
                 </Badge>
               </a>
             ))

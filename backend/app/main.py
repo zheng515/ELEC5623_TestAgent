@@ -10,6 +10,7 @@ from app.api.auth import router as auth_router
 from app.api.routes import router
 from app.core.config import Settings
 from app.core.database import Store
+from app.services.jobs import RunManager
 from app.services.llm import create_llm
 from app.services.orchestrator import DirectLLMOrchestrator, Orchestrator, ScaffoldOrchestrator
 from app.services.runner import create_runner
@@ -32,7 +33,12 @@ def create_app(
         app.state.execution_ready = getattr(app.state.orchestrator, "executes_tests", False)
         app.state.inspection_ready = getattr(app.state.orchestrator, "inspects_repositories", False)
         app.state.diagnosis_ready = app.state.mode == "baseline_b2"
-        yield
+        app.state.run_manager = RunManager(store, app.state.orchestrator, settings.max_active_runs)
+        app.state.run_manager.start()
+        try:
+            yield
+        finally:
+            app.state.run_manager.stop()
 
     app = FastAPI(
         title="ReqTest API",

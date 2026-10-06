@@ -41,6 +41,7 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
         for item in report.diagnoses
     )
     plan_html = _render_plan(run)
+    attempt_html = _render_attempts(run)
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
@@ -52,6 +53,7 @@ h1{{font-size:34px}} h2{{margin-top:34px;border-bottom:1px solid #d8e2d2;padding
 .card{{background:#f4f7ef;border:1px solid #d8e2d2;border-radius:8px;padding:14px}}
 table{{width:100%;border-collapse:collapse}} th,td{{text-align:left;vertical-align:top;border:1px solid #d8e2d2;padding:10px}}
 th{{background:#edf3e7}} code{{overflow-wrap:anywhere}} .muted{{color:#61756d}} @media print{{body{{margin:0}}}}
+pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 </style></head><body>
 <p class="muted">REQTEST / VERIFICATION REPORT</p><h1>{escape(project.name)}</h1>
 <p>{escape(report.summary)}</p>
@@ -68,6 +70,7 @@ th{{background:#edf3e7}} code{{overflow-wrap:anywhere}} .muted{{color:#61756d}} 
 <div class="card"><strong>{_percent(report.execution_success_rate)}</strong><br>Execution success</div></div>
 <h2>Requirement-to-test mapping</h2><table><thead><tr><th>Requirement</th><th>Testable</th><th>Tests</th><th>Outcome</th></tr></thead><tbody>{"".join(mappings) or '<tr><td colspan="4">No structured requirements.</td></tr>'}</tbody></table>
 <h2>Test plan</h2>{plan_html}
+<h2>Execution history</h2>{attempt_html}
 <h2>Coverage gaps</h2><ul>{gaps or "<li>None recorded.</li>"}</ul>
 <h2>Unresolved issues</h2><ul>{issues or "<li>None recorded.</li>"}</ul>
 <h2>Failure diagnosis</h2><p>Refinement iterations: {report.refinement_iterations}</p>
@@ -75,6 +78,40 @@ th{{background:#edf3e7}} code{{overflow-wrap:anywhere}} .muted{{color:#61756d}} 
 <h2>Execution evidence</h2><table><thead><tr><th>Test</th><th>Outcome</th><th>Detail</th></tr></thead><tbody>{executions or '<tr><td colspan="3">No tests executed.</td></tr>'}</tbody></table>
 <h2>Input fingerprint</h2><code>{escape(run.input_sha256)}</code>
 </body></html>"""
+
+
+def _render_attempts(run: VerificationRun) -> str:
+    sections = []
+    for attempt in run.report.execution_attempts:
+        rows = "".join(
+            f"<li>{escape(item.test_id or 'Unmatched')}: {escape(item.name)} — {escape(item.outcome)}"
+            f"<pre>{escape(item.message)}</pre></li>"
+            for item in attempt.result.executions
+        )
+        artifacts = "".join(
+            f"<details><summary>Artifact {escape(test.id)}: {escape(test.module)}</summary>"
+            f"<pre>{escape(test.code)}</pre></details>"
+            for test in attempt.tests
+        )
+        diagnoses = _items(
+            [
+                f"{item.test_id or 'Unmatched'}: {item.classification} — {item.explanation}"
+                for item in attempt.diagnoses
+            ]
+        )
+        sections.append(
+            f'<section class="card"><h3>Attempt {attempt.number}: {escape(attempt.stage)}</h3>'
+            f"<p>Exit code: {attempt.result.exit_code} | Timed out: {attempt.result.timed_out}</p>"
+            f"<pre>{escape(attempt.result.stderr_excerpt)}</pre>"
+            f"<ul>{rows or '<li>No outcomes recorded.</li>'}</ul>{diagnoses}{artifacts}</section>"
+        )
+    if not sections:
+        sections.append("<p>No archived sandbox attempts were recorded.</p>")
+    if run.report.execution_gaps:
+        sections.append(
+            "<h3>Tests without final execution outcomes</h3>" + _items(run.report.execution_gaps)
+        )
+    return "".join(sections)
 
 
 def _percent(value: float | None) -> str:

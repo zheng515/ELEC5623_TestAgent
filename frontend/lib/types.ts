@@ -97,6 +97,19 @@ export interface TestDiagnosis {
   classification: "invalid_test" | "suspected_defect" | "inconclusive";
   explanation: string;
 }
+export interface ExecutionAttempt {
+  number: number;
+  stage: "measure" | "re_measure";
+  created_at: string;
+  tests: GeneratedTest[];
+  result: {
+    executions: ExecutedTest[];
+    exit_code: number;
+    timed_out: boolean;
+    stderr_excerpt: string;
+  };
+  diagnoses: TestDiagnosis[];
+}
 export interface VerificationReport {
   summary: string;
   repository: RepositorySnapshot | null;
@@ -110,6 +123,8 @@ export interface VerificationReport {
   unresolved_issues: string[];
   coverage_gaps: string[];
   executions: ExecutedTest[];
+  execution_attempts?: ExecutionAttempt[];
+  execution_gaps?: string[];
   diagnoses?: TestDiagnosis[];
   refinement_iterations?: number;
   executed_tests: number;
@@ -123,7 +138,7 @@ export interface VerificationRun {
   id: string;
   project_id: string;
   mode: RunMode;
-  status: "blocked" | "completed" | "failed";
+  status: "queued" | "running" | "blocked" | "completed" | "failed";
   stage:
     | "understand"
     | "inspect"
@@ -131,11 +146,17 @@ export interface VerificationRun {
     | "plan"
     | "generate"
     | "execute"
+    | "improve"
+    | "re_measure"
     | "report";
   created_at: string;
+  updated_at?: string | null;
   input_sha256: string;
   events: { id: string; stage: string; message: string; created_at: string }[];
   report: VerificationReport;
+}
+export function isRunActive(run?: VerificationRun): boolean {
+  return run?.status === "queued" || run?.status === "running";
 }
 export interface SystemInfo {
   version: string;

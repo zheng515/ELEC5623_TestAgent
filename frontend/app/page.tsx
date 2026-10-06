@@ -10,6 +10,12 @@ import { useResource } from "../hooks/use-resource";
 import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import { navigate, urlFor, useRoute } from "../lib/navigation";
 import type { ProjectCreate, User } from "../lib/types";
+import { isRunActive } from "../lib/types";
+import type { VerificationRun } from "../lib/types";
+
+const indexHasActiveRuns = (data: { recentRuns: VerificationRun[] }) =>
+  data.recentRuns.some(isRunActive);
+const hasActiveRuns = (runs: VerificationRun[]) => runs.some(isRunActive);
 
 export default function App() {
   return <AuthGate workspace={WorkspaceApp} />;
@@ -34,7 +40,10 @@ function WorkspaceApp({
     ]);
     return { projects, system, recentRuns };
   }, []);
-  const resource = useResource(`index:${revision}`, load);
+  const resource = useResource(`index:${revision}`, load, {
+    pollIntervalMs: 2000,
+    shouldPoll: indexHasActiveRuns,
+  });
   const loadRuns = useCallback(
     () => (route.projectId ? api.runs(route.projectId) : Promise.resolve([])),
     [route.projectId],
@@ -42,6 +51,7 @@ function WorkspaceApp({
   const runResource = useResource(
     `runs:${route.projectId}:${revision}`,
     loadRuns,
+    { pollIntervalMs: 2000, shouldPoll: hasActiveRuns },
   );
   const data = resource.data;
   const project = data?.projects.find((p) => p.id === route.projectId);
@@ -225,7 +235,13 @@ function WorkspaceApp({
         </header>
         <main className="main-content">
           {actionError && <ErrorNotice message={actionError} />}
-          {resource.error ? (
+          {resource.error && data && (
+            <ErrorNotice message={resource.error} retry={refresh} />
+          )}
+          {runResource.error && runResource.data && (
+            <ErrorNotice message={runResource.error} retry={refresh} />
+          )}
+          {resource.error && !data ? (
             <ErrorNotice message={resource.error} retry={refresh} />
           ) : resource.loading || !data ? (
             <Loading />
@@ -249,7 +265,7 @@ function WorkspaceApp({
             </section>
           ) : runResource.loading ? (
             <Loading />
-          ) : runResource.error ? (
+          ) : runResource.error && !runResource.data ? (
             <ErrorNotice message={runResource.error} retry={refresh} />
           ) : route.runId && !run ? (
             <section className="panel">
@@ -308,6 +324,7 @@ function WorkspaceApp({
                   run={run}
                   start={start}
                   busy={busy}
+                  activeRun={runs.find(isRunActive)}
                 />
               ) : route.view === "evidence" ? (
                 <Evidence

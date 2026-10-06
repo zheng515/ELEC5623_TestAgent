@@ -1,5 +1,6 @@
 import hashlib
 from collections import Counter
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Literal, Protocol
 from uuid import uuid4
@@ -8,6 +9,7 @@ from app.core.config import Settings
 from app.schemas import (
     Behavior,
     ExecutedTest,
+    ExecutionAttempt,
     ExecutionResult,
     GeneratedTest,
     Project,
@@ -28,17 +30,23 @@ from app.services.planner import plan_tests, planning_gaps
 from app.services.refiner import refine_tests
 from app.services.runner import TestRunner
 
+ProgressCallback = Callable[[VerificationRun], None]
+
 
 class Orchestrator(Protocol):
     """Replace this adapter when the real evidence-driven workflow is integrated."""
 
-    def run(self, project: Project) -> VerificationRun: ...
+    def run(
+        self, project: Project, *, on_progress: ProgressCallback | None = None
+    ) -> VerificationRun: ...
 
 
 class ScaffoldOrchestrator:
     """Records inputs honestly. Does not interpret requirements or execute repository code."""
 
-    def run(self, project: Project) -> VerificationRun:
+    def run(
+        self, project: Project, *, on_progress: ProgressCallback | None = None
+    ) -> VerificationRun:
         now = datetime.now(UTC)
         digest = hashlib.sha256(project.model_dump_json().encode()).hexdigest()
         return VerificationRun(
@@ -111,7 +119,9 @@ class DirectLLMOrchestrator:
     def mode(self) -> str:
         return "baseline_b2" if self._runner is not None else "baseline_b0"
 
-    def run(self, project: Project) -> VerificationRun:
+    def run(
+        self, project: Project, *, on_progress: ProgressCallback | None = None
+    ) -> VerificationRun:
         now = datetime.now(UTC)
         digest = hashlib.sha256(project.model_dump_json().encode()).hexdigest()
         events = [
@@ -123,7 +133,38 @@ class DirectLLMOrchestrator:
             )
         ]
 
+        run_id = str(uuid4())
+        progress_report = VerificationReport(summary="Agent run started.")
+
+        def checkpoint(stage: str, message: str, **updates):
+            nonlocal progress_report
+            progress_report = progress_report.model_copy(
+                update={"summary": message, **updates}, deep=True
+            )
+            if on_progress:
+                on_progress(
+                    VerificationRun(
+                        id=run_id,
+                        project_id=project.id,
+                        created_at=now,
+                        updated_at=datetime.now(UTC),
+                        mode=self.mode,
+                        status="running",
+                        stage=stage,
+                        input_sha256=digest,
+                        events=list(events),
+                        report=progress_report,
+                    )
+                )
+
+        checkpoint("inspect", "Inspecting the available repository interfaces.")
         repository, repository_issues = self._inspect(project, events)
+        checkpoint(
+            "analyze",
+            "Analyzing requirements and validating source quotes.",
+            repository=repository,
+            unresolved_issues=repository_issues,
+        )
 
         try:
             analysis = analyze_requirements(
@@ -145,6 +186,12 @@ class DirectLLMOrchestrator:
                 f"testable as written, {len(ambiguous)} with recorded ambiguity.",
                 datetime.now(UTC),
             )
+        )
+
+        checkpoint(
+            "plan",
+            "Planning test scenarios from validated requirements.",
+            requirements=requirements,
         )
 
         try:
@@ -176,6 +223,13 @@ class DirectLLMOrchestrator:
             )
         )
 
+        checkpoint(
+            "generate",
+            "Generating pytest tests from the saved test plan.",
+            test_plan=plan,
+            planning_gaps=plan_gaps,
+        )
+
         try:
             suite = generate_tests(self._llm, project, requirements, repository, plan=plan)
         except LLMError as error:
@@ -201,13 +255,31 @@ class DirectLLMOrchestrator:
             )
         )
 
+        checkpoint(
+            "execute",
+            "Executing generated tests in the available sandbox.",
+            generated_tests=suite.tests,
+            coverage_gaps=gaps,
+            requirement_coverage=requirement_coverage(requirements, suite.tests),
+            behaviors=_behaviors(requirements, suite.tests, [], inspected=False, plan=plan),
+        )
         execution = self._execute(suite.tests, repository, events)
         executions = execution.executions if execution else []
-        diagnoses = _diagnose(executions)
+        attempts = []
+        if execution is not None:
+            attempts.append(_attempt(1, "measure", suite.tests, execution))
         tests = suite.tests
         refinement_iterations = 0
-        repairable = [item for item in executions if item.outcome == "error" and item.test_id]
+        repairable = [item for item in executions if _repairable(item) and item.test_id]
         if repairable and repository is not None and self._runner is not None:
+            checkpoint(
+                "improve",
+                "Repairing tests with identifiable construction errors.",
+                executions=executions,
+                execution_attempts=attempts,
+                diagnoses=_diagnose(executions),
+                evidence=_evidence(executions),
+            )
             try:
                 refined = refine_tests(
                     self._llm, project, requirements, tests, repairable, repository, plan=plan
@@ -221,13 +293,23 @@ class DirectLLMOrchestrator:
                             datetime.now(UTC),
                         )
                     )
+                    refined_ids = {test.id for test in refined.tests}
+                    executions = [item for item in executions if item.test_id not in refined_ids]
+                    refinement_iterations = 1
+                    checkpoint(
+                        "re_measure",
+                        "Re-executing the repaired tests.",
+                        generated_tests=tests,
+                        executions=executions,
+                        refinement_iterations=1,
+                        execution_attempts=attempts,
+                        evidence=_evidence(executions),
+                    )
                     rerun = self._execute(refined.tests, repository, events, stage="re_measure")
                     if rerun is not None:
-                        refined_ids = {test.id for test in refined.tests}
-                        executions = [
-                            item for item in executions if item.test_id not in refined_ids
-                        ] + rerun.executions
-                    refinement_iterations = 1
+                        attempts.append(_attempt(2, "re_measure", refined.tests, rerun))
+                        execution = rerun
+                        executions += rerun.executions
             except LLMError as error:
                 events.append(
                     _event(
@@ -258,18 +340,29 @@ class DirectLLMOrchestrator:
             execution.model_copy(update={"executions": executions}) if execution else None
         )
         unresolved.extend(_execution_issues(final_execution, tests))
+        diagnoses = _diagnose(executions)
         unresolved.extend(_diagnosis_issues(diagnoses, refinement_iterations))
+        execution_gaps = [
+            f"{test.id}: {test.module}"
+            for test in tests
+            if not any(item.test_id == test.id for item in executions)
+        ]
+        if execution_gaps:
+            unresolved.append(
+                f"{len(execution_gaps)} generated tests have no final execution outcome."
+            )
         for note in (analysis.notes, plan.notes, suite.notes):
             if note.strip():
                 unresolved.append(f"Analyst note: {note.strip()}")
 
         return VerificationRun(
-            id=str(uuid4()),
+            id=run_id,
             project_id=project.id,
             mode=self.mode,
             status="completed",
             stage="report",
             created_at=now,
+            updated_at=datetime.now(UTC),
             input_sha256=digest,
             events=events,
             report=VerificationReport(
@@ -287,12 +380,14 @@ class DirectLLMOrchestrator:
                 uncovered_scenarios=uncovered_scenarios,
                 generated_tests=tests,
                 behaviors=_behaviors(
-                    requirements, tests, executions, inspected=repository is not None
+                    requirements, tests, executions, inspected=repository is not None, plan=plan
                 ),
                 evidence=_evidence(executions),
                 unresolved_issues=unresolved,
                 coverage_gaps=gaps,
                 executions=executions,
+                execution_attempts=attempts,
+                execution_gaps=execution_gaps,
                 diagnoses=diagnoses,
                 refinement_iterations=refinement_iterations,
                 executed_tests=len(executions),
@@ -427,6 +522,7 @@ def _behaviors(
     executions: list[ExecutedTest],
     *,
     inspected: bool,
+    plan: TestPlan | None = None,
 ) -> list[Behavior]:
     """One behavior per requirement, linked to its tests and their outcomes (FR8)."""
     behaviors = []
@@ -438,6 +534,16 @@ def _behaviors(
             for index, execution in enumerate(executions, start=1)
             if execution.test_id in ids
         ]
+        planned_ids = (
+            {
+                scenario.id
+                for scenario in plan.scenarios
+                if requirement.id in scenario.requirement_ids
+            }
+            if plan is not None
+            else set()
+        )
+        implemented_ids = {ref for test in linked for ref in test.scenario_ids}
         behaviors.append(
             Behavior(
                 id=f"B-{requirement.id}",
@@ -446,7 +552,11 @@ def _behaviors(
                 description=requirement.text,
                 expected_result=None,
                 verification_status=_status(
-                    requirement, [execution for _, execution in outcomes], inspected=inspected
+                    requirement,
+                    [execution for _, execution in outcomes],
+                    inspected=inspected,
+                    expected_ids=ids,
+                    scenarios_complete=planned_ids <= implemented_ids,
                 ),
                 test_refs=[test.module for test in linked],
                 evidence_refs=[_evidence_id(index) for index, _ in outcomes],
@@ -456,7 +566,12 @@ def _behaviors(
 
 
 def _status(
-    requirement: RequirementItem, outcomes: list[ExecutedTest], *, inspected: bool
+    requirement: RequirementItem,
+    outcomes: list[ExecutedTest],
+    *,
+    inspected: bool,
+    expected_ids: set[str],
+    scenarios_complete: bool,
 ) -> VerificationStatus:
     """Only evidence from running the real system can move a behavior off Unverified.
 
@@ -465,7 +580,8 @@ def _status(
     """
     if requirement.ambiguity or not requirement.testable:
         return VerificationStatus.UNCERTAIN
-    if not inspected or not outcomes:
+    recorded_ids = {item.test_id for item in outcomes}
+    if not inspected or not outcomes or not expected_ids <= recorded_ids or not scenarios_complete:
         return VerificationStatus.UNVERIFIED
     if all(outcome.outcome == "passed" for outcome in outcomes):
         return VerificationStatus.PARTIAL
@@ -502,14 +618,14 @@ def _diagnose(executions: list[ExecutedTest]) -> list[TestDiagnosis]:
     """Classify only what the observed outcome supports; never repair assertion failures."""
     diagnoses = []
     for execution in executions:
-        if execution.outcome == "error":
+        if _repairable(execution):
             diagnoses.append(
                 TestDiagnosis(
                     test_id=execution.test_id,
                     classification="invalid_test",
                     explanation=(
-                        "The test could not execute. Its collection or runtime error must be "
-                        "repaired before it can provide verification evidence."
+                        "The recorded error identifies a test construction problem. "
+                        "One bounded repair may be attempted without changing its expectation."
                     ),
                 )
             )
@@ -524,15 +640,41 @@ def _diagnose(executions: list[ExecutedTest]) -> list[TestDiagnosis]:
                     ),
                 )
             )
-        elif execution.outcome == "skipped":
+        elif execution.outcome in {"skipped", "error"}:
             diagnoses.append(
                 TestDiagnosis(
                     test_id=execution.test_id,
                     classification="inconclusive",
-                    explanation="The skipped test produced no pass or fail evidence.",
+                    explanation=(
+                        "The skipped test produced no pass or fail evidence."
+                        if execution.outcome == "skipped"
+                        else "This error may originate in the test, project, or environment. "
+                        "It is not automatically classified or repaired as an invalid test."
+                    ),
                 )
             )
     return diagnoses
+
+
+def _repairable(execution: ExecutedTest) -> bool:
+    if execution.outcome != "error":
+        return False
+    message = execution.message
+    return ("fixture '" in message and "not found" in message) or (
+        execution.module in message
+        and any(kind in message for kind in ("SyntaxError", "IndentationError"))
+    )
+
+
+def _attempt(number: int, stage: str, tests: list[GeneratedTest], result: ExecutionResult):
+    return ExecutionAttempt(
+        number=number,
+        stage=stage,
+        created_at=datetime.now(UTC),
+        tests=[item.model_copy(deep=True) for item in tests],
+        result=result.model_copy(deep=True),
+        diagnoses=_diagnose(result.executions),
+    )
 
 
 def _replace_tests(
@@ -574,13 +716,14 @@ def _execution_summary(execution: ExecutionResult | None) -> str:
 def _execution_summary_from_items(
     executions: list[ExecutedTest], original: ExecutionResult | None
 ) -> str:
-    if original is None or original.timed_out:
+    if original is None:
         return _execution_summary(original)
     counts = Counter(item.outcome for item in executions)
     return (
         f"{len(executions)} final test outcomes recorded "
         f"({counts['passed']} passed, {counts['failed']} failed, {counts['error']} errored). "
-        "Verification status remains bounded by the recorded evidence."
+        + ("The latest sandbox attempt timed out. " if original.timed_out else "")
+        + "Verification status remains bounded by the recorded evidence."
     )
 
 

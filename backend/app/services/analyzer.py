@@ -1,7 +1,7 @@
 """Requirement structuring and ambiguity detection (FR2, FR3)."""
 
 from app.schemas import Project, RequirementAnalysis, RequirementItem
-from app.services.llm import StructuredLLM
+from app.services.llm import LLMError, StructuredLLM
 
 SYSTEM = """You are a requirements analyst for a software verification tool.
 
@@ -48,9 +48,21 @@ def analyze_requirements(
         ),
         output_format=RequirementAnalysis,
     )
+    for item in analysis.requirements[:max_requirements]:
+        if not item.source_quote.strip() or item.source_quote not in project.requirements_text:
+            raise LLMError(
+                f"Requirement {item.id} cites text absent from the submitted specification. "
+                "Analysis stopped because its source evidence could not be validated."
+            )
+    notes = analysis.notes
+    if len(analysis.requirements) >= max_requirements:
+        notes = (
+            notes + f"\nAnalysis is capped at {max_requirements} requirements; "
+            "completeness of the specification has not been established."
+        ).strip()
     return RequirementAnalysis(
         requirements=_normalize(analysis.requirements[:max_requirements]),
-        notes=analysis.notes,
+        notes=notes,
     )
 
 
