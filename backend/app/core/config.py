@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     github_timeout_seconds: float = Field(default=60.0, gt=0, le=600)
     github_max_archive_bytes: int = Field(default=50_000_000, ge=1, le=1_000_000_000)
 
+    # Repository watching. Each watched GitHub project is polled for a new commit at this
+    # interval (two API calls per check); a new commit queues an incremental run.
+    watch_enabled: bool = True
+    watch_interval_seconds: int = Field(default=600, ge=60, le=86400)
+
     # Sandbox for executing generated tests. Disabled unless Docker is running and
     # the image exists; there is no host-execution fallback by design (NFR5).
     sandbox_enabled: bool = True

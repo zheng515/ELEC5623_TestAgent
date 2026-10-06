@@ -178,6 +178,10 @@ class RepositorySnapshot(BaseModel):
     artifact: CodeSnapshot | None = None
     import_roots: list[str] = Field(default_factory=lambda: ["."])
     source: RepositorySource | None = None
+    # Qualified public name -> signature without docs ("shipping.fee" -> "def fee(...)").
+    # Compared between runs to find new or changed functionality; never sent to the model.
+    # None on snapshots saved before it existed.
+    callables: dict[str, str] | None = None
 
 
 LiteralScalar = str | int | float | bool | None
@@ -394,6 +398,28 @@ class RunEvent(BaseModel):
     created_at: datetime
 
 
+class RepositoryChange(BaseModel):
+    """How the code moved since the baseline run, and how this run responded (watch mode)."""
+
+    baseline_run_id: str
+    baseline_commit: str | None = None
+    commit: str | None = None
+    content_changed: bool
+    # Qualified public names: functions, classes and methods.
+    added: list[str] = Field(default_factory=list)
+    removed: list[str] = Field(default_factory=list)
+    changed: list[str] = Field(default_factory=list)
+    new_scenario_ids: list[str] = Field(default_factory=list)
+    new_test_ids: list[str] = Field(default_factory=list)
+    carried_test_ids: list[str] = Field(default_factory=list)
+    # New or changed functions that no requirement-backed scenario checks.
+    untraced: list[str] = Field(default_factory=list)
+    # Carried tests that validated at the baseline but not against the new code.
+    invalidated_tests: list[str] = Field(default_factory=list)
+    # Test functions that passed at the baseline and fail or error now.
+    regressions: list[str] = Field(default_factory=list)
+
+
 class VerificationReport(BaseModel):
     summary: str
     validation_version: int | None = None
@@ -420,11 +446,13 @@ class VerificationReport(BaseModel):
     requirement_coverage: float | None = None
     semantic_coverage: float | None = None
     mutation_score: float | None = None
+    change: RepositoryChange | None = None
 
 
 class VerificationRun(BaseModel):
     id: str
     project_id: str
+    trigger: Literal["manual", "watch"] = "manual"
     mode: Literal["scaffold", "baseline_b0", "baseline_b2"] = "scaffold"
     status: Literal["queued", "running", "blocked", "completed", "failed"] = "blocked"
     stage: Literal[
@@ -443,6 +471,25 @@ class VerificationRun(BaseModel):
     input_sha256: str
     events: list[RunEvent]
     report: VerificationReport
+
+
+class RepositoryWatch(BaseModel):
+    """Whether a project's GitHub repository is polled, and what the last check found."""
+
+    project_id: str
+    enabled: bool = False
+    # Enabled and a watcher is running on this server; false while it is unavailable.
+    active: bool = False
+    interval_seconds: int
+    last_checked_at: datetime | None = None
+    last_commit: str | None = None
+    last_run_id: str | None = None
+    last_error: str | None = None
+
+
+class WatchUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool
 
 
 class Integration(BaseModel):

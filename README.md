@@ -50,6 +50,7 @@ Open the frontend at http://localhost:3000. The API is available at http://127.0
 | Reading the project under test from GitHub | Nothing for public repositories; set `REQTEST_GITHUB_TOKEN` for private ones | `inspection` ready |
 | Reading the project under test from a local path | Set `REQTEST_REPOSITORY_ROOT` to the directory your repositories live under | `inspection` ready |
 | Running the generated tests | Start Docker, then `bash scripts/build-sandbox.sh` | `execution` ready |
+| Watching GitHub repositories for new commits | Model credentials and GitHub downloads (both above); on by default | `watch` ready |
 
 Copy `backend/.env.example` to `backend/.env` and fill in the values you want. A blank value means *not configured*, so copying the file without editing it changes nothing. Open http://localhost:3000 and check the **Integration status** panel, or `curl http://127.0.0.1:8000/api/v1/system`, to see which capabilities are live — the app always reports what it can and cannot do rather than failing silently.
 
@@ -201,6 +202,27 @@ Only the owner, repository, ref and folder are taken from the URL; requests go t
 
 Unauthenticated GitHub API access is limited to 60 requests per hour per IP address, and each run uses about three. Set `REQTEST_GITHUB_TOKEN` to a fine-grained token with read-only *Contents* access for private repositories and a higher limit. A download failure (repository not found, unknown branch or folder, rate limit, network error, limit exceeded) does not fail the run: it is recorded as **Repository not read** with the reason, and generation continues without interfaces. GitHub Enterprise and other hosts are not supported.
 
+### Watching a repository
+
+A project with a GitHub branch URL can be watched: open **Agent workspace** and select **Watch for new commits**. The server then checks the branch every 10 minutes (`REQTEST_WATCH_INTERVAL_SECONDS`, at least 60) and starts an incremental run for each new commit. A run started this way is labelled **Started by repository watch**, and its workspace and reports show **Changes since the baseline run**.
+
+An incremental run builds on the *baseline*: the latest completed run of the same project under the current validation rules. It works as follows:
+
+1. **Compare.** The new commit is downloaded and its public functions, classes and methods are compared with the baseline's by signature. Docstring-only edits are not changes.
+2. **Reuse.** Requirements come from the baseline, which was made from the same project inputs, so the model is not asked to analyse them again. After the project is edited, for example with a revised SRS, the baseline no longer matches and the next run is a full one.
+3. **Add tests for new functionality.** For new or changed *module-level functions* only, the planner is asked for additional scenarios, and only where a requirement states the expected behaviour. Scenarios that check anything else are discarded. New scenarios go through the same oracle review, generation and code-to-plan validation as in a full run. Their ids continue the baseline's numbering (`S2`, `T2`, …), and their module files never collide with carried ones.
+4. **Report new code without a requirement.** A new or changed function that no requirement describes gets no test. It is listed under **New code without a requirement**, because the agent never invents an expected result from a name, signature or docstring. Describe it in the requirements to get it tested.
+5. **Re-run everything.** Every carried test is re-validated against the new interfaces and re-executed with the new tests. This also happens when only function bodies changed, and that path makes no model call. A test that passed at the baseline and now fails or errors is listed as a **regression**. A carried test whose target was removed or changed so it no longer validates is listed and not executed. Carried tests are never repaired automatically; only new tests may receive the bounded repair.
+
+The new run then becomes the next baseline, so the suite grows commit by commit. Without a usable baseline (no completed run yet, edited project inputs, an earlier validation version, or a run saved before signatures were recorded), the watched run performs the full workflow and creates one. If the repository cannot be read at a check, the run stops as **blocked** without calling the model or the sandbox. A commit counts as handled only once its run is queued: while another run for the project is active, or when the queue is full, the next check retries it. Check errors such as rate limits are shown on the watch panel.
+
+Each check makes about two GitHub API calls. Watching several projects without `REQTEST_GITHUB_TOKEN` can exhaust the anonymous limit of 60 requests per hour. A commit URL, or a `/tree/` URL naming a full SHA, never changes and cannot be watched. A folder URL is checked by the repository's commit, so commits outside the folder start a run that finds identical files. Watching needs the agent (model credentials) and GitHub downloads; set `REQTEST_WATCH_ENABLED=false` to turn it off. Watches persist across restarts, and checks resume when the server starts.
+
+| Method | Path | Result |
+| --- | --- | --- |
+| GET | `/api/v1/projects/{id}/watch` | Watch state: `enabled`, `active`, `interval_seconds`, last check, commit, run and error |
+| POST | `/api/v1/projects/{id}/watch` | `{"enabled": true}` or `{"enabled": false}`; 422 for a non-GitHub or commit URL, 409 when watching is unavailable |
+
 `mode` records the active workflow. `baseline_b0` is one direct generation pass without retrieval or feedback. `baseline_b2` adds execution feedback and one bounded repair attempt for invalid tests. Neither mode includes RAG retrieval yet.
 
 ## Repository layout
@@ -219,6 +241,8 @@ backend/
     services/generator.py     Plan-driven test generation, traceability, and coverage gaps
     services/inspector.py     Read-only interface extraction from the project under test
     services/github_source.py GitHub URL parsing and pinned-commit archive download
+    services/incremental.py   Interface diffs, baselines, and id continuation for watch runs
+    services/watcher.py       Background polling of watched repositories
     services/runner.py        Docker sandbox execution and result parsing
     services/orchestrator.py  Agent interface, scaffold and B0 implementations
   sandbox/Dockerfile          Image generated tests execute in
@@ -227,6 +251,8 @@ backend/
   tests/test_runner.py        Sandbox command and result-parsing tests
   tests/test_inspector.py     Inspection and path-confinement tests
   tests/test_github_source.py GitHub URL parsing and download tests against a fake GitHub
+  tests/test_incremental.py   Incremental runs against real repositories that change
+  tests/test_watcher.py       Watch API, polling and queueing with a fake GitHub
   pyproject.toml
   requirements-dev.lock       Pinned development dependencies
 frontend/

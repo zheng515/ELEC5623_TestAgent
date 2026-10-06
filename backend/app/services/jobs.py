@@ -5,6 +5,7 @@ import logging
 from datetime import UTC, datetime
 from queue import Queue
 from threading import Event, Lock, Thread
+from typing import Literal
 from uuid import uuid4
 
 from app.core.database import Store
@@ -36,10 +37,21 @@ class RunManager:
         self._thread.start()
 
     def submit(self, project: Project) -> VerificationRun:
+        return self._submit(project, "manual")[0]
+
+    def submit_watch(self, project: Project) -> VerificationRun | None:
+        """Queue an incremental run, or None while another run for the project is active."""
+        run, created = self._submit(project, "watch")
+        return run if created else None
+
+    def _submit(
+        self, project: Project, trigger: Literal["manual", "watch"]
+    ) -> tuple[VerificationRun, bool]:
         now = datetime.now(UTC)
         queued = VerificationRun(
             id=str(uuid4()),
             project_id=project.id,
+            trigger=trigger,
             created_at=now,
             updated_at=now,
             mode=getattr(self.orchestrator, "mode", "scaffold"),
@@ -61,7 +73,7 @@ class RunManager:
             run, created = self.store.reserve_run(queued, self.worker_id, self.capacity)
             if created:
                 self._queue.put((project, run))
-        return run
+        return run, created
 
     def stop(self):
         with self._lock:
@@ -91,6 +103,7 @@ class RunManager:
                 update={
                     "id": queued.id,
                     "project_id": queued.project_id,
+                    "trigger": queued.trigger,
                     "created_at": queued.created_at,
                     "updated_at": datetime.now(UTC),
                     "input_sha256": queued.input_sha256,
@@ -111,7 +124,15 @@ class RunManager:
                     }
                 )
             )
-            result = self.orchestrator.run(project, on_progress=save)
+            options = {}
+            if queued.trigger == "watch":
+                # The latest completed run is looked up now, so a run that finished while
+                # this one waited in the queue is the baseline.
+                options = {
+                    "incremental": True,
+                    "baseline": self.store.latest_completed_run(project.id),
+                }
+            result = self.orchestrator.run(project, on_progress=save, **options)
             save(result)
         except JobInterrupted:
             return

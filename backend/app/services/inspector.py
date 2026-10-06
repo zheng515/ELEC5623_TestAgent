@@ -75,6 +75,7 @@ def _inspect(
     except SnapshotError as error:
         raise RepositoryError(str(error)) from error
     modules: list[ModuleInterface] = []
+    callables: dict[str, str] = {}
     skipped = [*(skipped or []), *artifact.excluded]
     budget = settings.max_inspected_bytes
     truncated = False
@@ -92,7 +93,7 @@ def _inspect(
         if size > MAX_FILE_BYTES:
             skipped.append(f"{_relative(path, captured_root)}: larger than {MAX_FILE_BYTES} bytes")
             continue
-        interface = _interface(path, captured_root, skipped)
+        interface = _interface(path, captured_root, skipped, callables)
         if interface is not None:
             modules.append(interface)
             budget -= size
@@ -106,6 +107,7 @@ def _inspect(
         artifact=artifact,
         import_roots=import_roots,
         source=source,
+        callables=callables,
     )
 
 
@@ -147,7 +149,9 @@ def _python_files(root: Path, skipped: list[str]):
             yield path
 
 
-def _interface(path: Path, root: Path, skipped: list[str]) -> ModuleInterface | None:
+def _interface(
+    path: Path, root: Path, skipped: list[str], callables: dict[str, str]
+) -> ModuleInterface | None:
     relative = _relative(path, root)
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -156,6 +160,7 @@ def _interface(path: Path, root: Path, skipped: list[str]) -> ModuleInterface | 
         return None
 
     constants, functions, classes = [], [], []
+    contracts: dict[str, str] = {}
     for node in tree.body:
         if isinstance(node, ast.Assign):
             constants.extend(
@@ -169,9 +174,13 @@ def _interface(path: Path, root: Path, skipped: list[str]) -> ModuleInterface | 
         elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             if not node.name.startswith("_"):
                 functions.append(_signature(node))
+                contracts[node.name] = _contract(node)
         elif isinstance(node, ast.ClassDef):
             if not node.name.startswith("_"):
                 classes.append(_class(node))
+                contracts[node.name] = f"class {_class_header(node)}"
+                for member in _public_methods(node):
+                    contracts[f"{node.name}.{member.name}"] = f"method {_contract(member)}"
 
     module = _module_name(path, root)
     if not module:
@@ -179,6 +188,7 @@ def _interface(path: Path, root: Path, skipped: list[str]) -> ModuleInterface | 
         skipped.append(f"{relative}: package marker of the repository root")
         return None
 
+    callables.update({f"{module}.{name}": contract for name, contract in contracts.items()})
     return ModuleInterface(
         module=module,
         path=relative,
@@ -196,16 +206,30 @@ def _signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     return f"{node.name}({ast.unparse(node.args)}){returns}{suffix}"
 
 
-def _class(node: ast.ClassDef) -> str:
-    methods = [
-        _signature(member)
+def _contract(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
+    """The callable surface alone, without docs, so edits to prose are not API changes."""
+    returns = f" -> {ast.unparse(node.returns)}" if node.returns else ""
+    keyword = "async def" if isinstance(node, ast.AsyncFunctionDef) else "def"
+    return f"{keyword} {node.name}({ast.unparse(node.args)}){returns}"
+
+
+def _public_methods(node: ast.ClassDef) -> list[ast.FunctionDef | ast.AsyncFunctionDef]:
+    return [
+        member
         for member in node.body
         if isinstance(member, ast.FunctionDef | ast.AsyncFunctionDef)
         and not member.name.startswith("_")
     ]
+
+
+def _class_header(node: ast.ClassDef) -> str:
     bases = ", ".join(ast.unparse(base) for base in node.bases)
-    header = f"{node.name}({bases})" if bases else node.name
-    return f"{header}: " + ("; ".join(methods) if methods else "no public methods")
+    return f"{node.name}({bases})" if bases else node.name
+
+
+def _class(node: ast.ClassDef) -> str:
+    methods = [_signature(member) for member in _public_methods(node)]
+    return f"{_class_header(node)}: " + ("; ".join(methods) if methods else "no public methods")
 
 
 def _module_name(path: Path, root: Path) -> str:

@@ -62,6 +62,15 @@ class Store:
                     payload TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_runs_project ON runs(project_id, created_at);
+                CREATE TABLE IF NOT EXISTS watches (
+                    project_id TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+                    enabled INTEGER NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    last_checked_at TEXT,
+                    last_commit TEXT,
+                    last_run_id TEXT,
+                    last_error TEXT
+                );
             """)
             # Legacy projects stay unowned until an administrator assigns them explicitly.
             columns = {row[1] for row in connection.execute("PRAGMA table_info(projects)")}
@@ -219,6 +228,75 @@ class Store:
                 (run_id, owner_id),
             ).fetchone()
         return VerificationRun.model_validate_json(row[0]) if row else None
+
+    def latest_completed_run(self, project_id: str) -> VerificationRun | None:
+        with self.connection() as connection:
+            row = connection.execute(
+                "SELECT payload FROM runs WHERE project_id = ? AND status = 'completed' "
+                "ORDER BY created_at DESC, id DESC LIMIT 1",
+                (project_id,),
+            ).fetchone()
+        return VerificationRun.model_validate_json(row[0]) if row else None
+
+    def get_watch(self, project_id: str) -> dict | None:
+        with self.connection() as connection:
+            connection.row_factory = sqlite3.Row
+            row = connection.execute(
+                "SELECT * FROM watches WHERE project_id = ?", (project_id,)
+            ).fetchone()
+        return dict(row) if row else None
+
+    def set_watch(self, project_id: str, enabled: bool, last_commit: str | None = None):
+        """Enabling starts from a known commit and clears the previous outcome."""
+        now = datetime.now(UTC).isoformat()
+        with self.connection() as connection:
+            if enabled:
+                connection.execute(
+                    "INSERT INTO watches (project_id, enabled, updated_at, last_commit) "
+                    "VALUES (?, 1, ?, ?) ON CONFLICT(project_id) DO UPDATE SET enabled = 1, "
+                    "updated_at = excluded.updated_at, last_commit = excluded.last_commit, "
+                    "last_checked_at = NULL, last_run_id = NULL, last_error = NULL",
+                    (project_id, now, last_commit),
+                )
+            else:
+                connection.execute(
+                    "UPDATE watches SET enabled = 0, updated_at = ? WHERE project_id = ?",
+                    (now, project_id),
+                )
+
+    def enabled_watches(self) -> list[tuple[Project, dict]]:
+        with self.connection() as connection:
+            connection.row_factory = sqlite3.Row
+            rows = connection.execute(
+                "SELECT watches.*, projects.payload FROM watches "
+                "JOIN projects ON projects.id = watches.project_id "
+                "WHERE watches.enabled = 1 AND projects.owner_id IS NOT NULL "
+                "ORDER BY watches.project_id"
+            ).fetchall()
+        return [
+            (
+                Project.model_validate_json(row["payload"]),
+                {key: row[key] for key in row.keys() if key != "payload"},
+            )
+            for row in rows
+        ]
+
+    def record_watch_check(
+        self,
+        project_id: str,
+        *,
+        commit: str | None = None,
+        run_id: str | None = None,
+        error: str | None = None,
+    ):
+        """Note a check. The commit only advances once a run for it was queued."""
+        with self.connection() as connection:
+            connection.execute(
+                "UPDATE watches SET last_checked_at = ?, last_error = ?, "
+                "last_commit = COALESCE(?, last_commit), last_run_id = COALESCE(?, last_run_id) "
+                "WHERE project_id = ? AND enabled = 1",
+                (datetime.now(UTC).isoformat(), error, commit, run_id, project_id),
+            )
 
     def create_user(self, user: User, password_hash: str):
         with self.connection() as connection:

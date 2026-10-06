@@ -230,11 +230,38 @@ export interface VerificationReport {
   requirement_coverage: number | null;
   semantic_coverage: number | null;
   mutation_score: number | null;
+  change?: RepositoryChange | null;
+}
+export interface RepositoryChange {
+  baseline_run_id: string;
+  baseline_commit?: string | null;
+  commit?: string | null;
+  content_changed: boolean;
+  added: string[];
+  removed: string[];
+  changed: string[];
+  new_scenario_ids: string[];
+  new_test_ids: string[];
+  carried_test_ids: string[];
+  untraced: string[];
+  invalidated_tests: string[];
+  regressions: string[];
+}
+export interface RepositoryWatch {
+  project_id: string;
+  enabled: boolean;
+  active: boolean;
+  interval_seconds: number;
+  last_checked_at?: string | null;
+  last_commit?: string | null;
+  last_run_id?: string | null;
+  last_error?: string | null;
 }
 export type RunMode = "scaffold" | "baseline_b0" | "baseline_b2";
 export interface VerificationRun {
   id: string;
   project_id: string;
+  trigger?: "manual" | "watch";
   mode: RunMode;
   status: "queued" | "running" | "blocked" | "completed" | "failed";
   stage:

@@ -26,6 +26,8 @@ vi.mock("../lib/api", () => ({
     runs: vi.fn(),
     createProject: vi.fn(),
     createRun: vi.fn(),
+    watch: vi.fn(),
+    setWatch: vi.fn(),
   },
   downloadReport: vi.fn(),
   downloadHtmlReport: vi.fn(),

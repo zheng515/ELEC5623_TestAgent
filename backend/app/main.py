@@ -14,6 +14,7 @@ from app.services.jobs import RunManager
 from app.services.llm import create_llm
 from app.services.orchestrator import DirectLLMOrchestrator, Orchestrator, ScaffoldOrchestrator
 from app.services.runner import create_runner
+from app.services.watcher import RepositoryWatcher
 
 
 def create_app(
@@ -35,9 +36,19 @@ def create_app(
         app.state.diagnosis_ready = app.state.mode == "baseline_b2"
         app.state.run_manager = RunManager(store, app.state.orchestrator, settings.max_active_runs)
         app.state.run_manager.start()
+        # Watching needs the agent (scaffold runs would only be blocked) and GitHub access.
+        app.state.watcher = (
+            RepositoryWatcher(store, app.state.run_manager, settings)
+            if settings.watch_enabled and settings.github_enabled and app.state.mode != "scaffold"
+            else None
+        )
+        if app.state.watcher:
+            app.state.watcher.start()
         try:
             yield
         finally:
+            if app.state.watcher:
+                app.state.watcher.stop()
             app.state.run_manager.stop()
 
     app = FastAPI(

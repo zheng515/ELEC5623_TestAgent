@@ -12,8 +12,10 @@ from app.schemas import (
     ExecutionAttempt,
     ExecutionResult,
     GeneratedTest,
+    GeneratedTestSuite,
     Project,
     ProjectReadiness,
+    RepositoryChange,
     RepositorySnapshot,
     RequirementItem,
     RunEvent,
@@ -24,9 +26,18 @@ from app.schemas import (
     VerificationRun,
     VerificationStatus,
 )
-from app.services.analyzer import analyze_requirements
+from app.services.analyzer import AnalysisResult, analyze_requirements
 from app.services.generator import coverage_gaps, generate_tests, requirement_coverage
 from app.services.github_source import is_remote
+from app.services.incremental import (
+    baseline_problem,
+    diff_interfaces,
+    focus_targets,
+    invalidated,
+    next_number,
+    regressions,
+    renumber_tests,
+)
 from app.services.inspector import (
     RepositoryError,
     inspect_repository,
@@ -46,7 +57,7 @@ from app.services.project_readiness import check_project_readiness
 from app.services.refiner import refine_tests
 from app.services.repository_snapshot import SnapshotError, verified_snapshot_root
 from app.services.runner import TestRunner
-from app.services.test_validator import VALIDATION_VERSION, validated_scenarios
+from app.services.test_validator import VALIDATION_VERSION, validate_test, validated_scenarios
 
 ProgressCallback = Callable[[VerificationRun], None]
 
@@ -55,7 +66,12 @@ class Orchestrator(Protocol):
     """Replace this adapter when the real evidence-driven workflow is integrated."""
 
     def run(
-        self, project: Project, *, on_progress: ProgressCallback | None = None
+        self,
+        project: Project,
+        *,
+        on_progress: ProgressCallback | None = None,
+        incremental: bool = False,
+        baseline: VerificationRun | None = None,
     ) -> VerificationRun: ...
 
 
@@ -63,7 +79,12 @@ class ScaffoldOrchestrator:
     """Records inputs honestly. Does not interpret requirements or execute repository code."""
 
     def run(
-        self, project: Project, *, on_progress: ProgressCallback | None = None
+        self,
+        project: Project,
+        *,
+        on_progress: ProgressCallback | None = None,
+        incremental: bool = False,
+        baseline: VerificationRun | None = None,
     ) -> VerificationRun:
         now = datetime.now(UTC)
         digest = hashlib.sha256(project.model_dump_json().encode()).hexdigest()
@@ -138,8 +159,14 @@ class DirectLLMOrchestrator:
         return "baseline_b2" if self._runner is not None else "baseline_b0"
 
     def run(
-        self, project: Project, *, on_progress: ProgressCallback | None = None
+        self,
+        project: Project,
+        *,
+        on_progress: ProgressCallback | None = None,
+        incremental: bool = False,
+        baseline: VerificationRun | None = None,
     ) -> VerificationRun:
+        """Run the full workflow, or with `incremental` grow the baseline run's suite."""
         now = datetime.now(UTC)
         digest = hashlib.sha256(project.model_dump_json().encode()).hexdigest()
         events = [
@@ -177,36 +204,72 @@ class DirectLLMOrchestrator:
 
         checkpoint("inspect", "Inspecting the available repository interfaces.")
         repository, repository_issues = self._inspect(project, events)
+        prior = None
+        if incremental:
+            if repository is None:
+                # Without the new code there is nothing to compare or re-execute against.
+                return self._unread(project, run_id, digest, events, now, repository_issues)
+            problem = baseline_problem(baseline, digest)
+            if problem:
+                events.append(
+                    _event(
+                        "inspect",
+                        f"No usable baseline run: {problem}. Running the full workflow "
+                        "to create one.",
+                        datetime.now(UTC),
+                    )
+                )
+            else:
+                prior = baseline
+
         checkpoint(
             "analyze",
-            "Analyzing requirements and validating source quotes.",
+            "Reusing the baseline run's requirements."
+            if prior is not None
+            else "Analyzing requirements and validating source quotes.",
             repository=repository,
             unresolved_issues=repository_issues,
         )
-
-        try:
-            analysis = analyze_requirements(
-                self._llm, project, max_requirements=self._max_requirements
+        if prior is not None:
+            # The requirement text is part of the project fingerprint, so it is unchanged.
+            analysis = AnalysisResult(
+                requirements=prior.report.requirements,
+                notes="",
+                source_audit=prior.report.source_audit,
             )
-        except LLMError as error:
-            return self._failed(
-                project, digest, events, "analyze", str(error), now, repository=repository
+            events.append(
+                _event(
+                    "analyze",
+                    f"Reused the {len(analysis.requirements)} requirements analysed in "
+                    f"baseline run {prior.id}; the requirement text is unchanged.",
+                    datetime.now(UTC),
+                )
             )
+        else:
+            try:
+                analysis = analyze_requirements(
+                    self._llm, project, max_requirements=self._max_requirements
+                )
+            except LLMError as error:
+                return self._failed(
+                    project, digest, events, "analyze", str(error), now, repository=repository
+                )
 
         requirements = analysis.requirements
         ambiguous = [item for item in requirements if item.ambiguity]
         untestable = [item for item in requirements if not item.testable]
-        events.append(
-            _event(
-                "analyze",
-                f"Extracted {len(requirements)} requirements: "
-                f"{len(requirements) - len(untestable)} testable, {len(untestable)} not "
-                f"testable as written, {len(ambiguous)} with recorded ambiguity. "
-                f"Source audit found {len(analysis.source_audit.unlinked_fragments)} unlinked "
-                "text fragments. Specification completeness is not established.",
-                datetime.now(UTC),
+        if prior is None:
+            events.append(
+                _event(
+                    "analyze",
+                    f"Extracted {len(requirements)} requirements: "
+                    f"{len(requirements) - len(untestable)} testable, {len(untestable)} not "
+                    f"testable as written, {len(ambiguous)} with recorded ambiguity. "
+                    f"Source audit found {len(analysis.source_audit.unlinked_fragments)} "
+                    "unlinked text fragments. Specification completeness is not established.",
+                    datetime.now(UTC),
+                )
             )
-        )
 
         checkpoint(
             "plan",
@@ -256,91 +319,84 @@ class DirectLLMOrchestrator:
                 ),
             )
 
-        try:
-            plan = plan_tests(
-                self._llm,
-                project,
-                requirements,
-                repository,
-                max_scenarios=self._settings.max_scenarios,
+        change = None
+        refinable: set[str] | None = None
+        if prior is not None:
+            plan, suite, change = self._grow(
+                project, requirements, repository, prior, events, checkpoint
             )
-        except LLMError as error:
-            return self._failed(
-                project,
-                digest,
-                events,
-                "plan",
-                str(error),
-                now,
-                requirements,
-                repository=repository,
-                source_audit=analysis.source_audit,
-                project_readiness=readiness,
+            refinable = set(change.new_test_ids)
+            plan_gaps = planning_gaps(requirements, plan)
+            gaps = coverage_gaps(requirements, suite.tests)
+        else:
+            try:
+                plan = plan_tests(
+                    self._llm,
+                    project,
+                    requirements,
+                    repository,
+                    max_scenarios=self._settings.max_scenarios,
+                )
+            except LLMError as error:
+                return self._failed(
+                    project,
+                    digest,
+                    events,
+                    "plan",
+                    str(error),
+                    now,
+                    requirements,
+                    repository=repository,
+                    source_audit=analysis.source_audit,
+                    project_readiness=readiness,
+                )
+            plan_gaps = planning_gaps(requirements, plan)
+            checkpoint(
+                "plan", "Reviewing planned oracles against original requirements.", test_plan=plan
             )
-        plan_gaps = planning_gaps(requirements, plan)
-        checkpoint(
-            "plan", "Reviewing planned oracles against original requirements.", test_plan=plan
-        )
-        plan = review_oracles(self._llm, project, requirements, plan, repository)
-        review_issues = [
-            f"{scenario.id}: {issue}"
-            for scenario in plan.scenarios
-            for issue in (scenario.oracle_grounding.issues if scenario.oracle_grounding else [])
-        ]
-        if review_issues:
+            plan = self._reviewed(project, requirements, plan, repository, events)
             events.append(
                 _event(
                     "plan",
-                    "Some planned oracles lack source support; "
-                    "their tests are excluded from automatic execution.",
+                    f"Planned {len(plan.scenarios)} test scenarios; "
+                    f"{len(plan_gaps)} testable requirements have no scenario.",
                     datetime.now(UTC),
                 )
             )
-            plan = plan.model_copy(
-                update={"notes": "\n".join([plan.notes, *review_issues]).strip()}
-            )
-        events.append(
-            _event(
-                "plan",
-                f"Planned {len(plan.scenarios)} test scenarios; "
-                f"{len(plan_gaps)} testable requirements have no scenario.",
-                datetime.now(UTC),
-            )
-        )
 
-        checkpoint(
-            "generate",
-            "Generating pytest tests from the saved test plan.",
-            test_plan=plan,
-            planning_gaps=plan_gaps,
-        )
-
-        try:
-            suite = generate_tests(self._llm, project, requirements, repository, plan=plan)
-        except LLMError as error:
-            return self._failed(
-                project,
-                digest,
-                events,
+            checkpoint(
                 "generate",
-                str(error),
-                now,
-                requirements,
-                plan=plan,
-                repository=repository,
-                source_audit=analysis.source_audit,
-                project_readiness=readiness,
+                "Generating pytest tests from the saved test plan.",
+                test_plan=plan,
+                planning_gaps=plan_gaps,
             )
 
-        gaps = coverage_gaps(requirements, suite.tests)
-        events.append(
-            _event(
-                "generate",
-                f"Generated {len(suite.tests)} pytest tests covering "
-                f"{len(requirements) - len(untestable) - len(gaps)} testable requirements.",
-                datetime.now(UTC),
+            try:
+                suite = generate_tests(self._llm, project, requirements, repository, plan=plan)
+            except LLMError as error:
+                return self._failed(
+                    project,
+                    digest,
+                    events,
+                    "generate",
+                    str(error),
+                    now,
+                    requirements,
+                    plan=plan,
+                    repository=repository,
+                    source_audit=analysis.source_audit,
+                    project_readiness=readiness,
+                )
+
+            gaps = coverage_gaps(requirements, suite.tests)
+            events.append(
+                _event(
+                    "generate",
+                    f"Generated {len(suite.tests)} pytest tests covering "
+                    f"{len(requirements) - len(untestable) - len(gaps)} testable requirements.",
+                    datetime.now(UTC),
+                )
             )
-        )
 
         checkpoint(
             "execute",
@@ -367,7 +423,14 @@ class DirectLLMOrchestrator:
         tests = suite.tests
         refinement_iterations = 0
         refinement_notes = []
-        repairable = [item for item in executions if _repairable(item) and item.test_id]
+        repairable = [
+            item
+            for item in executions
+            if _repairable(item)
+            and item.test_id
+            # Carried tests are the regression baseline; only new tests may be repaired.
+            and (refinable is None or item.test_id in refinable)
+        ]
         if repairable and repository is not None and self._runner is not None:
             checkpoint(
                 "improve",
@@ -477,10 +540,30 @@ class DirectLLMOrchestrator:
                 f"{len(execution_gaps)} generated artifacts or validated functions "
                 "have no final execution outcome."
             )
+        if change is not None:
+            change = change.model_copy(
+                update={"regressions": regressions(prior.report.executions, executions)}
+            )
+            unresolved.extend(_change_issues(change))
         for note in (analysis.notes, plan.notes, suite.notes):
             if note.strip():
                 unresolved.append(f"Analyst note: {note.strip()}")
 
+        summary = (
+            f"{self.mode.replace('_', ' ').upper()} run. "
+            f"{len(requirements)} requirements extracted and "
+            f"{len(plan.scenarios)} scenarios planned. "
+            f"{len(tests)} pytest tests generated with requirement links. "
+        )
+        if change is not None:
+            summary = (
+                f"{self.mode.replace('_', ' ').upper()} incremental run against baseline "
+                f"run {change.baseline_run_id}. {len(change.added)} public names added, "
+                f"{len(change.changed)} changed and {len(change.removed)} removed. "
+                f"{len(change.new_scenario_ids)} scenarios and {len(change.new_test_ids)} "
+                f"tests added; {len(change.carried_test_ids)} carried tests re-validated. "
+                + (f"{len(change.regressions)} regressions. " if change.regressions else "")
+            )
         return VerificationRun(
             id=run_id,
             project_id=project.id,
@@ -496,13 +579,8 @@ class DirectLLMOrchestrator:
                 outcome_mapping_version=OUTCOME_MAPPING_VERSION,
                 source_audit=analysis.source_audit,
                 project_readiness=readiness,
-                summary=(
-                    f"{self.mode.replace('_', ' ').upper()} run. "
-                    f"{len(requirements)} requirements extracted and "
-                    f"{len(plan.scenarios)} scenarios planned. "
-                    f"{len(tests)} pytest tests generated with requirement links. "
-                    + _execution_summary_from_items(executions, execution)
-                ),
+                summary=summary + _execution_summary_from_items(executions, execution),
+                change=change,
                 repository=repository,
                 requirements=requirements,
                 test_plan=plan,
@@ -523,6 +601,169 @@ class DirectLLMOrchestrator:
                 executed_tests=len(executions),
                 execution_success_rate=_success_rate(executions),
                 requirement_coverage=requirement_coverage(requirements, tests),
+            ),
+        )
+
+    def _reviewed(
+        self,
+        project: Project,
+        requirements: list[RequirementItem],
+        plan: TestPlan,
+        repository: RepositorySnapshot | None,
+        events: list[RunEvent],
+    ) -> TestPlan:
+        plan = review_oracles(self._llm, project, requirements, plan, repository)
+        review_issues = [
+            f"{scenario.id}: {issue}"
+            for scenario in plan.scenarios
+            for issue in (scenario.oracle_grounding.issues if scenario.oracle_grounding else [])
+        ]
+        if review_issues:
+            events.append(
+                _event(
+                    "plan",
+                    "Some planned oracles lack source support; "
+                    "their tests are excluded from automatic execution.",
+                    datetime.now(UTC),
+                )
+            )
+            plan = plan.model_copy(
+                update={"notes": "\n".join([plan.notes, *review_issues]).strip()}
+            )
+        return plan
+
+    def _grow(
+        self,
+        project: Project,
+        requirements: list[RequirementItem],
+        repository: RepositorySnapshot,
+        prior: VerificationRun,
+        events: list[RunEvent],
+        checkpoint: Callable[..., None],
+    ) -> tuple[TestPlan, GeneratedTestSuite, RepositoryChange]:
+        """Add scenarios and tests for new or changed functions; carry everything else."""
+        before = prior.report.repository
+        carried_plan = prior.report.test_plan
+        carried_tests = prior.report.generated_tests
+        after = repository.callables or {}
+        diff = diff_interfaces(before.callables or {}, after)
+        targets = focus_targets(diff, after)
+        content_changed = before.artifact.content_sha256 != (
+            repository.artifact.content_sha256 if repository.artifact else None
+        )
+        events.append(
+            _event(
+                "inspect",
+                f"Compared with baseline run {prior.id}: {len(diff.added)} public names "
+                f"added, {len(diff.changed)} changed, {len(diff.removed)} removed"
+                + ("." if content_changed else "; file contents are identical."),
+                datetime.now(UTC),
+            )
+        )
+
+        addition = TestPlan(scenarios=[], notes="")
+        new_tests: list[GeneratedTest] = []
+        notes: list[str] = []
+        if any(name not in targets for name in [*diff.added, *diff.changed]):
+            notes.append(
+                "Added or changed classes and methods are listed in the change summary; "
+                "automatic checks cover module-level functions only."
+            )
+        remaining = self._settings.max_scenarios - len(carried_plan.scenarios)
+        if targets and remaining <= 0:
+            notes.append(
+                f"The plan already holds {len(carried_plan.scenarios)} scenarios, the "
+                "REQTEST_MAX_SCENARIOS limit, so none was added for new or changed functions."
+            )
+        elif targets:
+            checkpoint("plan", "Planning scenarios for new or changed functions.")
+            try:
+                addition = plan_tests(
+                    self._llm,
+                    project,
+                    requirements,
+                    repository,
+                    max_scenarios=remaining,
+                    focus=targets,
+                    existing=carried_plan.scenarios,
+                    first_number=next_number([item.id for item in carried_plan.scenarios], "S"),
+                )
+                addition = self._reviewed(project, requirements, addition, repository, events)
+                if addition.scenarios:
+                    checkpoint("generate", "Generating tests for the new scenarios.")
+                    suite = generate_tests(
+                        self._llm, project, requirements, repository, plan=addition
+                    )
+                    new_tests = renumber_tests(suite.tests, carried_tests)
+                    if suite.notes.strip():
+                        notes.append(suite.notes.strip())
+            except LLMError as error:
+                # The carried suite still runs: a regression check is worth keeping.
+                notes.append(f"No tests were added for new or changed functions: {error}")
+                events.append(
+                    _event(
+                        "plan",
+                        f"Incremental planning stopped after a model error: {error}",
+                        datetime.now(UTC),
+                    )
+                )
+
+        plan = TestPlan(
+            scenarios=[*carried_plan.scenarios, *addition.scenarios],
+            notes="\n".join(note for note in (carried_plan.notes, addition.notes) if note.strip()),
+        )
+        # Carried tests are checked against the new interfaces before they may run again.
+        carried = [validate_test(test, plan, repository) for test in carried_tests]
+        added = [validate_test(test, plan, repository) for test in new_tests]
+        checked = {item.check.target for item in plan.scenarios if item.check}
+        change = RepositoryChange(
+            baseline_run_id=prior.id,
+            baseline_commit=before.source.commit_sha if before.source else None,
+            commit=repository.source.commit_sha if repository.source else None,
+            content_changed=content_changed,
+            added=diff.added,
+            removed=diff.removed,
+            changed=diff.changed,
+            new_scenario_ids=[item.id for item in addition.scenarios],
+            new_test_ids=[test.id for test in added],
+            carried_test_ids=[test.id for test in carried],
+            untraced=[name for name in targets if name not in checked],
+            invalidated_tests=invalidated(carried_tests, carried),
+        )
+        events.append(
+            _event(
+                "generate",
+                f"Added {len(addition.scenarios)} scenarios and {len(added)} tests for "
+                f"{len(targets)} new or changed functions; carried {len(carried)} tests "
+                "from the baseline.",
+                datetime.now(UTC),
+            )
+        )
+        return plan, GeneratedTestSuite(tests=[*carried, *added], notes="\n".join(notes)), change
+
+    def _unread(
+        self,
+        project: Project,
+        run_id: str,
+        digest: str,
+        events: list[RunEvent],
+        created_at: datetime,
+        issues: list[str],
+    ) -> VerificationRun:
+        return VerificationRun(
+            id=run_id,
+            project_id=project.id,
+            mode=self.mode,
+            status="blocked",
+            stage="inspect",
+            created_at=created_at,
+            updated_at=datetime.now(UTC),
+            input_sha256=digest,
+            events=events,
+            report=VerificationReport(
+                summary="The repository could not be read for this incremental check, so no "
+                "tests were added or re-executed. Earlier runs are unchanged.",
+                unresolved_issues=issues,
             ),
         )
 
@@ -695,6 +936,22 @@ class DirectLLMOrchestrator:
                 unresolved_issues=[message, *(source_audit.issues if source_audit else [])],
             ),
         )
+
+
+def _change_issues(change: RepositoryChange) -> list[str]:
+    issues = []
+    if change.untraced:
+        issues.append(
+            f"{len(change.untraced)} new or changed functions have no requirement-backed "
+            f"scenario: {', '.join(change.untraced)}. If they add functionality, describe it "
+            "in the requirements; no expectation is invented from code."
+        )
+    issues.extend(
+        f"Carried test no longer validates against the new code: {item}"
+        for item in change.invalidated_tests
+    )
+    issues.extend(f"Regression: {item}" for item in change.regressions)
+    return issues
 
 
 def _event(stage: str, message: str, created_at: datetime) -> RunEvent:
