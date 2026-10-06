@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "created_at": "2026-10-06T05:42:21.640881+00:00",
+  "mode": "synthetic",
+  "response_origin": "synthetic",
+  "model": null,
+  "corpus_sha256": "cafcc8f69d6945377e0b0c37d5f03c2b509b40ba12070d43e24a4a9318e08411",
+  "expected_samples": 2,
+  "complete": true,
+  "summary": {
+    "samples": 2,
+    "errors": 0,
+    "analysis": {
+      "samples": 1,
+      "gold_rules": 2,
+      "evaluated_gold_rules": 2,
+      "decision_coverage": 1.0,
+      "rule_recall": 0.5,
+      "source_aligned_classification_accuracy": 0.5,
+      "source_aligned_precision": 1.0,
+      "missing_rules": 1,
+      "false_testable_rules": 0,
+      "missed_ambiguity_rules": 0,
+      "errors": 0
+    },
+    "oracle": {
+      "samples": 1,
+      "verdict_accuracy": 0.0,
+      "decision_coverage": 1.0,
+      "false_acceptances": 1,
+      "false_acceptance_rate": 1.0,
+      "false_rejections": 0,
+      "supported_case_errors": 0,
+      "unsupported_case_errors": 0,
+      "false_rejection_rate": null,
+      "confusion_matrix": {
+        "supported": {
+          "supported": 0,
+          "contradicted": 0,
+          "insufficient": 0,
+          "no_decision": 0
+        },
+        "contradicted": {
+          "supported": 1,
+          "contradicted": 0,
+          "insufficient": 0,
+          "no_decision": 0
+        },
+        "insufficient": {
+          "supported": 0,
+          "contradicted": 0,
+          "insufficient": 0,
+          "no_decision": 0
+        }
+      },
+      "errors": 0
+    }
+  },
+  "records": [
+    {
+      "case_id": "analysis_omitted_rule",
+      "category": "omission",
+      "stage": "analysis",
+      "repeat": 1,
+      "error": null,
+      "calls": [
+        {
+          "output_format": "RequirementAnalysis",
+          "request_sha256": "ed04ad8ec837d32e40206f25c7982151997f501009fa835e1f1da35dcb237098",
+          "response": {
+            "requirements": [
+              {
+                "id": "R1",
+                "text": "At 10000 cents, fee returns 0 cents.",
+                "source_quote": "At 10000 cents, fee returns 0 cents.",
+                "testable": true,
+                "ambiguity": null
+              }
+            ],
+            "notes": "Synthetic demonstration: the negative-amount rule was deliberately omitted."
+          },
+          "elapsed_seconds": 0.0
+        }
+      ],
+      "gold_rules": 2,
+      "score": {
+        "gold_rules": 2,
+        "returned_requirements": 1,
+        "recovered_rules": 1,
+        "correctly_classified_rules": 1,
+        "missing_rules": [
+          "A negative amount raises ValueError."
+        ],
+        "duplicate_rules": [],
+        "merged_requirement_ids": [],
+        "unexpected_requirement_ids": [],
+        "classification_mismatches": [],
+        "false_testable_rules": 0,
+        "missed_ambiguity_rules": 0
+      },
+      "stage_output": {
+        "requirements": [
+          {
+            "id": "R1",
+            "text": "At 10000 cents, fee returns 0 cents.",
+            "source_quote": "At 10000 cents, fee returns 0 cents.",
+            "testable": true,
+            "ambiguity": null
+          }
+        ],
+        "source_audit": {
+          "version": 1,
+          "extraction_limit": 40,
+          "limit_reached": false,
+          "returned_requirements": 1,
+          "retained_requirements": 1,
+          "links": [
+            {
+              "text": "At 10000 cents, fee returns 0 cents.",
+              "start": 0,
+              "end": 36,
+              "line": 1,
+              "requirement_ids": [
+                "R1"
+              ]
+            }
+          ],
+          "unlinked_fragments": [
+            {
+              "text": "A negative amount raises ValueError.",
+              "start": 37,
+              "end": 73,
+              "line": 2
+            }
+          ],
+          "ambiguous_requirement_ids": [],
+          "semantic_completeness": "not_established",
+          "issues": [
+            "1 source fragments have no unambiguous requirement quote link. They may contain omitted rules or contextual text; they have not been verified.",
+            "Specification completeness is not established. Quote links show textual provenance, not whether every rule was extracted or interpreted correctly. Validated requirement links apply only to extracted testable requirements."
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "oracle_wrong_fee",
+      "category": "fabricated_value",
+      "stage": "oracle",
+      "repeat": 1,
+      "error": null,
+      "calls": [
+        {
+          "output_format": "OracleReview",
+          "request_sha256": "9bb5f8c0a80ef2b9b4fd695a82088acf51a1cde2d0693c873a56ad406d411304",
+          "response": {
+            "decisions": [
+              {
+                "scenario_id": "S1",
+                "verdict": "supported",
+                "rationale": "Synthetic demonstration: this deliberately wrong assessment approves fee 999 despite the free-shipping rule.",
+                "citations": [
+                  {
+                    "requirement_id": "R1",
+                    "quote": "fee(amount_cents) accepts integer amounts in cents and returns an integer fee in cents. Orders of at least 10000 cents have fee 0 cents. Smaller nonnegative orders have fee 1000 cents."
+                  }
+                ]
+              }
+            ]
+          },
+          "elapsed_seconds": 0.0
+        }
+      ],
+      "expected_verdict": "contradicted",
+      "predicted_verdict": "supported",
+      "eligible": true,
+      "stage_output": {
+        "version": 1,
+        "status": "supported",
+        "verdict": "supported",
+        "rationale": "Synthetic demonstration: this deliberately wrong assessment approves fee 999 despite the free-shipping rule.",
+        "citations": [
+          {
+            "requirement_id": "R1",
+            "quote": "fee(amount_cents) accepts integer amounts in cents and returns an integer fee in cents. Orders of at least 10000 cents have fee 0 cents. Smaller nonnegative orders have fee 1000 cents."
+          }
+        ],
+        "issues": [],
+        "scenario_sha256": "837f70182bf6ef720a2d4c3053eb7c0dbcf3cce9886f40ce6a315704ef5d7ab7",
+        "source_sha256": "f8677060781812617b94cad2dfeacfd6b50182fe3427d01359b77c121ecdf7d4"
+      }
+    }
+  ],
+  "failed_samples": 2,
+  "limitations": [
+    "Curated cases are not evidence of general project correctness.",
+    "Analysis scores use source-aligned rule labels, not semantic paraphrase grading.",
+    "Merged quotes covering several gold rules receive no individual rule credit.",
+    "Oracle cases use fixed requirements/contracts; planning is not scored.",
+    "Model errors are reported separately and are not counted as successful rejections.",
+    "No generated code executes. Mutation adequacy and product defects are not measured.",
+    "Replay measures stored responses under current gates, not fresh model quality.",
+    "Token usage and monetary cost are not measured by this client."
+  ]
+}
