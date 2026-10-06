@@ -4,6 +4,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from app.core.auth import CurrentUser
+from app.core.config import Settings
 from app.core.database import RunQueueFull
 from app.schemas import (
     Integration,
@@ -13,6 +14,7 @@ from app.schemas import (
     VerificationReport,
     VerificationRun,
 )
+from app.services.github_source import CREDENTIALS, contains_credentials
 from app.services.jobs import JobInterrupted
 from app.services.report_renderer import render_html_report
 
@@ -87,13 +89,7 @@ def system_info(request: Request):
                 key="inspection",
                 name="Repository inspection",
                 status="ready" if inspection_ready else "not_connected",
-                description=(
-                    "The public interface of the project under test is read and given "
-                    "to the generator; file contents are not read."
-                    if inspection_ready
-                    else "Set REQTEST_REPOSITORY_ROOT to let runs read the project under "
-                    "test. Until then, generated tests must guess what to import."
-                ),
+                description=_inspection_description(request.app.state.settings, inspection_ready),
             ),
             Integration(
                 key="retrieval",
@@ -128,6 +124,30 @@ def system_info(request: Request):
     )
 
 
+def _inspection_description(settings: Settings, ready: bool) -> str:
+    if not ready:
+        return (
+            "Enable GitHub downloads or set REQTEST_REPOSITORY_ROOT to let runs read the "
+            "project under test. Until then, generated tests must guess what to import."
+        )
+    if settings.github_enabled and settings.repository_root is not None:
+        sources = (
+            "GitHub repository URLs are downloaded at a pinned commit, and local paths "
+            "inside REQTEST_REPOSITORY_ROOT are read."
+        )
+    elif settings.github_enabled:
+        sources = (
+            "GitHub repository URLs are downloaded at a pinned commit. Set "
+            "REQTEST_REPOSITORY_ROOT to also read local paths."
+        )
+    else:
+        sources = "Local paths inside REQTEST_REPOSITORY_ROOT are read; GitHub downloads are off."
+    return (
+        f"{sources} The public interface of the project under test is given to the "
+        "generator; file contents are not sent to the model."
+    )
+
+
 @router.get("/projects", response_model=list[Project], tags=["projects"])
 def list_projects(request: Request, user: CurrentUser):
     return request.app.state.store.list_projects(user.id)
@@ -135,6 +155,9 @@ def list_projects(request: Request, user: CurrentUser):
 
 @router.post("/projects", response_model=Project, status_code=201, tags=["projects"])
 def create_project(payload: ProjectCreate, request: Request, user: CurrentUser):
+    if contains_credentials(payload.repository_ref):
+        # A plain message: a validation error would echo the secret back in its input.
+        raise HTTPException(422, CREDENTIALS)
     project = Project(**payload.model_dump(), id=str(uuid4()), created_at=datetime.now(UTC))
     request.app.state.store.create_project(project, user.id)
     return project

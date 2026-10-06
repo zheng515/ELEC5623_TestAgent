@@ -1,10 +1,12 @@
 """Read-only inspection of the project under test (FR4).
 
-A repository reference is user input, so this is a trust boundary. Inspection is off
-until `REQTEST_REPOSITORY_ROOT` is configured, every path must resolve inside that
-root, symlinks are never followed, and only the importable surface of each module is
-sent to the model: signatures, class names and docstrings, never whole file bodies.
-The complete bounded file copy is saved locally before these interfaces are read.
+A repository reference is user input, so this is a trust boundary. It is either a
+GitHub URL or a local path. A GitHub URL is downloaded at a pinned commit by
+`github_source`. A local path is read only once `REQTEST_REPOSITORY_ROOT` is configured,
+and it must resolve inside that root. Symlinks are never followed, and only the
+importable surface of each module is sent to the model: signatures, class names and
+docstrings, never whole file bodies. The complete bounded file copy is saved locally
+before these interfaces are read.
 """
 
 import ast
@@ -13,7 +15,13 @@ import os
 from pathlib import Path
 
 from app.core.config import Settings
-from app.schemas import ModuleInterface, RepositorySnapshot
+from app.schemas import ModuleInterface, RepositorySnapshot, RepositorySource
+from app.services.github_source import (
+    GitHubError,
+    download_repository,
+    is_remote,
+    parse_github_url,
+)
 from app.services.repository_snapshot import SKIPPED_DIRECTORIES, SnapshotError, capture_repository
 
 MAX_FILE_BYTES = 200_000
@@ -21,21 +29,53 @@ DOCSTRING_LIMIT = 200
 
 
 class RepositoryError(RuntimeError):
-    """The reference is missing, outside the configured root, or unreadable."""
+    """The reference is missing, outside the configured root, unreadable, or undownloadable."""
 
 
 def repository_available(settings: Settings) -> bool:
+    """Whether any reference can be read: GitHub URLs, local paths, or both."""
+    return settings.github_enabled or local_repositories_available(settings)
+
+
+def local_repositories_available(settings: Settings) -> bool:
     return settings.repository_root is not None
 
 
 def inspect_repository(reference: str, settings: Settings) -> RepositorySnapshot:
+    if is_remote(reference):
+        return _inspect_github(reference, settings)
     root = _resolve(reference, settings)
+    return _inspect(root, str(root), settings)
+
+
+def _inspect_github(reference: str, settings: Settings) -> RepositorySnapshot:
+    if not settings.github_enabled:
+        raise RepositoryError(
+            "GitHub downloads are disabled on this server. Set REQTEST_GITHUB_ENABLED=true "
+            "to read GitHub repositories."
+        )
+    try:
+        location = parse_github_url(reference)
+        with download_repository(location, settings) as (root, source, archive_skipped):
+            return _inspect(root, source.url, settings, source=source, skipped=archive_skipped)
+    except GitHubError as error:
+        raise RepositoryError(str(error)) from error
+
+
+def _inspect(
+    root: Path,
+    label: str,
+    settings: Settings,
+    *,
+    source: RepositorySource | None = None,
+    skipped: list[str] | None = None,
+) -> RepositorySnapshot:
     try:
         artifact, captured_root = capture_repository(root, settings)
     except SnapshotError as error:
         raise RepositoryError(str(error)) from error
     modules: list[ModuleInterface] = []
-    skipped: list[str] = list(artifact.excluded)
+    skipped = [*(skipped or []), *artifact.excluded]
     budget = settings.max_inspected_bytes
     truncated = False
     import_roots = (
@@ -58,13 +98,14 @@ def inspect_repository(reference: str, settings: Settings) -> RepositorySnapshot
             budget -= size
 
     return RepositorySnapshot(
-        root=str(root),
+        root=label,
         modules=modules,
         skipped=skipped,
         truncated=truncated,
         sha256=_digest(modules),
         artifact=artifact,
         import_roots=import_roots,
+        source=source,
     )
 
 
@@ -75,11 +116,6 @@ def _resolve(reference: str, settings: Settings) -> Path:
         raise RepositoryError(
             "Repository inspection is not configured. Set REQTEST_REPOSITORY_ROOT to the "
             "directory that project repositories live under."
-        )
-    if "://" in reference or reference.startswith("git@"):
-        raise RepositoryError(
-            "Remote repositories are not cloned. Provide a local path inside "
-            f"{root} instead of a URL."
         )
 
     allowed = Path(root).expanduser().resolve()

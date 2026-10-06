@@ -659,20 +659,27 @@ def test_a_project_without_a_repository_says_the_tests_must_guess():
     assert any("guess the module" in issue for issue in report.unresolved_issues)
 
 
-def test_inspection_status_follows_the_configured_root(tmp_path):
-    off = Settings(database_path=tmp_path / "a.db", sandbox_enabled=False, _env_file=None)
-    on = off.model_copy(update={"repository_root": tmp_path})
+def test_inspection_status_follows_the_configured_sources(tmp_path):
+    off = Settings(
+        database_path=tmp_path / "a.db", sandbox_enabled=False, github_enabled=False, _env_file=None
+    )
+    local = off.model_copy(update={"repository_root": tmp_path})
+    github = off.model_copy(update={"github_enabled": True})
 
-    def statuses(settings):
+    def integrations(settings):
         orchestrator = DirectLLMOrchestrator(FakeLLM(), settings=settings)
         with TestClient(create_app(settings, orchestrator=orchestrator)) as client:
             body = client.get("/api/v1/system").json()
-        return {i["key"]: i["status"] for i in body["integrations"]}
+        return {i["key"]: i for i in body["integrations"]}
 
-    assert statuses(off)["inspection"] == "not_connected"
-    assert statuses(on)["inspection"] == "ready"
+    assert integrations(off)["inspection"]["status"] == "not_connected"
+    assert integrations(local)["inspection"]["status"] == "ready"
+    assert "GitHub downloads are off" in integrations(local)["inspection"]["description"]
+    # GitHub downloads expose nothing on this server, so they need no repository root.
+    assert integrations(github)["inspection"]["status"] == "ready"
+    assert "pinned commit" in integrations(github)["inspection"]["description"]
     # RAG is a separate integration and is still unbuilt.
-    assert statuses(on)["retrieval"] == "not_connected"
+    assert integrations(local)["retrieval"]["status"] == "not_connected"
 
 
 def test_planning_failure_keeps_requirements_and_stops_generation():

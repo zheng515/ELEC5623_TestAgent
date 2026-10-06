@@ -100,6 +100,16 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
             + _items(artifact.excluded)
             + "</details>"
         )
+    origin = report.repository.source if report.repository else None
+    if origin:
+        folder = (
+            f" | folder <code>{escape(origin.subdirectory)}</code>" if origin.subdirectory else ""
+        )
+        version_html = (
+            f'<p>Downloaded from GitHub: <a href="{escape(origin.url)}">'
+            f"{escape(origin.repository)}</a> | ref <code>{escape(origin.ref)}</code> | "
+            f"commit <code>{escape(origin.commit_sha)}</code>{folder}</p>" + version_html
+        )
     audit = report.source_audit
     source_html = "<p>No source audit recorded. Specification completeness is unknown.</p>"
     if audit:

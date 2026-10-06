@@ -6,6 +6,17 @@ def isolated_snapshot_storage(tmp_path, monkeypatch):
     monkeypatch.setenv("REQTEST_REPOSITORY_SNAPSHOT_ROOT", str(tmp_path / "snapshot-storage"))
 
 
+@pytest.fixture(autouse=True)
+def no_github_network(monkeypatch):
+    """The suite never reaches GitHub; tests that download replace this with a fake."""
+    from app.services import github_source
+
+    def refuse(request, timeout):
+        raise AssertionError(f"Unexpected network request to {request.full_url}")
+
+    monkeypatch.setattr(github_source, "_open", refuse)
+
+
 ACCOUNT = {"name": "Test User", "email": "tester@example.com", "password": "test-passphrase-123"}
 
 

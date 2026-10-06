@@ -28,6 +28,33 @@ it("shows the saved content version and excluded paths", () => {
     screen.getByText(/Original directory|original directory/),
   ).toBeTruthy();
 });
+it("links a downloaded GitHub repository to the exact commit that was read", () => {
+  render(
+    <RepositoryVersion
+      repository={{
+        ...repository,
+        source: {
+          provider: "github",
+          repository: "example/shipping",
+          url: "https://github.com/example/shipping/tree/abc123/pkg",
+          requested_ref: "main",
+          ref: "main",
+          commit_sha: "abc123",
+          subdirectory: "pkg",
+        },
+      }}
+    />,
+  );
+  expect(
+    screen.getByRole("link", { name: "example/shipping" }).getAttribute("href"),
+  ).toBe("https://github.com/example/shipping/tree/abc123/pkg");
+  expect(screen.getByText("abc123")).toBeTruthy();
+  expect(screen.getByText("pkg")).toBeTruthy();
+});
+it("shows no GitHub origin for a local repository", () => {
+  render(<RepositoryVersion repository={repository} />);
+  expect(screen.queryByText("GitHub")).toBeNull();
+});
 it("does not mistake legacy interface hashes for an executed content version", () => {
   render(
     <RepositoryVersion repository={{ ...repository, artifact: undefined }} />,

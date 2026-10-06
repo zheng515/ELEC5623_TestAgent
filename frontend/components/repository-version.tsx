@@ -8,9 +8,26 @@ export function RepositoryVersion({
 }) {
   if (!repository) return null;
   const artifact = repository.artifact;
+  const source = repository.source;
   return (
     <section className="panel">
       <h3>Code version used for verification</h3>
+      {source && (
+        <p>
+          <Badge>GitHub</Badge>{" "}
+          <a href={source.url} target="_blank" rel="noreferrer">
+            {source.repository}
+          </a>{" "}
+          · ref <code>{source.ref}</code> · commit{" "}
+          <code>{source.commit_sha}</code>
+          {source.subdirectory && (
+            <>
+              {" "}
+              · folder <code>{source.subdirectory}</code>
+            </>
+          )}
+        </p>
+      )}
       {!artifact ? (
         <p>
           No saved code snapshot. This historical run cannot establish which
