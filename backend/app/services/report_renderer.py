@@ -12,11 +12,12 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
     report = run.report
     validation_notice = (
         "Current validation requires every observed check to match a linked scenario "
-        "contract and every saved project-call result to be checked."
+        "contract, every saved project-call result to be checked, and the planned "
+        "oracle to have an independent source assessment with checked citations."
         if report.validation_version == VALIDATION_VERSION
         else "This run predates the current code-to-plan checks. Historical coverage "
         "and conclusions have not been revalidated. Start a new run to check for "
-        "unplanned assertions and unchecked calls."
+        "unplanned assertions, unchecked calls, and original-source oracle support."
     )
     mapping_notice = (
         "Requirement outcomes are attributed by validated scenario and test function. "
@@ -303,6 +304,15 @@ def _render_plan(run: VerificationRun) -> str:
             if scenario.check
             else "No structured contract recorded."
         )
+        grounding = scenario.oracle_grounding
+        oracle_html = (
+            f"<p>{escape(grounding.status)}: {escape(grounding.rationale)}</p>"
+            + _items([f"{item.requirement_id}: {item.quote}" for item in grounding.citations])
+            + _items(grounding.issues)
+            + "<p>AI assessment with checked citations is not semantic proof or test adequacy.</p>"
+            if grounding
+            else "<p>No independent oracle review recorded. Start a new run.</p>"
+        )
         sections.append(
             f'<section class="card"><h3>{escape(scenario.id)}: {escape(scenario.title)}</h3>'
             f"<p>{escape(scenario.category)} | Requirements: {escape(', '.join(scenario.requirement_ids))}</p>"
@@ -311,6 +321,7 @@ def _render_plan(run: VerificationRun) -> str:
             f"<h4>Steps</h4>{_items(scenario.steps)}"
             f"<h4>Expected result</h4><p>{escape(scenario.expected_result)}</p>"
             f"<h4>Structured check contract</h4><pre>{contract}</pre>"
+            f"<h4>Original-source oracle review</h4>{oracle_html}"
             f"<h4>Assumptions</h4>{_items(scenario.assumptions)}"
             f"<h4>Source evidence</h4>{_items(sources)}"
             f"<h4>Generated tests</h4>{_items([f'{test.id} ({test.module})' for test in tests])}"

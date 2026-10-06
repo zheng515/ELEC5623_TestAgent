@@ -1,4 +1,4 @@
-export const VALIDATION_VERSION = 2;
+export const VALIDATION_VERSION = 3;
 
 export interface User {
   id: string;
@@ -64,6 +64,7 @@ export interface GeneratedTest {
   }[];
 }
 export interface TestScenario {
+  oracle_grounding?: OracleGrounding | null;
   id: string;
   requirement_ids: string[];
   title: string;
@@ -82,6 +83,16 @@ export interface TestScenario {
     expected_value: unknown;
     exception_type: string | null;
   } | null;
+}
+export interface OracleGrounding {
+  version: number;
+  status: "supported" | "needs_review";
+  verdict: "supported" | "contradicted" | "insufficient" | null;
+  rationale: string;
+  citations: { requirement_id: string; quote: string }[];
+  issues: string[];
+  scenario_sha256: string;
+  source_sha256: string;
 }
 export interface TestPlan {
   scenarios: TestScenario[];

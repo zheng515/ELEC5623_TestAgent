@@ -241,7 +241,8 @@ function WorkspaceApp({
               <p className="notice" role="note">
                 This run predates the current code-to-plan checks. Historical
                 coverage and conclusions have not been revalidated. Start a new
-                run to check for unplanned assertions and unchecked calls.
+                run to check for unplanned assertions, unchecked calls, and
+                original-source oracle support.
               </p>
             )}
           {!!run?.report.generated_tests.length &&

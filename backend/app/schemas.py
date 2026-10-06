@@ -205,8 +205,40 @@ class ValidatedCheck(BaseModel):
     assertion_line: int
 
 
+class OracleCitation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    requirement_id: str
+    quote: str = Field(min_length=1)
+
+
+class OracleDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    scenario_id: str
+    verdict: Literal["supported", "contradicted", "insufficient"]
+    rationale: str = Field(min_length=1)
+    citations: list[OracleCitation]
+
+
+class OracleReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    decisions: list[OracleDecision]
+
+
+class OracleGrounding(BaseModel):
+    """Server-checked citations plus an AI assessment, never semantic proof."""
+
+    version: int = 1
+    status: Literal["supported", "needs_review"]
+    verdict: Literal["supported", "contradicted", "insufficient"] | None = None
+    rationale: str
+    citations: list[OracleCitation] = Field(default_factory=list)
+    issues: list[str] = Field(default_factory=list)
+    scenario_sha256: str
+    source_sha256: str
+
+
 class TestScenario(BaseModel):
-    """A planned check grounded in requirements and available interfaces (FR6)."""
+    """A proposed check with source links and a separate oracle assessment (FR6)."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -221,6 +253,7 @@ class TestScenario(BaseModel):
     evidence_refs: list[str]
     assumptions: list[str]
     check: ScenarioCheck | None = None
+    oracle_grounding: OracleGrounding | None = None
 
 
 class TestPlan(BaseModel):

@@ -10,8 +10,9 @@ import json
 from dataclasses import dataclass
 
 from app.schemas import GeneratedTest, RepositorySnapshot, TestPlan, ValidatedCheck
+from app.services.oracle_review import scenario_fingerprint
 
-VALIDATION_VERSION = 2
+VALIDATION_VERSION = 3
 
 
 class UnsupportedCheck(ValueError):
@@ -45,6 +46,21 @@ def validate_test(test: GeneratedTest, plan: TestPlan, repository: RepositorySna
             scenario = scenarios.get(scenario_id)
             if scenario is None or scenario.check is None:
                 issues.append(f"{scenario_id}: no structured check contract was recorded.")
+                continue
+            grounding = scenario.oracle_grounding
+            if (
+                grounding is None
+                or grounding.version != 1
+                or grounding.status != "supported"
+                or grounding.verdict != "supported"
+                or grounding.issues
+                or grounding.scenario_sha256 != scenario_fingerprint(scenario)
+            ):
+                issues.append(
+                    f"{scenario_id}: the planned oracle lacks current original-source support."
+                )
+                if grounding:
+                    issues.extend(f"{scenario_id}: {issue}" for issue in grounding.issues)
                 continue
             if scenario.assumptions or scenario.preconditions:
                 issues.append(
