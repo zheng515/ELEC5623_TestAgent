@@ -60,7 +60,7 @@ def create_app(
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, error: RequestValidationError):
-        if not request.url.path.startswith("/api/v1/auth/"):
+        if not request.url.path.startswith(("/api/v1/auth/", "/api/v1/documents/")):
             return await request_validation_exception_handler(request, error)
         # Pydantic's default errors include raw inputs, including submitted passwords.
         details = [
@@ -71,6 +71,17 @@ def create_app(
 
     @app.middleware("http")
     async def session_safety(request: Request, call_next):
+        if request.url.path == "/api/v1/documents/import" and request.method == "POST":
+            chunks = []
+            size = 0
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > 7_100_000:
+                    return JSONResponse(
+                        status_code=413, content={"detail": "File exceeds the 5 MB upload limit."}
+                    )
+                chunks.append(chunk)
+            request._body = b"".join(chunks)
         if request.url.path.startswith("/api/v1"):
             if request.method not in {"GET", "HEAD", "OPTIONS"}:
                 origin = request.headers.get("origin")
