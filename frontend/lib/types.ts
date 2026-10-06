@@ -102,6 +102,7 @@ export interface CodeSnapshot {
 }
 export interface RepositorySnapshot {
   artifact?: CodeSnapshot | null;
+  import_roots?: string[];
   root: string;
   modules: ModuleInterface[];
   skipped: string[];
@@ -168,7 +169,20 @@ export interface SourceAnalysisAudit {
   semantic_completeness: "not_established";
   issues: string[];
 }
+export interface ProjectReadiness {
+  status: "ready" | "blocked" | "unknown";
+  checks: {
+    kind: "layout" | "python" | "dependency" | "import";
+    subject: string;
+    status: "passed" | "failed" | "unknown";
+    detail: string;
+  }[];
+  notes: string[];
+  import_roots: string[];
+  environment?: ExecutionEnvironment | null;
+}
 export interface VerificationReport {
+  project_readiness?: ProjectReadiness | null;
   source_audit?: SourceAnalysisAudit | null;
   validation_version?: number | null;
   summary: string;

@@ -38,6 +38,11 @@ def inspect_repository(reference: str, settings: Settings) -> RepositorySnapshot
     skipped: list[str] = list(artifact.excluded)
     budget = settings.max_inspected_bytes
     truncated = False
+    import_roots = (
+        ["src", "."]
+        if (captured_root / "src").is_dir() and not (captured_root / "src/__init__.py").is_file()
+        else ["."]
+    )
 
     for path in _python_files(captured_root, skipped):
         if len(modules) >= settings.max_inspected_files or budget <= 0:
@@ -59,6 +64,7 @@ def inspect_repository(reference: str, settings: Settings) -> RepositorySnapshot
         truncated=truncated,
         sha256=_digest(modules),
         artifact=artifact,
+        import_roots=import_roots,
     )
 
 
@@ -168,6 +174,8 @@ def _class(node: ast.ClassDef) -> str:
 
 def _module_name(path: Path, root: Path) -> str:
     parts = path.relative_to(root).with_suffix("").parts
+    if parts[0] == "src" and len(parts) > 1 and not (root / "src/__init__.py").is_file():
+        parts = parts[1:]
     if parts[-1] == "__init__":
         parts = parts[:-1]
     return ".".join(parts)

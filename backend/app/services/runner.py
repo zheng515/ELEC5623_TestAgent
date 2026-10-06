@@ -6,6 +6,7 @@ PID and wall-clock limits. There is deliberately no host-subprocess fallback: wh
 Docker is unavailable, execution stays unconnected and the report says so.
 """
 
+import json
 import logging
 import shutil
 import subprocess
@@ -16,7 +17,7 @@ from typing import Protocol
 from uuid import uuid4
 
 from app.core.config import Settings
-from app.schemas import ExecutedTest, ExecutionResult, GeneratedTest
+from app.schemas import ExecutedTest, ExecutionResult, GeneratedTest, ProjectReadiness
 from app.services.execution_environment import (
     IMAGE_ID,
     RUNTIME_PROBE,
@@ -33,6 +34,10 @@ STDERR_LIMIT = 4000
 class TestRunner(Protocol):
     def for_run(self) -> "TestRunner": ...
 
+    def preflight(
+        self, repository_root: str, import_roots: list[str], module_paths: list[str]
+    ) -> ProjectReadiness: ...
+
     def execute(
         self, tests: list[GeneratedTest], repository_root: str | None = None
     ) -> ExecutionResult: ...
@@ -47,10 +52,57 @@ class DockerTestRunner:
         self._settings = settings
         self._run = run_command
         self._environment = None
+        self._import_roots = ["."]
 
     def for_run(self) -> "DockerTestRunner":
         """Each verification run resolves its image once, independently of other runs."""
         return DockerTestRunner(self._settings, self._run)
+
+    def preflight(
+        self, repository_root: str, import_roots: list[str], module_paths: list[str]
+    ) -> ProjectReadiness:
+        """Inspect declarations and imports as data in the pinned runtime."""
+        self._import_roots = list(import_roots)
+        container = f"reqtest-readiness-{uuid4().hex[:12]}"
+        try:
+            if self._environment is None:
+                self._environment = self._prepare_environment()
+            code = Path(__file__).with_name("readiness_probe.py").read_text(encoding="utf-8")
+            result = self._run(
+                [
+                    *self._base_command(container),
+                    "--volume",
+                    f"{repository_root}:/repo:ro",
+                    "--entrypoint",
+                    "python",
+                    self._environment.image_id,
+                    "-I",
+                    "-c",
+                    code,
+                    json.dumps({"import_roots": import_roots, "module_paths": module_paths}),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=min(self._settings.sandbox_timeout_seconds, 30),
+            )
+            if result.returncode:
+                raise EnvironmentError(
+                    "Project readiness probe failed. "
+                    "Check the sandbox image's Python and packaging tools."
+                )
+            readiness = ProjectReadiness.model_validate_json(result.stdout)
+            return readiness.model_copy(update={"environment": self._environment})
+        except subprocess.TimeoutExpired:
+            self._force_remove(container)
+            message = "Project readiness probe timed out; no tests were generated."
+        except (EnvironmentError, OSError, subprocess.SubprocessError, ValueError) as error:
+            message = f"Project readiness could not be established: {error}"
+        return ProjectReadiness(
+            status="blocked",
+            notes=[message],
+            import_roots=import_roots,
+            environment=self._environment,
+        )
 
     def execute(
         self, tests: list[GeneratedTest], repository_root: str | None = None
@@ -185,7 +237,16 @@ class DockerTestRunner:
         # The project under test is mounted read-only and put on the import path, so a
         # generated test can import it but cannot modify it.
         repository = (
-            ["--volume", f"{repository_root}:/repo:ro", "--env", "PYTHONPATH=/repo"]
+            [
+                "--volume",
+                f"{repository_root}:/repo:ro",
+                "--env",
+                "PYTHONPATH="
+                + ":".join(
+                    "/repo" if relative == "." else f"/repo/{relative}"
+                    for relative in self._import_roots
+                ),
+            ]
             if repository_root
             else []
         )

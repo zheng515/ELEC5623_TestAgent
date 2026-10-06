@@ -290,3 +290,23 @@ provenance. Model responses are deterministic fixtures; these checks do not call
 or validate a live model provider. The image must remain available locally for
 replay; an environment record does not archive Docker layers or prove that the
 image contains every dependency needed by a particular project.
+
+Before test planning and generation, a pinned sandbox checks the saved project's
+runtime dependency declarations, Python requirement and unconditional import roots.
+Supported metadata is static `[project].dependencies` / `requires-python` in
+`pyproject.toml`, plus simple `requirements.txt` declarations and relative `-r`
+includes. Package markers are evaluated inside the actual runtime; installed versions,
+transitive dependencies and requested distribution extras are checked. Optional project
+extras are not selected automatically. Missing/incompatible dependencies, unresolved
+metadata or conflicting import paths stop planning and generation while preserving
+the requirement analysis and source audit. The UI and exported reports list the setup
+checks and actions. Rebuild a compatible custom image or correct the project reference,
+then start a new run; no runtime installation or setup script execution is performed.
+
+A conventional `src` directory is added to the sandbox import path automatically,
+and `src/shipping.py` is inspected as `shipping`, preserving the original source path.
+A Python package actually named `src` (with `src/__init__.py`) retains its package name.
+These checks inspect data without importing project code. Passing them does not prove
+startup readiness: conditional imports, external services and native system libraries
+remain outside this check. Without a sandbox, readiness stays unknown and generated
+tests remain proposals.

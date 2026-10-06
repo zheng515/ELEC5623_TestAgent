@@ -202,3 +202,34 @@ runtime change. It identifies the recorded image, Python, platform and packages;
 it is not a complete replay bundle and does not establish project dependency
 readiness. Real Docker integration checks are opt-in and use deterministic model
 fixtures rather than a live provider.
+
+### Project setup preflight
+
+After requirement analysis and before planning, `project_readiness.py` checks the
+saved snapshot using the run-scoped runner. `readiness_probe.py` is read as trusted
+source text and executed with `python -I` inside the pinned, read-only, network-free
+container. The host does not import this probe or project modules. It reads static
+PEP 621 runtime declarations, Python constraints and simple requirements files;
+relative includes are confined to the snapshot. Package markers use the container's
+Python/platform, and declared distributions, version constraints, transitive
+requirements and requested extras are checked against installed metadata. Dynamic
+or unsupported declarations are explicit unresolved checks, not presumed ready.
+
+The probe checks only unconditional top-level absolute import roots via filesystem
+module discovery. It does not import project code, invoke setup scripts or install
+packages. Conventional `src` layouts use `src` and repository-root import paths in
+that order, with source paths preserved in evidence references; packages named
+`src` retain their name. Conflicting discovered module names block generation.
+The preflight's environment record is reused for actual execution and repair.
+
+Blocked checks return a terminal `blocked` run at the planning stage with analyzed
+requirements, source audit, snapshot, environment and actionable setup details.
+Planning, generation and execution are skipped. Missing sandbox/repository data is
+`unknown`, allowing B0 proposals without claiming runtime readiness. Legacy runs
+without a preflight remain unknown. Passing supported checks does not prove project
+startup: conditional imports, selected optional project extras, external services
+and native system dependencies are not validated.
+
+Source modules that shadow Python standard-library roots or the pytest, pluggy and
+packaging runner dependencies are rejected as layout conflicts. This prevents an
+import path from replacing the tools used to collect and interpret test outcomes.

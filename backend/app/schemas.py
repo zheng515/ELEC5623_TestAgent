@@ -164,6 +164,7 @@ class RepositorySnapshot(BaseModel):
     truncated: bool = False
     sha256: str
     artifact: CodeSnapshot | None = None
+    import_roots: list[str] = Field(default_factory=lambda: ["."])
 
 
 LiteralScalar = str | int | float | bool | None
@@ -295,6 +296,21 @@ class ExecutionResult(BaseModel):
     environment_error: str | None = None
 
 
+class ReadinessCheck(BaseModel):
+    kind: Literal["layout", "python", "dependency", "import"]
+    subject: str
+    status: Literal["passed", "failed", "unknown"]
+    detail: str
+
+
+class ProjectReadiness(BaseModel):
+    status: Literal["ready", "blocked", "unknown"]
+    checks: list[ReadinessCheck] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    import_roots: list[str] = Field(default_factory=lambda: ["."])
+    environment: ExecutionEnvironment | None = None
+
+
 class ExecutionAttempt(BaseModel):
     """Immutable test artifacts and results for one sandbox invocation."""
 
@@ -337,6 +353,7 @@ class VerificationReport(BaseModel):
     validation_version: int | None = None
     source_audit: SourceAnalysisAudit | None = None
     repository: RepositorySnapshot | None = None
+    project_readiness: ProjectReadiness | None = None
     requirements: list[RequirementItem] = Field(default_factory=list)
     test_plan: TestPlan | None = None
     planning_gaps: list[str] = Field(default_factory=list)

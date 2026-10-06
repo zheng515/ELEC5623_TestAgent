@@ -8,6 +8,20 @@ from app.schemas import Project, VerificationRun
 def render_html_report(project: Project, run: VerificationRun) -> str:
     """Render a portable, escaped verification report (FR15)."""
     report = run.report
+    readiness = report.project_readiness
+    readiness_html = "<p>No project readiness checks recorded.</p>"
+    if readiness:
+        readiness_html = (
+            f"<p>Project setup status: {escape(readiness.status)}. "
+            f"Import roots: {escape(', '.join(readiness.import_roots))}.</p>"
+            + _items([f"{item.subject}: {item.status} — {item.detail}" for item in readiness.checks])
+            + _items(readiness.notes)
+        )
+        if readiness.environment:
+            readiness_html += (
+                f"<p>Checked image ID: <code>{escape(readiness.environment.image_id)}</code></p>"
+                f"<p>Checked environment fingerprint: <code>{escape(readiness.environment.fingerprint)}</code></p>"
+            )
     mappings = []
     for requirement in report.requirements:
         tests = [test for test in report.generated_tests if requirement.id in test.requirement_ids]
@@ -132,6 +146,7 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 <div class="card"><strong>{_percent(report.execution_success_rate)}</strong><br>Execution success</div></div>
 <h2>Requirement-to-test mapping</h2><table><thead><tr><th>Requirement</th><th>Testable</th><th>Tests</th><th>Outcome</th></tr></thead><tbody>{"".join(mappings) or '<tr><td colspan="4">No structured requirements.</td></tr>'}</tbody></table>
 <h2>Specification analysis scope</h2>{source_html}
+<h2>Project setup checks</h2>{readiness_html}
 <h2>Code version used for verification</h2>{version_html}
 <h2>Test plan</h2>{plan_html}
 <h2>Code-to-plan validation</h2>
