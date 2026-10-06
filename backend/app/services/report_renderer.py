@@ -42,6 +42,30 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
     )
     plan_html = _render_plan(run)
     attempt_html = _render_attempts(run)
+    audit = report.source_audit
+    source_html = "<p>No source audit recorded. Specification completeness is unknown.</p>"
+    if audit:
+        source_html = (
+            f"<p>{audit.retained_requirements} requirements retained. "
+            f"Extraction limit: {audit.extraction_limit}. "
+            f"Limit reached: {'Yes' if audit.limit_reached else 'No'}.</p>"
+            + _items(audit.issues)
+            + "<h3>Source fragments without unambiguous quote links</h3>"
+            + (
+                "".join(
+                    f"<details><summary>Line {fragment.line}</summary>"
+                    f"<pre>{escape(fragment.text)}</pre></details>"
+                    for fragment in audit.unlinked_fragments
+                )
+                or "<p>None recorded. This does not establish semantic completeness.</p>"
+            )
+            + "<h3>Recorded source quote links</h3>"
+            + "".join(
+                f"<details><summary>{escape(', '.join(link.requirement_ids))}: line {link.line}</summary>"
+                f"<pre>{escape(link.text)}</pre></details>"
+                for link in audit.links
+            )
+        )
     validation_html = "".join(
         f"<details><summary>{escape(test.id)}: {escape(test.module)} — "
         f"{escape(test.validation_status)}</summary>"
@@ -81,9 +105,10 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 <div class="card"><strong>{len(report.requirements)}</strong><br>Requirements</div>
 <div class="card"><strong>{len(report.generated_tests)}</strong><br>Generated tests</div>
 <div class="card"><strong>{report.executed_tests}</strong><br>Executed tests</div>
-<div class="card"><strong>{_percent(report.requirement_coverage)}</strong><br>Requirement coverage</div>
+<div class="card"><strong>{_percent(report.requirement_coverage)}</strong><br>Extracted requirement links</div>
 <div class="card"><strong>{_percent(report.execution_success_rate)}</strong><br>Execution success</div></div>
 <h2>Requirement-to-test mapping</h2><table><thead><tr><th>Requirement</th><th>Testable</th><th>Tests</th><th>Outcome</th></tr></thead><tbody>{"".join(mappings) or '<tr><td colspan="4">No structured requirements.</td></tr>'}</tbody></table>
+<h2>Specification analysis scope</h2>{source_html}
 <h2>Test plan</h2>{plan_html}
 <h2>Code-to-plan validation</h2>
 <p>Only validated links count in new-run coverage. Matching a plan does not prove

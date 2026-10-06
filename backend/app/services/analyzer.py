@@ -1,7 +1,18 @@
 """Requirement structuring and ambiguity detection (FR2, FR3)."""
 
-from app.schemas import Project, RequirementAnalysis, RequirementItem
+from dataclasses import dataclass
+
+from app.schemas import Project, RequirementAnalysis, RequirementItem, SourceAnalysisAudit
 from app.services.llm import LLMError, StructuredLLM
+from app.services.source_audit import audit_source
+
+
+@dataclass
+class AnalysisResult:
+    requirements: list[RequirementItem]
+    notes: str
+    source_audit: SourceAnalysisAudit
+
 
 SYSTEM = """You are a requirements analyst for a software verification tool.
 
@@ -36,7 +47,7 @@ Extract at most {limit} requirements."""
 
 def analyze_requirements(
     llm: StructuredLLM, project: Project, *, max_requirements: int
-) -> RequirementAnalysis:
+) -> AnalysisResult:
     analysis = llm.parse(
         system=SYSTEM,
         prompt=PROMPT.format(
@@ -60,9 +71,16 @@ def analyze_requirements(
             notes + f"\nAnalysis is capped at {max_requirements} requirements; "
             "completeness of the specification has not been established."
         ).strip()
-    return RequirementAnalysis(
-        requirements=_normalize(analysis.requirements[:max_requirements]),
+    requirements = _normalize(analysis.requirements[:max_requirements])
+    return AnalysisResult(
+        requirements=requirements,
         notes=notes,
+        source_audit=audit_source(
+            project.requirements_text,
+            requirements,
+            extraction_limit=max_requirements,
+            returned_requirements=len(analysis.requirements),
+        ),
     )
 
 

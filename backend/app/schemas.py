@@ -103,6 +103,32 @@ class RequirementAnalysis(BaseModel):
     notes: str
 
 
+class SourceFragment(BaseModel):
+    text: str
+    start: int
+    end: int
+    line: int
+
+
+class SourceLink(SourceFragment):
+    requirement_ids: list[str]
+
+
+class SourceAnalysisAudit(BaseModel):
+    """Server-computed quote provenance; not a semantic completeness assessment."""
+
+    version: int = 1
+    extraction_limit: int
+    limit_reached: bool
+    returned_requirements: int
+    retained_requirements: int
+    links: list[SourceLink] = Field(default_factory=list)
+    unlinked_fragments: list[SourceFragment] = Field(default_factory=list)
+    ambiguous_requirement_ids: list[str] = Field(default_factory=list)
+    semantic_completeness: Literal["not_established"] = "not_established"
+    issues: list[str] = Field(default_factory=list)
+
+
 class ModuleInterface(BaseModel):
     """The importable surface of one source module, as read from its AST (FR4)."""
 
@@ -272,6 +298,7 @@ class RunEvent(BaseModel):
 class VerificationReport(BaseModel):
     summary: str
     validation_version: int | None = None
+    source_audit: SourceAnalysisAudit | None = None
     repository: RepositorySnapshot | None = None
     requirements: list[RequirementItem] = Field(default_factory=list)
     test_plan: TestPlan | None = None
