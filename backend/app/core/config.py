@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     max_scenarios: int = Field(default=80, ge=1, le=200)
     max_active_runs: int = Field(default=20, ge=1, le=1000)
 
+    document_ocr_enabled: bool = True
+    document_ocr_languages: str = Field(
+        default="eng", max_length=80, pattern=r"^[A-Za-z0-9_]+(?:\+[A-Za-z0-9_]+)*$"
+    )
+    document_tesseract_binary: str = "tesseract"
+    document_converter_binary: str = "soffice"
+    document_ocr_max_pages: int = Field(default=20, ge=1, le=100)
+    document_import_timeout_seconds: int = Field(default=120, ge=30, le=600)
+
     # Repository inspection (FR4). Reading a user-supplied path is a trust-boundary
     # change, so it stays off until a root is configured, and every path must resolve
     # inside that root.

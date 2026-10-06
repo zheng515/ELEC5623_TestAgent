@@ -15,6 +15,12 @@ vi.mock("../lib/api", async (importOriginal) => {
   return {
     ...actual,
     api: {
+      documentCapabilities: vi.fn().mockResolvedValue({
+        ocr_ready: true,
+        doc_ready: true,
+        ocr_languages: "eng",
+        import_timeout_seconds: 120,
+      }),
       me: vi.fn(),
       login: vi.fn(),
       register: vi.fn(),
@@ -35,6 +41,12 @@ const user = {
 };
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(api.documentCapabilities).mockResolvedValue({
+    ocr_ready: true,
+    doc_ready: true,
+    ocr_languages: "eng",
+    import_timeout_seconds: 120,
+  });
   window.history.replaceState({}, "", "/");
   vi.mocked(api.me).mockRejectedValue(
     new ApiError("Please sign in to continue.", 401),

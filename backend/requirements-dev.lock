@@ -34,3 +34,5 @@ uvicorn==0.52.4
 
 defusedxml==0.7.1
 pypdf==6.19.0
+pypdfium2==5.14.0
+pillow==12.3.0

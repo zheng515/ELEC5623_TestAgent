@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import type { ProjectCreate, RunMode, RequirementDocument } from "../lib/types";
+import type {
+  ProjectCreate,
+  RunMode,
+  RequirementDocument,
+  DocumentCapabilities,
+} from "../lib/types";
+import { documentLocation } from "../lib/source-location";
 import { api } from "../lib/api";
 import { urlFor } from "../lib/navigation";
 import { Badge, ErrorNotice } from "./ui";
@@ -51,6 +57,21 @@ export function NewTask({
         }
       : initial,
   );
+  const [capabilities, setCapabilities] = useState<DocumentCapabilities | null>(
+    null,
+  );
+  useEffect(() => {
+    let active = true;
+    api
+      .documentCapabilities()
+      .then((value) => {
+        if (active) setCapabilities(value);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   const [error, setError] = useState("");
   const [reading, setReading] = useState(false);
   const [fileName, setFileName] = useState(
@@ -73,9 +94,9 @@ export function NewTask({
     const file = event.target.files?.[0];
     if (!file) return;
     setError("");
-    if (!/\.(txt|md|pdf|docx)$/i.test(file.name) || file.size > 5000000) {
+    if (!/\.(txt|md|pdf|docx|doc)$/i.test(file.name) || file.size > 5000000) {
       setError(
-        "Choose a .txt, .md, PDF, or .docx file no larger than 5 MB. Convert .doc to .docx first.",
+        "Choose a .txt, .md, PDF, .docx, or .doc file no larger than 5 MB.",
       );
       event.target.value = "";
       return;
@@ -84,14 +105,18 @@ export function NewTask({
     try {
       let imported: RequirementDocument | null = null;
       let text: string;
-      if (/\.(pdf|docx)$/i.test(file.name)) {
+      if (/\.(pdf|docx|doc)$/i.test(file.name)) {
         const bytes = new Uint8Array(await file.arrayBuffer());
         let binary = "";
         for (let offset = 0; offset < bytes.length; offset += 8192)
           binary += String.fromCharCode(
             ...bytes.subarray(offset, offset + 8192),
           );
-        imported = await api.importDocument(file.name, btoa(binary));
+        imported = await api.importDocument(
+          file.name,
+          btoa(binary),
+          ((capabilities?.import_timeout_seconds ?? 120) + 15) * 1000,
+        );
         text = imported.text;
       } else text = (await file.text()).trim();
       if (!text.trim() || text.length > 50000)
@@ -230,13 +255,13 @@ export function NewTask({
             </label>
             <div className="input-actions">
               <label className="file-import" htmlFor="requirement-file">
-                Import .txt, .md, PDF, or Word (.docx)
+                Import .txt, .md, PDF, or Word (.docx, .doc)
               </label>
               <input
                 className="file-input"
                 id="requirement-file"
                 type="file"
-                accept=".txt,.md,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                accept=".txt,.md,.pdf,.docx,.doc,application/msword,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={importText}
                 aria-describedby="requirement-file-name"
               />
@@ -264,9 +289,20 @@ export function NewTask({
               </span>
             </div>
             <p className="field-help">
-              Text-based PDF and .docx import only. Scanned documents require
-              OCR, which is not supported.
+              PDF supports native text and automatic OCR. Word .docx and legacy
+              .doc files are supported. OCR may misread numbers or wording;
+              check the source preview.
             </p>
+            {capabilities && (
+              <p className="field-help">
+                {capabilities.ocr_ready
+                  ? `OCR ready (${capabilities.ocr_languages}).`
+                  : "OCR unavailable on this server; text-based PDFs can still be imported."}{" "}
+                {capabilities.doc_ready
+                  ? "Legacy Word conversion ready."
+                  : "Legacy Word conversion unavailable on this server."}
+              </p>
+            )}
             {sourceCleared && (
               <p role="status">
                 Text was edited. Original file locations were cleared; reimport
@@ -286,10 +322,7 @@ export function NewTask({
                   </summary>
                   {document.segments.map((segment) => (
                     <div key={segment.start}>
-                      <p>
-                        {segment.kind === "page" ? "Page" : "Paragraph"}{" "}
-                        {segment.number}
-                      </p>
+                      <p>{documentLocation(segment)}</p>
                       <pre className="requirement-source">
                         {sourceCharacters
                           .slice(segment.start, segment.end)

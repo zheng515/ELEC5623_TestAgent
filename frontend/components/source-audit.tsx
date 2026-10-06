@@ -1,5 +1,5 @@
 import type { VerificationReport } from "../lib/types";
-import { sourceLocation } from "../lib/source-location";
+import { documentLocation, sourceLocation } from "../lib/source-location";
 import { Badge } from "./ui";
 
 export function SourceAudit({ report }: { report?: VerificationReport }) {
@@ -24,9 +24,7 @@ export function SourceAudit({ report }: { report?: VerificationReport }) {
             <summary>Imported text by source location</summary>
             {document.segments.map((segment) => (
               <div key={segment.start}>
-                <p>
-                  {segment.kind} {segment.number}
-                </p>
+                <p>{documentLocation(segment)}</p>
                 <pre className="requirement-source">
                   {sourceCharacters.slice(segment.start, segment.end).join("")}
                 </pre>

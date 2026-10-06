@@ -14,7 +14,16 @@ export interface RegisterRequest extends Credentials {
   name: string;
 }
 
+export interface DocumentCapabilities {
+  ocr_ready: boolean;
+  ocr_languages: string;
+  doc_ready: boolean;
+  import_timeout_seconds: number;
+}
+
 export interface DocumentLocation {
+  method?: "text" | "ocr" | "converted";
+  confidence?: number | null;
   filename: string;
   kind: "page" | "paragraph";
   number: number;
@@ -22,7 +31,7 @@ export interface DocumentLocation {
 export interface RequirementDocument {
   id: string;
   filename: string;
-  format: "pdf" | "docx";
+  format: "pdf" | "docx" | "doc";
   sha256: string;
   text: string;
   segments: (DocumentLocation & { start: number; end: number })[];

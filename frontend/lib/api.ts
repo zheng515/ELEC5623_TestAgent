@@ -1,5 +1,6 @@
 import type {
   RequirementDocument,
+  DocumentCapabilities,
   Credentials,
   RegisterRequest,
   User,
@@ -86,14 +87,20 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 export const api = {
-  importDocument: (filename: string, content_base64: string) =>
+  documentCapabilities: () =>
+    request<DocumentCapabilities>("/documents/capabilities"),
+  importDocument: (
+    filename: string,
+    content_base64: string,
+    timeoutMs = 135000,
+  ) =>
     request<RequirementDocument>(
       "/documents/import",
       {
         method: "POST",
         body: JSON.stringify({ filename, content_base64 }),
       },
-      30000,
+      timeoutMs,
     ),
   me: () => request<User>("/auth/me"),
   register: (payload: RegisterRequest) =>
