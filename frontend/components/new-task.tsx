@@ -134,12 +134,14 @@ export function NewTask({
                 maxLength={500}
                 value={form.repository_ref}
                 onChange={(e) => change("repository_ref", e.target.value)}
-                placeholder="Local path within the configured repository root"
+                placeholder="https://github.com/owner/repository"
               />
             </label>
             <p className="field-help">
-              Local paths can be inspected when repository access is configured.
-              Remote cloning and repository uploads are not connected.
+              Paste a GitHub repository URL, optionally ending in
+              /tree/branch/folder. Each run downloads the code and records the
+              exact commit it read; private repositories need a server token. A
+              local path inside the configured repository root also works.
             </p>
             <div className="form-section">
               <span className="section-number">02</span>

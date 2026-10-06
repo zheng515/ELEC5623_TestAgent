@@ -11,7 +11,7 @@ This repository contains a working **frontend, backend, B0/B2 agent, repository 
 | Frontend | React 19, TypeScript, vinext/Vite, and an English responsive interface |
 | Backend | FastAPI, Pydantic, and versioned REST endpoints with OpenAPI documentation |
 | Agent | Anthropic Messages API with structured output for requirement analysis, scenario planning, independent oracle review, and test generation |
-| Inspection | Read-only AST reading of the project under test, confined to a configured root |
+| Inspection | Read-only AST reading of the project under test, downloaded from a GitHub URL at a pinned commit or confined to a configured local root |
 | Execution | pytest inside a Docker sandbox with no network, a read-only filesystem, and resource limits |
 | Persistence | SQLite for projects, requirements, goals, runs, events, and reports |
 | Checks | pytest, Ruff, TypeScript, ESLint, Vitest, and a production build |
@@ -22,7 +22,7 @@ Install Python 3.11+ and Node.js 22.13+. The recommended Node version is recorde
 
 The agent stages need an Anthropic API key. Copy `backend/.env.example` to `backend/.env` and set `ANTHROPIC_API_KEY`, or export it in your shell. **Without a key the app still starts**, in scaffold mode: projects and runs are recorded, but no requirement is analysed and no test is generated. `GET /api/v1/system` reports which mode is active.
 
-Reading the project under test needs one more setting. `REQTEST_REPOSITORY_ROOT` is the directory that project repositories live under; a run may only read paths inside it. The server saves a bounded code copy locally and sends only public interfaces to the model. Leaving it unset means the saved repository reference is stored but never read, which is the safe default.
+Reading the project under test works from a GitHub URL with no further setting: each run resolves the URL's branch to a commit, downloads that commit through the GitHub API, and records which commit it read. Private repositories need `REQTEST_GITHUB_TOKEN`. To read local directories instead, set `REQTEST_REPOSITORY_ROOT` to the directory that project repositories live under; a run may only read paths inside it. Either way, the server saves a bounded code copy locally and sends only public interfaces to the model. Leaving the root unset means a local path is stored but never read, which is the safe default.
 
 Executing generated tests additionally needs Docker. Build the sandbox image once:
 
@@ -47,7 +47,8 @@ Open the frontend at http://localhost:3000. The API is available at http://127.0
 | To get | Do this | Then `/api/v1/system` reports |
 | --- | --- | --- |
 | Requirement analysis, test planning, and generation | Set `ANTHROPIC_API_KEY` in `backend/.env` or your shell | `analysis`, `planning`, `generation` ready; mode `baseline_b0` |
-| Reading the project under test | Set `REQTEST_REPOSITORY_ROOT` to the directory your repositories live under | `inspection` ready |
+| Reading the project under test from GitHub | Nothing for public repositories; set `REQTEST_GITHUB_TOKEN` for private ones | `inspection` ready |
+| Reading the project under test from a local path | Set `REQTEST_REPOSITORY_ROOT` to the directory your repositories live under | `inspection` ready |
 | Running the generated tests | Start Docker, then `bash scripts/build-sandbox.sh` | `execution` ready |
 
 Copy `backend/.env.example` to `backend/.env` and fill in the values you want. A blank value means *not configured*, so copying the file without editing it changes nothing. Open http://localhost:3000 and check the **Integration status** panel, or `curl http://127.0.0.1:8000/api/v1/system`, to see which capabilities are live — the app always reports what it can and cannot do rather than failing silently.
@@ -113,15 +114,15 @@ known legacy project explicitly after backing up the database, for example with 
 SQL: `UPDATE projects SET owner_id = ? WHERE id = ? AND owner_id IS NULL`. Run ownership follows
 its project. Email verification, password reset, and third-party sign-in are not included.
 
-The repository inspection root is still shared server configuration, not a per-user repository
-permission system. Run this as a trusted local/team tool; public multi-tenant repository hosting
+The repository inspection root and `REQTEST_GITHUB_TOKEN` are shared server configuration, not a
+per-user repository permission system: every account can read what the token can read. Run this as a trusted local/team tool; public multi-tenant repository hosting
 requires separate repository permissions and deployment controls. Behind a reverse proxy,
 configure trusted proxy addresses before relying on per-client throttling.
 
 ### Verification workspace
 
 1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
-2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference. You can import a `.txt` or `.md` requirement file, or use the English shipping example.
+2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference: a GitHub URL such as `https://github.com/owner/repository`, optionally ending in `/tree/<branch>/<folder>` or `/commit/<sha>`, or a local path inside the configured root. You can import a `.txt` or `.md` requirement file, or use the English shipping example.
 3. Submit the form to save the project, queue a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
 4. Follow live workflow stages (refreshed every two seconds), recorded events, current metrics, and unresolved issues in **Agent workspace**. Expand **Test plan** scenarios to see their normal, boundary, or negative category, preconditions, inputs, steps, expected result, source evidence, assumptions, linked tests, and execution outcomes.
 5. Open **Requirements & evidence** to read the saved requirements and filter the extracted behaviors by verification status.
@@ -183,7 +184,22 @@ Nested input objects, missing repository interfaces or contracts, classes, helpe
 
 Automatic repair is deliberately narrow: it can remove an unused fixture parameter explicitly named by a recorded missing-fixture error. The server compares the complete module AST and preserves test bodies, assertions, inputs, project calls, imports, helper functions, decorators, and control flow. Constant-only checks, modules without identifiable project calls, dynamic namespace access, and unparseable baselines are rejected. Syntax errors and other unsupported edits remain recorded errors rather than being rewritten without a protected baseline. Rejected replacements are not executed; their reasons appear in activity and unresolved issues, and original code and execution evidence remain available. This protects repair integrity; it does not prove the original tests implement every planned scenario or establish test adequacy.
 
-Remote repositories are **not** cloned. A reference must be a local path inside `REQTEST_REPOSITORY_ROOT`; a URL is refused with an explanation.
+### GitHub repositories
+
+A repository reference may be a GitHub URL. Each run downloads it at a pinned commit; nothing on the server's own filesystem is exposed, so this needs no repository root and is on by default (`REQTEST_GITHUB_ENABLED=false` turns it off).
+
+| URL form | What is read |
+| --- | --- |
+| `https://github.com/owner/repository` (also `.git`, `git@github.com:owner/repository.git`) | Default branch |
+| `https://github.com/owner/repository/tree/<branch-or-tag>` | That branch or tag; names containing `/` work |
+| `https://github.com/owner/repository/tree/<branch>/<folder>` | Only that folder, as the repository root. Use it when the Python package lives in a subdirectory |
+| `https://github.com/owner/repository/commit/<sha>` | That exact commit |
+
+The branch is resolved to a commit first and the archive of exactly that commit is downloaded, so the report names the commit that was tested even if the branch moves later. The workspace, HTML and JSON reports show the repository, ref, commit SHA and folder alongside the saved snapshot. Each new run resolves the branch again.
+
+Only the owner, repository, ref and folder are taken from the URL; requests go to `api.github.com`, and redirects are followed only to GitHub's API and archive hosts. Other hosts, file links, and URLs containing credentials are refused. A project whose URL embeds a token is rejected at creation without echoing it. The archive is streamed with a size limit (`REQTEST_GITHUB_MAX_ARCHIVE_BYTES`, 50 MB) and an overall time limit (`REQTEST_GITHUB_TIMEOUT_SECONDS`, 60 s). Only ordinary files and directories are unpacked; an absolute or `..` path refuses the whole archive, and links are skipped and recorded. The unpacked download is temporary: the same snapshot limits then apply as for local directories, and the copy is what interfaces are read from and tests execute against. Nothing from the download runs on the host.
+
+Unauthenticated GitHub API access is limited to 60 requests per hour per IP address, and each run uses about three. Set `REQTEST_GITHUB_TOKEN` to a fine-grained token with read-only *Contents* access for private repositories and a higher limit. A download failure (repository not found, unknown branch or folder, rate limit, network error, limit exceeded) does not fail the run: it is recorded as **Repository not read** with the reason, and generation continues without interfaces. GitHub Enterprise and other hosts are not supported.
 
 `mode` records the active workflow. `baseline_b0` is one direct generation pass without retrieval or feedback. `baseline_b2` adds execution feedback and one bounded repair attempt for invalid tests. Neither mode includes RAG retrieval yet.
 
@@ -202,6 +218,7 @@ backend/
     services/planner.py       Structured scenarios, source links, and planning gaps
     services/generator.py     Plan-driven test generation, traceability, and coverage gaps
     services/inspector.py     Read-only interface extraction from the project under test
+    services/github_source.py GitHub URL parsing and pinned-commit archive download
     services/runner.py        Docker sandbox execution and result parsing
     services/orchestrator.py  Agent interface, scaffold and B0 implementations
   sandbox/Dockerfile          Image generated tests execute in
@@ -209,6 +226,7 @@ backend/
   tests/test_agent.py         Agent stage tests against a fake model
   tests/test_runner.py        Sandbox command and result-parsing tests
   tests/test_inspector.py     Inspection and path-confinement tests
+  tests/test_github_source.py GitHub URL parsing and download tests against a fake GitHub
   pyproject.toml
   requirements-dev.lock       Pinned development dependencies
 frontend/
@@ -256,9 +274,9 @@ In proposal order, the remaining work is:
 2. **Mutation testing.** The only route to a `Verified` status, and the proposal's mutation-score metric.
 3. **Requirement documents beyond plain text (FR1).**
 
-Next, validate the background workflow against a representative local Python repository and a real sandbox before expanding retrieval. Source quotes are checked as nonblank, verbatim excerpts of the submitted text; this proves quote provenance, not the semantic correctness or completeness of the analysis.
+Next, validate the background workflow against a representative Python repository and a real sandbox before expanding retrieval. Source quotes are checked as nonblank, verbatim excerpts of the submitted text; this proves quote provenance, not the semantic correctness or completeness of the analysis.
 
-The current foundation has no repository upload or cloning, automatic job resumption, distributed queue, or production deployment. A separate production backend needs an API URL, explicit CORS origins, HTTPS with secure session cookies, and an isolated execution environment. The development proxy is not a production API gateway.
+The current foundation has no repository upload, no hosts other than GitHub, no automatic job resumption, distributed queue, or production deployment. A separate production backend needs an API URL, explicit CORS origins, HTTPS with secure session cookies, and an isolated execution environment. The development proxy is not a production API gateway.
 
 Specification analysis includes a server-computed source audit. The workspace,
 evidence page, and exported reports show unlinked source fragments, ambiguous

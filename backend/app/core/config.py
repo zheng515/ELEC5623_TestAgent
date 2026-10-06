@@ -37,6 +37,16 @@ class Settings(BaseSettings):
     max_snapshot_files: int = Field(default=2000, ge=1, le=100000)
     max_snapshot_bytes: int = Field(default=20_000_000, ge=1, le=1_000_000_000)
 
+    # GitHub repositories (FR4). A GitHub URL as the repository reference downloads that
+    # repository at a pinned commit through the GitHub API, so it needs no repository
+    # root: nothing on this server's filesystem is exposed. The optional token reads
+    # private repositories and raises the API rate limit. It is shared server
+    # configuration, so every account can read whatever the token can read.
+    github_enabled: bool = True
+    github_token: SecretStr | None = None
+    github_timeout_seconds: float = Field(default=60.0, gt=0, le=600)
+    github_max_archive_bytes: int = Field(default=50_000_000, ge=1, le=1_000_000_000)
+
     # Sandbox for executing generated tests. Disabled unless Docker is running and
     # the image exists; there is no host-execution fallback by design (NFR5).
     sandbox_enabled: bool = True
@@ -48,7 +58,11 @@ class Settings(BaseSettings):
     sandbox_pids_limit: int = 128
 
     @field_validator(
-        "repository_root", "repository_snapshot_root", "anthropic_api_key", mode="before"
+        "repository_root",
+        "repository_snapshot_root",
+        "anthropic_api_key",
+        "github_token",
+        mode="before",
     )
     @classmethod
     def _blank_means_unset(cls, value):

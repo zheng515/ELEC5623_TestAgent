@@ -26,7 +26,13 @@ from app.schemas import (
 )
 from app.services.analyzer import analyze_requirements
 from app.services.generator import coverage_gaps, generate_tests, requirement_coverage
-from app.services.inspector import RepositoryError, inspect_repository, repository_available
+from app.services.github_source import is_remote
+from app.services.inspector import (
+    RepositoryError,
+    inspect_repository,
+    local_repositories_available,
+    repository_available,
+)
 from app.services.llm import LLMError, StructuredLLM
 from app.services.oracle_review import review_oracles
 from app.services.outcome_mapping import (
@@ -528,10 +534,13 @@ class DirectLLMOrchestrator:
             return None, [
                 "No repository was provided, so generated tests must guess the module they import."
             ]
-        if not repository_available(self._settings):
+        if not is_remote(project.repository_ref) and not local_repositories_available(
+            self._settings
+        ):
             return None, [
                 "Repository inspection is not configured, so the saved repository "
-                "reference was not read. Set REQTEST_REPOSITORY_ROOT to enable it."
+                "reference was not read. Set REQTEST_REPOSITORY_ROOT to enable it, "
+                "or use a GitHub repository URL."
             ]
         try:
             snapshot = inspect_repository(project.repository_ref, self._settings)
@@ -539,6 +548,17 @@ class DirectLLMOrchestrator:
             events.append(_event("inspect", f"Repository not read: {error}", datetime.now(UTC)))
             return None, [f"Repository not read: {error}"]
 
+        if snapshot.source is not None:
+            source = snapshot.source
+            folder = f", folder {source.subdirectory}" if source.subdirectory else ""
+            events.append(
+                _event(
+                    "inspect",
+                    f"Downloaded {source.repository} from GitHub at commit "
+                    f"{source.commit_sha[:12]} ({source.ref}{folder}).",
+                    datetime.now(UTC),
+                )
+            )
         events.append(
             _event(
                 "inspect",
