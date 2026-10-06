@@ -19,6 +19,12 @@ export function ExecutionHistory({ report }: { report: VerificationReport }) {
                 : `Exit code ${attempt.result.exit_code}`}
             </Badge>
           </summary>
+          <p className="small muted">
+            Executed code fingerprint:{" "}
+            <code>
+              {attempt.result.repository_content_sha256 ?? "Not recorded"}
+            </code>
+          </p>
           {attempt.result.stderr_excerpt && (
             <pre className="test-code">{attempt.result.stderr_excerpt}</pre>
           )}

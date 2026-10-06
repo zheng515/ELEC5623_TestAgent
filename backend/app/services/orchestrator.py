@@ -29,6 +29,7 @@ from app.services.inspector import RepositoryError, inspect_repository, reposito
 from app.services.llm import LLMError, StructuredLLM
 from app.services.planner import plan_tests, planning_gaps
 from app.services.refiner import refine_tests
+from app.services.repository_snapshot import SnapshotError, verified_snapshot_root
 from app.services.runner import TestRunner
 from app.services.test_validator import validated_scenarios
 
@@ -465,7 +466,8 @@ class DirectLLMOrchestrator:
             _event(
                 "inspect",
                 f"Read the public interface of {len(snapshot.modules)} modules from "
-                f"{snapshot.root}. File contents were not read.",
+                f"the saved code snapshot of {snapshot.root}. "
+                "Only public interfaces were sent to the model.",
                 datetime.now(UTC),
             )
         )
@@ -510,7 +512,26 @@ class DirectLLMOrchestrator:
         if not eligible:
             return None
 
-        result = self._runner.execute(eligible, repository.root if repository else None)
+        try:
+            artifact = repository.artifact if repository else None
+            execution_root = verified_snapshot_root(artifact, self._settings)
+            result = self._runner.execute(eligible, str(execution_root))
+            # A read-only container mount prevents test writes. Recheck host storage
+            # as well: discard outcomes if another host process changed the copy.
+            verified_snapshot_root(artifact, self._settings)
+            result = result.model_copy(
+                update={"repository_content_sha256": artifact.content_sha256}
+            )
+        except SnapshotError as error:
+            message = f"Code snapshot verification failed: {error}"
+            events.append(_event(stage, message, datetime.now(UTC)))
+            return ExecutionResult(
+                executions=[],
+                exit_code=-1,
+                timed_out=False,
+                stderr_excerpt=message,
+                snapshot_error=message,
+            )
         if result.timed_out:
             events.append(
                 _event(stage, f"Execution timed out. {result.stderr_excerpt}", datetime.now(UTC))
@@ -821,6 +842,8 @@ def _execution_issues(
         ]
     if execution.timed_out:
         return [f"Execution timed out: {execution.stderr_excerpt}"]
+    if execution.snapshot_error:
+        return [execution.snapshot_error]
 
     issues = []
     counts = Counter(item.outcome for item in execution.executions)

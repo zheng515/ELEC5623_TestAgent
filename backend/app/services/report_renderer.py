@@ -42,6 +42,29 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
     )
     plan_html = _render_plan(run)
     attempt_html = _render_attempts(run)
+    artifact = report.repository.artifact if report.repository else None
+    version_html = (
+        "<p>No saved code snapshot. Executed file contents cannot be established for this run.</p>"
+    )
+    if artifact:
+        version_html = (
+            f"<p>Saved snapshot: <code>{escape(artifact.id)}</code> | "
+            f"{len(artifact.files)} files | {sum(item.size for item in artifact.files)} bytes</p>"
+            f"<p>Content fingerprint: <code>{escape(artifact.content_sha256)}</code></p>"
+            "<p>Interfaces and execution use the saved copy. Original directory edits do not "
+            "affect this run. Integrity is checked before and after execution. "
+            "The fingerprint does not identify installed dependencies or the container image.</p>"
+            "<details><summary>Copied file manifest</summary>"
+            + _items(
+                [
+                    f"{item.path}: {item.size} bytes; SHA-256 {item.sha256}"
+                    for item in artifact.files
+                ]
+            )
+            + "</details><details><summary>Excluded paths</summary>"
+            + _items(artifact.excluded)
+            + "</details>"
+        )
     audit = report.source_audit
     source_html = "<p>No source audit recorded. Specification completeness is unknown.</p>"
     if audit:
@@ -109,6 +132,7 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 <div class="card"><strong>{_percent(report.execution_success_rate)}</strong><br>Execution success</div></div>
 <h2>Requirement-to-test mapping</h2><table><thead><tr><th>Requirement</th><th>Testable</th><th>Tests</th><th>Outcome</th></tr></thead><tbody>{"".join(mappings) or '<tr><td colspan="4">No structured requirements.</td></tr>'}</tbody></table>
 <h2>Specification analysis scope</h2>{source_html}
+<h2>Code version used for verification</h2>{version_html}
 <h2>Test plan</h2>{plan_html}
 <h2>Code-to-plan validation</h2>
 <p>Only validated links count in new-run coverage. Matching a plan does not prove
@@ -146,6 +170,7 @@ def _render_attempts(run: VerificationRun) -> str:
         sections.append(
             f'<section class="card"><h3>Attempt {attempt.number}: {escape(attempt.stage)}</h3>'
             f"<p>Exit code: {attempt.result.exit_code} | Timed out: {attempt.result.timed_out}</p>"
+            f"<p>Executed code fingerprint: <code>{escape(attempt.result.repository_content_sha256 or 'Not recorded')}</code></p>"
             f"<pre>{escape(attempt.result.stderr_excerpt)}</pre>"
             f"<ul>{rows or '<li>No outcomes recorded.</li>'}</ul>{diagnoses}{artifacts}</section>"
         )

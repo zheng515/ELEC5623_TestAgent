@@ -67,7 +67,7 @@ def test_modules_are_named_as_they_would_be_imported(repository, settings):
 
 
 def test_generated_noise_is_not_inspected(repository, settings):
-    for directory in (".venv", "node_modules", "__pycache__", ".git"):
+    for directory in (".venv", "node_modules", "__pycache__", ".git", ".tools", ".next"):
         (repository / directory).mkdir()
         (repository / directory / "junk.py").write_text("def junk(): ...")
 

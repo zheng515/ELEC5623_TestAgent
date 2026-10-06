@@ -22,7 +22,7 @@ Install Python 3.11+ and Node.js 22.13+. The recommended Node version is recorde
 
 The agent stages need an Anthropic API key. Copy `backend/.env.example` to `backend/.env` and set `ANTHROPIC_API_KEY`, or export it in your shell. **Without a key the app still starts**, in scaffold mode: projects and runs are recorded, but no requirement is analysed and no test is generated. `GET /api/v1/system` reports which mode is active.
 
-Reading the project under test needs one more setting. `REQTEST_REPOSITORY_ROOT` is the directory that project repositories live under; a run may only read paths inside it, and only their public interface. Leaving it unset means the saved repository reference is stored but never read, which is the safe default.
+Reading the project under test needs one more setting. `REQTEST_REPOSITORY_ROOT` is the directory that project repositories live under; a run may only read paths inside it. The server saves a bounded code copy locally and sends only public interfaces to the model. Leaving it unset means the saved repository reference is stored but never read, which is the safe default.
 
 Executing generated tests additionally needs Docker. Build the sandbox image once:
 
@@ -248,3 +248,21 @@ evidence page, and exported reports show unlinked source fragments, ambiguous
 repeated quotes, and extraction-limit warnings. Validated requirement links apply
 only to extracted testable requirements; 100% does not mean the entire specification
 has been verified. Quote provenance alone cannot establish semantic completeness.
+
+Each newly inspected repository is copied before interface analysis. Tests and
+repairs execute against that saved copy rather than the mutable original directory.
+The UI and HTML/JSON exports record its file manifest and content fingerprint, and
+each execution attempt records the fingerprint it used. Missing or changed copies
+block execution; outcomes are discarded if integrity fails after execution. Older
+runs without a saved snapshot cannot establish the executed file contents.
+
+Snapshots are retained under `backend/data/repository-snapshots` by default, or
+`REQTEST_REPOSITORY_SNAPSHOT_ROOT` when configured. Each copy is limited to 2,000
+files/directories and 20 MB by default (`REQTEST_MAX_SNAPSHOT_FILES`,
+`REQTEST_MAX_SNAPSHOT_BYTES`). VCS metadata, virtual environments, build output,
+caches, symlinks and special files are excluded and recorded. Ordinary data and
+configuration files are retained. Copies exceeding a limit are refused, never
+silently truncated. Storage currently has no automatic retention cleanup. Copying
+is checked with a second source scan, not an atomic filesystem transaction; keep
+source files stable during capture. The content fingerprint does not pin the
+sandbox image or installed dependencies.

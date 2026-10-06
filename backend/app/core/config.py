@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     repository_root: Path | None = None
     max_inspected_files: int = 60
     max_inspected_bytes: int = 400_000
+    # Persist code separately from the mutable project directory. None uses the
+    # database directory's repository-snapshots subdirectory.
+    repository_snapshot_root: Path | None = None
+    max_snapshot_files: int = Field(default=2000, ge=1, le=100000)
+    max_snapshot_bytes: int = Field(default=20_000_000, ge=1, le=1_000_000_000)
 
     # Sandbox for executing generated tests. Disabled unless Docker is running and
     # the image exists; there is no host-execution fallback by design (NFR5).
@@ -42,7 +47,9 @@ class Settings(BaseSettings):
     sandbox_cpus: str = "1"
     sandbox_pids_limit: int = 128
 
-    @field_validator("repository_root", "anthropic_api_key", mode="before")
+    @field_validator(
+        "repository_root", "repository_snapshot_root", "anthropic_api_key", mode="before"
+    )
     @classmethod
     def _blank_means_unset(cls, value):
         """An empty value in .env means "not configured", not "the current directory".
