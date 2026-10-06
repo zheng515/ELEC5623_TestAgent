@@ -50,6 +50,16 @@ from app.services.test_validator import validate_test
         SUITE.tests[0].code.replace("assert fee(10000) == 0", "assert eval('fee(10000)') == 0"),
         SUITE.tests[0].code.replace("fee(10000)", "fee(True)"),
         SUITE.tests[0].code.replace("== 0", "== False"),
+        SUITE.tests[0].code + "    assert fee(0) == 999\n",
+        SUITE.tests[0].code + "\ndef test_unplanned():\n    assert fee(0) == 999\n",
+        SUITE.tests[0].code.replace("def test_", "import pytest\ndef test_")
+        + "    with pytest.raises(ValueError):\n        fee(-1)\n",
+        SUITE.tests[0].code.replace("assert fee", "unused = fee(0)\n    assert fee"),
+        SUITE.tests[0].code + "    unused = fee(0)\n",
+        SUITE.tests[0].code.replace("assert fee", "unused = fee(0); assert fee"),
+        SUITE.tests[0].code.replace("assert fee", "unused = fee(10000); assert fee"),
+        SUITE.tests[0].code.replace("== 0", "== 0, fee(0)"),
+        SUITE.tests[0].code.replace("== 0", "== 0, str(fee(0))"),
     ],
 )
 def test_invalid_claim_is_retained_but_excluded_from_execution_and_coverage(code):
@@ -79,6 +89,7 @@ def test_invalid_claim_is_retained_but_excluded_from_execution_and_coverage(code
     assert run.report.behaviors[0].verification_status == "Unverified"
     assert runner.received == []
     assert run.report.executed_tests == 0
+    assert not any(item.classification == "suspected_defect" for item in run.report.diagnoses)
     assert "excluded" in run.events[-1].message
 
 
@@ -86,6 +97,7 @@ def test_invalid_claim_is_retained_but_excluded_from_execution_and_coverage(code
     "code",
     [
         SUITE.tests[0].code,
+        SUITE.tests[0].code.replace("== 0", "== 0, 'Free shipping expected'"),
         "import shipping as s\ndef test_shipping():\n    assert s.fee(10000) == 0\n",
         "from shipping import fee as calculate\ndef test_shipping():\n"
         "    amount = 10000\n    expected = 0\n    result = calculate(amount)\n"
@@ -167,6 +179,40 @@ def test_each_claimed_scenario_needs_its_own_matching_oracle():
     assert checked.validation_status == "needs_review"
     assert checked.validated_checks == []
     assert any("S2" in issue for issue in checked.validation_issues)
+
+
+def test_extra_check_requires_a_link_even_when_its_contract_exists_in_the_plan():
+    second = PLAN.scenarios[0].model_copy(
+        update={
+            "id": "S2",
+            "check": ScenarioCheck(
+                target="shipping.fee", arguments=[9999], operator="equals", expected_value=1000
+            ),
+        }
+    )
+    plan = PLAN.model_copy(update={"scenarios": [*PLAN.scenarios, second]})
+    test = SUITE.tests[0].model_copy(
+        update={"code": SUITE.tests[0].code + "    assert fee(9999) == 1000\n"}
+    )
+    checked = validate_test(test, plan, REPOSITORY)
+    assert checked.validation_status == "needs_review"
+    assert checked.validated_checks == []
+    assert any(
+        "line 5" in issue and "no matching linked" in issue for issue in checked.validation_issues
+    )
+    linked = validate_test(test.model_copy(update={"scenario_ids": ["S1", "S2"]}), plan, REPOSITORY)
+    assert linked.validation_status == "validated"
+    assert {check.scenario_id for check in linked.validated_checks} == {"S1", "S2"}
+
+
+def test_every_saved_result_is_checked_even_when_calls_share_a_line():
+    code = (
+        "from shipping import fee\ndef test_shipping():\n"
+        "    unused = fee(0); result = fee(10000)\n    assert result == 0\n"
+    )
+    checked = validate_test(SUITE.tests[0].model_copy(update={"code": code}), PLAN, REPOSITORY)
+    assert checked.validation_status == "needs_review"
+    assert any("unused has no checked result" in issue for issue in checked.validation_issues)
 
 
 def test_actual_test_function_outcome_is_required_not_just_a_module_outcome():
@@ -262,6 +308,22 @@ def test_html_preserves_rejected_code_and_its_explanation_without_fabricating_ex
     assert "<script>alert(1)</script>" not in html
     assert "No tests executed." in html
     assert not any("Start Docker" in issue for issue in run.report.unresolved_issues)
+
+
+@pytest.mark.parametrize("version", [None, 1])
+def test_html_marks_earlier_validation_versions_as_historical(version):
+    from app.services.report_renderer import render_html_report
+
+    run = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed"))).run(
+        PROJECT
+    )
+    assert run.report.validation_version == 2
+    run.report.validation_version = version
+    coverage = run.report.requirement_coverage
+    html = render_html_report(PROJECT, run)
+    assert "This run predates the current code-to-plan checks" in html
+    assert "have not been revalidated" in html
+    assert run.report.requirement_coverage == coverage
 
 
 def test_planner_contract_is_compatible_with_the_real_sdk_schema_transform():

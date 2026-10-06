@@ -19,6 +19,9 @@ Rules:
 - Implement each structured check exactly: target function, literal inputs and equality
   oracle or precise pytest.raises exception. Use direct imports and straight-line test
   functions. Do not use decorators, helpers, mocks, control flow or dynamic evaluation.
+- Every assertion must match a linked scenario contract. Do not add unplanned checks
+  or setup calls. Check every saved project-call result. Assertion messages must be
+  literals; do not put calls or dynamic expressions in them.
 - validation_status, validation_issues and validated_checks are server-owned; do not
   claim validation in model output.
 - Implement the supplied test plan. Each test must list known scenario_ids that it

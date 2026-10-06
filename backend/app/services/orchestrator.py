@@ -33,7 +33,7 @@ from app.services.project_readiness import check_project_readiness
 from app.services.refiner import refine_tests
 from app.services.repository_snapshot import SnapshotError, verified_snapshot_root
 from app.services.runner import TestRunner
-from app.services.test_validator import validated_scenarios
+from app.services.test_validator import VALIDATION_VERSION, validated_scenarios
 
 ProgressCallback = Callable[[VerificationRun], None]
 
@@ -312,7 +312,7 @@ class DirectLLMOrchestrator:
             "execute",
             "Executing generated tests in the available sandbox.",
             generated_tests=suite.tests,
-            validation_version=1,
+            validation_version=VALIDATION_VERSION,
             coverage_gaps=gaps,
             requirement_coverage=requirement_coverage(requirements, suite.tests),
             behaviors=_behaviors(requirements, suite.tests, [], inspected=False, plan=plan),
@@ -457,7 +457,7 @@ class DirectLLMOrchestrator:
             input_sha256=digest,
             events=events,
             report=VerificationReport(
-                validation_version=1,
+                validation_version=VALIDATION_VERSION,
                 source_audit=analysis.source_audit,
                 project_readiness=readiness,
                 summary=(

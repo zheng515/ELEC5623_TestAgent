@@ -714,7 +714,7 @@ it("distinguishes a claimed scenario link from validated code and preserves revi
     <TestPlanDetails
       report={{
         ...plannedRun.report,
-        validation_version: 1,
+        validation_version: 2,
         generated_tests: plannedRun.report.generated_tests.map((test) => ({
           ...test,
           validation_status: "needs_review",
@@ -753,7 +753,7 @@ it("shows the planned contract and validated call location without claiming adeq
     <TestPlanDetails
       report={{
         ...plannedRun.report,
-        validation_version: 1,
+        validation_version: 2,
         test_plan: {
           ...plannedRun.report.test_plan!,
           scenarios: plannedRun.report.test_plan!.scenarios.map((scenario) => ({
@@ -793,7 +793,7 @@ it("shows excluded artifacts and their reasons in the workspace without implying
     ...plannedRun,
     report: {
       ...plannedRun.report,
-      validation_version: 1,
+      validation_version: 2,
       executions: [],
       executed_tests: 0,
       requirement_coverage: 0,
@@ -823,7 +823,29 @@ it("shows excluded artifacts and their reasons in the workspace without implying
   expect(screen.getByText("Review needed · tests excluded")).toBeTruthy();
   expect(
     screen.queryByText(
-      "Historical coverage and conclusions have not been revalidated.",
+      /Historical coverage and conclusions have not been revalidated/,
     ),
   ).toBeNull();
 });
+
+it.each([undefined, 1])(
+  "flags historical validation version %s without changing saved evidence",
+  async (version) => {
+    const historical: VerificationRun = {
+      ...plannedRun,
+      report: {
+        ...plannedRun.report,
+        validation_version: version,
+        requirement_coverage: 1,
+      },
+    };
+    vi.mocked(api.runs).mockResolvedValue([historical]);
+    window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+    render(<App />);
+    await screen.findByText(
+      /This run predates the current code-to-plan checks/,
+    );
+    expect(screen.getByText("Requirement coverage")).toBeTruthy();
+    expect(screen.getByText("100%")).toBeTruthy();
+  },
+);

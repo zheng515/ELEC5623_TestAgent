@@ -1,3 +1,5 @@
+export const VALIDATION_VERSION = 2;
+
 export interface User {
   id: string;
   name: string;

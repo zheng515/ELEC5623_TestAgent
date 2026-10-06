@@ -151,7 +151,7 @@ Use one API process with this SQLite worker. On shutdown or restart, unfinished 
 
 A completed agent run reports two rates, and they measure different things:
 
-- `requirement_coverage` — for new runs (`validation_version = 1`), share of extracted testable requirements linked to at least one artifact whose code passes server-side code-to-plan validation. It is labeled **Validated requirement links** in the UI. Unchecked or unsupported claims do not count; a requirement-level link does not mean every planned scenario is implemented. Old reports retain their historical metrics and are explicitly marked as not revalidated.
+- `requirement_coverage` — for new runs (`validation_version = 2`), share of extracted testable requirements linked to at least one artifact whose code passes server-side code-to-plan validation. It is labeled **Validated requirement links** in the UI. Unchecked or unsupported claims do not count; a requirement-level link does not mean every planned scenario is implemented. Old reports retain their historical metrics and are explicitly marked as not revalidated.
 - `execution_success_rate` — share of **executed** tests that passed. `null` means nothing ran.
 
 `semantic_coverage` and `mutation_score` stay `null`; `null` means *not evaluated*.
@@ -168,6 +168,8 @@ Verification statuses follow the evidence, and only ever downward from what was 
 ### Code-to-plan validation
 
 The planner saves a structured `check` before generation: an inspected target such as `shipping.fee`, JSON scalar or flat-list inputs (named keyword arguments are stored as `{name, value}` entries), and either an equality oracle or a precise built-in exception type. The server parses generated Python as AST without executing it on the host. Only direct function calls and straight-line test functions with supported checks are eligible. Local literal variables, imported aliases, and assertions on saved call results are supported. Wrong inputs, wrong or weakened oracles, fabricated APIs, shadowed bindings, constant checks, skip decorators, early returns, swallowed errors, and dynamic execution cannot establish a validated link.
+
+Validation version 2 checks both directions: every linked scenario needs a matching check, and every observed equality or exception check must match a linked scenario contract. Extra assertions, unused project-call results (including setup calls), and dynamic assertion messages make the entire artifact **Needs review**. Literal assertion messages remain supported. Rejected artifacts cannot produce suspected product defects because they are never executed. Runs saved under earlier rules keep their original evidence and display a notice to start a new run; they are not silently revalidated.
 
 Each artifact records `validation_status`, `validation_issues`, and `validated_checks` with scenario IDs, test function names, targets, and call/assertion line numbers. These fields are computed by the server; model-provided values are overwritten. **Needs review** artifacts remain visible, including their code and declared links, but are excluded from coverage and automatic sandbox execution. Repairs are checked again against the saved contract. Multi-function artifacts require final execution outcomes for every validated test function before partial verification is possible.
 

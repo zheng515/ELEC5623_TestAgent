@@ -3,18 +3,29 @@
 from html import escape
 
 from app.schemas import Project, VerificationRun
+from app.services.test_validator import VALIDATION_VERSION
 
 
 def render_html_report(project: Project, run: VerificationRun) -> str:
     """Render a portable, escaped verification report (FR15)."""
     report = run.report
+    validation_notice = (
+        "Current validation requires every observed check to match a linked scenario "
+        "contract and every saved project-call result to be checked."
+        if report.validation_version == VALIDATION_VERSION
+        else "This run predates the current code-to-plan checks. Historical coverage "
+        "and conclusions have not been revalidated. Start a new run to check for "
+        "unplanned assertions and unchecked calls."
+    )
     readiness = report.project_readiness
     readiness_html = "<p>No project readiness checks recorded.</p>"
     if readiness:
         readiness_html = (
             f"<p>Project setup status: {escape(readiness.status)}. "
             f"Import roots: {escape(', '.join(readiness.import_roots))}.</p>"
-            + _items([f"{item.subject}: {item.status} — {item.detail}" for item in readiness.checks])
+            + _items(
+                [f"{item.subject}: {item.status} — {item.detail}" for item in readiness.checks]
+            )
             + _items(readiness.notes)
         )
         if readiness.environment:
@@ -151,7 +162,7 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 <h2>Test plan</h2>{plan_html}
 <h2>Code-to-plan validation</h2>
 <p>Only validated links count in new-run coverage. Matching a plan does not prove
-that its expectations are correct or complete. Legacy artifacts have no validation record.</p>
+that its expectations are correct or complete.</p><p>{validation_notice}</p>
 {validation_html or "<p>No generated artifacts.</p>"}
 <h2>Execution history</h2>{attempt_html}
 <h2>Coverage gaps</h2><ul>{gaps or "<li>None recorded.</li>"}</ul>

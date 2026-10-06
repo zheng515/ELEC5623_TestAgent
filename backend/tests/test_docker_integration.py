@@ -18,7 +18,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.mark.parametrize("case", ["passing", "defect", "repair", "setup_blocked"])
+@pytest.mark.parametrize("case", ["passing", "defect", "repair", "setup_blocked", "unplanned"])
 def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_path, case):
     source = tmp_path / "project"
     source.mkdir()
@@ -36,6 +36,16 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
     responses = (
         [ANALYSIS, PLAN, INVALID_SUITE, SUITE] if case == "repair" else [ANALYSIS, PLAN, SUITE]
     )
+    if case == "unplanned":
+        responses[-1] = SUITE.model_copy(
+            update={
+                "tests": [
+                    SUITE.tests[0].model_copy(
+                        update={"code": SUITE.tests[0].code + "    assert fee(0) == 999\n"}
+                    )
+                ]
+            }
+        )
     agent = DirectLLMOrchestrator(
         FakeLLM(*responses), runner=DockerTestRunner(settings), settings=settings
     )
@@ -69,6 +79,21 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
             return
         assert run["status"] == "completed"
         report = run["report"]
+        if case == "unplanned":
+            assert report["project_readiness"]["status"] == "ready"
+            assert report["validation_version"] == 2
+            assert report["generated_tests"][0]["validation_status"] == "needs_review"
+            assert report["executions"] == []
+            assert report["execution_attempts"] == []
+            assert report["requirement_coverage"] == 0
+            assert report["behaviors"][0]["verification_status"] == "Unverified"
+            assert not any(
+                item["classification"] == "suspected_defect" for item in report["diagnoses"]
+            )
+            html = client.get(f"/api/v1/runs/{run['id']}/report.html").text
+            assert "no matching linked scenario contract" in html
+            assert "No tests executed." in html
+            return
         expected = "failed" if case == "defect" else "passed"
         assert [item["outcome"] for item in report["executions"]] == [expected]
         assert report["behaviors"][0]["verification_status"] == (

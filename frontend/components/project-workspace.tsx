@@ -5,7 +5,7 @@ import { ProjectSetup } from "./project-setup";
 import { RepositoryVersion } from "./repository-version";
 import { SourceAudit } from "./source-audit";
 import { TestPlanDetails } from "./test-plan";
-import { isRunActive } from "../lib/types";
+import { isRunActive, VALIDATION_VERSION } from "../lib/types";
 import { ExecutionHistory } from "./execution-history";
 import {
   Badge,
@@ -332,7 +332,7 @@ export function Workspace({
               </div>
               <div>
                 <span>
-                  {run?.report.validation_version === 1
+                  {run?.report.validation_version === VALIDATION_VERSION
                     ? "Validated requirement links"
                     : "Requirement coverage"}
                 </span>
@@ -904,7 +904,7 @@ export function Report({
                     {percent(run.report.requirement_coverage) ?? "—"}
                   </strong>
                   <span>
-                    {run?.report.validation_version === 1
+                    {run?.report.validation_version === VALIDATION_VERSION
                       ? "Validated requirement links"
                       : "Requirement coverage"}
                   </span>

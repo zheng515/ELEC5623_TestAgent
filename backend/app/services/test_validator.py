@@ -11,6 +11,8 @@ from dataclasses import dataclass
 
 from app.schemas import GeneratedTest, RepositorySnapshot, TestPlan, ValidatedCheck
 
+VALIDATION_VERSION = 2
+
 
 class UnsupportedCheck(ValueError):
     pass
@@ -38,6 +40,7 @@ def validate_test(test: GeneratedTest, plan: TestPlan, repository: RepositorySna
                 "Repository interfaces are unavailable; target calls cannot be validated."
             )
         observed = _observe(test.code, repository)
+        matched_indices = set()
         for scenario_id in test.scenario_ids:
             scenario = scenarios.get(scenario_id)
             if scenario is None or scenario.check is None:
@@ -60,8 +63,8 @@ def validate_test(test: GeneratedTest, plan: TestPlan, repository: RepositorySna
                 issues.append(f"{scenario_id}: duplicate keyword arguments in the contract.")
                 continue
             matches = [
-                check
-                for check in observed
+                (index, check)
+                for index, check in enumerate(observed)
                 if check.target == contract.target
                 and check.operator == contract.operator
                 and _equal(check.arguments, contract.arguments)
@@ -81,13 +84,20 @@ def validate_test(test: GeneratedTest, plan: TestPlan, repository: RepositorySna
                     call_line=check.call_line,
                     assertion_line=check.assertion_line,
                 )
-                for check in matches
+                for _, check in matches
             )
+            matched_indices.update(index for index, _ in matches)
+        for index, check in enumerate(observed):
+            if index not in matched_indices:
+                issues.append(
+                    f"{check.function}, line {check.assertion_line}: check of "
+                    f"{check.target} has no matching linked scenario contract."
+                )
         if not test.scenario_ids:
             issues.append("No scenario was linked to this artifact.")
     except (SyntaxError, UnsupportedCheck, ValueError, TypeError) as error:
         issues.append(str(error))
-    # A partially matched artifact is not eligible: all declared links must be supported.
+    # Both directions must match: every declared scenario and every observed check.
     return test.model_copy(
         update={
             "validation_status": "needs_review" if issues else "validated",
@@ -209,6 +219,7 @@ def _observe(code, repository):
         if arguments & (set(bindings) | pytest_names):
             raise UnsupportedCheck("Fixture arguments must not shadow imports.")
         variables, results = {}, {}
+        checked_results = set()
         before = len(checks)
         for statement in function.body:
             if (
@@ -224,6 +235,14 @@ def _observe(code, repository):
                 else:
                     variables[name] = _literal(statement.value, variables)
             elif isinstance(statement, ast.Assert):
+                if statement.msg is not None:
+                    try:
+                        _literal(statement.msg, variables)
+                    except UnsupportedCheck as error:
+                        raise UnsupportedCheck(
+                            f"{function.name}, line {statement.lineno}: "
+                            "assertion messages must be literals, without extra calls."
+                        ) from error
                 comparison = statement.test
                 if (
                     not isinstance(comparison, ast.Compare)
@@ -243,6 +262,8 @@ def _observe(code, repository):
                     raise UnsupportedCheck(
                         "The assertion must check an actual project call result."
                     )
+                if isinstance(left, ast.Name):
+                    checked_results.add(left.id)
                 expected = _literal(comparison.comparators[0], variables)
                 checks.append(
                     ObservedCheck(
@@ -309,6 +330,12 @@ def _observe(code, repository):
                 )
         if len(checks) == before:
             raise UnsupportedCheck(f"{function.name}: no checked project result was found.")
+        for name, call in results.items():
+            if name not in checked_results:
+                raise UnsupportedCheck(
+                    f"{function.name}, line {call[3]}: call to {call[0]} saved as "
+                    f"{name} has no checked result; setup calls need review."
+                )
     return checks
 
 
