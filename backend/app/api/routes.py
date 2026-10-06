@@ -4,15 +4,18 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from app.core.auth import CurrentUser
+from app.core.config import Settings
 from app.core.database import RunQueueFull
 from app.schemas import (
     Integration,
     Project,
     ProjectCreate,
+    ProjectUpdate,
     SystemInfo,
     VerificationReport,
     VerificationRun,
 )
+from app.services.github_source import CREDENTIALS, contains_credentials
 from app.services.jobs import JobInterrupted
 from app.services.report_renderer import render_html_report
 
@@ -87,13 +90,7 @@ def system_info(request: Request):
                 key="inspection",
                 name="Repository inspection",
                 status="ready" if inspection_ready else "not_connected",
-                description=(
-                    "The public interface of the project under test is read and given "
-                    "to the generator; file contents are not read."
-                    if inspection_ready
-                    else "Set REQTEST_REPOSITORY_ROOT to let runs read the project under "
-                    "test. Until then, generated tests must guess what to import."
-                ),
+                description=_inspection_description(request.app.state.settings, inspection_ready),
             ),
             Integration(
                 key="retrieval",
@@ -128,6 +125,30 @@ def system_info(request: Request):
     )
 
 
+def _inspection_description(settings: Settings, ready: bool) -> str:
+    if not ready:
+        return (
+            "Enable GitHub downloads or set REQTEST_REPOSITORY_ROOT to let runs read the "
+            "project under test. Until then, generated tests must guess what to import."
+        )
+    if settings.github_enabled and settings.repository_root is not None:
+        sources = (
+            "GitHub repository URLs are downloaded at a pinned commit, and local paths "
+            "inside REQTEST_REPOSITORY_ROOT are read."
+        )
+    elif settings.github_enabled:
+        sources = (
+            "GitHub repository URLs are downloaded at a pinned commit. Set "
+            "REQTEST_REPOSITORY_ROOT to also read local paths."
+        )
+    else:
+        sources = "Local paths inside REQTEST_REPOSITORY_ROOT are read; GitHub downloads are off."
+    return (
+        f"{sources} The public interface of the project under test is given to the "
+        "generator; file contents are not sent to the model."
+    )
+
+
 @router.get("/projects", response_model=list[Project], tags=["projects"])
 def list_projects(request: Request, user: CurrentUser):
     return request.app.state.store.list_projects(user.id)
@@ -135,6 +156,9 @@ def list_projects(request: Request, user: CurrentUser):
 
 @router.post("/projects", response_model=Project, status_code=201, tags=["projects"])
 def create_project(payload: ProjectCreate, request: Request, user: CurrentUser):
+    if contains_credentials(payload.repository_ref):
+        # A plain message: a validation error would echo the secret back in its input.
+        raise HTTPException(422, CREDENTIALS)
     project = Project(**payload.model_dump(), id=str(uuid4()), created_at=datetime.now(UTC))
     request.app.state.store.create_project(project, user.id)
     return project
@@ -146,6 +170,20 @@ def get_project(project_id: str, request: Request, user: CurrentUser):
     if project is None:
         raise HTTPException(404, "Project not found")
     return project
+
+
+@router.patch("/projects/{project_id}", response_model=Project, tags=["projects"])
+def update_project(project_id: str, payload: ProjectUpdate, request: Request, user: CurrentUser):
+    project = get_project(project_id, request, user)
+    changes = payload.model_dump(exclude_unset=True)
+    repository_ref = changes.get("repository_ref", project.repository_ref)
+    if contains_credentials(repository_ref):
+        raise HTTPException(422, CREDENTIALS)
+    if request.app.state.store.has_active_run(project_id):
+        raise HTTPException(409, "Wait for the active run to finish before editing this project.")
+    updated = Project.model_validate({**project.model_dump(), **changes})
+    request.app.state.store.update_project(updated, user.id)
+    return updated
 
 
 @router.get("/projects/{project_id}/runs", response_model=list[VerificationRun], tags=["runs"])
@@ -193,6 +231,8 @@ def get_report(run_id: str, request: Request, response: Response, user: CurrentU
 def get_html_report(run_id: str, request: Request, user: CurrentUser):
     run = get_run(run_id, request, user)
     project = get_project(run.project_id, request, user)
+    if run.inputs is not None:
+        project = Project(**run.inputs.model_dump(), id=project.id, created_at=project.created_at)
     return Response(
         render_html_report(project, run),
         media_type="text/html",

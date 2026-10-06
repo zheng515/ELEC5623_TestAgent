@@ -3,7 +3,12 @@
 import pytest
 
 from app.core.config import Settings
-from app.services.inspector import RepositoryError, inspect_repository, repository_available
+from app.services.inspector import (
+    RepositoryError,
+    inspect_repository,
+    local_repositories_available,
+    repository_available,
+)
 
 SOURCE = '''"""Shipping fees."""
 
@@ -103,26 +108,39 @@ def test_a_symlink_cannot_be_used_to_read_outside_the_repository(repository, set
     assert all("private" not in module.path for module in snapshot.modules)
 
 
-@pytest.mark.parametrize(
-    "reference",
-    [
-        "https://github.com/example/project.git",
-        "git@github.com:example/project.git",
-        "../../../etc",
-        "/etc",
-    ],
-)
+@pytest.mark.parametrize("reference", ["../../../etc", "/etc"])
 def test_a_reference_outside_the_root_is_refused(reference, settings):
     with pytest.raises(RepositoryError):
         inspect_repository(reference, settings)
 
 
-def test_inspection_is_off_until_a_root_is_configured():
-    unconfigured = Settings(_env_file=None)
+@pytest.mark.parametrize(
+    "reference",
+    [
+        "https://gitlab.com/example/project.git",
+        "git@gitlab.com:example/project.git",
+        "file:///etc",
+        "ftp://github.com/example/project",
+    ],
+)
+def test_a_remote_reference_other_than_github_is_refused(reference, settings):
+    with pytest.raises(RepositoryError, match="Only GitHub"):
+        inspect_repository(reference, settings)
+
+
+def test_local_inspection_is_off_until_a_root_is_configured():
+    unconfigured = Settings(github_enabled=False, _env_file=None)
 
     assert repository_available(unconfigured) is False
     with pytest.raises(RepositoryError, match="REQTEST_REPOSITORY_ROOT"):
         inspect_repository("repo", unconfigured)
+
+
+def test_github_urls_are_refused_when_downloads_are_disabled(settings):
+    disabled = settings.model_copy(update={"github_enabled": False})
+
+    with pytest.raises(RepositoryError, match="REQTEST_GITHUB_ENABLED"):
+        inspect_repository("https://github.com/example/project", disabled)
 
 
 def test_a_missing_directory_is_reported_clearly(settings):
@@ -151,13 +169,14 @@ def test_the_digest_changes_when_the_interface_changes(repository, settings):
 def test_a_blank_setting_does_not_silently_enable_inspection(tmp_path):
     """Copying .env.example leaves the root blank; Path("") would mean the CWD."""
     env = tmp_path / ".env"
-    env.write_text("REQTEST_REPOSITORY_ROOT=\nANTHROPIC_API_KEY=\n")
+    env.write_text("REQTEST_REPOSITORY_ROOT=\nANTHROPIC_API_KEY=\nREQTEST_GITHUB_TOKEN=\n")
 
     settings = Settings(_env_file=str(env))
 
     assert settings.repository_root is None
     assert settings.anthropic_api_key is None
-    assert repository_available(settings) is False
+    assert settings.github_token is None
+    assert local_repositories_available(settings) is False
 
 
 def test_a_configured_root_is_still_read_from_the_env_file(tmp_path):

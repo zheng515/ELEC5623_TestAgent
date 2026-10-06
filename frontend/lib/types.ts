@@ -113,9 +113,19 @@ export interface CodeSnapshot {
   directories: string[];
   excluded: string[];
 }
+export interface RepositorySource {
+  provider: "github";
+  repository: string;
+  url: string;
+  requested_ref?: string | null;
+  ref: string;
+  commit_sha: string;
+  subdirectory: string;
+}
 export interface RepositorySnapshot {
   artifact?: CodeSnapshot | null;
   import_roots?: string[];
+  source?: RepositorySource | null;
   root: string;
   modules: ModuleInterface[];
   skipped: string[];
@@ -240,6 +250,7 @@ export interface VerificationRun {
   created_at: string;
   updated_at?: string | null;
   input_sha256: string;
+  inputs?: ProjectCreate | null;
   events: { id: string; stage: string; message: string; created_at: string }[];
   report: VerificationReport;
 }

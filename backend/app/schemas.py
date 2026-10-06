@@ -69,6 +69,18 @@ class ProjectCreate(BaseModel):
     )
 
 
+class ProjectUpdate(BaseModel):
+    """Editable project inputs. Omitted fields retain their current values."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
+    repository_ref: str | None = Field(default=None, max_length=500)
+    requirements_text: str | None = Field(default=None, min_length=1, max_length=50000)
+    goal: str | None = Field(default=None, min_length=1, max_length=2000)
+
+
 class Project(ProjectCreate):
     id: str
     created_at: datetime
@@ -155,6 +167,18 @@ class CodeSnapshot(BaseModel):
     excluded: list[str] = Field(default_factory=list)
 
 
+class RepositorySource(BaseModel):
+    """Where a downloaded repository came from, pinned to the commit that was read."""
+
+    provider: Literal["github"] = "github"
+    repository: str
+    url: str
+    requested_ref: str | None = None
+    ref: str
+    commit_sha: str
+    subdirectory: str = ""
+
+
 class RepositorySnapshot(BaseModel):
     """What was read from the project under test, and what was deliberately not."""
 
@@ -165,6 +189,7 @@ class RepositorySnapshot(BaseModel):
     sha256: str
     artifact: CodeSnapshot | None = None
     import_roots: list[str] = Field(default_factory=lambda: ["."])
+    source: RepositorySource | None = None
 
 
 LiteralScalar = str | int | float | bool | None
@@ -428,6 +453,7 @@ class VerificationRun(BaseModel):
     created_at: datetime
     updated_at: datetime | None = None
     input_sha256: str
+    inputs: ProjectCreate | None = None
     events: list[RunEvent]
     report: VerificationReport
 

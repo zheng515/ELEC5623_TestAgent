@@ -142,6 +142,7 @@ def test_eight_character_password_is_accepted(client):
         ("get", "/projects"),
         ("post", "/projects"),
         ("get", "/projects/id"),
+        ("patch", "/projects/id"),
         ("get", "/projects/id/runs"),
         ("post", "/projects/id/runs"),
         ("get", "/runs"),

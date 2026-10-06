@@ -100,6 +100,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  updateProject: (id: string, payload: ProjectCreate) =>
+    request<Project>(`/projects/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   runs: (id: string) =>
     request<VerificationRun[]>(`/projects/${encodeURIComponent(id)}/runs`),
   createRun: (id: string) =>
