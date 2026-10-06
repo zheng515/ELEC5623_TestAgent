@@ -135,7 +135,10 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
         if case in {"unplanned", "unsupported_oracle"}:
             assert report["project_readiness"]["status"] == "ready"
             assert report["validation_version"] == 3
-            assert report["generated_tests"][0]["validation_status"] == "needs_review"
+            if case == "unsupported_oracle":
+                assert report["generated_tests"] == []
+            else:
+                assert report["generated_tests"][0]["validation_status"] == "needs_review"
             assert report["executions"] == []
             assert report["execution_attempts"] == []
             assert report["requirement_coverage"] == 0
@@ -147,7 +150,7 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
             assert (
                 "no matching linked scenario contract"
                 if case == "unplanned"
-                else "original-source support"
+                else "Oracle assessed as contradicted"
             ) in html
             assert "No tests executed." in html
             return

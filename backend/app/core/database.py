@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.schemas import Project, RunEvent, User, VerificationRun
+from app.schemas import Project, RequirementDocument, RunEvent, User, VerificationRun
 
 
 class RunQueueFull(RuntimeError):
@@ -49,6 +49,11 @@ class Store:
                     key TEXT PRIMARY KEY,
                     count INTEGER NOT NULL,
                     expires_at INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS requirement_documents (
+                    id TEXT PRIMARY KEY,
+                    owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    payload TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS projects (
                     id TEXT PRIMARY KEY,
@@ -96,6 +101,21 @@ class Store:
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_runs_active_project ON runs(project_id) "
                 "WHERE status IN ('queued', 'running')"
             )
+
+    def create_document(self, document: RequirementDocument, owner_id: str):
+        with self.connection() as connection:
+            connection.execute(
+                "INSERT INTO requirement_documents (id, owner_id, payload) VALUES (?, ?, ?)",
+                (document.id, owner_id, document.model_dump_json()),
+            )
+
+    def get_document(self, document_id: str, owner_id: str) -> RequirementDocument | None:
+        with self.connection() as connection:
+            row = connection.execute(
+                "SELECT payload FROM requirement_documents WHERE id = ? AND owner_id = ?",
+                (document_id, owner_id),
+            ).fetchone()
+        return RequirementDocument.model_validate_json(row[0]) if row else None
 
     def create_project(self, project: Project, owner_id: str):
         with self.connection() as connection:

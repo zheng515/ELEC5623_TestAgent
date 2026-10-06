@@ -1,4 +1,5 @@
 import type { VerificationReport } from "../lib/types";
+import { sourceLocation } from "../lib/source-location";
 import { Badge } from "./ui";
 import { OracleGroundingDetails } from "./oracle-grounding";
 
@@ -119,7 +120,16 @@ export function TestPlanDetails({ report }: { report?: VerificationReport }) {
                     <div key={ref} className="scenario-source">
                       <code>{ref}</code>
                       {requirement && (
-                        <blockquote>{requirement.source_quote}</blockquote>
+                        <blockquote>
+                          {report?.source_audit?.links
+                            .filter((link) =>
+                              link.requirement_ids.includes(requirement.id),
+                            )
+                            .map((link) => (
+                              <p key={link.start}>{sourceLocation(link)}</p>
+                            ))}
+                          {requirement.source_quote}
+                        </blockquote>
                       )}
                       {sourceModule && (
                         <p>

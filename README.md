@@ -77,6 +77,38 @@ signs you in immediately. Passwords must contain 8–128 characters. The workspa
 your session on reload, and **Sign out** revokes the current session. Projects, runs, and
 report downloads are private to the account that created them.
 
+### Requirement document import
+
+PDF imports use native text where available and local Tesseract OCR for pages without
+text, including sparse native headings over scanned images. Word `.docx` and legacy
+binary `.doc` imports are supported; `.doc` conversion happens automatically on the
+server using macOS `textutil` or Linux LibreOffice. Install tools with:
+
+```bash
+bash scripts/setup.sh
+bash scripts/setup-document-tools.sh
+bash scripts/dev.sh
+```
+
+The form shows OCR/conversion readiness, then previews text by source location. Saved
+metadata includes the original filename/hash, PDF physical page or Word paragraph,
+extraction method, and OCR mean word confidence score when available. OCR may misread
+numbers and operators; its score does not prove transcription accuracy. Converted
+Word paragraph numbers refer to the converted body and may differ from the original.
+These labels and warnings persist in analysis, test plans, and JSON/HTML reports.
+Editing imported text clears its file link; previous runs keep their original source.
+
+Unreadable pages are listed explicitly; empty extraction is rejected. Missing tools or
+language data produce actionable errors. Native-text PDF and `.docx` imports continue
+to work without OCR/conversion tools. Default OCR language is English (`eng`); install
+additional language data and configure `REQTEST_DOCUMENT_OCR_LANGUAGES` when needed.
+Files are limited to 5 MB, PDFs to 100 pages, OCR to 20 pages per import, and text to
+50,000 characters. The default import deadline is 120 seconds. Parsing does not prove
+requirement completeness or preserve all complex layout and embedded content.
+
+See [Document import and acceptance checks](docs/document-import.md) for source
+numbering, installation, settings, limitations, and step-by-step verification.
+
 ### Authentication API
 
 Authentication follows the existing versioned JSON REST design:
@@ -123,7 +155,7 @@ configure trusted proxy addresses before relying on per-client throttling.
 ### Verification workspace
 
 1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
-2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference: a GitHub URL such as `https://github.com/owner/repository`, optionally ending in `/tree/<branch>/<folder>` or `/commit/<sha>`, or a local path inside the configured root. You can import a `.txt` or `.md` requirement file, or use the English shipping example.
+2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference: a GitHub URL such as `https://github.com/owner/repository`, optionally ending in `/tree/<branch>/<folder>` or `/commit/<sha>`, or a local path inside the configured root. You can import a `.txt`, `.md`, `.pdf` (including scanned pages), or Word `.docx`/`.doc` requirement file, or use the English shipping example.
 3. Submit the form to save the project, queue a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
 4. Follow live workflow stages (refreshed every two seconds), recorded events, current metrics, and unresolved issues in **Agent workspace**. Expand **Test plan** scenarios to see their normal, boundary, or negative category, preconditions, inputs, steps, expected result, source evidence, assumptions, linked tests, and execution outcomes.
 5. Open **Requirements & evidence** to read the saved requirements and filter the extracted behaviors by verification status.
@@ -170,6 +202,8 @@ Verification statuses follow the evidence, and only ever downward from what was 
 ### Code-to-plan validation
 
 Validation version 3 adds a separate AI oracle review after planning and before generation. The reviewer receives the original requirement text, linked source quotes, exact scenario contracts, and inspected interfaces, without any prior grounding approval. It assesses expected values, units, boundaries, exception types, and missing assumptions. The server verifies that every linked requirement has a verbatim original-source citation and binds the assessment to a hash of the saved scenario; model-authored approvals are discarded. A contradicted or insufficient assessment, missing/duplicate decision, invalid citation, review API failure, or changed scenario excludes its generated artifacts from coverage and automatic execution. Proposed scenarios and review reasons remain visible in the test plan and HTML export.
+
+Before generation, the server selects only scenarios with current source support. If none qualify, it skips the generation model request and sandbox execution, preserving the full plan, review reasons, and coverage gaps. Mixed plans send only supported scenarios to the generator. Runs with zero artifacts show `No tests generated` or `Review needed · no tests generated`; a completed workflow does not imply tests exist.
 
 This adds one structured model request per nonempty plan. Citations are checked deterministically, but the semantic judgment remains an AI assessment using the configured model, not proof or test adequacy. No additional human approval step is required. A mixed artifact containing an unsupported scenario is excluded as a whole. Old results keep their stored evidence and must be rerun for these checks.
 

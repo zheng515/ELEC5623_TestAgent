@@ -9,7 +9,7 @@ from typing import Literal
 from uuid import uuid4
 
 from app.core.database import Store
-from app.schemas import Project, RunEvent, VerificationReport, VerificationRun
+from app.schemas import Project, ProjectCreate, RunEvent, VerificationReport, VerificationRun
 from app.services.orchestrator import Orchestrator
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ class RunManager:
             mode=getattr(self.orchestrator, "mode", "scaffold"),
             status="queued",
             input_sha256=hashlib.sha256(project.model_dump_json().encode()).hexdigest(),
-            inputs=project.model_dump(include=set(Project.model_fields) - {"id", "created_at"}),
+            inputs=project.model_dump(include=set(ProjectCreate.model_fields)),
             events=[
                 RunEvent(
                     id=str(uuid4()),
@@ -66,7 +66,10 @@ class RunManager:
                     message="Run queued. Waiting for the background worker.",
                 )
             ],
-            report=VerificationReport(summary="Run queued. Results will appear as stages finish."),
+            report=VerificationReport(
+                summary="Run queued. Results will appear as stages finish.",
+                requirement_document=project.requirement_document,
+            ),
         )
         with self._lock:
             if self._stopped.is_set():

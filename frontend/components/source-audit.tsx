@@ -1,9 +1,12 @@
 import type { VerificationReport } from "../lib/types";
+import { documentLocation, sourceLocation } from "../lib/source-location";
 import { Badge } from "./ui";
 
 export function SourceAudit({ report }: { report?: VerificationReport }) {
   if (!report) return null;
   const audit = report.source_audit;
+  const document = report.requirement_document ?? audit?.document;
+  const sourceCharacters = Array.from(document?.text ?? "");
   return (
     <section className="panel">
       <h3>Specification analysis scope</h3>
@@ -11,6 +14,25 @@ export function SourceAudit({ report }: { report?: VerificationReport }) {
         Validated requirement links measure extracted testable requirements
         only. They do not measure verification of the entire specification.
       </p>
+      {document && (
+        <>
+          <p>Imported source: {document.filename}</p>
+          {document.warnings.map((warning) => (
+            <p key={warning}>{warning}</p>
+          ))}
+          <details>
+            <summary>Imported text by source location</summary>
+            {document.segments.map((segment) => (
+              <div key={segment.start}>
+                <p>{documentLocation(segment)}</p>
+                <pre className="requirement-source">
+                  {sourceCharacters.slice(segment.start, segment.end).join("")}
+                </pre>
+              </div>
+            ))}
+          </details>
+        </>
+      )}
       {!audit ? (
         <p>No source audit recorded. Specification completeness is unknown.</p>
       ) : (
@@ -35,7 +57,7 @@ export function SourceAudit({ report }: { report?: VerificationReport }) {
           )}
           {audit.unlinked_fragments.map((fragment) => (
             <details key={fragment.start}>
-              <summary>Unlinked source · line {fragment.line}</summary>
+              <summary>Unlinked source · {sourceLocation(fragment)}</summary>
               <pre className="requirement-source">{fragment.text}</pre>
             </details>
           ))}
@@ -44,7 +66,7 @@ export function SourceAudit({ report }: { report?: VerificationReport }) {
             {audit.links.map((link) => (
               <div key={`${link.start}-${link.end}`}>
                 <p>
-                  {link.requirement_ids.join(", ")} · line {link.line}
+                  {link.requirement_ids.join(", ")} · {sourceLocation(link)}
                 </p>
                 <pre className="requirement-source">{link.text}</pre>
               </div>

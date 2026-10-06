@@ -2,9 +2,35 @@
 
 from html import escape
 
-from app.schemas import Project, RepositoryChange, VerificationRun
+from app.schemas import (
+    DocumentLocation,
+    Project,
+    RepositoryChange,
+    SourceFragment,
+    VerificationRun,
+)
 from app.services.outcome_mapping import OUTCOME_MAPPING_VERSION, requirement_outcomes
 from app.services.test_validator import VALIDATION_VERSION
+
+
+def _document_location(location: DocumentLocation) -> str:
+    label = "converted paragraph" if location.method == "converted" else location.kind
+    suffix = ""
+    if location.method == "ocr":
+        suffix = " · OCR" + (
+            f" (score {location.confidence}/100)" if location.confidence is not None else ""
+        )
+    return f"{label} {location.number}{suffix}"
+
+
+def _location(fragment: SourceFragment) -> str:
+    return escape(
+        "; ".join(
+            f"{location.filename}: {_document_location(location)}"
+            for location in fragment.locations
+        )
+        or f"line {fragment.line}"
+    )
 
 
 def render_html_report(project: Project, run: VerificationRun) -> str:
@@ -121,7 +147,7 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
             + "<h3>Source fragments without unambiguous quote links</h3>"
             + (
                 "".join(
-                    f"<details><summary>Line {fragment.line}</summary>"
+                    f"<details><summary>{_location(fragment)}</summary>"
                     f"<pre>{escape(fragment.text)}</pre></details>"
                     for fragment in audit.unlinked_fragments
                 )
@@ -129,10 +155,24 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
             )
             + "<h3>Recorded source quote links</h3>"
             + "".join(
-                f"<details><summary>{escape(', '.join(link.requirement_ids))}: line {link.line}</summary>"
+                f"<details><summary>{escape(', '.join(link.requirement_ids))}: {_location(link)}</summary>"
                 f"<pre>{escape(link.text)}</pre></details>"
                 for link in audit.links
             )
+        )
+    document = report.requirement_document or (audit.document if audit else None)
+    if document:
+        source_html = (
+            f"<p>Imported source: {escape(document.filename)}</p>"
+            + _items(document.warnings)
+            + "<details><summary>Imported text by source location</summary>"
+            + "".join(
+                f"<p>{escape(_document_location(segment))}</p>"
+                f"<pre>{escape(document.text[segment.start : segment.end])}</pre>"
+                for segment in document.segments
+            )
+            + "</details>"
+            + source_html
         )
     validation_html = "".join(
         f"<details><summary>{escape(test.id)}: {escape(test.module)} — "

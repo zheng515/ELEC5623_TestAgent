@@ -14,7 +14,32 @@ export interface RegisterRequest extends Credentials {
   name: string;
 }
 
+export interface DocumentCapabilities {
+  ocr_ready: boolean;
+  ocr_languages: string;
+  doc_ready: boolean;
+  import_timeout_seconds: number;
+}
+
+export interface DocumentLocation {
+  method?: "text" | "ocr" | "converted";
+  confidence?: number | null;
+  filename: string;
+  kind: "page" | "paragraph";
+  number: number;
+}
+export interface RequirementDocument {
+  id: string;
+  filename: string;
+  format: "pdf" | "docx" | "doc";
+  sha256: string;
+  text: string;
+  segments: (DocumentLocation & { start: number; end: number })[];
+  warnings: string[];
+}
+
 export interface ProjectCreate {
+  requirement_document_id?: string | null;
   name: string;
   description: string;
   repository_ref: string;
@@ -22,6 +47,7 @@ export interface ProjectCreate {
   goal: string;
 }
 export interface Project extends ProjectCreate {
+  requirement_document?: RequirementDocument | null;
   id: string;
   created_at: string;
 }
@@ -175,12 +201,14 @@ export interface ExecutionAttempt {
   diagnoses: TestDiagnosis[];
 }
 export interface SourceFragment {
+  locations?: DocumentLocation[];
   text: string;
   start: number;
   end: number;
   line: number;
 }
 export interface SourceAnalysisAudit {
+  document?: RequirementDocument | null;
   version: number;
   extraction_limit: number;
   limit_reached: boolean;
@@ -205,6 +233,7 @@ export interface ProjectReadiness {
   environment?: ExecutionEnvironment | null;
 }
 export interface VerificationReport {
+  requirement_document?: RequirementDocument | null;
   project_readiness?: ProjectReadiness | null;
   source_audit?: SourceAnalysisAudit | null;
   validation_version?: number | null;

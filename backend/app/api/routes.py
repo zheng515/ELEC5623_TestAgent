@@ -1,3 +1,5 @@
+import base64
+import binascii
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -7,16 +9,20 @@ from app.core.auth import CurrentUser
 from app.core.config import Settings
 from app.core.database import RunQueueFull
 from app.schemas import (
+    DocumentImport,
     Integration,
     Project,
     ProjectCreate,
     ProjectUpdate,
     RepositoryWatch,
+    RequirementDocument,
     SystemInfo,
     VerificationReport,
     VerificationRun,
     WatchUpdate,
 )
+from app.services.document_parser import extract_document
+from app.services.document_tools import DocumentOptions, document_capabilities
 from app.services.github_source import (
     CREDENTIALS,
     GitHubError,
@@ -176,12 +182,45 @@ def list_projects(request: Request, user: CurrentUser):
     return request.app.state.store.list_projects(user.id)
 
 
+@router.get("/documents/capabilities", tags=["documents"])
+def document_support(request: Request, user: CurrentUser):
+    return {
+        **document_capabilities(DocumentOptions.from_settings(request.app.state.settings)),
+        "import_timeout_seconds": request.app.state.settings.document_import_timeout_seconds,
+    }
+
+
+@router.post("/documents/import", response_model=RequirementDocument, tags=["documents"])
+def import_document(payload: DocumentImport, request: Request, user: CurrentUser):
+    try:
+        content = base64.b64decode(payload.content_base64, validate=True)
+        document = extract_document(payload.filename, content, request.app.state.settings)
+    except (ValueError, binascii.Error) as error:
+        raise HTTPException(422, str(error)) from error
+    request.app.state.store.create_document(document, user.id)
+    return document
+
+
 @router.post("/projects", response_model=Project, status_code=201, tags=["projects"])
 def create_project(payload: ProjectCreate, request: Request, user: CurrentUser):
     if contains_credentials(payload.repository_ref):
         # A plain message: a validation error would echo the secret back in its input.
         raise HTTPException(422, CREDENTIALS)
-    project = Project(**payload.model_dump(), id=str(uuid4()), created_at=datetime.now(UTC))
+    document = None
+    if payload.requirement_document_id:
+        document = request.app.state.store.get_document(payload.requirement_document_id, user.id)
+        if document is None:
+            raise HTTPException(404, "Imported document not found.")
+        if payload.requirements_text != document.text:
+            raise HTTPException(
+                422, "Requirement text changed. Reimport the file or remove its source link."
+            )
+    project = Project(
+        **payload.model_dump(),
+        requirement_document=document,
+        id=str(uuid4()),
+        created_at=datetime.now(UTC),
+    )
     request.app.state.store.create_project(project, user.id)
     return project
 
@@ -203,6 +242,22 @@ def update_project(project_id: str, payload: ProjectUpdate, request: Request, us
         raise HTTPException(422, CREDENTIALS)
     if request.app.state.store.has_active_run(project_id):
         raise HTTPException(409, "Wait for the active run to finish before editing this project.")
+    if "requirement_document_id" in changes:
+        document = None
+        if changes["requirement_document_id"]:
+            document = request.app.state.store.get_document(
+                changes["requirement_document_id"], user.id
+            )
+            if document is None:
+                raise HTTPException(404, "Imported document not found.")
+            if changes.get("requirements_text", project.requirements_text) != document.text:
+                raise HTTPException(
+                    422, "Requirement text changed. Reimport or remove its source link."
+                )
+        changes["requirement_document"] = document
+    elif changes.get("requirements_text", project.requirements_text) != project.requirements_text:
+        changes["requirement_document_id"] = None
+        changes["requirement_document"] = None
     updated = Project.model_validate({**project.model_dump(), **changes})
     request.app.state.store.update_project(updated, user.id)
     if _unwatchable(updated.repository_ref):

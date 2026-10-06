@@ -106,7 +106,16 @@ export function runBadge(run?: VerificationRun): {
     return { label: "Review needed · tests excluded", tone: "amber" };
   if (run.report.executed_tests)
     return { label: "Execution evidence recorded", tone: "teal" };
-  return { label: "Tests generated · not executed", tone: "teal" };
+  if (!run.report.generated_tests.length) {
+    if (
+      run.report.test_plan?.scenarios.some(
+        (scenario) => scenario.oracle_grounding?.status === "needs_review",
+      )
+    )
+      return { label: "Review needed · no tests generated", tone: "amber" };
+    return { label: "No tests generated", tone: "neutral" };
+  }
+  return { label: "Tests generated · not executed", tone: "neutral" };
 }
 export function modeLabel(mode?: string) {
   if (mode === "baseline_b2") return "B2 closed-loop mode";

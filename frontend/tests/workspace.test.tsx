@@ -9,6 +9,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import App from "../app/page";
+import { SourceAudit } from "../components/source-audit";
 import { Evidence } from "../components/project-workspace";
 import { NewTask, sample } from "../components/new-task";
 import { TestPlanDetails } from "../components/test-plan";
@@ -16,6 +17,7 @@ import { ExecutionHistory } from "../components/execution-history";
 import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import type { Project, VerificationRun } from "../lib/types";
 import { requirementOutcomes } from "../lib/outcome-mapping";
+import { runBadge } from "../components/ui";
 vi.mock("../lib/api", () => ({
   api: {
     me: vi.fn(),
@@ -24,6 +26,8 @@ vi.mock("../lib/api", () => ({
     system: vi.fn(),
     recentRuns: vi.fn(),
     runs: vi.fn(),
+    documentCapabilities: vi.fn(),
+    importDocument: vi.fn(),
     createProject: vi.fn(),
     createRun: vi.fn(),
     watch: vi.fn(),
@@ -117,6 +121,12 @@ const agentRun: VerificationRun = {
   },
 };
 beforeEach(() => {
+  vi.mocked(api.documentCapabilities).mockResolvedValue({
+    ocr_ready: true,
+    doc_ready: true,
+    ocr_languages: "eng",
+    import_timeout_seconds: 120,
+  });
   window.history.replaceState({}, "", "/");
   vi.mocked(api.me).mockResolvedValue({
     id: "u1",
@@ -233,12 +243,15 @@ it("imports a text requirement file into the editable form", async () => {
   Object.defineProperty(file, "text", {
     value: () => Promise.resolve("R1: Return zero."),
   });
-  fireEvent.change(screen.getByLabelText("Import .txt or .md"), {
-    target: { files: [file] },
-  });
+  fireEvent.change(
+    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx, .doc)"),
+    {
+      target: { files: [file] },
+    },
+  );
   await waitFor(() =>
     expect(
-      (screen.getByLabelText(/Requirement text/) as HTMLTextAreaElement).value,
+      (screen.getByLabelText(/SRS content/) as HTMLTextAreaElement).value,
     ).toBe("R1: Return zero."),
   );
   expect(screen.getByText("requirements.txt")).toBeTruthy();
@@ -257,12 +270,15 @@ it("uses English application validation instead of browser-localized messages", 
 it("rejects unsupported requirement documents without overwriting the text", async () => {
   render(<NewTask busy={false} submit={vi.fn()} />);
   fireEvent.click(screen.getByText("Use shipping example"));
-  fireEvent.change(screen.getByLabelText("Import .txt or .md"), {
-    target: { files: [new File(["pdf"], "test.pdf")] },
-  });
+  fireEvent.change(
+    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx, .doc)"),
+    {
+      target: { files: [new File(["exe"], "test.exe")] },
+    },
+  );
   await screen.findByRole("alert");
   expect(
-    (screen.getByLabelText(/Requirement text/) as HTMLTextAreaElement).value,
+    (screen.getByLabelText(/SRS content/) as HTMLTextAreaElement).value,
   ).toBe(sample.requirements_text);
 });
 
@@ -977,4 +993,333 @@ it("warns that historical requirement conclusions have not been remapped", async
   await screen.findByText(
     /This run predates function-level requirement outcome mapping/,
   );
+});
+
+it("does not claim tests were generated when a completed run produced none", () => {
+  const empty: VerificationRun = {
+    ...plannedRun,
+    status: "completed",
+    report: { ...plannedRun.report, generated_tests: [], executed_tests: 0 },
+  };
+  expect(runBadge(empty).label).toBe("No tests generated");
+  const blocked: VerificationRun = {
+    ...empty,
+    report: {
+      ...empty.report,
+      test_plan: {
+        ...empty.report.test_plan!,
+        scenarios: empty.report.test_plan!.scenarios.map((scenario) => ({
+          ...scenario,
+          oracle_grounding: {
+            version: 1,
+            status: "needs_review",
+            verdict: "insufficient",
+            rationale: "The source does not specify the fee.",
+            citations: [],
+            issues: ["Missing source support."],
+            scenario_sha256: "scenario",
+            source_sha256: "source",
+          },
+        })),
+      },
+    },
+  };
+  expect(runBadge(blocked).label).toBe("Review needed · no tests generated");
+  expect(runBadge(blocked).tone).toBe("amber");
+});
+
+const importedDocument = {
+  id: "document-1",
+  filename: "spec.pdf",
+  format: "pdf" as const,
+  sha256: "a".repeat(64),
+  text: "Return zero.",
+  segments: [
+    {
+      filename: "spec.pdf",
+      kind: "page" as const,
+      number: 2,
+      start: 0,
+      end: 12,
+    },
+  ],
+  warnings: ["OCR text may contain recognition errors."],
+};
+
+function uploadPdf() {
+  const file = new File(["pdf"], "spec.pdf", { type: "application/pdf" });
+  Object.defineProperty(file, "arrayBuffer", {
+    value: async () => new Uint8Array([1, 2, 3]).buffer,
+  });
+  fireEvent.change(
+    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx, .doc)"),
+    { target: { files: [file] } },
+  );
+}
+
+it("imports a PDF with a visible page preview and submits its server source ID", async () => {
+  vi.mocked(api.importDocument).mockResolvedValueOnce(importedDocument);
+  const submit = vi.fn().mockResolvedValue(undefined);
+  render(<NewTask busy={false} submit={submit} />);
+  uploadPdf();
+  await screen.findByText("Imported source: spec.pdf");
+  expect(api.importDocument).toHaveBeenCalledWith("spec.pdf", "AQID", 135000);
+  expect(screen.getByText("page 2")).toBeTruthy();
+  expect(
+    screen.getByText("OCR text may contain recognition errors."),
+  ).toBeTruthy();
+  fireEvent.change(screen.getByLabelText(/Project name/), {
+    target: { value: "Task" },
+  });
+  fireEvent.change(screen.getByLabelText(/GitHub repository URL/), {
+    target: { value: sample.repository_ref },
+  });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Create verification task →" }),
+  );
+  await waitFor(() =>
+    expect(submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requirements_text: "Return zero.",
+        requirement_document_id: "document-1",
+      }),
+    ),
+  );
+});
+
+it("clears original file locations when imported text is edited", async () => {
+  vi.mocked(api.importDocument).mockResolvedValueOnce(importedDocument);
+  const submit = vi.fn().mockResolvedValue(undefined);
+  render(<NewTask busy={false} submit={submit} />);
+  uploadPdf();
+  await screen.findByText("Imported source: spec.pdf");
+  fireEvent.change(screen.getByLabelText(/SRS content/), {
+    target: { value: "Edited rule." },
+  });
+  expect(screen.queryByText("Imported source: spec.pdf")).toBeNull();
+  expect(screen.getByRole("status").textContent).toContain(
+    "Original file locations were cleared",
+  );
+  fireEvent.change(screen.getByLabelText(/Project name/), {
+    target: { value: "Task" },
+  });
+  fireEvent.change(screen.getByLabelText(/GitHub repository URL/), {
+    target: { value: sample.repository_ref },
+  });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Create verification task →" }),
+  );
+  await waitFor(() =>
+    expect(submit).toHaveBeenCalledWith(
+      expect.objectContaining({ requirement_document_id: null }),
+    ),
+  );
+});
+
+it("keeps previous requirements and source metadata when another import fails", async () => {
+  vi.mocked(api.importDocument)
+    .mockResolvedValueOnce(importedDocument)
+    .mockRejectedValueOnce(
+      new Error("No extractable text. OCR found no readable words."),
+    );
+  render(<NewTask busy={false} submit={vi.fn()} />);
+  uploadPdf();
+  await screen.findByText("Imported source: spec.pdf");
+  uploadPdf();
+  expect((await screen.findByRole("alert")).textContent).toContain(
+    "No extractable text",
+  );
+  expect(screen.getByText("Imported source: spec.pdf")).toBeTruthy();
+  expect(
+    (screen.getByLabelText(/SRS content/) as HTMLTextAreaElement).value,
+  ).toBe("Return zero.");
+});
+
+it("shows original file positions for analyzed quote links and for setup-only runs", () => {
+  const audit = {
+    version: 1,
+    extraction_limit: 40,
+    limit_reached: false,
+    returned_requirements: 1,
+    retained_requirements: 1,
+    semantic_completeness: "not_established" as const,
+    issues: [],
+    ambiguous_requirement_ids: [],
+    unlinked_fragments: [],
+    links: [
+      {
+        text: "Return zero.",
+        start: 0,
+        end: 12,
+        line: 1,
+        requirement_ids: ["R1"],
+        locations: [{ filename: "spec.pdf", kind: "page" as const, number: 2 }],
+      },
+    ],
+  };
+  const { rerender } = render(
+    <SourceAudit
+      report={{
+        ...run.report,
+        requirement_document: importedDocument,
+        source_audit: audit,
+      }}
+    />,
+  );
+  expect(screen.getByText("R1 · spec.pdf · page 2")).toBeTruthy();
+  rerender(
+    <SourceAudit
+      report={{
+        ...run.report,
+        requirement_document: importedDocument,
+        source_audit: null,
+      }}
+    />,
+  );
+  expect(screen.getByText("Imported source: spec.pdf")).toBeTruthy();
+  expect(screen.getByText("page 2")).toBeTruthy();
+  expect(screen.getByText(/No source audit recorded/)).toBeTruthy();
+});
+
+it("edits saved document inputs without submitting server-only project fields", async () => {
+  const saved = {
+    ...project,
+    requirement_document_id: importedDocument.id,
+    requirement_document: importedDocument,
+    requirements_text: importedDocument.text,
+  };
+  const submit = vi.fn().mockResolvedValue(undefined);
+  render(<NewTask busy={false} submit={submit} project={saved} editing />);
+  expect(screen.getByText("Imported source: spec.pdf")).toBeTruthy();
+  fireEvent.click(
+    screen.getByRole("button", { name: /Save changes and rerun/ }),
+  );
+  await waitFor(() => expect(submit).toHaveBeenCalled());
+  const payload = submit.mock.calls[0][0];
+  expect(payload.requirement_document_id).toBe(importedDocument.id);
+  expect(payload).not.toHaveProperty("id");
+  expect(payload).not.toHaveProperty("created_at");
+  expect(payload).not.toHaveProperty("requirement_document");
+});
+
+it("previews source segments after supplementary Unicode characters without shifting offsets", () => {
+  const unicodeDocument = {
+    ...importedDocument,
+    text: "First 🧪.\n\nSecond rule.",
+    segments: [
+      {
+        filename: "spec.pdf",
+        kind: "page" as const,
+        number: 2,
+        start: 10,
+        end: 22,
+      },
+    ],
+  };
+  render(
+    <SourceAudit
+      report={{ ...run.report, requirement_document: unicodeDocument }}
+    />,
+  );
+  expect(screen.getByText("Second rule.")).toBeTruthy();
+});
+
+it("accepts legacy Word files without requiring manual conversion", async () => {
+  const legacyDocument = {
+    ...importedDocument,
+    filename: "legacy.doc",
+    format: "doc" as const,
+    segments: [
+      {
+        filename: "legacy.doc",
+        kind: "paragraph" as const,
+        number: 1,
+        start: 0,
+        end: 12,
+        method: "converted" as const,
+      },
+    ],
+    warnings: ["Paragraph numbers refer to the converted body."],
+  };
+  vi.mocked(api.importDocument).mockResolvedValueOnce(legacyDocument);
+  render(<NewTask busy={false} submit={vi.fn()} />);
+  const file = new File(["doc"], "legacy.doc", { type: "application/msword" });
+  Object.defineProperty(file, "arrayBuffer", {
+    value: async () => new Uint8Array([1, 2, 3]).buffer,
+  });
+  fireEvent.change(
+    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx, .doc)"),
+    { target: { files: [file] } },
+  );
+  await screen.findByText("Imported source: legacy.doc");
+  expect(screen.getByText("converted paragraph 1")).toBeTruthy();
+  expect(
+    screen.getByText("Paragraph numbers refer to the converted body."),
+  ).toBeTruthy();
+});
+
+it("labels OCR pages and source links without implying transcription accuracy", () => {
+  const ocrDocument = {
+    ...importedDocument,
+    segments: [
+      {
+        ...importedDocument.segments[0],
+        method: "ocr" as const,
+        confidence: 58,
+      },
+    ],
+  };
+  render(
+    <SourceAudit
+      report={{
+        ...run.report,
+        requirement_document: ocrDocument,
+        source_audit: {
+          version: 1,
+          extraction_limit: 40,
+          limit_reached: false,
+          returned_requirements: 1,
+          retained_requirements: 1,
+          semantic_completeness: "not_established",
+          ambiguous_requirement_ids: [],
+          issues: [],
+          unlinked_fragments: [],
+          links: [
+            {
+              text: "Return zero.",
+              start: 0,
+              end: 12,
+              line: 1,
+              requirement_ids: ["R1"],
+              locations: ocrDocument.segments,
+            },
+          ],
+        },
+      }}
+    />,
+  );
+  expect(screen.getByText("page 2 · OCR (score 58/100)")).toBeTruthy();
+  expect(
+    screen.getByText("R1 · spec.pdf · page 2 · OCR (score 58/100)"),
+  ).toBeTruthy();
+});
+
+it("shows missing document tools while keeping ordinary import available", async () => {
+  vi.mocked(api.documentCapabilities).mockResolvedValueOnce({
+    ocr_ready: false,
+    doc_ready: false,
+    ocr_languages: "eng",
+    import_timeout_seconds: 120,
+  });
+  render(<NewTask busy={false} submit={vi.fn()} />);
+  expect(
+    (await screen.findByText(/OCR unavailable on this server/)).textContent,
+  ).toContain("Legacy Word conversion unavailable");
+  expect(
+    (
+      screen.getByLabelText(
+        "Import .txt, .md, PDF, or Word (.docx, .doc)",
+      ) as HTMLInputElement
+    ).disabled,
+  ).toBe(false);
 });
