@@ -131,7 +131,7 @@ def test_missing_pdf_text_warns_without_inventing_requirements():
 @pytest.mark.parametrize(
     "name,content,message",
     [
-        ("old.doc", b"document", "Convert legacy"),
+        ("old.doc", b"document", "binary Word"),
         ("fake.pdf", b"not pdf", "valid PDF"),
         ("broken.docx", b"not zip", "Unable to parse"),
         ("empty.docx", docx("<w:p/>"), "No requirement text"),
@@ -245,10 +245,21 @@ def test_encrypted_and_overlong_pdf_are_rejected():
 def test_parser_timeout_is_reported(monkeypatch):
     import subprocess
 
-    def timeout(*args, **kwargs):
-        raise subprocess.TimeoutExpired("parser", 20)
+    class Process:
+        pid = 12345678
+        returncode = 0
+        calls = 0
 
-    monkeypatch.setattr(subprocess, "run", timeout)
+        def communicate(self, *args, **kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                raise subprocess.TimeoutExpired("parser", 120)
+            return b"", None
+
+    from app.services import document_parser
+
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: Process())
+    monkeypatch.setattr(document_parser, "_kill_group", lambda pid: None)
     with pytest.raises(ValueError, match="timed out"):
         extract_document("spec.pdf", b"%PDF-")
 

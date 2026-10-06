@@ -78,21 +78,35 @@ report downloads are private to the account that created them.
 
 ### Requirement document import
 
-PDF and Word imports retain the extracted text, original filename, file SHA-256, and
-physical PDF page or Word body paragraph locations. The form previews text by location;
-source quote links in the workspace, test plan, and exported reports retain these locations.
-Editing imported text clears its file link so changed text cannot inherit incorrect citations.
+PDF imports use native text where available and local Tesseract OCR for pages without
+text, including sparse native headings over scanned images. Word `.docx` and legacy
+binary `.doc` imports are supported; `.doc` conversion happens automatically on the
+server using macOS `textutil` or Linux LibreOffice. Install tools with:
 
-Scanned/image-only PDF pages cannot be read: **OCR is not supported**. Empty extraction is
-rejected; mixed PDFs explicitly list pages without extractable text. Legacy `.doc` files must
-be converted to `.docx`. Files are limited to 5 MB, PDFs to 100 pages, and extracted text to
-50,000 characters. Parsing does not establish requirement completeness, preserve complex
-layout, or extract Word headers, footers, notes, comments, images, or text boxes.
+```bash
+bash scripts/setup.sh
+bash scripts/setup-document-tools.sh
+bash scripts/dev.sh
+```
 
-See [Document import and acceptance checks](docs/document-import.md) for API examples,
-source numbering, limitations, and step-by-step verification. Run `bash scripts/setup.sh`
-after pulling to install the new parser dependencies, then `bash scripts/dev.sh` to start
-both services.
+The form shows OCR/conversion readiness, then previews text by source location. Saved
+metadata includes the original filename/hash, PDF physical page or Word paragraph,
+extraction method, and OCR mean word confidence score when available. OCR may misread
+numbers and operators; its score does not prove transcription accuracy. Converted
+Word paragraph numbers refer to the converted body and may differ from the original.
+These labels and warnings persist in analysis, test plans, and JSON/HTML reports.
+Editing imported text clears its file link; previous runs keep their original source.
+
+Unreadable pages are listed explicitly; empty extraction is rejected. Missing tools or
+language data produce actionable errors. Native-text PDF and `.docx` imports continue
+to work without OCR/conversion tools. Default OCR language is English (`eng`); install
+additional language data and configure `REQTEST_DOCUMENT_OCR_LANGUAGES` when needed.
+Files are limited to 5 MB, PDFs to 100 pages, OCR to 20 pages per import, and text to
+50,000 characters. The default import deadline is 120 seconds. Parsing does not prove
+requirement completeness or preserve all complex layout and embedded content.
+
+See [Document import and acceptance checks](docs/document-import.md) for source
+numbering, installation, settings, limitations, and step-by-step verification.
 
 ### Authentication API
 
@@ -140,7 +154,7 @@ configure trusted proxy addresses before relying on per-client throttling.
 ### Verification workspace
 
 1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
-2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference: a GitHub URL such as `https://github.com/owner/repository`, optionally ending in `/tree/<branch>/<folder>` or `/commit/<sha>`, or a local path inside the configured root. You can import a `.txt`, `.md`, text-based `.pdf`, or Word `.docx` requirement file, or use the English shipping example.
+2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference: a GitHub URL such as `https://github.com/owner/repository`, optionally ending in `/tree/<branch>/<folder>` or `/commit/<sha>`, or a local path inside the configured root. You can import a `.txt`, `.md`, `.pdf` (including scanned pages), or Word `.docx`/`.doc` requirement file, or use the English shipping example.
 3. Submit the form to save the project, queue a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
 4. Follow live workflow stages (refreshed every two seconds), recorded events, current metrics, and unresolved issues in **Agent workspace**. Expand **Test plan** scenarios to see their normal, boundary, or negative category, preconditions, inputs, steps, expected result, source evidence, assumptions, linked tests, and execution outcomes.
 5. Open **Requirements & evidence** to read the saved requirements and filter the extracted behaviors by verification status.

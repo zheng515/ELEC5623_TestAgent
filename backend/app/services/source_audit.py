@@ -92,7 +92,11 @@ def audit_source(
         for fragment in [*links, *fragments]:
             fragment.locations = [
                 DocumentLocation(
-                    filename=segment.filename, kind=segment.kind, number=segment.number
+                    filename=segment.filename,
+                    kind=segment.kind,
+                    number=segment.number,
+                    method=segment.method,
+                    confidence=segment.confidence,
                 )
                 for segment in document.segments
                 if segment.start < fragment.end and segment.end > fragment.start

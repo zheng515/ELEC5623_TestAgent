@@ -20,6 +20,7 @@ from app.schemas import (
     VerificationRun,
 )
 from app.services.document_parser import extract_document
+from app.services.document_tools import DocumentOptions, document_capabilities
 from app.services.github_source import CREDENTIALS, contains_credentials
 from app.services.jobs import JobInterrupted
 from app.services.report_renderer import render_html_report
@@ -159,11 +160,19 @@ def list_projects(request: Request, user: CurrentUser):
     return request.app.state.store.list_projects(user.id)
 
 
+@router.get("/documents/capabilities", tags=["documents"])
+def document_support(request: Request, user: CurrentUser):
+    return {
+        **document_capabilities(DocumentOptions.from_settings(request.app.state.settings)),
+        "import_timeout_seconds": request.app.state.settings.document_import_timeout_seconds,
+    }
+
+
 @router.post("/documents/import", response_model=RequirementDocument, tags=["documents"])
 def import_document(payload: DocumentImport, request: Request, user: CurrentUser):
     try:
         content = base64.b64decode(payload.content_base64, validate=True)
-        document = extract_document(payload.filename, content)
+        document = extract_document(payload.filename, content, request.app.state.settings)
     except (ValueError, binascii.Error) as error:
         raise HTTPException(422, str(error)) from error
     request.app.state.store.create_document(document, user.id)

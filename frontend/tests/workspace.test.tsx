@@ -26,6 +26,7 @@ vi.mock("../lib/api", () => ({
     system: vi.fn(),
     recentRuns: vi.fn(),
     runs: vi.fn(),
+    documentCapabilities: vi.fn(),
     importDocument: vi.fn(),
     createProject: vi.fn(),
     createRun: vi.fn(),
@@ -118,6 +119,12 @@ const agentRun: VerificationRun = {
   },
 };
 beforeEach(() => {
+  vi.mocked(api.documentCapabilities).mockResolvedValue({
+    ocr_ready: true,
+    doc_ready: true,
+    ocr_languages: "eng",
+    import_timeout_seconds: 120,
+  });
   window.history.replaceState({}, "", "/");
   vi.mocked(api.me).mockResolvedValue({
     id: "u1",
@@ -235,7 +242,7 @@ it("imports a text requirement file into the editable form", async () => {
     value: () => Promise.resolve("R1: Return zero."),
   });
   fireEvent.change(
-    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx)"),
+    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx, .doc)"),
     {
       target: { files: [file] },
     },
@@ -262,9 +269,9 @@ it("rejects unsupported requirement documents without overwriting the text", asy
   render(<NewTask busy={false} submit={vi.fn()} />);
   fireEvent.click(screen.getByText("Use shipping example"));
   fireEvent.change(
-    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx)"),
+    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx, .doc)"),
     {
-      target: { files: [new File(["doc"], "test.doc")] },
+      target: { files: [new File(["exe"], "test.exe")] },
     },
   );
   await screen.findByRole("alert");
@@ -1034,7 +1041,7 @@ const importedDocument = {
       end: 12,
     },
   ],
-  warnings: ["OCR is not supported."],
+  warnings: ["OCR text may contain recognition errors."],
 };
 
 function uploadPdf() {
@@ -1043,7 +1050,7 @@ function uploadPdf() {
     value: async () => new Uint8Array([1, 2, 3]).buffer,
   });
   fireEvent.change(
-    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx)"),
+    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx, .doc)"),
     { target: { files: [file] } },
   );
 }
@@ -1054,9 +1061,11 @@ it("imports a PDF with a visible page preview and submits its server source ID",
   render(<NewTask busy={false} submit={submit} />);
   uploadPdf();
   await screen.findByText("Imported source: spec.pdf");
-  expect(api.importDocument).toHaveBeenCalledWith("spec.pdf", "AQID");
-  expect(screen.getByText("Page 2")).toBeTruthy();
-  expect(screen.getByText("OCR is not supported.")).toBeTruthy();
+  expect(api.importDocument).toHaveBeenCalledWith("spec.pdf", "AQID", 135000);
+  expect(screen.getByText("page 2")).toBeTruthy();
+  expect(
+    screen.getByText("OCR text may contain recognition errors."),
+  ).toBeTruthy();
   fireEvent.change(screen.getByLabelText(/Project name/), {
     target: { value: "Task" },
   });
@@ -1109,7 +1118,7 @@ it("keeps previous requirements and source metadata when another import fails", 
   vi.mocked(api.importDocument)
     .mockResolvedValueOnce(importedDocument)
     .mockRejectedValueOnce(
-      new Error("No extractable text. OCR is not supported."),
+      new Error("No extractable text. OCR found no readable words."),
     );
   render(<NewTask busy={false} submit={vi.fn()} />);
   uploadPdf();
@@ -1180,7 +1189,9 @@ it("edits saved document inputs without submitting server-only project fields", 
   const submit = vi.fn().mockResolvedValue(undefined);
   render(<NewTask busy={false} submit={submit} project={saved} editing />);
   expect(screen.getByText("Imported source: spec.pdf")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: /Save changes and rerun/ }));
+  fireEvent.click(
+    screen.getByRole("button", { name: /Save changes and rerun/ }),
+  );
   await waitFor(() => expect(submit).toHaveBeenCalled());
   const payload = submit.mock.calls[0][0];
   expect(payload.requirement_document_id).toBe(importedDocument.id);
@@ -1209,4 +1220,104 @@ it("previews source segments after supplementary Unicode characters without shif
     />,
   );
   expect(screen.getByText("Second rule.")).toBeTruthy();
+});
+
+it("accepts legacy Word files without requiring manual conversion", async () => {
+  const legacyDocument = {
+    ...importedDocument,
+    filename: "legacy.doc",
+    format: "doc" as const,
+    segments: [
+      {
+        filename: "legacy.doc",
+        kind: "paragraph" as const,
+        number: 1,
+        start: 0,
+        end: 12,
+        method: "converted" as const,
+      },
+    ],
+    warnings: ["Paragraph numbers refer to the converted body."],
+  };
+  vi.mocked(api.importDocument).mockResolvedValueOnce(legacyDocument);
+  render(<NewTask busy={false} submit={vi.fn()} />);
+  const file = new File(["doc"], "legacy.doc", { type: "application/msword" });
+  Object.defineProperty(file, "arrayBuffer", {
+    value: async () => new Uint8Array([1, 2, 3]).buffer,
+  });
+  fireEvent.change(
+    screen.getByLabelText("Import .txt, .md, PDF, or Word (.docx, .doc)"),
+    { target: { files: [file] } },
+  );
+  await screen.findByText("Imported source: legacy.doc");
+  expect(screen.getByText("converted paragraph 1")).toBeTruthy();
+  expect(
+    screen.getByText("Paragraph numbers refer to the converted body."),
+  ).toBeTruthy();
+});
+
+it("labels OCR pages and source links without implying transcription accuracy", () => {
+  const ocrDocument = {
+    ...importedDocument,
+    segments: [
+      {
+        ...importedDocument.segments[0],
+        method: "ocr" as const,
+        confidence: 58,
+      },
+    ],
+  };
+  render(
+    <SourceAudit
+      report={{
+        ...run.report,
+        requirement_document: ocrDocument,
+        source_audit: {
+          version: 1,
+          extraction_limit: 40,
+          limit_reached: false,
+          returned_requirements: 1,
+          retained_requirements: 1,
+          semantic_completeness: "not_established",
+          ambiguous_requirement_ids: [],
+          issues: [],
+          unlinked_fragments: [],
+          links: [
+            {
+              text: "Return zero.",
+              start: 0,
+              end: 12,
+              line: 1,
+              requirement_ids: ["R1"],
+              locations: ocrDocument.segments,
+            },
+          ],
+        },
+      }}
+    />,
+  );
+  expect(screen.getByText("page 2 · OCR (score 58/100)")).toBeTruthy();
+  expect(
+    screen.getByText("R1 · spec.pdf · page 2 · OCR (score 58/100)"),
+  ).toBeTruthy();
+});
+
+it("shows missing document tools while keeping ordinary import available", async () => {
+  vi.mocked(api.documentCapabilities).mockResolvedValueOnce({
+    ocr_ready: false,
+    doc_ready: false,
+    ocr_languages: "eng",
+    import_timeout_seconds: 120,
+  });
+  render(<NewTask busy={false} submit={vi.fn()} />);
+  expect(
+    (await screen.findByText(/OCR unavailable on this server/)).textContent,
+  ).toContain("Legacy Word conversion unavailable");
+  expect(
+    (
+      screen.getByLabelText(
+        "Import .txt, .md, PDF, or Word (.docx, .doc)",
+      ) as HTMLInputElement
+    ).disabled,
+  ).toBe(false);
 });

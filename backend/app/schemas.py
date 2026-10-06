@@ -56,6 +56,8 @@ class VerificationStatus(StrEnum):
 
 
 class DocumentLocation(BaseModel):
+    method: Literal["text", "ocr", "converted"] = "text"
+    confidence: float | None = Field(default=None, ge=0, le=100)
     filename: str
     kind: Literal["page", "paragraph"]
     number: int
@@ -69,7 +71,7 @@ class DocumentSegment(DocumentLocation):
 class RequirementDocument(BaseModel):
     id: str
     filename: str
-    format: Literal["pdf", "docx"]
+    format: Literal["pdf", "docx", "doc"]
     sha256: str
     text: str
     segments: list[DocumentSegment]
