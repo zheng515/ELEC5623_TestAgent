@@ -180,3 +180,25 @@ execution result. Copies are retained in the configured snapshot store and are
 separate from the project-input fingerprint. Capture is not an atomic filesystem
 snapshot and does not pin Docker images or dependency versions. There is currently
 no automatic storage-retention policy.
+
+### Execution environment provenance
+
+`DockerTestRunner.for_run()` creates a runner scoped to one verification run. Its
+first eligible execution resolves the configured tag to one full local image ID,
+inspects that ID, and starts a constrained inventory container with no project or
+test mounts. The inventory records Python, platform and all installed Python
+distribution versions. Both inventory and tests use the immutable ID with
+`--pull never`; repair reuses the same runner, while a subsequent run resolves the
+tag again. No runtime dependency installation occurs. The default image pins
+pytest and its transitive dependencies in `sandbox/requirements.lock`.
+
+Every attempt stores an environment record and fingerprint alongside the code
+fingerprint. Missing images, ambiguous tag resolution, invalid inventories and
+probe failures produce environment errors without test outcomes. These failures
+are distinct from assertion failures and cannot promote a requirement's status.
+Legacy attempts without metadata remain unknown. The fingerprint excludes the
+requested tag and descriptive registry digests so equivalent tags do not imply a
+runtime change. It identifies the recorded image, Python, platform and packages;
+it is not a complete replay bundle and does not establish project dependency
+readiness. Real Docker integration checks are opt-in and use deterministic model
+fixtures rather than a live provider.

@@ -30,8 +30,8 @@ export function RepositoryVersion({
             Interfaces and test execution use the saved copy. Edits to the
             original directory do not affect this run. Each execution checks
             snapshot integrity before and after running. This fingerprint covers
-            copied files and directories; it does not identify installed
-            dependencies or the container image.
+            copied files and directories. Runtime versions are recorded
+            separately for each execution attempt.
           </p>
           <details>
             <summary>Copied file manifest</summary>

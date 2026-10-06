@@ -122,6 +122,17 @@ export interface TestDiagnosis {
   classification: "invalid_test" | "suspected_defect" | "inconclusive";
   explanation: string;
 }
+export interface ExecutionEnvironment {
+  requested_image: string;
+  image_id: string;
+  repo_digests: string[];
+  image_os: string;
+  image_architecture: string;
+  python_version: string;
+  platform: string;
+  packages: { name: string; version: string }[];
+  fingerprint: string;
+}
 export interface ExecutionAttempt {
   number: number;
   stage: "measure" | "re_measure";
@@ -134,6 +145,8 @@ export interface ExecutionAttempt {
     stderr_excerpt: string;
     repository_content_sha256?: string | null;
     snapshot_error?: string | null;
+    environment?: ExecutionEnvironment | null;
+    environment_error?: string | null;
   };
   diagnoses: TestDiagnosis[];
 }

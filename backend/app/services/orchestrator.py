@@ -273,7 +273,8 @@ class DirectLLMOrchestrator:
             requirement_coverage=requirement_coverage(requirements, suite.tests),
             behaviors=_behaviors(requirements, suite.tests, [], inspected=False, plan=plan),
         )
-        execution = self._execute(suite.tests, repository, events)
+        runner = self._runner.for_run() if self._runner else None
+        execution = self._execute(suite.tests, repository, events, runner=runner)
         executions = execution.executions if execution else []
         attempts = []
         if execution is not None:
@@ -334,7 +335,9 @@ class DirectLLMOrchestrator:
                         execution_attempts=attempts,
                         evidence=_evidence(executions),
                     )
-                    rerun = self._execute(refined.tests, repository, events, stage="re_measure")
+                    rerun = self._execute(
+                        refined.tests, repository, events, stage="re_measure", runner=runner
+                    )
                     if rerun is not None:
                         attempts.append(_attempt(2, "re_measure", refined.tests, rerun))
                         execution = rerun
@@ -487,9 +490,11 @@ class DirectLLMOrchestrator:
         repository: RepositorySnapshot | None,
         events: list[RunEvent],
         stage: Literal["measure", "re_measure"] = "measure",
+        *,
+        runner: TestRunner | None = None,
     ) -> ExecutionResult | None:
         """Run the generated tests in the sandbox, or record that it is unavailable."""
-        if self._runner is None:
+        if runner is None:
             events.append(
                 _event(
                     stage,
@@ -512,10 +517,11 @@ class DirectLLMOrchestrator:
         if not eligible:
             return None
 
+        result = None
         try:
             artifact = repository.artifact if repository else None
             execution_root = verified_snapshot_root(artifact, self._settings)
-            result = self._runner.execute(eligible, str(execution_root))
+            result = runner.execute(eligible, str(execution_root))
             # A read-only container mount prevents test writes. Recheck host storage
             # as well: discard outcomes if another host process changed the copy.
             verified_snapshot_root(artifact, self._settings)
@@ -531,7 +537,11 @@ class DirectLLMOrchestrator:
                 timed_out=False,
                 stderr_excerpt=message,
                 snapshot_error=message,
+                environment=result.environment if result else None,
             )
+        if result.environment_error:
+            events.append(_event(stage, result.environment_error, datetime.now(UTC)))
+            return result
         if result.timed_out:
             events.append(
                 _event(stage, f"Execution timed out. {result.stderr_excerpt}", datetime.now(UTC))
@@ -844,6 +854,8 @@ def _execution_issues(
         return [f"Execution timed out: {execution.stderr_excerpt}"]
     if execution.snapshot_error:
         return [execution.snapshot_error]
+    if execution.environment_error:
+        return [execution.environment_error]
 
     issues = []
     counts = Counter(item.outcome for item in execution.executions)

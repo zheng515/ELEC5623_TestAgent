@@ -266,3 +266,27 @@ silently truncated. Storage currently has no automatic retention cleanup. Copyin
 is checked with a second source scan, not an atomic filesystem transaction; keep
 source files stable during capture. The content fingerprint does not pin the
 sandbox image or installed dependencies.
+
+Each verification run resolves the sandbox tag once to a full local image ID.
+Initial execution and repair reuse that ID with `--pull never`, so retagging the
+image cannot change the environment within a run. A constrained container without
+project mounts first records Python, platform and installed distribution versions.
+Execution history and HTML/JSON exports include this environment fingerprint and
+inventory. Preparation failures record no test outcomes and remain environment
+issues, not product defects. Historical attempts without metadata show unknown
+runtime versions. The default image pins pytest and its dependencies in
+`backend/sandbox/requirements.lock`; rebuild it after changes to that file.
+
+Run the optional real-container workflow checks after building the sandbox:
+
+```bash
+cd backend
+REQTEST_RUN_DOCKER_TESTS=1 .venv/bin/pytest -q tests/test_docker_integration.py
+```
+
+These checks exercise the authenticated API, background worker, saved code copy,
+actual Docker execution, defect preservation, safe fixture repair, and exported
+provenance. Model responses are deterministic fixtures; these checks do not call
+or validate a live model provider. The image must remain available locally for
+replay; an environment record does not archive Docker layers or prove that the
+image contains every dependency needed by a particular project.

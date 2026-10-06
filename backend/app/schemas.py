@@ -265,6 +265,23 @@ class ExecutedTest(BaseModel):
     message: str
 
 
+class RuntimePackage(BaseModel):
+    name: str
+    version: str
+
+
+class ExecutionEnvironment(BaseModel):
+    requested_image: str
+    image_id: str
+    repo_digests: list[str]
+    image_os: str
+    image_architecture: str
+    python_version: str
+    platform: str
+    packages: list[RuntimePackage]
+    fingerprint: str
+
+
 class ExecutionResult(BaseModel):
     """Everything one sandbox invocation produced."""
 
@@ -274,6 +291,8 @@ class ExecutionResult(BaseModel):
     stderr_excerpt: str
     repository_content_sha256: str | None = None
     snapshot_error: str | None = None
+    environment: ExecutionEnvironment | None = None
+    environment_error: str | None = None
 
 
 class ExecutionAttempt(BaseModel):

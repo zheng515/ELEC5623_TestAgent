@@ -53,7 +53,7 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
             f"<p>Content fingerprint: <code>{escape(artifact.content_sha256)}</code></p>"
             "<p>Interfaces and execution use the saved copy. Original directory edits do not "
             "affect this run. Integrity is checked before and after execution. "
-            "The fingerprint does not identify installed dependencies or the container image.</p>"
+            "Runtime versions are recorded separately for each execution attempt.</p>"
             "<details><summary>Copied file manifest</summary>"
             + _items(
                 [
@@ -151,6 +151,21 @@ that its expectations are correct or complete. Legacy artifacts have no validati
 def _render_attempts(run: VerificationRun) -> str:
     sections = []
     for attempt in run.report.execution_attempts:
+        environment = attempt.result.environment
+        environment_html = "<p>No execution environment recorded. Runtime versions are unknown.</p>"
+        if environment:
+            environment_html = (
+                "<details><summary>Pinned execution environment</summary>"
+                f"<p>Requested image: {escape(environment.requested_image)}</p>"
+                f"<p>Executed image ID: <code>{escape(environment.image_id)}</code></p>"
+                f"<p>Environment fingerprint: <code>{escape(environment.fingerprint)}</code></p>"
+                f"<p>Python: {escape(environment.python_version)}</p>"
+                f"<p>Image platform: {escape(environment.image_os)} / {escape(environment.image_architecture)}</p>"
+                f"<p>Runtime platform: {escape(environment.platform)}</p>"
+                "<p>Installed distributions do not establish availability of every project dependency.</p>"
+                + _items([f"{item.name} == {item.version}" for item in environment.packages])
+                + "</details>"
+            )
         rows = "".join(
             f"<li>{escape(item.test_id or 'Unmatched')}: {escape(item.name)} — {escape(item.outcome)}"
             f"<pre>{escape(item.message)}</pre></li>"
@@ -171,6 +186,7 @@ def _render_attempts(run: VerificationRun) -> str:
             f'<section class="card"><h3>Attempt {attempt.number}: {escape(attempt.stage)}</h3>'
             f"<p>Exit code: {attempt.result.exit_code} | Timed out: {attempt.result.timed_out}</p>"
             f"<p>Executed code fingerprint: <code>{escape(attempt.result.repository_content_sha256 or 'Not recorded')}</code></p>"
+            f"{environment_html}"
             f"<pre>{escape(attempt.result.stderr_excerpt)}</pre>"
             f"<ul>{rows or '<li>No outcomes recorded.</li>'}</ul>{diagnoses}{artifacts}</section>"
         )

@@ -150,6 +150,9 @@ class FakeRunner:
         self.roots.append(repository_root)
         return self.result
 
+    def for_run(self):
+        return self
+
 
 class SequenceRunner(FakeRunner):
     def __init__(self, *results):
@@ -1024,3 +1027,19 @@ def test_legacy_interface_snapshot_is_not_an_execution_input():
     assert runner.received == []
     assert run.report.executions == []
     assert any("live repository is refused" in issue for issue in run.report.unresolved_issues)
+
+
+def test_environment_preparation_failure_does_not_become_a_product_defect():
+    result = ExecutionResult(
+        executions=[],
+        exit_code=-1,
+        timed_out=False,
+        stderr_excerpt="Sandbox environment could not be established: missing image.",
+        environment_error="Sandbox environment could not be established: missing image.",
+    )
+    run = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(result)).run(PROJECT)
+    assert run.report.behaviors[0].verification_status == "Unverified"
+    assert run.report.executions == []
+    assert run.report.execution_success_rate is None
+    assert any("missing image" in issue for issue in run.report.unresolved_issues)
+    assert not any(item.classification == "suspected_defect" for item in run.report.diagnoses)
