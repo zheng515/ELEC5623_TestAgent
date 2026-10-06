@@ -151,7 +151,7 @@ Use one API process with this SQLite worker. On shutdown or restart, unfinished 
 
 A completed agent run reports two rates, and they measure different things:
 
-- `requirement_coverage` — for new runs (`validation_version = 1`), share of extracted testable requirements linked to at least one artifact whose code passes server-side code-to-plan validation. It is labeled **Validated requirement links** in the UI. Unchecked or unsupported claims do not count; a requirement-level link does not mean every planned scenario is implemented. Old reports retain their historical metrics and are explicitly marked as not revalidated.
+- `requirement_coverage` — for new runs (`validation_version = 2`), share of extracted testable requirements linked to at least one artifact whose code passes server-side code-to-plan validation. It is labeled **Validated requirement links** in the UI. Unchecked or unsupported claims do not count; a requirement-level link does not mean every planned scenario is implemented. Old reports retain their historical metrics and are explicitly marked as not revalidated.
 - `execution_success_rate` — share of **executed** tests that passed. `null` means nothing ran.
 
 `semantic_coverage` and `mutation_score` stay `null`; `null` means *not evaluated*.
@@ -162,14 +162,18 @@ Verification statuses follow the evidence, and only ever downward from what was 
 | --- | --- |
 | `Uncertain` | The requirement is ambiguous or not testable as written |
 | `Unverified` | No test ran against the real project, or one of its tests failed or errored |
-| `Partially Verified` | The project was inspected, every planned scenario has a validated implementation, every linked artifact passes code-to-plan validation, and each validated test function has a final passing outcome |
+| `Partially Verified` | The project was inspected, every scenario for this requirement has a validated implementation, every linked artifact passes code-to-plan validation, and every function implementing this requirement has a final passing outcome |
 | `Verified` | Not reachable yet; it needs test-adequacy analysis (mutation testing) |
 
 ### Code-to-plan validation
 
 The planner saves a structured `check` before generation: an inspected target such as `shipping.fee`, JSON scalar or flat-list inputs (named keyword arguments are stored as `{name, value}` entries), and either an equality oracle or a precise built-in exception type. The server parses generated Python as AST without executing it on the host. Only direct function calls and straight-line test functions with supported checks are eligible. Local literal variables, imported aliases, and assertions on saved call results are supported. Wrong inputs, wrong or weakened oracles, fabricated APIs, shadowed bindings, constant checks, skip decorators, early returns, swallowed errors, and dynamic execution cannot establish a validated link.
 
-Each artifact records `validation_status`, `validation_issues`, and `validated_checks` with scenario IDs, test function names, targets, and call/assertion line numbers. These fields are computed by the server; model-provided values are overwritten. **Needs review** artifacts remain visible, including their code and declared links, but are excluded from coverage and automatic sandbox execution. Repairs are checked again against the saved contract. Multi-function artifacts require final execution outcomes for every validated test function before partial verification is possible.
+Validation version 2 checks both directions: every linked scenario needs a matching check, and every observed equality or exception check must match a linked scenario contract. Extra assertions, unused project-call results (including setup calls), and dynamic assertion messages make the entire artifact **Needs review**. Literal assertion messages remain supported. Rejected artifacts cannot produce suspected product defects because they are never executed. Runs saved under earlier rules keep their original evidence and display a notice to start a new run; they are not silently revalidated.
+
+Each artifact records `validation_status`, `validation_issues`, and `validated_checks` with scenario IDs, test function names, targets, and call/assertion line numbers. These fields are computed by the server; model-provided values are overwritten. **Needs review** artifacts remain visible, including their code and declared links, but are excluded from coverage and automatic sandbox execution. Repairs are checked again against the saved contract.
+
+New reports save `outcome_mapping_version = 1`. Requirement conclusions, evidence references, and requirement mapping tables follow **requirement → scenario → validated function → final outcome**, matching the artifact ID, module, and function name. If one file contains an independent passing function for R1 and a failing function for R2, R1 can remain `Partially Verified` while R2 is `Unverified`. Missing outcomes for R2 do not invalidate R1's recorded passing function. If the same function checks both requirements, its failure applies to both: pytest does not record individual assertion outcomes. Collection errors and unmatched outcomes remain in global execution evidence but cannot substitute for a missing function result. Historical reports are flagged without rewriting saved conclusions; start a new run to apply the current mapping.
 
 Nested input objects, missing repository interfaces or contracts, classes, helpers, parameterization, fixture-dependent behavior, unresolved assumptions, and setup preconditions currently require review. No manual approval step is inserted: supported checks continue automatically. Matching a contract is not proof that the planner interpreted the requirement correctly, that extraction was complete, or that the tests are adequate. The original document-to-plan semantics still need separate assessment.
 

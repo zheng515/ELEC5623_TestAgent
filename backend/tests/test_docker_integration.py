@@ -6,6 +6,7 @@ import pytest
 from conftest import register, wait_for_run
 from fastapi.testclient import TestClient
 from test_agent import ANALYSIS, INVALID_SUITE, PLAN, PROJECT, SUITE, FakeLLM
+from test_outcome_mapping import mixed_requirement_inputs
 
 from app.core.config import Settings
 from app.main import create_app
@@ -18,7 +19,9 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.mark.parametrize("case", ["passing", "defect", "repair", "setup_blocked"])
+@pytest.mark.parametrize(
+    "case", ["passing", "defect", "repair", "setup_blocked", "unplanned", "mixed", "shared"]
+)
 def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_path, case):
     source = tmp_path / "project"
     source.mkdir()
@@ -36,6 +39,21 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
     responses = (
         [ANALYSIS, PLAN, INVALID_SUITE, SUITE] if case == "repair" else [ANALYSIS, PLAN, SUITE]
     )
+    if case == "unplanned":
+        responses[-1] = SUITE.model_copy(
+            update={
+                "tests": [
+                    SUITE.tests[0].model_copy(
+                        update={"code": SUITE.tests[0].code + "    assert fee(0) == 999\n"}
+                    )
+                ]
+            }
+        )
+    requirements_text = PROJECT.requirements_text
+    if case in {"mixed", "shared"}:
+        project, analysis, plan, suite = mixed_requirement_inputs(shared_function=case == "shared")
+        requirements_text = project.requirements_text
+        responses = [analysis, plan, suite]
     agent = DirectLLMOrchestrator(
         FakeLLM(*responses), runner=DockerTestRunner(settings), settings=settings
     )
@@ -46,7 +64,7 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
             json={
                 "name": "Docker verification probe",
                 "repository_ref": "project",
-                "requirements_text": PROJECT.requirements_text,
+                "requirements_text": requirements_text,
                 "goal": PROJECT.goal,
             },
         )
@@ -69,6 +87,35 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
             return
         assert run["status"] == "completed"
         report = run["report"]
+        if case in {"mixed", "shared"}:
+            assert report["outcome_mapping_version"] == 1
+            assert report["generated_tests"][0]["validation_status"] == "validated"
+            behaviors = {item["requirement_id"]: item for item in report["behaviors"]}
+            assert behaviors["R2"]["verification_status"] == "Unverified"
+            assert behaviors["R1"]["verification_status"] == (
+                "Partially Verified" if case == "mixed" else "Unverified"
+            )
+            assert behaviors["R1"]["evidence_refs"] == ["E1"]
+            assert behaviors["R2"]["evidence_refs"] == (["E2"] if case == "mixed" else ["E1"])
+            assert [item["outcome"] for item in report["executions"]] == (
+                ["passed", "failed"] if case == "mixed" else ["failed"]
+            )
+            return
+        if case == "unplanned":
+            assert report["project_readiness"]["status"] == "ready"
+            assert report["validation_version"] == 2
+            assert report["generated_tests"][0]["validation_status"] == "needs_review"
+            assert report["executions"] == []
+            assert report["execution_attempts"] == []
+            assert report["requirement_coverage"] == 0
+            assert report["behaviors"][0]["verification_status"] == "Unverified"
+            assert not any(
+                item["classification"] == "suspected_defect" for item in report["diagnoses"]
+            )
+            html = client.get(f"/api/v1/runs/{run['id']}/report.html").text
+            assert "no matching linked scenario contract" in html
+            assert "No tests executed." in html
+            return
         expected = "failed" if case == "defect" else "passed"
         assert [item["outcome"] for item in report["executions"]] == [expected]
         assert report["behaviors"][0]["verification_status"] == (

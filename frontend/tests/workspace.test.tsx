@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from "@testing-library/react";
 import App from "../app/page";
@@ -14,6 +15,7 @@ import { TestPlanDetails } from "../components/test-plan";
 import { ExecutionHistory } from "../components/execution-history";
 import { api, downloadHtmlReport, downloadReport } from "../lib/api";
 import type { Project, VerificationRun } from "../lib/types";
+import { requirementOutcomes } from "../lib/outcome-mapping";
 vi.mock("../lib/api", () => ({
   api: {
     me: vi.fn(),
@@ -714,7 +716,7 @@ it("distinguishes a claimed scenario link from validated code and preserves revi
     <TestPlanDetails
       report={{
         ...plannedRun.report,
-        validation_version: 1,
+        validation_version: 2,
         generated_tests: plannedRun.report.generated_tests.map((test) => ({
           ...test,
           validation_status: "needs_review",
@@ -753,7 +755,7 @@ it("shows the planned contract and validated call location without claiming adeq
     <TestPlanDetails
       report={{
         ...plannedRun.report,
-        validation_version: 1,
+        validation_version: 2,
         test_plan: {
           ...plannedRun.report.test_plan!,
           scenarios: plannedRun.report.test_plan!.scenarios.map((scenario) => ({
@@ -793,7 +795,7 @@ it("shows excluded artifacts and their reasons in the workspace without implying
     ...plannedRun,
     report: {
       ...plannedRun.report,
-      validation_version: 1,
+      validation_version: 2,
       executions: [],
       executed_tests: 0,
       requirement_coverage: 0,
@@ -823,7 +825,130 @@ it("shows excluded artifacts and their reasons in the workspace without implying
   expect(screen.getByText("Review needed · tests excluded")).toBeTruthy();
   expect(
     screen.queryByText(
-      "Historical coverage and conclusions have not been revalidated.",
+      /Historical coverage and conclusions have not been revalidated/,
     ),
   ).toBeNull();
+});
+
+it.each([undefined, 1])(
+  "flags historical validation version %s without changing saved evidence",
+  async (version) => {
+    const historical: VerificationRun = {
+      ...plannedRun,
+      report: {
+        ...plannedRun.report,
+        validation_version: version,
+        requirement_coverage: 1,
+      },
+    };
+    vi.mocked(api.runs).mockResolvedValue([historical]);
+    window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+    render(<App />);
+    await screen.findByText(
+      /This run predates the current code-to-plan checks/,
+    );
+    expect(screen.getByText("Requirement coverage")).toBeTruthy();
+    expect(screen.getByText("100%")).toBeTruthy();
+  },
+);
+
+it("attributes requirement table outcomes to independent functions in the same artifact", async () => {
+  const base = plannedRun.report.generated_tests[0];
+  const report = {
+    ...plannedRun.report,
+    validation_version: 2,
+    outcome_mapping_version: 1,
+    test_plan: {
+      ...plannedRun.report.test_plan!,
+      scenarios: [
+        plannedRun.report.test_plan!.scenarios[0],
+        {
+          ...plannedRun.report.test_plan!.scenarios[0],
+          id: "S2",
+          requirement_ids: ["R2"],
+        },
+      ],
+    },
+    generated_tests: [
+      {
+        ...base,
+        requirement_ids: ["R1", "R2"],
+        scenario_ids: ["S1", "S2"],
+        validation_status: "validated" as const,
+        validated_checks: [
+          {
+            scenario_id: "S1",
+            function_name: "test_free",
+            target: "shipping.fee",
+            call_line: 3,
+            assertion_line: 3,
+          },
+          {
+            scenario_id: "S2",
+            function_name: "test_paid",
+            target: "shipping.fee",
+            call_line: 6,
+            assertion_line: 6,
+          },
+        ],
+      },
+    ],
+    executions: [
+      {
+        ...plannedRun.report.executions[0],
+        test_id: base.id,
+        module: base.module,
+        name: "test_free",
+        outcome: "passed" as const,
+      },
+      {
+        ...plannedRun.report.executions[0],
+        test_id: base.id,
+        module: base.module,
+        name: "test_paid",
+        outcome: "failed" as const,
+      },
+    ],
+  };
+  expect(requirementOutcomes(report, "R1").map((item) => item.name)).toEqual([
+    "test_free",
+  ]);
+  expect(requirementOutcomes(report, "R2").map((item) => item.name)).toEqual([
+    "test_paid",
+  ]);
+  expect(
+    requirementOutcomes(
+      {
+        ...report,
+        executions: report.executions.map((item) => ({
+          ...item,
+          module: "test_wrong.py",
+        })),
+      },
+      "R1",
+    ),
+  ).toEqual([]);
+  vi.mocked(api.runs).mockResolvedValue([{ ...plannedRun, report }]);
+  window.history.replaceState({}, "", "/#view=reports&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Runs & reports" });
+  const table = screen.getByText(
+    "03 / Requirement to test mapping",
+  ).parentElement!;
+  const firstRow = within(table).getByText("R1").closest("tr")!;
+  const secondRow = within(table).getByText("R2").closest("tr")!;
+  expect(within(firstRow).getByText("test_free: passed")).toBeTruthy();
+  expect(within(firstRow).queryByText(/test_paid/)).toBeNull();
+  expect(within(secondRow).getByText("test_paid: failed")).toBeTruthy();
+  expect(within(secondRow).queryByText(/test_free/)).toBeNull();
+  expect(screen.queryByText(/This run predates function-level/)).toBeNull();
+});
+
+it("warns that historical requirement conclusions have not been remapped", async () => {
+  vi.mocked(api.runs).mockResolvedValue([plannedRun]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByText(
+    /This run predates function-level requirement outcome mapping/,
+  );
 });

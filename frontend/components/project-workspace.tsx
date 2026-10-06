@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { Behavior, Project, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
+import { requirementOutcomes } from "../lib/outcome-mapping";
 import { ProjectSetup } from "./project-setup";
 import { RepositoryVersion } from "./repository-version";
 import { SourceAudit } from "./source-audit";
 import { TestPlanDetails } from "./test-plan";
-import { isRunActive } from "../lib/types";
+import { isRunActive, VALIDATION_VERSION } from "../lib/types";
 import { ExecutionHistory } from "./execution-history";
 import {
   Badge,
@@ -332,7 +333,7 @@ export function Workspace({
               </div>
               <div>
                 <span>
-                  {run?.report.validation_version === 1
+                  {run?.report.validation_version === VALIDATION_VERSION
                     ? "Validated requirement links"
                     : "Requirement coverage"}
                 </span>
@@ -904,7 +905,7 @@ export function Report({
                     {percent(run.report.requirement_coverage) ?? "—"}
                   </strong>
                   <span>
-                    {run?.report.validation_version === 1
+                    {run?.report.validation_version === VALIDATION_VERSION
                       ? "Validated requirement links"
                       : "Requirement coverage"}
                   </span>
@@ -987,12 +988,9 @@ export function Report({
                                 : "—"}
                             </td>
                             <td>
-                              {run.report.executions
-                                .filter((e) =>
-                                  tests.some((t) => t.id === e.test_id),
-                                )
-                                .map((e) => e.outcome)
-                                .join(", ") || "Not executed"}
+                              {requirementOutcomes(run.report, requirement.id)
+                                .map((e) => `${e.name}: ${e.outcome}`)
+                                .join(", ") || "No attributable outcome"}
                             </td>
                           </tr>
                         );
@@ -1000,8 +998,10 @@ export function Report({
                     </tbody>
                   </table>
                   <p className="small muted">
-                    A listed test was generated from its requirement. Outcomes
-                    are shown only when sandbox execution evidence exists.
+                    Outcomes follow validated scenario and test function links.
+                    A function shared by multiple requirements supplies the same
+                    outcome to each; individual assertion outcomes are not
+                    recorded.
                   </p>
                 </>
               ) : (
