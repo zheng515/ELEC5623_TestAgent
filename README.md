@@ -2,7 +2,7 @@
 
 ReqTest is the University of Sydney ELEC5623 Group 04 project. It aims to connect natural-language requirements, Python source code, pytest tests, and execution evidence in an agent-driven verification workflow.
 
-This repository contains a working **frontend, backend, B0/B2 agent, repository inspection, and execution sandbox**. A run reads the public interface of the project under test, splits requirements into testable items, builds a structured test plan, generates traceable pytest tests from its scenarios, executes them in an isolated container, and records every outcome as evidence. With both model access and the sandbox available, execution errors trigger one evidence-grounded refinement and re-execution attempt. RAG retrieval and mutation testing remain planned integrations. **No behavior is ever reported as `Verified`**: passing tests show the stated behavior held for the cases that were written, not that those cases were enough.
+This repository contains a working **frontend, backend, B0/B2 agent, repository inspection, and execution sandbox**. A run reads the public interface of the project under test, splits requirements into testable items, builds a structured test plan, generates traceable pytest tests from its scenarios, executes them in an isolated container, and records every outcome as evidence. With both model access and the sandbox available, identifiable construction errors may trigger one guarded refinement and re-execution attempt. RAG retrieval and mutation testing remain planned integrations. **No behavior is ever reported as `Verified`**: passing tests show the stated behavior held for the cases that were written, not that those cases were enough.
 
 ## Technology
 
@@ -132,7 +132,7 @@ configure trusted proxy addresses before relying on per-client throttling.
 1. Configure model credentials in `backend/.env` and restart the backend. Confirm `/api/v1/system` shows `baseline_b0` or `baseline_b2` and **Structured test planning** is ready.
 2. Create a task using **Use shipping example**, then submit once. The agent performs analysis, planning, and generation automatically; no manual approval is required between stages.
 3. In **Agent workspace**, check **Plan tests** and the **Test plan created** event. Expand a scenario and compare its expected result and source quote with the submitted requirements. Category counts and scenario content depend on the model and the stated requirements; missing business rules should remain gaps or assumptions.
-4. Confirm each generated test names its scenario ID and requirement ID. Review **Requirements without scenarios** and **Scenarios without generated tests** when present; a generated-test coverage rate does not mean every planned scenario was implemented.
+4. Confirm each generated test names its scenario ID and requirement ID. Review **Requirements without scenarios** and **Scenarios without validated implementations** when present; a generated-test coverage rate does not mean every planned scenario was implemented.
 5. Open **Runs & reports**, download HTML and JSON, and check that the plan and references are preserved. Refresh the page to verify persistence. Older runs display **No test plan recorded for this run** rather than inventing one.
 
 `REQTEST_MAX_SCENARIOS` caps retained scenarios (default 80). Run submission returns **202 Accepted** with a persisted queued record and a `Location` pointing to `/api/v1/runs/{id}`. The browser polls saved progress every two seconds while a run is queued or running. All browser API requests use a 15-second timeout; model and sandbox time limits remain backend settings.
@@ -151,7 +151,7 @@ Use one API process with this SQLite worker. On shutdown or restart, unfinished 
 
 A completed agent run reports two rates, and they measure different things:
 
-- `requirement_coverage` — share of testable requirements linked to at least one **generated** test. It measures generation, not execution, and requirement links are derived from validated scenario links before they count.
+- `requirement_coverage` — for new runs (`validation_version = 1`), share of extracted testable requirements linked to at least one artifact whose code passes server-side code-to-plan validation. It is labeled **Validated requirement links** in the UI. Unchecked or unsupported claims do not count; a requirement-level link does not mean every planned scenario is implemented. Old reports retain their historical metrics and are explicitly marked as not revalidated.
 - `execution_success_rate` — share of **executed** tests that passed. `null` means nothing ran.
 
 `semantic_coverage` and `mutation_score` stay `null`; `null` means *not evaluated*.
@@ -162,8 +162,18 @@ Verification statuses follow the evidence, and only ever downward from what was 
 | --- | --- |
 | `Uncertain` | The requirement is ambiguous or not testable as written |
 | `Unverified` | No test ran against the real project, or one of its tests failed or errored |
-| `Partially Verified` | The project was inspected, every planned scenario for this requirement has an implementation, and every linked generated test has a final passing execution outcome |
+| `Partially Verified` | The project was inspected, every planned scenario has a validated implementation, every linked artifact passes code-to-plan validation, and each validated test function has a final passing outcome |
 | `Verified` | Not reachable yet; it needs test-adequacy analysis (mutation testing) |
+
+### Code-to-plan validation
+
+The planner saves a structured `check` before generation: an inspected target such as `shipping.fee`, JSON scalar or flat-list inputs (named keyword arguments are stored as `{name, value}` entries), and either an equality oracle or a precise built-in exception type. The server parses generated Python as AST without executing it on the host. Only direct function calls and straight-line test functions with supported checks are eligible. Local literal variables, imported aliases, and assertions on saved call results are supported. Wrong inputs, wrong or weakened oracles, fabricated APIs, shadowed bindings, constant checks, skip decorators, early returns, swallowed errors, and dynamic execution cannot establish a validated link.
+
+Each artifact records `validation_status`, `validation_issues`, and `validated_checks` with scenario IDs, test function names, targets, and call/assertion line numbers. These fields are computed by the server; model-provided values are overwritten. **Needs review** artifacts remain visible, including their code and declared links, but are excluded from coverage and automatic sandbox execution. Repairs are checked again against the saved contract. Multi-function artifacts require final execution outcomes for every validated test function before partial verification is possible.
+
+Nested input objects, missing repository interfaces or contracts, classes, helpers, parameterization, fixture-dependent behavior, unresolved assumptions, and setup preconditions currently require review. No manual approval step is inserted: supported checks continue automatically. Matching a contract is not proof that the planner interpreted the requirement correctly, that extraction was complete, or that the tests are adequate. The original document-to-plan semantics still need separate assessment.
+
+Automatic repair is deliberately narrow: it can remove an unused fixture parameter explicitly named by a recorded missing-fixture error. The server compares the complete module AST and preserves test bodies, assertions, inputs, project calls, imports, helper functions, decorators, and control flow. Constant-only checks, modules without identifiable project calls, dynamic namespace access, and unparseable baselines are rejected. Syntax errors and other unsupported edits remain recorded errors rather than being rewritten without a protected baseline. Rejected replacements are not executed; their reasons appear in activity and unresolved issues, and original code and execution evidence remain available. This protects repair integrity; it does not prove the original tests implement every planned scenario or establish test adequacy.
 
 Remote repositories are **not** cloned. A reference must be a local path inside `REQTEST_REPOSITORY_ROOT`; a URL is refused with an explanation.
 

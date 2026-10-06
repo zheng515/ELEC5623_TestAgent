@@ -526,7 +526,9 @@ it("shows missing scenario implementations separately from execution results", (
   );
   expect(screen.getByText("No generated test")).toBeTruthy();
   expect(screen.getByText("Not executed")).toBeTruthy();
-  expect(screen.getByText("Scenarios without generated tests")).toBeTruthy();
+  expect(
+    screen.getByText("Scenarios without validated implementations"),
+  ).toBeTruthy();
   expect(
     screen.queryByText("test_free_shipping_at_threshold: error"),
   ).toBeNull();
@@ -703,4 +705,123 @@ it("preserves original test evidence beside a repaired attempt that timed out", 
     screen.getByText("Tests without final execution outcomes"),
   ).toBeTruthy();
   expect(screen.getAllByText(/Artifact T1/)).toHaveLength(2);
+});
+
+it("distinguishes a claimed scenario link from validated code and preserves review reasons", () => {
+  render(
+    <TestPlanDetails
+      report={{
+        ...plannedRun.report,
+        validation_version: 1,
+        generated_tests: plannedRun.report.generated_tests.map((test) => ({
+          ...test,
+          validation_status: "needs_review",
+          validation_issues: [
+            "S1: no check matches the planned inputs and oracle.",
+          ],
+          validated_checks: [],
+        })),
+      }}
+    />,
+  );
+  expect(
+    screen.getByText("Needs review; not counted as implemented"),
+  ).toBeTruthy();
+  expect(
+    screen.getByText(
+      "No structured contract recorded; automatic validation is unavailable.",
+    ),
+  ).toBeTruthy();
+  expect(
+    screen.queryByText("test_free_shipping_at_threshold: error"),
+  ).toBeNull();
+  expect(screen.getByText("Not executed")).toBeTruthy();
+});
+
+it("shows the planned contract and validated call location without claiming adequacy", () => {
+  const contract = {
+    target: "shipping.fee",
+    arguments: [10000],
+    keyword_arguments: [],
+    operator: "equals" as const,
+    expected_value: 0,
+    exception_type: null,
+  };
+  render(
+    <TestPlanDetails
+      report={{
+        ...plannedRun.report,
+        validation_version: 1,
+        test_plan: {
+          ...plannedRun.report.test_plan!,
+          scenarios: plannedRun.report.test_plan!.scenarios.map((scenario) => ({
+            ...scenario,
+            assumptions: [],
+            preconditions: [],
+            check: contract,
+          })),
+        },
+        generated_tests: plannedRun.report.generated_tests.map((test) => ({
+          ...test,
+          validation_status: "validated",
+          validation_issues: [],
+          validated_checks: [
+            {
+              scenario_id: "S1",
+              function_name: "test_free_shipping_at_threshold",
+              target: "shipping.fee",
+              call_line: 4,
+              assertion_line: 4,
+            },
+          ],
+        })),
+      }}
+    />,
+  );
+  expect(screen.getByText("Contract matched")).toBeTruthy();
+  expect(screen.getByText(/"target": "shipping.fee"/)).toBeTruthy();
+  expect(screen.getByText(/This does not prove/)).toBeTruthy();
+  expect(
+    screen.getByText("test_free_shipping_at_threshold: error"),
+  ).toBeTruthy();
+});
+
+it("shows excluded artifacts and their reasons in the workspace without implying successful verification", async () => {
+  const rejected: VerificationRun = {
+    ...plannedRun,
+    report: {
+      ...plannedRun.report,
+      validation_version: 1,
+      executions: [],
+      executed_tests: 0,
+      requirement_coverage: 0,
+      generated_tests: plannedRun.report.generated_tests.map((test) => ({
+        ...test,
+        validation_status: "needs_review",
+        validated_checks: [],
+        validation_issues: [
+          "S1: no check matches the planned inputs and oracle.",
+        ],
+      })),
+    },
+  };
+  vi.mocked(api.runs).mockResolvedValue([rejected]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByText(
+    "S1: no check matches the planned inputs and oracle.",
+  );
+  expect(
+    screen.getByText(
+      "Excluded from validated coverage and automatic execution.",
+    ),
+  ).toBeTruthy();
+  expect(screen.getByText("Validated requirement links")).toBeTruthy();
+  expect(screen.getByText("Excluded by validation")).toBeTruthy();
+  expect(screen.getByText("Review needed · tests excluded")).toBeTruthy();
+  expect(
+    screen.queryByText(
+      "Historical coverage and conclusions have not been revalidated.",
+    ),
+  ).toBeNull();
 });

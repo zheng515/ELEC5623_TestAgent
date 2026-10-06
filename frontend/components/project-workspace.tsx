@@ -97,13 +97,19 @@ function stageStates(run?: VerificationRun) {
     },
     {
       name: "Execute tests",
-      state: run?.report.execution_attempts?.at(-1)?.result.timed_out
-        ? "Timed out"
-        : run?.report.executions.length
-          ? "Complete"
-          : run?.report.execution_attempts?.length
-            ? "No outcomes recorded"
-            : "Not connected",
+      state:
+        run?.report.generated_tests.length &&
+        run.report.generated_tests.every(
+          (test) => test.validation_status === "needs_review",
+        )
+          ? "Excluded by validation"
+          : run?.report.execution_attempts?.at(-1)?.result.timed_out
+            ? "Timed out"
+            : run?.report.executions.length
+              ? "Complete"
+              : run?.report.execution_attempts?.length
+                ? "No outcomes recorded"
+                : "Not connected",
     },
     {
       name: "Diagnose & refine",
@@ -317,7 +323,11 @@ export function Workspace({
                 <strong>{run?.report.executed_tests ?? "—"}</strong>
               </div>
               <div>
-                <span>Requirement coverage</span>
+                <span>
+                  {run?.report.validation_version === 1
+                    ? "Validated requirement links"
+                    : "Requirement coverage"}
+                </span>
                 <strong>
                   {percent(run?.report.requirement_coverage) ?? "Not evaluated"}
                 </strong>
@@ -402,6 +412,42 @@ export function Workspace({
                     </span>
                   </div>
                   <p>{test.rationale || test.name}</p>
+                  <Badge
+                    tone={
+                      test.validation_status === "validated" ? "teal" : "amber"
+                    }
+                  >
+                    {test.validation_status === "validated"
+                      ? "Plan contract matched"
+                      : test.validation_status === "needs_review"
+                        ? "Needs review"
+                        : "Links not checked"}
+                  </Badge>
+                  <p className="small muted">
+                    {test.validation_status === "validated"
+                      ? "Code matches the plan contract. This does not prove test adequacy."
+                      : test.validation_status === "needs_review"
+                        ? "Excluded from validated coverage and automatic execution."
+                        : "This artifact has no code-to-plan validation record."}
+                  </p>
+                  {!!test.validation_issues?.length && (
+                    <ul>
+                      {test.validation_issues.map((issue, index) => (
+                        <li key={index}>{issue}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {!!test.validated_checks?.length && (
+                    <ul>
+                      {test.validated_checks.map((check, index) => (
+                        <li key={index}>
+                          {check.scenario_id}: {check.function_name} →{" "}
+                          {check.target} (call line {check.call_line}, assertion
+                          line {check.assertion_line})
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <details>
                     <summary>View generated code</summary>
                     <pre className="test-code">{test.code}</pre>
@@ -792,9 +838,13 @@ export function Report({
               <p>{run.report.summary}</p>
               <Badge tone={runBadge(run).tone}>
                 {run.status === "completed"
-                  ? run.report.executed_tests
-                    ? "Execution evidence recorded"
-                    : "Tests generated · not executed"
+                  ? run.report.generated_tests.some(
+                      (test) => test.validation_status === "needs_review",
+                    )
+                    ? "Review needed · test validation incomplete"
+                    : run.report.executed_tests
+                      ? "Execution evidence recorded"
+                      : "Tests generated · not executed"
                   : isRunActive(run)
                     ? "Run in progress · interim results"
                     : run.status === "failed"
@@ -839,7 +889,11 @@ export function Report({
                   <strong>
                     {percent(run.report.requirement_coverage) ?? "—"}
                   </strong>
-                  <span>Requirement coverage</span>
+                  <span>
+                    {run?.report.validation_version === 1
+                      ? "Validated requirement links"
+                      : "Requirement coverage"}
+                  </span>
                 </div>
                 <div>
                   <strong>

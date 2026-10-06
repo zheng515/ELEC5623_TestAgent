@@ -42,6 +42,21 @@ def render_html_report(project: Project, run: VerificationRun) -> str:
     )
     plan_html = _render_plan(run)
     attempt_html = _render_attempts(run)
+    validation_html = "".join(
+        f"<details><summary>{escape(test.id)}: {escape(test.module)} — "
+        f"{escape(test.validation_status)}</summary>"
+        f"<p>Claimed scenarios: {escape(', '.join(test.scenario_ids))}</p>"
+        + _items(test.validation_issues)
+        + _items(
+            [
+                f"{check.scenario_id}: {check.function_name} → {check.target}; "
+                f"call line {check.call_line}, assertion line {check.assertion_line}"
+                for check in test.validated_checks
+            ]
+        )
+        + f"<pre>{escape(test.code)}</pre></details>"
+        for test in report.generated_tests
+    )
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
@@ -70,6 +85,10 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 <div class="card"><strong>{_percent(report.execution_success_rate)}</strong><br>Execution success</div></div>
 <h2>Requirement-to-test mapping</h2><table><thead><tr><th>Requirement</th><th>Testable</th><th>Tests</th><th>Outcome</th></tr></thead><tbody>{"".join(mappings) or '<tr><td colspan="4">No structured requirements.</td></tr>'}</tbody></table>
 <h2>Test plan</h2>{plan_html}
+<h2>Code-to-plan validation</h2>
+<p>Only validated links count in new-run coverage. Matching a plan does not prove
+that its expectations are correct or complete. Legacy artifacts have no validation record.</p>
+{validation_html or "<p>No generated artifacts.</p>"}
 <h2>Execution history</h2>{attempt_html}
 <h2>Coverage gaps</h2><ul>{gaps or "<li>None recorded.</li>"}</ul>
 <h2>Unresolved issues</h2><ul>{issues or "<li>None recorded.</li>"}</ul>
@@ -164,8 +183,24 @@ def _render_plan(run: VerificationRun) -> str:
         outcomes = [
             f"{item.name}: {item.outcome}"
             for item in report.executions
-            if any(test.id == item.test_id for test in tests)
+            if any(
+                test.id == item.test_id
+                and (
+                    any(
+                        check.scenario_id == scenario.id and check.function_name == item.name
+                        for check in test.validated_checks
+                    )
+                    if test.validation_status == "validated"
+                    else test.validation_status == "not_checked"
+                )
+                for test in tests
+            )
         ]
+        contract = (
+            escape(scenario.check.model_dump_json(indent=2))
+            if scenario.check
+            else "No structured contract recorded."
+        )
         sections.append(
             f'<section class="card"><h3>{escape(scenario.id)}: {escape(scenario.title)}</h3>'
             f"<p>{escape(scenario.category)} | Requirements: {escape(', '.join(scenario.requirement_ids))}</p>"
@@ -173,6 +208,7 @@ def _render_plan(run: VerificationRun) -> str:
             f"<h4>Inputs</h4>{_items(scenario.inputs)}"
             f"<h4>Steps</h4>{_items(scenario.steps)}"
             f"<h4>Expected result</h4><p>{escape(scenario.expected_result)}</p>"
+            f"<h4>Structured check contract</h4><pre>{contract}</pre>"
             f"<h4>Assumptions</h4>{_items(scenario.assumptions)}"
             f"<h4>Source evidence</h4>{_items(sources)}"
             f"<h4>Generated tests</h4>{_items([f'{test.id} ({test.module})' for test in tests])}"
@@ -184,6 +220,6 @@ def _render_plan(run: VerificationRun) -> str:
         sections.append(f"<h3>Requirements without scenarios</h3>{_items(report.planning_gaps)}")
     if report.uncovered_scenarios:
         sections.append(
-            f"<h3>Scenarios without generated tests</h3>{_items(report.uncovered_scenarios)}"
+            f"<h3>Scenarios without validated implementations</h3>{_items(report.uncovered_scenarios)}"
         )
     return "".join(sections)

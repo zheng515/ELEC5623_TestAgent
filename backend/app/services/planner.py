@@ -17,7 +17,15 @@ business thresholds, exception types, or APIs. Record missing details in assumpt
 and notes. Do not produce scenarios for requirements marked untestable.
 If a verifiable expectation cannot be stated, omit that scenario and explain why.
 Repository interfaces show available APIs, not proof that the requirement holds.
-The plan is a proposal for checks, never execution evidence or verification.
+For supported simple function scenarios, also provide `check`: the fully qualified
+repository target (e.g. shipping.fee), literal arguments and keyword_arguments as
+[{"name": "amount_cents", "value": 10000}]. Values must be JSON scalars or flat lists
+of scalars; complex input objects need check=null with a recorded limitation.
+Use operator equals with expected_value, or operator raises with a precise built-in
+exception_type. Ground these values in the source requirement and available interface.
+Do not invent an executable contract for uncertain inputs, setup, or unsupported APIs;
+set check to null and explain the limitation. Generation must implement this saved
+contract, not reinterpret it. The plan is a proposal, not evidence or verification.
 """
 
 
