@@ -241,6 +241,15 @@ This runs backend lint and tests, frontend type checking and linting, Vitest com
 
 ## Next integration steps
 
+An evaluation harness now covers requirement analysis and original-source oracle review
+with 24 labeled starter cases. `bash scripts/evaluate.sh` validates the corpus without
+network calls. Explicit `--mode live` runs the configured provider; `--mode replay`
+scores saved responses. Reports separate unsafe acceptance, omitted rules, ambiguity
+mistakes, model errors, and unavailable scores. The supplied synthetic demonstration
+contains intentional failures and is not a live model result. See
+[Evaluation commands and scoring](docs/evaluation.md) for a small live smoke run,
+repeated measurements, and replay instructions.
+
 In proposal order, the remaining work is:
 
 1. **RAG evidence retrieval (FR5).** This turns the B0 baseline into the B1 configuration.

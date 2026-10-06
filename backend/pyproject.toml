@@ -19,7 +19,10 @@ dependencies = [
 dev = ["pytest>=8.3,<10", "httpx>=0.28,<1", "ruff>=0.11,<1"]
 
 [tool.setuptools.packages.find]
-include = ["app*"]
+include = ["app*", "evaluation*"]
+
+[tool.setuptools.package-data]
+evaluation = ["cases.json", "fixtures/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
