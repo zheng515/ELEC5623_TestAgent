@@ -16,6 +16,7 @@ from app.schemas import (
     RepositorySnapshot,
     RequirementItem,
     RunEvent,
+    SourceAnalysisAudit,
     TestDiagnosis,
     TestPlan,
     VerificationReport,
@@ -184,7 +185,9 @@ class DirectLLMOrchestrator:
                 "analyze",
                 f"Extracted {len(requirements)} requirements: "
                 f"{len(requirements) - len(untestable)} testable, {len(untestable)} not "
-                f"testable as written, {len(ambiguous)} with recorded ambiguity.",
+                f"testable as written, {len(ambiguous)} with recorded ambiguity. "
+                f"Source audit found {len(analysis.source_audit.unlinked_fragments)} unlinked "
+                "text fragments. Specification completeness is not established.",
                 datetime.now(UTC),
             )
         )
@@ -193,6 +196,8 @@ class DirectLLMOrchestrator:
             "plan",
             "Planning test scenarios from validated requirements.",
             requirements=requirements,
+            source_audit=analysis.source_audit,
+            unresolved_issues=[*repository_issues, *analysis.source_audit.issues],
         )
 
         try:
@@ -213,6 +218,7 @@ class DirectLLMOrchestrator:
                 now,
                 requirements,
                 repository=repository,
+                source_audit=analysis.source_audit,
             )
         plan_gaps = planning_gaps(requirements, plan)
         events.append(
@@ -244,6 +250,7 @@ class DirectLLMOrchestrator:
                 requirements,
                 plan=plan,
                 repository=repository,
+                source_audit=analysis.source_audit,
             )
 
         gaps = coverage_gaps(requirements, suite.tests)
@@ -342,6 +349,7 @@ class DirectLLMOrchestrator:
 
         unresolved = [
             *repository_issues,
+            *analysis.source_audit.issues,
             *refinement_notes,
             *(f"{item.id} is ambiguous: {item.ambiguity}" for item in ambiguous),
             *(f"{item.id} is not testable as written: {item.text}" for item in untestable),
@@ -403,6 +411,7 @@ class DirectLLMOrchestrator:
             events=events,
             report=VerificationReport(
                 validation_version=1,
+                source_audit=analysis.source_audit,
                 summary=(
                     f"{self.mode.replace('_', ' ').upper()} run. "
                     f"{len(requirements)} requirements extracted and "
@@ -532,6 +541,7 @@ class DirectLLMOrchestrator:
         *,
         plan: TestPlan | None = None,
         repository: RepositorySnapshot | None = None,
+        source_audit: SourceAnalysisAudit | None = None,
     ) -> VerificationRun:
         events = [*events, _event(stage, f"Run failed: {message}", datetime.now(UTC))]
         return VerificationRun(
@@ -548,13 +558,14 @@ class DirectLLMOrchestrator:
                     f"Run failed during the {stage} stage. Completed stage outputs are retained."
                 ),
                 requirements=requirements or [],
+                source_audit=source_audit,
                 test_plan=plan,
                 repository=repository,
                 planning_gaps=planning_gaps(requirements or [], plan) if plan else [],
                 uncovered_scenarios=(
                     [f"{item.id}: {item.title}" for item in plan.scenarios] if plan else []
                 ),
-                unresolved_issues=[message],
+                unresolved_issues=[message, *(source_audit.issues if source_audit else [])],
             ),
         )
 

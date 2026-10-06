@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Behavior, Project, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
+import { SourceAudit } from "./source-audit";
 import { TestPlanDetails } from "./test-plan";
 import { isRunActive } from "../lib/types";
 import { ExecutionHistory } from "./execution-history";
@@ -378,6 +379,7 @@ export function Workspace({
             </Badge>
           }
         />
+        <SourceAudit report={run?.report} />
         <TestPlanDetails report={run?.report} />
       </section>
       <section className="panel">
@@ -552,6 +554,7 @@ export function Evidence({
           </small>
         </div>
       </section>
+      <SourceAudit report={run?.report} />
       {!behaviors.length && !!run?.report.requirements.length && (
         <section className="panel">
           <SectionTitle
@@ -926,6 +929,7 @@ export function Report({
             </section>
             <section>
               <h3>Test plan</h3>
+              <SourceAudit report={run.report} />
               <TestPlanDetails report={run.report} />
             </section>
             {!!run.report.execution_attempts?.length && (

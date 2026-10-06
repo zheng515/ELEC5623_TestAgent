@@ -890,3 +890,26 @@ def test_html_archives_original_and_repaired_artifacts_and_escapes_code():
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
     assert "<script>alert(1)</script>" not in html
     assert "T1: test_shipping.py" in html
+
+
+def test_full_extracted_coverage_preserves_omitted_source_in_report_and_html():
+    from app.services.report_renderer import render_html_report
+
+    partial = RequirementAnalysis(requirements=[ANALYSIS.requirements[0]], notes="")
+    run = inspecting_agent(partial, PLAN, SUITE).run(PROJECT)
+    assert run.report.requirement_coverage == 1.0
+    assert run.report.source_audit.unlinked_fragments[0].text == "Large orders are fast."
+    assert any("not established" in issue for issue in run.report.unresolved_issues)
+    html = render_html_report(PROJECT, run)
+    assert "Specification analysis scope" in html
+    assert "Large orders are fast." in html
+
+
+def test_source_audit_survives_planning_failure_and_progress_checkpoint():
+    snapshots = []
+    agent = inspecting_agent(ANALYSIS, LLMError("planning unavailable"))
+    run = agent.run(PROJECT, on_progress=snapshots.append)
+    assert run.report.source_audit is not None
+    assert run.report.source_audit == next(
+        snapshot.report.source_audit for snapshot in snapshots if snapshot.stage == "plan"
+    )

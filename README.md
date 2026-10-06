@@ -242,3 +242,9 @@ In proposal order, the remaining work is:
 Next, validate the background workflow against a representative local Python repository and a real sandbox before expanding retrieval. Source quotes are checked as nonblank, verbatim excerpts of the submitted text; this proves quote provenance, not the semantic correctness or completeness of the analysis.
 
 The current foundation has no repository upload or cloning, automatic job resumption, distributed queue, or production deployment. A separate production backend needs an API URL, explicit CORS origins, HTTPS with secure session cookies, and an isolated execution environment. The development proxy is not a production API gateway.
+
+Specification analysis includes a server-computed source audit. The workspace,
+evidence page, and exported reports show unlinked source fragments, ambiguous
+repeated quotes, and extraction-limit warnings. Validated requirement links apply
+only to extracted testable requirements; 100% does not mean the entire specification
+has been verified. Quote provenance alone cannot establish semantic completeness.

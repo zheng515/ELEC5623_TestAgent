@@ -141,3 +141,22 @@ it is not per-user repository authorization. Public hosting additionally needs H
 cookies, trusted proxy configuration, repository permissions, and production execution isolation.
 Automatic job resumption, distributed workers, and production deployment remain future work. Frontend build success alone does
 not constitute a deployment or end-to-end browser verification.
+
+### Specification analysis scope
+
+After extraction, the server audits verbatim quotes against the saved specification.
+Unique quote occurrences produce source links with zero-based Unicode character
+start/end offsets (end exclusive) and one-based line numbers. Overlapping links are
+merged for gap detection. Repeated quotes are ambiguous and do not credit all their
+occurrences. Source fragments containing letters or numbers outside these links remain visible as
+unlinked text, including partial sentences. These fragments may be omitted rules or
+context; the audit does not classify them as defects.
+
+The audit records the extraction limit, returned and retained requirement counts,
+and whether the limit was reached. It is preserved in progress checkpoints, failed
+planning/generation reports, JSON exports, and HTML exports. Historical runs without
+an audit show unknown completeness. Coverage continues to measure only extracted
+testable requirements with validated code-to-plan links. Even when all text is
+linked, semantic completeness is **not established**: a quote spanning multiple
+rules does not prove that every rule was extracted or interpreted correctly. The
+agent continues automatically for known requirements while reporting these limits.

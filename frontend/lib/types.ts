@@ -127,7 +127,26 @@ export interface ExecutionAttempt {
   };
   diagnoses: TestDiagnosis[];
 }
+export interface SourceFragment {
+  text: string;
+  start: number;
+  end: number;
+  line: number;
+}
+export interface SourceAnalysisAudit {
+  version: number;
+  extraction_limit: number;
+  limit_reached: boolean;
+  returned_requirements: number;
+  retained_requirements: number;
+  links: (SourceFragment & { requirement_ids: string[] })[];
+  unlinked_fragments: SourceFragment[];
+  ambiguous_requirement_ids: string[];
+  semantic_completeness: "not_established";
+  issues: string[];
+}
 export interface VerificationReport {
+  source_audit?: SourceAnalysisAudit | null;
   validation_version?: number | null;
   summary: string;
   repository: RepositorySnapshot | null;
