@@ -45,6 +45,7 @@ class RunManager:
             mode=getattr(self.orchestrator, "mode", "scaffold"),
             status="queued",
             input_sha256=hashlib.sha256(project.model_dump_json().encode()).hexdigest(),
+            inputs=project.model_dump(include=set(Project.model_fields) - {"id", "created_at"}),
             events=[
                 RunEvent(
                     id=str(uuid4()),
@@ -94,6 +95,7 @@ class RunManager:
                     "created_at": queued.created_at,
                     "updated_at": datetime.now(UTC),
                     "input_sha256": queued.input_sha256,
+                    "inputs": queued.inputs,
                     "events": [queued.events[0], *snapshot.events],
                 },
                 deep=True,

@@ -16,7 +16,7 @@ const initial: ProjectCreate = {
 export const sample: ProjectCreate = {
   name: "Shipping service",
   description: "Boundary and exception checks for shipping charges.",
-  repository_ref: "",
+  repository_ref: "https://github.com/zheng515/ELEC5623_TestAgent",
   requirements_text:
     "R1: Order amounts are integer cents. Orders of at least 10,000 cents receive free shipping; all other non-negative orders have a shipping fee of 1,000 cents.\nR2: Negative order amounts must raise ValueError.",
   goal: "Check shipping thresholds and invalid inputs, then generate targeted tests for uncovered behaviors.",
@@ -25,12 +25,18 @@ export function NewTask({
   submit,
   busy,
   mode = "scaffold",
+  project,
+  editing = false,
+  cancelHref = urlFor("home"),
 }: {
   submit: (form: ProjectCreate) => Promise<void>;
   busy: boolean;
   mode?: RunMode;
+  project?: ProjectCreate;
+  editing?: boolean;
+  cancelHref?: string;
 }) {
-  const [form, setForm] = useState(initial);
+  const [form, setForm] = useState(project ?? initial);
   const [error, setError] = useState("");
   const [reading, setReading] = useState(false);
   const [fileName, setFileName] = useState("No file selected");
@@ -68,8 +74,22 @@ export function NewTask({
       setError("Enter a project name.");
       return;
     }
+    if (!form.repository_ref.trim()) {
+      setError("Enter a GitHub repository URL.");
+      return;
+    }
+    if (
+      !/^https:\/\/github\.com\/[^/\s]+\/[^/\s#?]+(?:\/tree\/[^\s]+)?\/?$/i.test(
+        form.repository_ref,
+      )
+    ) {
+      setError(
+        "Enter a valid GitHub URL, such as https://github.com/owner/repository.",
+      );
+      return;
+    }
     if (!form.requirements_text.trim()) {
-      setError("Enter requirement text.");
+      setError("Enter the Software Requirements Specification (SRS).");
       return;
     }
     if (!form.goal.trim()) {
@@ -87,14 +107,14 @@ export function NewTask({
       <div className="page-heading">
         <div>
           <span className="eyebrow">ONE GOAL. ONE STARTING POINT.</span>
-          <h1>New verification task</h1>
+          <h1>{editing ? "Edit inputs and rerun" : "New verification task"}</h1>
           <p>
             Define the intended behavior. Let the verification workflow take it
             from there.
           </p>
         </div>
-        <a className="text-button" href={urlFor("home")}>
-          ← Back to projects
+        <a className="text-button" href={cancelHref}>
+          ← {editing ? "Cancel editing" : "Back to projects"}
         </a>
       </div>
       <div className="form-layout">
@@ -128,32 +148,33 @@ export function NewTask({
               />
             </label>
             <label>
-              Repository reference{" "}
-              <span className="optional">Optional in this release</span>
+              GitHub repository URL <span className="required">*</span>
               <input
+                required
                 maxLength={500}
+                type="url"
                 value={form.repository_ref}
                 onChange={(e) => change("repository_ref", e.target.value)}
                 placeholder="https://github.com/owner/repository"
               />
             </label>
             <p className="field-help">
-              Paste a GitHub repository URL, optionally ending in
+              Paste a public GitHub repository URL, optionally ending in
               /tree/branch/folder. Each run downloads the code and records the
-              exact commit it read; private repositories need a server token. A
-              local path inside the configured repository root also works.
+              exact commit it read. Private repositories require a server-side
+              GitHub token; credentials must never be included in this field.
             </p>
             <div className="form-section">
               <span className="section-number">02</span>
               <div>
-                <h2>Requirements</h2>
+                <h2>Software Requirements Specification (SRS)</h2>
                 <p>
                   Include business rules, boundaries, and exception handling.
                 </p>
               </div>
             </div>
             <label>
-              Requirement text <span className="required">*</span>
+              SRS content (Requirement text) <span className="required">*</span>
               <textarea
                 required
                 rows={7}
@@ -221,7 +242,13 @@ export function NewTask({
                 disabled={busy || reading}
                 type="submit"
               >
-                {busy ? "Creating task…" : "Create verification task →"}
+                {busy
+                  ? editing
+                    ? "Saving and starting…"
+                    : "Creating task…"
+                  : editing
+                    ? "Save changes and rerun →"
+                    : "Create verification task →"}
               </button>
             </div>
           </fieldset>

@@ -144,6 +144,36 @@ def test_system_generated_content_is_english(client):
     assert client.get("/api/v1/runs/missing").json()["detail"] == "Run not found"
 
 
+def test_project_inputs_can_be_edited_and_each_run_keeps_its_input_snapshot(client):
+    project = create_project(client)
+    first = wait_for_run(client, client.post(f"/api/v1/projects/{project['id']}/runs").json()["id"])
+    changed = {
+        "repository_ref": "https://github.com/example/revised-project",
+        "requirements_text": "R2: Revised behavior must be returned.",
+        "goal": "Verify the revised behavior.",
+    }
+    response = client.patch(f"/api/v1/projects/{project['id']}", json=changed)
+    assert response.status_code == 200
+    assert response.json()["requirements_text"] == changed["requirements_text"]
+
+    second = wait_for_run(
+        client, client.post(f"/api/v1/projects/{project['id']}/runs").json()["id"]
+    )
+    assert first["inputs"]["requirements_text"] == project["requirements_text"]
+    assert second["inputs"]["requirements_text"] == changed["requirements_text"]
+    assert first["input_sha256"] != second["input_sha256"]
+
+
+def test_project_edit_rejects_embedded_github_credentials(client):
+    project = create_project(client)
+    response = client.patch(
+        f"/api/v1/projects/{project['id']}",
+        json={"repository_ref": "https://token@github.com/example/private"},
+    )
+    assert response.status_code == 422
+    assert "credentials" in response.json()["detail"].lower()
+
+
 def test_legacy_project_without_goal_remains_readable():
     project = Project.model_validate(
         {

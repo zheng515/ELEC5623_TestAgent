@@ -10,6 +10,7 @@ from app.schemas import (
     Integration,
     Project,
     ProjectCreate,
+    ProjectUpdate,
     SystemInfo,
     VerificationReport,
     VerificationRun,
@@ -171,6 +172,20 @@ def get_project(project_id: str, request: Request, user: CurrentUser):
     return project
 
 
+@router.patch("/projects/{project_id}", response_model=Project, tags=["projects"])
+def update_project(project_id: str, payload: ProjectUpdate, request: Request, user: CurrentUser):
+    project = get_project(project_id, request, user)
+    changes = payload.model_dump(exclude_unset=True)
+    repository_ref = changes.get("repository_ref", project.repository_ref)
+    if contains_credentials(repository_ref):
+        raise HTTPException(422, CREDENTIALS)
+    if request.app.state.store.has_active_run(project_id):
+        raise HTTPException(409, "Wait for the active run to finish before editing this project.")
+    updated = Project.model_validate({**project.model_dump(), **changes})
+    request.app.state.store.update_project(updated, user.id)
+    return updated
+
+
 @router.get("/projects/{project_id}/runs", response_model=list[VerificationRun], tags=["runs"])
 def list_runs(project_id: str, request: Request, user: CurrentUser):
     get_project(project_id, request, user)
@@ -216,6 +231,8 @@ def get_report(run_id: str, request: Request, response: Response, user: CurrentU
 def get_html_report(run_id: str, request: Request, user: CurrentUser):
     run = get_run(run_id, request, user)
     project = get_project(run.project_id, request, user)
+    if run.inputs is not None:
+        project = Project(**run.inputs.model_dump(), id=project.id, created_at=project.created_at)
     return Response(
         render_html_report(project, run),
         media_type="text/html",

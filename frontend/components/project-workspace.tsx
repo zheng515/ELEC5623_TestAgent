@@ -16,7 +16,27 @@ import {
   percent,
   runBadge,
   SectionTitle,
+  ErrorNotice,
 } from "./ui";
+
+const RUN_STAGES = [
+  "understand",
+  "inspect",
+  "analyze",
+  "plan",
+  "generate",
+  "execute",
+  "improve",
+  "re_measure",
+  "report",
+] as const;
+
+function runProgress(run: VerificationRun) {
+  if (run.status === "queued") return 5;
+  if (run.status === "completed" || run.status === "blocked") return 100;
+  const index = RUN_STAGES.indexOf(run.stage);
+  return Math.max(10, Math.round(((index + 1) / RUN_STAGES.length) * 100));
+}
 
 function outcomesFor(run: VerificationRun | undefined, testId: string) {
   return (run?.report.executions ?? [])
@@ -181,21 +201,33 @@ export function Workspace({
           <h1>Agent workspace</h1>
           <p>{project.goal}</p>
         </div>
-        <button
-          className="button primary"
-          disabled={busy || !!activeRun || isRunActive(run)}
-          onClick={start}
-        >
-          {busy
-            ? "Creating run…"
-            : activeRun || isRunActive(run)
-              ? "Run in progress"
-              : run && run.mode !== "scaffold"
-                ? "Run verification again ↗"
-                : run
-                  ? "Create another setup run ↗"
-                  : "Create setup run ↗"}
-        </button>
+        <div className="workspace-actions">
+          <a
+            className="button secondary"
+            href={urlFor("edit", project.id, run?.id)}
+            aria-disabled={busy || !!activeRun || isRunActive(run)}
+            onClick={(event) => {
+              if (busy || activeRun || isRunActive(run)) event.preventDefault();
+            }}
+          >
+            Edit inputs
+          </a>
+          <button
+            className="button primary"
+            disabled={busy || !!activeRun || isRunActive(run)}
+            onClick={start}
+          >
+            {busy
+              ? "Creating run…"
+              : activeRun || isRunActive(run)
+                ? "Run in progress"
+                : run && run.mode !== "scaffold"
+                  ? "Run verification again ↗"
+                  : run
+                    ? "Create another setup run ↗"
+                    : "Create setup run ↗"}
+          </button>
+        </div>
       </div>
       {isRunActive(run) && (
         <div className="run-live" role="status">
@@ -205,11 +237,27 @@ export function Workspace({
               : "Agent is working"}
           </strong>
           <p>{run?.report.summary}</p>
+          <div
+            className="run-progress"
+            role="progressbar"
+            aria-label="Verification run progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={runProgress(run!)}
+          >
+            <span style={{ width: `${runProgress(run!)}%` }} />
+          </div>
           <span>
-            Updates automatically every 2 seconds. You can leave this page and
-            return to this run.
+            {runProgress(run!)}% · Current stage: {run!.stage.replace("_", " ")}
+            . Updates automatically every 2 seconds.
           </span>
         </div>
+      )}
+      {run?.status === "failed" && (
+        <ErrorNotice
+          message={`${run.report.summary} ${run.report.unresolved_issues.at(-1) ?? "Review the activity log, then edit the inputs or retry the run."}`}
+          retry={start}
+        />
       )}
       {activeRun && activeRun.id !== run?.id && (
         <p>
