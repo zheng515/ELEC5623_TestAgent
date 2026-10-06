@@ -51,6 +51,15 @@ export interface GeneratedTest {
   module: string;
   code: string;
   rationale: string;
+  validation_status?: "not_checked" | "validated" | "needs_review";
+  validation_issues?: string[];
+  validated_checks?: {
+    scenario_id: string;
+    function_name: string;
+    target: string;
+    call_line: number;
+    assertion_line: number;
+  }[];
 }
 export interface TestScenario {
   id: string;
@@ -63,6 +72,14 @@ export interface TestScenario {
   expected_result: string;
   evidence_refs: string[];
   assumptions: string[];
+  check?: {
+    target: string;
+    arguments: unknown[];
+    keyword_arguments: { name: string; value: unknown }[];
+    operator: "equals" | "raises";
+    expected_value: unknown;
+    exception_type: string | null;
+  } | null;
 }
 export interface TestPlan {
   scenarios: TestScenario[];
@@ -111,6 +128,7 @@ export interface ExecutionAttempt {
   diagnoses: TestDiagnosis[];
 }
 export interface VerificationReport {
+  validation_version?: number | null;
   summary: string;
   repository: RepositorySnapshot | null;
   requirements: RequirementItem[];

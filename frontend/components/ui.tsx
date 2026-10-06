@@ -96,6 +96,12 @@ export function runBadge(run?: VerificationRun): {
   if (run.status === "failed") return { label: "Failed", tone: "amber" };
   if (run.status === "blocked")
     return { label: "Blocked · Integration required", tone: "amber" };
+  if (
+    run.report.generated_tests.some(
+      (test) => test.validation_status === "needs_review",
+    )
+  )
+    return { label: "Review needed · tests excluded", tone: "amber" };
   if (run.report.executed_tests)
     return { label: "Execution evidence recorded", tone: "teal" };
   return { label: "Tests generated · not executed", tone: "teal" };

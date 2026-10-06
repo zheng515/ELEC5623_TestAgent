@@ -18,6 +18,7 @@ from app.schemas import (
     RepositorySnapshot,
     RequirementAnalysis,
     RequirementItem,
+    ScenarioCheck,
 )
 from app.schemas import (
     TestPlan as ScenarioPlan,
@@ -73,6 +74,9 @@ PLAN = ScenarioPlan(
             expected_result="Free shipping.",
             evidence_refs=["requirement:R1"],
             assumptions=[],
+            check=ScenarioCheck(
+                target="shipping.fee", arguments=[10000], operator="equals", expected_value=0
+            ),
         )
     ],
     notes="",
@@ -86,11 +90,29 @@ SUITE = GeneratedTestSuite(
             scenario_ids=["S1"],
             name="test_free_shipping_at_threshold",
             module="test_shipping.py",
-            code="def test_free_shipping_at_threshold():\n    assert True\n",
+            code=(
+                "from shipping import fee\n\n"
+                "def test_free_shipping_at_threshold():\n    assert fee(10000) == 0\n"
+            ),
             rationale="Boundary at 100.",
         )
     ],
     notes="Assumes a `shipping` module.",
+)
+
+
+INVALID_SUITE = SUITE.model_copy(
+    update={
+        "tests": [
+            SUITE.tests[0].model_copy(
+                update={
+                    "code": SUITE.tests[0].code.replace(
+                        "at_threshold():", "at_threshold(missing_fixture):"
+                    )
+                }
+            )
+        ]
+    }
 )
 
 
@@ -146,7 +168,7 @@ def execution(*outcomes) -> ExecutionResult:
             ExecutedTest(
                 test_id="T1",
                 module="test_shipping.py",
-                name=f"test_{index}",
+                name=SUITE.tests[0].name if index == 1 else f"test_{index}",
                 outcome=outcome,
                 duration_seconds=0.01,
                 message=(
@@ -176,8 +198,8 @@ def test_b0_run_records_requirements_tests_and_traceability():
     assert run.status == "completed"
     assert [r.id for r in run.report.requirements] == ["R1", "R2"]
     assert run.report.generated_tests[0].requirement_ids == ["R1"]
-    assert run.report.requirement_coverage == 1.0
-    assert run.report.coverage_gaps == []
+    assert run.report.requirement_coverage == 0.0
+    assert run.report.coverage_gaps == ["R1: An order of at least 100 dollars ships free."]
     assert run.report.test_plan == PLAN
     assert run.report.generated_tests[0].scenario_ids == ["S1"]
     # R1 is covered by a test but nothing ran, so it is still unverified, not verified.
@@ -296,7 +318,7 @@ def test_api_serves_an_agent_run_end_to_end(settings):
         assert stored == run
         report = client.get(f"/api/v1/runs/{run['id']}/report").json()
         assert report["generated_tests"][0]["module"] == "test_shipping.py"
-        assert report["requirement_coverage"] == 1.0
+        assert report["requirement_coverage"] == 0.0
         assert report["test_plan"]["scenarios"][0]["expected_result"] == "Free shipping."
         assert report["generated_tests"][0]["scenario_ids"] == ["S1"]
         html = client.get(f"/api/v1/runs/{run['id']}/report.html").text
@@ -356,9 +378,15 @@ def test_a_connected_sandbox_is_advertised_as_ready(tmp_path):
 def test_executed_outcomes_are_recorded_with_a_success_rate():
     runner = FakeRunner(execution("passed", "failed", "error"))
 
-    report = run_agent(ANALYSIS, PLAN, SUITE, runner=runner).report
+    report = (
+        inspecting_agent(
+            ANALYSIS, PLAN, SUITE, GeneratedTestSuite(tests=[], notes=""), runner=runner
+        )
+        .run(PROJECT)
+        .report
+    )
 
-    assert runner.received == [SUITE.tests]
+    assert runner.received == [report.generated_tests]
     assert report.executed_tests == 3
     assert [e.outcome for e in report.executions] == ["passed", "failed", "error"]
     assert report.execution_success_rate == round(1 / 3, 4)
@@ -373,9 +401,11 @@ def test_execution_does_not_promote_a_behavior_to_verified():
 
 
 def test_each_behavior_links_to_the_outcomes_of_its_own_tests():
-    report = run_agent(
-        ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed", "failed"))
-    ).report
+    report = (
+        inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed", "failed")))
+        .run(PROJECT)
+        .report
+    )
 
     behaviors = {b.requirement_id: b for b in report.behaviors}
     assert behaviors["R1"].evidence_refs == ["E1", "E2"]
@@ -386,9 +416,17 @@ def test_each_behavior_links_to_the_outcomes_of_its_own_tests():
 
 
 def test_errored_and_failed_tests_are_reported_as_distinct_problems():
-    report = run_agent(
-        ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("error", "failed"))
-    ).report
+    report = (
+        inspecting_agent(
+            ANALYSIS,
+            PLAN,
+            SUITE,
+            GeneratedTestSuite(tests=[], notes=""),
+            runner=FakeRunner(execution("error", "failed")),
+        )
+        .run(PROJECT)
+        .report
+    )
 
     issues = " ".join(report.unresolved_issues)
     assert "1 generated tests still could not run" in issues
@@ -401,7 +439,7 @@ def test_a_timed_out_execution_records_no_outcome():
         executions=[], exit_code=-1, timed_out=True, stderr_excerpt="Execution exceeded 120s"
     )
 
-    run = run_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(timed_out))
+    run = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(timed_out)).run(PROJECT)
 
     assert run.status == "completed"
     assert run.report.executed_tests == 0
@@ -427,7 +465,7 @@ def test_without_a_sandbox_the_run_says_so_instead_of_claiming_execution():
 def test_a_container_killed_by_the_memory_limit_is_explained_not_just_numbered():
     killed = ExecutionResult(executions=[], exit_code=137, timed_out=False, stderr_excerpt="")
 
-    report = run_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(killed)).report
+    report = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(killed)).run(PROJECT).report
 
     assert report.executed_tests == 0
     assert report.execution_success_rate is None
@@ -437,7 +475,7 @@ def test_a_container_killed_by_the_memory_limit_is_explained_not_just_numbered()
 def test_a_sandbox_that_collected_nothing_is_not_reported_as_success():
     empty = ExecutionResult(executions=[], exit_code=4, timed_out=False, stderr_excerpt="no tests")
 
-    report = run_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(empty)).report
+    report = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(empty)).run(PROJECT).report
 
     assert report.execution_success_rate is None
     assert any("Exit code 4" in issue for issue in report.unresolved_issues)
@@ -502,16 +540,12 @@ def test_a_failing_test_leaves_the_behavior_unverified():
 
 def test_invalid_test_is_refined_and_reexecuted_once():
     refined = GeneratedTestSuite(
-        tests=[
-            SUITE.tests[0].model_copy(
-                update={"code": "def test_free_shipping_at_threshold():\n    assert 1 == 1\n"}
-            )
-        ],
+        tests=[SUITE.tests[0].model_copy(update={"code": SUITE.tests[0].code})],
         notes="Corrected the invalid test construction.",
     )
     runner = SequenceRunner(execution("error"), execution("passed"))
 
-    run = inspecting_agent(ANALYSIS, PLAN, SUITE, refined, runner=runner).run(PROJECT)
+    run = inspecting_agent(ANALYSIS, PLAN, INVALID_SUITE, refined, runner=runner).run(PROJECT)
 
     assert run.mode == "baseline_b2"
     assert len(runner.received) == 2
@@ -669,7 +703,7 @@ def test_unimplemented_scenario_is_reported_separately_from_requirement_coverage
         }
     )
     plan = ScenarioPlan(scenarios=[*PLAN.scenarios, second], notes="")
-    run = run_agent(ANALYSIS, plan, SUITE)
+    run = inspecting_agent(ANALYSIS, plan, SUITE).run(PROJECT)
 
     assert run.report.requirement_coverage == 1
     assert run.report.uncovered_scenarios == ["S2: Above the shipping threshold"]
@@ -690,7 +724,7 @@ def test_refinement_cannot_rewrite_requirement_or_scenario_lineage():
     run = inspecting_agent(
         ANALYSIS,
         PLAN,
-        SUITE,
+        INVALID_SUITE,
         GeneratedTestSuite(tests=[replacement], notes=""),
         runner=runner,
     ).run(PROJECT)
@@ -721,7 +755,7 @@ def test_html_plan_escapes_model_text_and_links_execution_outcomes():
     assert "<img src=x" not in html
     assert "&lt;img src=x onerror=alert(1)&gt;" in html
     assert "fee(amount_cents: int) -&gt; int" in html
-    assert "test_1: passed" in html
+    assert "test_free_shipping_at_threshold: passed" in html
 
 
 def test_legacy_run_without_a_plan_remains_readable():
@@ -781,19 +815,21 @@ def test_repair_timeout_preserves_both_attempts_and_uses_latest_execution_metada
         update={
             "tests": [
                 SUITE.tests[0].model_copy(
-                    update={"code": "def test_repaired():\n    assert True\n"}
+                    update={
+                        "code": "# Repair preserves the original check.\n" + SUITE.tests[0].code
+                    }
                 )
             ]
         }
     )
     runner = SequenceRunner(execution("error"), timeout)
-    run = inspecting_agent(ANALYSIS, PLAN, SUITE, refined, runner=runner).run(PROJECT)
+    run = inspecting_agent(ANALYSIS, PLAN, INVALID_SUITE, refined, runner=runner).run(PROJECT)
     assert "latest sandbox attempt timed out" in run.report.summary
     assert any("Repair exceeded 120s" in item for item in run.report.unresolved_issues)
     assert not any("Exit code 1" in item for item in run.report.unresolved_issues)
     assert run.report.executions == []
     assert run.report.behaviors[0].verification_status == "Unverified"
-    assert run.report.execution_attempts[0].tests[0].code == SUITE.tests[0].code
+    assert run.report.execution_attempts[0].tests[0].code == INVALID_SUITE.tests[0].code
     assert run.report.execution_attempts[0].result.executions[0].outcome == "error"
     assert run.report.execution_attempts[1].result.timed_out
     assert run.report.execution_attempts[1].tests[0].code == refined.tests[0].code
@@ -830,11 +866,7 @@ def test_html_archives_original_and_repaired_artifacts_and_escapes_code():
         update={
             "tests": [
                 SUITE.tests[0].model_copy(
-                    update={
-                        "code": (
-                            "# <script>alert(1)</script>\ndef test_repaired():\n    assert True\n"
-                        )
-                    }
+                    update={"code": ("# <script>alert(1)</script>\n" + SUITE.tests[0].code)}
                 )
             ]
         }
@@ -842,7 +874,7 @@ def test_html_archives_original_and_repaired_artifacts_and_escapes_code():
     run = inspecting_agent(
         ANALYSIS,
         PLAN,
-        SUITE,
+        INVALID_SUITE,
         repaired,
         runner=SequenceRunner(
             execution("error"),

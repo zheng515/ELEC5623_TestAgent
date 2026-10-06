@@ -235,6 +235,13 @@ function WorkspaceApp({
         </header>
         <main className="main-content">
           {actionError && <ErrorNotice message={actionError} />}
+          {!!run?.report.generated_tests.length &&
+            run.report.validation_version !== 1 && (
+              <p className="notice" role="note">
+                This run has no code-to-plan validation record. Historical
+                coverage and conclusions have not been revalidated.
+              </p>
+            )}
           {resource.error && data && (
             <ErrorNotice message={resource.error} retry={refresh} />
           )}

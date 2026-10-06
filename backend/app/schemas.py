@@ -124,6 +124,44 @@ class RepositorySnapshot(BaseModel):
     sha256: str
 
 
+LiteralScalar = str | int | float | bool | None
+LiteralValue = LiteralScalar | list[LiteralScalar]
+
+
+class KeywordArgument(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(pattern=r"^[A-Za-z_]\w*$")
+    value: LiteralValue
+
+
+class ScenarioCheck(BaseModel):
+    """Literal call and oracle planned before generation; never executed on the host."""
+
+    model_config = ConfigDict(extra="forbid")
+    target: str = Field(pattern=r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+$")
+    arguments: list[LiteralValue] = Field(default_factory=list)
+    keyword_arguments: list[KeywordArgument] = Field(default_factory=list)
+    operator: Literal["equals", "raises"]
+    expected_value: LiteralValue = None
+    exception_type: str | None = None
+
+    @field_validator("keyword_arguments", mode="before")
+    @classmethod
+    def normalize_keywords(cls, value):
+        # Preserve compatibility with early local contracts; model output uses closed objects.
+        if isinstance(value, dict):
+            return [{"name": key, "value": item} for key, item in value.items()]
+        return value
+
+
+class ValidatedCheck(BaseModel):
+    scenario_id: str
+    function_name: str
+    target: str
+    call_line: int
+    assertion_line: int
+
+
 class TestScenario(BaseModel):
     """A planned check grounded in requirements and available interfaces (FR6)."""
 
@@ -139,6 +177,7 @@ class TestScenario(BaseModel):
     expected_result: str = Field(min_length=1)
     evidence_refs: list[str]
     assumptions: list[str]
+    check: ScenarioCheck | None = None
 
 
 class TestPlan(BaseModel):
@@ -158,6 +197,9 @@ class GeneratedTest(BaseModel):
     module: str
     code: str
     rationale: str
+    validation_status: Literal["not_checked", "validated", "needs_review"] = "not_checked"
+    validation_issues: list[str] = Field(default_factory=list)
+    validated_checks: list[ValidatedCheck] = Field(default_factory=list)
 
 
 class GeneratedTestSuite(BaseModel):
@@ -229,6 +271,7 @@ class RunEvent(BaseModel):
 
 class VerificationReport(BaseModel):
     summary: str
+    validation_version: int | None = None
     repository: RepositorySnapshot | None = None
     requirements: list[RequirementItem] = Field(default_factory=list)
     test_plan: TestPlan | None = None

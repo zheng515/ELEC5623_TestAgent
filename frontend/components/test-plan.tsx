@@ -8,8 +8,9 @@ export function TestPlanDetails({ report }: { report?: VerificationReport }) {
   return (
     <div className="test-plan">
       <p className="small muted">
-        Scenarios describe intended checks. Linked tests and recorded outcomes
-        show how each scenario progressed.
+        Scenario IDs are claimed links. Only a matching target call, input and
+        oracle establish a validated code-to-plan link. This does not prove
+        semantic correctness or test adequacy.
       </p>
       {!plan.scenarios.length && (
         <p>
@@ -22,7 +23,17 @@ export function TestPlanDetails({ report }: { report?: VerificationReport }) {
           test.scenario_ids?.includes(scenario.id),
         );
         const outcomes = (report?.executions ?? []).filter((item) =>
-          tests.some((test) => test.id === item.test_id),
+          tests.some(
+            (test) =>
+              test.id === item.test_id &&
+              (test.validation_status === "validated"
+                ? test.validated_checks?.some(
+                    (check) =>
+                      check.scenario_id === scenario.id &&
+                      check.function_name === item.name,
+                  )
+                : test.validation_status !== "needs_review"),
+          ),
         );
         return (
           <details className="scenario-card" key={scenario.id}>
@@ -54,6 +65,37 @@ export function TestPlanDetails({ report }: { report?: VerificationReport }) {
               </dd>
               <dt>Expected result</dt>
               <dd>{scenario.expected_result}</dd>
+              <dt>Structured check contract</dt>
+              <dd>
+                {scenario.check ? (
+                  <pre className="test-code">
+                    {JSON.stringify(scenario.check, null, 2)}
+                  </pre>
+                ) : (
+                  "No structured contract recorded; automatic validation is unavailable."
+                )}
+              </dd>
+              <dt>Code-to-plan validation</dt>
+              <dd>
+                {tests.length
+                  ? tests.map((test) => (
+                      <div key={test.id}>
+                        <strong>{test.id}</strong>
+                        {": "}
+                        <span>
+                          {test.validation_status === "validated" &&
+                          test.validated_checks?.some(
+                            (check) => check.scenario_id === scenario.id,
+                          )
+                            ? "Contract matched"
+                            : test.validation_status === "needs_review"
+                              ? "Needs review; not counted as implemented"
+                              : "Not checked; this is a claimed link"}
+                        </span>
+                      </div>
+                    ))
+                  : "No artifact to validate"}
+              </dd>
               <dt>Assumptions</dt>
               <dd>
                 <Items values={scenario.assumptions} />
@@ -125,7 +167,7 @@ export function TestPlanDetails({ report }: { report?: VerificationReport }) {
       )}
       {!!report?.uncovered_scenarios?.length && (
         <div className="planning-note">
-          <strong>Scenarios without generated tests</strong>
+          <strong>Scenarios without validated implementations</strong>
           <Items values={report.uncovered_scenarios} />
         </div>
       )}

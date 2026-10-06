@@ -29,6 +29,7 @@ from app.services.llm import LLMError, StructuredLLM
 from app.services.planner import plan_tests, planning_gaps
 from app.services.refiner import refine_tests
 from app.services.runner import TestRunner
+from app.services.test_validator import validated_scenarios
 
 ProgressCallback = Callable[[VerificationRun], None]
 
@@ -259,6 +260,7 @@ class DirectLLMOrchestrator:
             "execute",
             "Executing generated tests in the available sandbox.",
             generated_tests=suite.tests,
+            validation_version=1,
             coverage_gaps=gaps,
             requirement_coverage=requirement_coverage(requirements, suite.tests),
             behaviors=_behaviors(requirements, suite.tests, [], inspected=False, plan=plan),
@@ -267,9 +269,17 @@ class DirectLLMOrchestrator:
         executions = execution.executions if execution else []
         attempts = []
         if execution is not None:
-            attempts.append(_attempt(1, "measure", suite.tests, execution))
+            attempts.append(
+                _attempt(
+                    1,
+                    "measure",
+                    [test for test in suite.tests if test.validation_status == "validated"],
+                    execution,
+                )
+            )
         tests = suite.tests
         refinement_iterations = 0
+        refinement_notes = []
         repairable = [item for item in executions if _repairable(item) and item.test_id]
         if repairable and repository is not None and self._runner is not None:
             checkpoint(
@@ -284,6 +294,17 @@ class DirectLLMOrchestrator:
                 refined = refine_tests(
                     self._llm, project, requirements, tests, repairable, repository, plan=plan
                 )
+                if refined.notes.strip():
+                    refinement_notes.append(f"Refinement note: {refined.notes.strip()}")
+                if not refined.tests:
+                    events.append(
+                        _event(
+                            "improve",
+                            "No safe repair was accepted. "
+                            "Original tests and execution errors retained.",
+                            datetime.now(UTC),
+                        )
+                    )
                 if refined.tests:
                     tests = _replace_tests(tests, refined.tests)
                     events.append(
@@ -321,25 +342,32 @@ class DirectLLMOrchestrator:
 
         unresolved = [
             *repository_issues,
+            *refinement_notes,
             *(f"{item.id} is ambiguous: {item.ambiguity}" for item in ambiguous),
             *(f"{item.id} is not testable as written: {item.text}" for item in untestable),
         ]
         if plan_gaps:
             unresolved.append(f"{len(plan_gaps)} testable requirements have no planned scenario.")
-        implemented = {ref for test in tests for ref in test.scenario_ids}
+        implemented = {ref for test in tests for ref in validated_scenarios(test)}
         uncovered_scenarios = [
             f"{item.id}: {item.title}" for item in plan.scenarios if item.id not in implemented
         ]
         if uncovered_scenarios:
             unresolved.append(
-                f"{len(uncovered_scenarios)} planned scenarios have no generated test."
+                f"{len(uncovered_scenarios)} planned scenarios have no generated test "
+                "with a validated check."
             )
         if gaps:
-            unresolved.append(f"{len(gaps)} testable requirements have no generated test.")
+            unresolved.append(
+                f"{len(gaps)} testable requirements have no generated test "
+                "with validated scenario links."
+            )
         final_execution = (
             execution.model_copy(update={"executions": executions}) if execution else None
         )
-        unresolved.extend(_execution_issues(final_execution, tests))
+        unresolved.extend(
+            _execution_issues(final_execution, tests, sandbox_available=self._runner is not None)
+        )
         diagnoses = _diagnose(executions)
         unresolved.extend(_diagnosis_issues(diagnoses, refinement_iterations))
         execution_gaps = [
@@ -347,9 +375,17 @@ class DirectLLMOrchestrator:
             for test in tests
             if not any(item.test_id == test.id for item in executions)
         ]
+        for test in tests:
+            if any(item.test_id == test.id for item in executions):
+                execution_gaps.extend(
+                    f"{test.id}::{name}: no final execution outcome"
+                    for name in sorted({check.function_name for check in test.validated_checks})
+                    if not any(item.test_id == test.id and item.name == name for item in executions)
+                )
         if execution_gaps:
             unresolved.append(
-                f"{len(execution_gaps)} generated tests have no final execution outcome."
+                f"{len(execution_gaps)} generated artifacts or validated functions "
+                "have no final execution outcome."
             )
         for note in (analysis.notes, plan.notes, suite.notes):
             if note.strip():
@@ -366,6 +402,7 @@ class DirectLLMOrchestrator:
             input_sha256=digest,
             events=events,
             report=VerificationReport(
+                validation_version=1,
                 summary=(
                     f"{self.mode.replace('_', ' ').upper()} run. "
                     f"{len(requirements)} requirements extracted and "
@@ -451,10 +488,20 @@ class DirectLLMOrchestrator:
                 )
             )
             return None
-        if not tests:
+        eligible = [test for test in tests if test.validation_status == "validated"]
+        if len(eligible) != len(tests):
+            events.append(
+                _event(
+                    stage,
+                    f"{len(tests) - len(eligible)} artifacts were excluded: "
+                    "scenario validation did not pass.",
+                    datetime.now(UTC),
+                )
+            )
+        if not eligible:
             return None
 
-        result = self._runner.execute(tests, repository.root if repository else None)
+        result = self._runner.execute(eligible, repository.root if repository else None)
         if result.timed_out:
             events.append(
                 _event(stage, f"Execution timed out. {result.stderr_excerpt}", datetime.now(UTC))
@@ -543,20 +590,39 @@ def _behaviors(
             if plan is not None
             else set()
         )
-        implemented_ids = {ref for test in linked for ref in test.scenario_ids}
+        implemented_ids = {ref for test in linked for ref in validated_scenarios(test)}
         behaviors.append(
             Behavior(
                 id=f"B-{requirement.id}",
                 requirement_id=requirement.id,
                 source_quote=requirement.source_quote,
                 description=requirement.text,
-                expected_result=None,
+                expected_result="; ".join(
+                    scenario.expected_result
+                    for scenario in plan.scenarios
+                    if requirement.id in scenario.requirement_ids
+                )
+                if plan
+                else None,
+                code_refs=sorted(
+                    {check.target for test in linked for check in test.validated_checks}
+                ),
                 verification_status=_status(
                     requirement,
                     [execution for _, execution in outcomes],
                     inspected=inspected,
                     expected_ids=ids,
-                    scenarios_complete=planned_ids <= implemented_ids,
+                    scenarios_complete=bool(planned_ids)
+                    and planned_ids <= implemented_ids
+                    and all(test.validation_status == "validated" for test in linked)
+                    and all(
+                        any(
+                            outcome.test_id == test.id and outcome.name == check.function_name
+                            for _, outcome in outcomes
+                        )
+                        for test in linked
+                        for check in test.validated_checks
+                    ),
                 ),
                 test_refs=[test.module for test in linked],
                 evidence_refs=[_evidence_id(index) for index, _ in outcomes],
@@ -727,10 +793,17 @@ def _execution_summary_from_items(
     )
 
 
-def _execution_issues(execution: ExecutionResult | None, tests: list[GeneratedTest]) -> list[str]:
+def _execution_issues(
+    execution: ExecutionResult | None, tests: list[GeneratedTest], *, sandbox_available=False
+) -> list[str]:
     if execution is None:
         if not tests:
             return []
+        if sandbox_available:
+            return [
+                "No tests were eligible for automatic execution: "
+                "code-to-plan validation did not pass."
+            ]
         return [
             "Generated tests were not executed. Start Docker and run "
             "`bash scripts/build-sandbox.sh` to connect the sandbox."
