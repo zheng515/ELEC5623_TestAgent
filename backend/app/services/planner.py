@@ -26,6 +26,7 @@ exception_type. Ground these values in the source requirement and available inte
 Do not invent an executable contract for uncertain inputs, setup, or unsupported APIs;
 set check to null and explain the limitation. Generation must implement this saved
 contract, not reinterpret it. The plan is a proposal, not evidence or verification.
+oracle_grounding is server-owned and populated by a separate review; leave it null.
 """
 
 
@@ -92,6 +93,7 @@ def plan_tests(
                     "id": f"S{len(scenarios) + 1}",
                     "requirement_ids": refs,
                     "evidence_refs": evidence_refs,
+                    "oracle_grounding": None,
                 }
             )
         )

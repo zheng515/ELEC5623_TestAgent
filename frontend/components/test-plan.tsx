@@ -1,5 +1,6 @@
 import type { VerificationReport } from "../lib/types";
 import { Badge } from "./ui";
+import { OracleGroundingDetails } from "./oracle-grounding";
 
 export function TestPlanDetails({ report }: { report?: VerificationReport }) {
   const plan = report?.test_plan;
@@ -75,6 +76,10 @@ export function TestPlanDetails({ report }: { report?: VerificationReport }) {
                 ) : (
                   "No structured contract recorded; automatic validation is unavailable."
                 )}
+              </dd>
+              <dt>Original-source oracle review</dt>
+              <dd>
+                <OracleGroundingDetails grounding={scenario.oracle_grounding} />
               </dd>
               <dt>Code-to-plan validation</dt>
               <dd>

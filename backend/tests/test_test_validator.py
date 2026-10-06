@@ -7,12 +7,14 @@ from test_agent import (
     PROJECT,
     REPOSITORY,
     SUITE,
+    FakeLLM,
     FakeRunner,
     execution,
     inspecting_agent,
 )
 
 from app.schemas import GeneratedTestSuite, ScenarioCheck
+from app.services.oracle_review import review_oracles
 from app.services.test_validator import validate_test
 
 
@@ -125,7 +127,9 @@ def test_precise_exception_input_and_type_must_match():
             )
         }
     )
-    plan = PLAN.model_copy(update={"scenarios": [scenario]})
+    plan = review_oracles(
+        FakeLLM(), PROJECT, ANALYSIS.requirements, PLAN.model_copy(update={"scenarios": [scenario]})
+    )
     code = (
         "import pytest\nfrom shipping import fee\ndef test_negative():\n"
         "    with pytest.raises(ValueError):\n        fee(-1)\n"
@@ -173,7 +177,12 @@ def test_each_claimed_scenario_needs_its_own_matching_oracle():
             ),
         }
     )
-    plan = PLAN.model_copy(update={"scenarios": [*PLAN.scenarios, second]})
+    plan = review_oracles(
+        FakeLLM(),
+        PROJECT,
+        ANALYSIS.requirements,
+        PLAN.model_copy(update={"scenarios": [*PLAN.scenarios, second]}),
+    )
     test = SUITE.tests[0].model_copy(update={"scenario_ids": ["S1", "S2"]})
     checked = validate_test(test, plan, REPOSITORY)
     assert checked.validation_status == "needs_review"
@@ -190,7 +199,12 @@ def test_extra_check_requires_a_link_even_when_its_contract_exists_in_the_plan()
             ),
         }
     )
-    plan = PLAN.model_copy(update={"scenarios": [*PLAN.scenarios, second]})
+    plan = review_oracles(
+        FakeLLM(),
+        PROJECT,
+        ANALYSIS.requirements,
+        PLAN.model_copy(update={"scenarios": [*PLAN.scenarios, second]}),
+    )
     test = SUITE.tests[0].model_copy(
         update={"code": SUITE.tests[0].code + "    assert fee(9999) == 1000\n"}
     )
@@ -273,7 +287,9 @@ def test_json_types_are_not_coerced_and_keyword_arguments_match_exactly():
             )
         }
     )
-    plan = PLAN.model_copy(update={"scenarios": [scenario]})
+    plan = review_oracles(
+        FakeLLM(), PROJECT, ANALYSIS.requirements, PLAN.model_copy(update={"scenarios": [scenario]})
+    )
     code = SUITE.tests[0].code.replace("fee(10000)", "fee(amount_cents=10000)")
     assert (
         validate_test(
@@ -310,14 +326,14 @@ def test_html_preserves_rejected_code_and_its_explanation_without_fabricating_ex
     assert not any("Start Docker" in issue for issue in run.report.unresolved_issues)
 
 
-@pytest.mark.parametrize("version", [None, 1])
+@pytest.mark.parametrize("version", [None, 1, 2])
 def test_html_marks_earlier_validation_versions_as_historical(version):
     from app.services.report_renderer import render_html_report
 
     run = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed"))).run(
         PROJECT
     )
-    assert run.report.validation_version == 2
+    assert run.report.validation_version == 3
     run.report.validation_version = version
     coverage = run.report.requirement_coverage
     html = render_html_report(PROJECT, run)
@@ -351,7 +367,14 @@ def test_duplicate_keyword_contract_does_not_earn_coverage():
         }
     )
     checked = validate_test(
-        SUITE.tests[0], PLAN.model_copy(update={"scenarios": [scenario]}), REPOSITORY
+        SUITE.tests[0],
+        review_oracles(
+            FakeLLM(),
+            PROJECT,
+            ANALYSIS.requirements,
+            PLAN.model_copy(update={"scenarios": [scenario]}),
+        ),
+        REPOSITORY,
     )
     assert checked.validation_status == "needs_review"
     assert any("duplicate keyword" in issue for issue in checked.validation_issues)

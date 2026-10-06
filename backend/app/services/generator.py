@@ -24,6 +24,8 @@ Rules:
   literals; do not put calls or dynamic expressions in them.
 - validation_status, validation_issues and validated_checks are server-owned; do not
   claim validation in model output.
+- Generate executable tests only for scenarios whose oracle_grounding.status is supported.
+  Keep unsupported scenarios as planning gaps in notes; do not invent missing source rules.
 - Implement the supplied test plan. Each test must list known scenario_ids that it
   exercises. Cover each supplied scenario and preserve its stated expectation.
 - Use separate test functions for independent scenario contracts so pytest outcomes

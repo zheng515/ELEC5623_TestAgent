@@ -6,10 +6,12 @@ import pytest
 from conftest import register, wait_for_run
 from fastapi.testclient import TestClient
 from test_agent import ANALYSIS, INVALID_SUITE, PLAN, PROJECT, SUITE, FakeLLM
+from test_oracle_review import decision
 from test_outcome_mapping import mixed_requirement_inputs
 
 from app.core.config import Settings
 from app.main import create_app
+from app.schemas import OracleReview
 from app.services.orchestrator import DirectLLMOrchestrator
 from app.services.runner import DockerTestRunner
 
@@ -20,7 +22,17 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.mark.parametrize(
-    "case", ["passing", "defect", "repair", "setup_blocked", "unplanned", "mixed", "shared"]
+    "case",
+    [
+        "passing",
+        "defect",
+        "repair",
+        "setup_blocked",
+        "unplanned",
+        "mixed",
+        "shared",
+        "unsupported_oracle",
+    ],
 )
 def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_path, case):
     source = tmp_path / "project"
@@ -50,6 +62,25 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
             }
         )
     requirements_text = PROJECT.requirements_text
+    if case == "unsupported_oracle":
+        scenario = PLAN.scenarios[0].model_copy(
+            update={"check": PLAN.scenarios[0].check.model_copy(update={"expected_value": 999})}
+        )
+        suite = SUITE.model_copy(
+            update={
+                "tests": [
+                    SUITE.tests[0].model_copy(
+                        update={"code": SUITE.tests[0].code.replace("== 0", "== 999")}
+                    )
+                ]
+            }
+        )
+        responses = [
+            ANALYSIS,
+            PLAN.model_copy(update={"scenarios": [scenario]}),
+            OracleReview(decisions=[decision("contradicted")]),
+            suite,
+        ]
     if case in {"mixed", "shared"}:
         project, analysis, plan, suite = mixed_requirement_inputs(shared_function=case == "shared")
         requirements_text = project.requirements_text
@@ -101,9 +132,9 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
                 ["passed", "failed"] if case == "mixed" else ["failed"]
             )
             return
-        if case == "unplanned":
+        if case in {"unplanned", "unsupported_oracle"}:
             assert report["project_readiness"]["status"] == "ready"
-            assert report["validation_version"] == 2
+            assert report["validation_version"] == 3
             assert report["generated_tests"][0]["validation_status"] == "needs_review"
             assert report["executions"] == []
             assert report["execution_attempts"] == []
@@ -113,7 +144,11 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
                 item["classification"] == "suspected_defect" for item in report["diagnoses"]
             )
             html = client.get(f"/api/v1/runs/{run['id']}/report.html").text
-            assert "no matching linked scenario contract" in html
+            assert (
+                "no matching linked scenario contract"
+                if case == "unplanned"
+                else "original-source support"
+            ) in html
             assert "No tests executed." in html
             return
         expected = "failed" if case == "defect" else "passed"

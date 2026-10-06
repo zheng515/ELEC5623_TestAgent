@@ -1,5 +1,6 @@
 """Agent stage tests. A fake model keeps the suite deterministic and off the network."""
 
+import json
 from datetime import UTC, datetime
 
 import pytest
@@ -14,6 +15,7 @@ from app.schemas import (
     GeneratedTest,
     GeneratedTestSuite,
     ModuleInterface,
+    OracleReview,
     Project,
     ProjectReadiness,
     RepositorySnapshot,
@@ -29,6 +31,7 @@ from app.schemas import (
 )
 from app.services.generator import coverage_gaps, generate_tests, requirement_coverage
 from app.services.llm import LLMError
+from app.services.oracle_review import review_oracles
 from app.services.orchestrator import DirectLLMOrchestrator
 from app.services.planner import plan_tests
 
@@ -123,14 +126,40 @@ class FakeLLM:
     def __init__(self, *responses):
         self.responses = list(responses)
         self.prompts: list[str] = []
+        self.review_prompts: list[str] = []
 
     def parse(self, *, system, prompt, output_format):
+        if output_format is OracleReview:
+            self.review_prompts.append(prompt)
+            if self.responses and isinstance(self.responses[0], OracleReview):
+                return self.responses.pop(0)
+            # Existing workflow fixtures assume review success. Dedicated oracle
+            # tests supply decisions explicitly; this is not a semantic evaluator.
+            data = json.loads(prompt)
+            sources = {item["id"]: item["source_quote"] for item in data["linked_requirements"]}
+            return OracleReview(
+                decisions=[
+                    {
+                        "scenario_id": scenario["id"],
+                        "verdict": "supported",
+                        "rationale": "Deterministic review fixture; no real model assessment.",
+                        "citations": [
+                            {"requirement_id": ref, "quote": sources[ref]}
+                            for ref in scenario["requirement_ids"]
+                        ],
+                    }
+                    for scenario in data["scenarios"]
+                ]
+            )
         self.prompts.append(prompt)
         response = self.responses.pop(0)
         if isinstance(response, Exception):
             raise response
         assert isinstance(response, output_format)
         return response
+
+
+PLAN = review_oracles(FakeLLM(), PROJECT, ANALYSIS.requirements, PLAN)
 
 
 @pytest.fixture
@@ -674,6 +703,7 @@ def test_planner_filters_unknown_sources_and_assigns_unique_scenario_ids():
     assert [scenario.id for scenario in plan.scenarios] == ["S1", "S2"]
     assert all(item.requirement_ids == ["R1"] for item in plan.scenarios)
     assert all(item.evidence_refs == ["requirement:R1"] for item in plan.scenarios)
+    assert all(item.oracle_grounding is None for item in plan.scenarios)
     assert "no testable requirement link" in plan.notes
     assert '"repository:shipping.py"' in llm.prompts[0]
     assert "Orders of at least 100 dollars ship free." in llm.prompts[0]

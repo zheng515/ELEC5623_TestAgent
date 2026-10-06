@@ -17,8 +17,8 @@ from app.services.orchestrator import DirectLLMOrchestrator, ScaffoldOrchestrato
 class GatedLLM(FakeLLM):
     def __init__(self):
         super().__init__(ANALYSIS, PLAN, SUITE)
-        self.entered = [Event() for _ in range(3)]
-        self.release = [Event() for _ in range(3)]
+        self.entered = [Event() for _ in range(4)]
+        self.release = [Event() for _ in range(4)]
         self.calls = 0
 
     def parse(self, **kwargs):
@@ -71,10 +71,19 @@ def test_submission_returns_before_model_and_live_checkpoints_are_persisted(sett
             assert planned["report"]["requirements"][0]["id"] == "R1"
             llm.release[1].set()
             assert llm.entered[2].wait(5)
+            reviewing = client.get(accepted.headers["location"]).json()
+            assert reviewing["stage"] == "plan"
+            assert reviewing["report"]["test_plan"]["scenarios"][0]["oracle_grounding"] is None
+            llm.release[2].set()
+            assert llm.entered[3].wait(5)
             generating = client.get(accepted.headers["location"]).json()
             assert generating["report"]["test_plan"]["scenarios"][0]["id"] == "S1"
             assert generating["stage"] == "generate"
-            llm.release[2].set()
+            assert (
+                generating["report"]["test_plan"]["scenarios"][0]["oracle_grounding"]["status"]
+                == "supported"
+            )
+            llm.release[3].set()
             finished = wait_for_run(client, run_id)
             assert finished["status"] == "completed"
             assert finished["id"] == accepted.json()["id"]
@@ -100,7 +109,7 @@ def test_concurrent_duplicate_submissions_share_one_model_run(settings):
             assert len(client.get(f"/api/v1/projects/{saved['id']}/runs").json()) == 1
             llm.unblock()
             wait_for_run(client, first["id"])
-            assert llm.calls == 3
+            assert llm.calls == 4
     finally:
         llm.unblock()
 

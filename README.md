@@ -10,7 +10,7 @@ This repository contains a working **frontend, backend, B0/B2 agent, repository 
 | --- | --- |
 | Frontend | React 19, TypeScript, vinext/Vite, and an English responsive interface |
 | Backend | FastAPI, Pydantic, and versioned REST endpoints with OpenAPI documentation |
-| Agent | Anthropic Messages API with structured output for requirement analysis, scenario planning, and test generation |
+| Agent | Anthropic Messages API with structured output for requirement analysis, scenario planning, independent oracle review, and test generation |
 | Inspection | Read-only AST reading of the project under test, confined to a configured root |
 | Execution | pytest inside a Docker sandbox with no network, a read-only filesystem, and resource limits |
 | Persistence | SQLite for projects, requirements, goals, runs, events, and reports |
@@ -151,7 +151,7 @@ Use one API process with this SQLite worker. On shutdown or restart, unfinished 
 
 A completed agent run reports two rates, and they measure different things:
 
-- `requirement_coverage` — for new runs (`validation_version = 2`), share of extracted testable requirements linked to at least one artifact whose code passes server-side code-to-plan validation. It is labeled **Validated requirement links** in the UI. Unchecked or unsupported claims do not count; a requirement-level link does not mean every planned scenario is implemented. Old reports retain their historical metrics and are explicitly marked as not revalidated.
+- `requirement_coverage` — for new runs (`validation_version = 3`), share of extracted testable requirements linked to at least one artifact whose code passes server-side code-to-plan validation. It is labeled **Validated requirement links** in the UI. Unchecked or unsupported claims do not count; a requirement-level link does not mean every planned scenario is implemented. Old reports retain their historical metrics and are explicitly marked as not revalidated.
 - `execution_success_rate` — share of **executed** tests that passed. `null` means nothing ran.
 
 `semantic_coverage` and `mutation_score` stay `null`; `null` means *not evaluated*.
@@ -167,9 +167,13 @@ Verification statuses follow the evidence, and only ever downward from what was 
 
 ### Code-to-plan validation
 
+Validation version 3 adds a separate AI oracle review after planning and before generation. The reviewer receives the original requirement text, linked source quotes, exact scenario contracts, and inspected interfaces, without any prior grounding approval. It assesses expected values, units, boundaries, exception types, and missing assumptions. The server verifies that every linked requirement has a verbatim original-source citation and binds the assessment to a hash of the saved scenario; model-authored approvals are discarded. A contradicted or insufficient assessment, missing/duplicate decision, invalid citation, review API failure, or changed scenario excludes its generated artifacts from coverage and automatic execution. Proposed scenarios and review reasons remain visible in the test plan and HTML export.
+
+This adds one structured model request per nonempty plan. Citations are checked deterministically, but the semantic judgment remains an AI assessment using the configured model, not proof or test adequacy. No additional human approval step is required. A mixed artifact containing an unsupported scenario is excluded as a whole. Old results keep their stored evidence and must be rerun for these checks.
+
 The planner saves a structured `check` before generation: an inspected target such as `shipping.fee`, JSON scalar or flat-list inputs (named keyword arguments are stored as `{name, value}` entries), and either an equality oracle or a precise built-in exception type. The server parses generated Python as AST without executing it on the host. Only direct function calls and straight-line test functions with supported checks are eligible. Local literal variables, imported aliases, and assertions on saved call results are supported. Wrong inputs, wrong or weakened oracles, fabricated APIs, shadowed bindings, constant checks, skip decorators, early returns, swallowed errors, and dynamic execution cannot establish a validated link.
 
-Validation version 2 checks both directions: every linked scenario needs a matching check, and every observed equality or exception check must match a linked scenario contract. Extra assertions, unused project-call results (including setup calls), and dynamic assertion messages make the entire artifact **Needs review**. Literal assertion messages remain supported. Rejected artifacts cannot produce suspected product defects because they are never executed. Runs saved under earlier rules keep their original evidence and display a notice to start a new run; they are not silently revalidated.
+The structural checks introduced in validation version 2 check both directions: every linked scenario needs a matching check, and every observed equality or exception check must match a linked scenario contract. Extra assertions, unused project-call results (including setup calls), and dynamic assertion messages make the entire artifact **Needs review**. Literal assertion messages remain supported. Rejected artifacts cannot produce suspected product defects because they are never executed. Runs saved under earlier rules keep their original evidence and display a notice to start a new run; they are not silently revalidated.
 
 Each artifact records `validation_status`, `validation_issues`, and `validated_checks` with scenario IDs, test function names, targets, and call/assertion line numbers. These fields are computed by the server; model-provided values are overwritten. **Needs review** artifacts remain visible, including their code and declared links, but are excluded from coverage and automatic sandbox execution. Repairs are checked again against the saved contract.
 

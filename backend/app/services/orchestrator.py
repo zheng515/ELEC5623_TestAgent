@@ -28,6 +28,7 @@ from app.services.analyzer import analyze_requirements
 from app.services.generator import coverage_gaps, generate_tests, requirement_coverage
 from app.services.inspector import RepositoryError, inspect_repository, repository_available
 from app.services.llm import LLMError, StructuredLLM
+from app.services.oracle_review import review_oracles
 from app.services.outcome_mapping import (
     OUTCOME_MAPPING_VERSION,
     matches_function,
@@ -271,6 +272,27 @@ class DirectLLMOrchestrator:
                 project_readiness=readiness,
             )
         plan_gaps = planning_gaps(requirements, plan)
+        checkpoint(
+            "plan", "Reviewing planned oracles against original requirements.", test_plan=plan
+        )
+        plan = review_oracles(self._llm, project, requirements, plan, repository)
+        review_issues = [
+            f"{scenario.id}: {issue}"
+            for scenario in plan.scenarios
+            for issue in (scenario.oracle_grounding.issues if scenario.oracle_grounding else [])
+        ]
+        if review_issues:
+            events.append(
+                _event(
+                    "plan",
+                    "Some planned oracles lack source support; "
+                    "their tests are excluded from automatic execution.",
+                    datetime.now(UTC),
+                )
+            )
+            plan = plan.model_copy(
+                update={"notes": "\n".join([plan.notes, *review_issues]).strip()}
+            )
         events.append(
             _event(
                 "plan",

@@ -716,7 +716,7 @@ it("distinguishes a claimed scenario link from validated code and preserves revi
     <TestPlanDetails
       report={{
         ...plannedRun.report,
-        validation_version: 2,
+        validation_version: 3,
         generated_tests: plannedRun.report.generated_tests.map((test) => ({
           ...test,
           validation_status: "needs_review",
@@ -755,7 +755,7 @@ it("shows the planned contract and validated call location without claiming adeq
     <TestPlanDetails
       report={{
         ...plannedRun.report,
-        validation_version: 2,
+        validation_version: 3,
         test_plan: {
           ...plannedRun.report.test_plan!,
           scenarios: plannedRun.report.test_plan!.scenarios.map((scenario) => ({
@@ -795,7 +795,7 @@ it("shows excluded artifacts and their reasons in the workspace without implying
     ...plannedRun,
     report: {
       ...plannedRun.report,
-      validation_version: 2,
+      validation_version: 3,
       executions: [],
       executed_tests: 0,
       requirement_coverage: 0,
@@ -830,7 +830,7 @@ it("shows excluded artifacts and their reasons in the workspace without implying
   ).toBeNull();
 });
 
-it.each([undefined, 1])(
+it.each([undefined, 1, 2])(
   "flags historical validation version %s without changing saved evidence",
   async (version) => {
     const historical: VerificationRun = {
@@ -856,7 +856,7 @@ it("attributes requirement table outcomes to independent functions in the same a
   const base = plannedRun.report.generated_tests[0];
   const report = {
     ...plannedRun.report,
-    validation_version: 2,
+    validation_version: 3,
     outcome_mapping_version: 1,
     test_plan: {
       ...plannedRun.report.test_plan!,
