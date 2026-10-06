@@ -164,6 +164,7 @@ class RepositorySnapshot(BaseModel):
     truncated: bool = False
     sha256: str
     artifact: CodeSnapshot | None = None
+    import_roots: list[str] = Field(default_factory=lambda: ["."])
 
 
 LiteralScalar = str | int | float | bool | None
@@ -265,6 +266,23 @@ class ExecutedTest(BaseModel):
     message: str
 
 
+class RuntimePackage(BaseModel):
+    name: str
+    version: str
+
+
+class ExecutionEnvironment(BaseModel):
+    requested_image: str
+    image_id: str
+    repo_digests: list[str]
+    image_os: str
+    image_architecture: str
+    python_version: str
+    platform: str
+    packages: list[RuntimePackage]
+    fingerprint: str
+
+
 class ExecutionResult(BaseModel):
     """Everything one sandbox invocation produced."""
 
@@ -274,6 +292,23 @@ class ExecutionResult(BaseModel):
     stderr_excerpt: str
     repository_content_sha256: str | None = None
     snapshot_error: str | None = None
+    environment: ExecutionEnvironment | None = None
+    environment_error: str | None = None
+
+
+class ReadinessCheck(BaseModel):
+    kind: Literal["layout", "python", "dependency", "import"]
+    subject: str
+    status: Literal["passed", "failed", "unknown"]
+    detail: str
+
+
+class ProjectReadiness(BaseModel):
+    status: Literal["ready", "blocked", "unknown"]
+    checks: list[ReadinessCheck] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    import_roots: list[str] = Field(default_factory=lambda: ["."])
+    environment: ExecutionEnvironment | None = None
 
 
 class ExecutionAttempt(BaseModel):
@@ -318,6 +353,7 @@ class VerificationReport(BaseModel):
     validation_version: int | None = None
     source_audit: SourceAnalysisAudit | None = None
     repository: RepositorySnapshot | None = None
+    project_readiness: ProjectReadiness | None = None
     requirements: list[RequirementItem] = Field(default_factory=list)
     test_plan: TestPlan | None = None
     planning_gaps: list[str] = Field(default_factory=list)

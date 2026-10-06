@@ -13,6 +13,7 @@ from app.schemas import (
     ExecutionResult,
     GeneratedTest,
     Project,
+    ProjectReadiness,
     RepositorySnapshot,
     RequirementItem,
     RunEvent,
@@ -28,6 +29,7 @@ from app.services.generator import coverage_gaps, generate_tests, requirement_co
 from app.services.inspector import RepositoryError, inspect_repository, repository_available
 from app.services.llm import LLMError, StructuredLLM
 from app.services.planner import plan_tests, planning_gaps
+from app.services.project_readiness import check_project_readiness
 from app.services.refiner import refine_tests
 from app.services.repository_snapshot import SnapshotError, verified_snapshot_root
 from app.services.runner import TestRunner
@@ -195,11 +197,51 @@ class DirectLLMOrchestrator:
 
         checkpoint(
             "plan",
-            "Planning test scenarios from validated requirements.",
+            "Checking project readiness before test planning.",
             requirements=requirements,
             source_audit=analysis.source_audit,
             unresolved_issues=[*repository_issues, *analysis.source_audit.issues],
         )
+
+        runner = self._runner.for_run() if self._runner else None
+        readiness = check_project_readiness(repository, runner, self._settings)
+        checkpoint("plan", "Project readiness checked.", project_readiness=readiness)
+        if repository is not None:
+            events.append(
+                _event("inspect", f"Project readiness: {readiness.status}.", datetime.now(UTC))
+            )
+        if readiness.status == "blocked":
+            issues = [
+                check.detail + f" ({check.subject})"
+                for check in readiness.checks
+                if check.status != "passed"
+            ]
+            return VerificationRun(
+                id=run_id,
+                project_id=project.id,
+                mode=self.mode,
+                status="blocked",
+                stage="plan",
+                created_at=now,
+                updated_at=datetime.now(UTC),
+                input_sha256=digest,
+                events=events,
+                report=VerificationReport(
+                    summary="Project setup blocked test planning and generation. "
+                    "No tests were executed.",
+                    repository=repository,
+                    requirements=requirements,
+                    source_audit=analysis.source_audit,
+                    project_readiness=readiness,
+                    behaviors=_behaviors(requirements, [], [], inspected=False),
+                    unresolved_issues=[
+                        *repository_issues,
+                        *analysis.source_audit.issues,
+                        *issues,
+                        *readiness.notes,
+                    ],
+                ),
+            )
 
         try:
             plan = plan_tests(
@@ -220,6 +262,7 @@ class DirectLLMOrchestrator:
                 requirements,
                 repository=repository,
                 source_audit=analysis.source_audit,
+                project_readiness=readiness,
             )
         plan_gaps = planning_gaps(requirements, plan)
         events.append(
@@ -252,6 +295,7 @@ class DirectLLMOrchestrator:
                 plan=plan,
                 repository=repository,
                 source_audit=analysis.source_audit,
+                project_readiness=readiness,
             )
 
         gaps = coverage_gaps(requirements, suite.tests)
@@ -273,7 +317,7 @@ class DirectLLMOrchestrator:
             requirement_coverage=requirement_coverage(requirements, suite.tests),
             behaviors=_behaviors(requirements, suite.tests, [], inspected=False, plan=plan),
         )
-        execution = self._execute(suite.tests, repository, events)
+        execution = self._execute(suite.tests, repository, events, runner=runner)
         executions = execution.executions if execution else []
         attempts = []
         if execution is not None:
@@ -334,7 +378,9 @@ class DirectLLMOrchestrator:
                         execution_attempts=attempts,
                         evidence=_evidence(executions),
                     )
-                    rerun = self._execute(refined.tests, repository, events, stage="re_measure")
+                    rerun = self._execute(
+                        refined.tests, repository, events, stage="re_measure", runner=runner
+                    )
                     if rerun is not None:
                         attempts.append(_attempt(2, "re_measure", refined.tests, rerun))
                         execution = rerun
@@ -413,6 +459,7 @@ class DirectLLMOrchestrator:
             report=VerificationReport(
                 validation_version=1,
                 source_audit=analysis.source_audit,
+                project_readiness=readiness,
                 summary=(
                     f"{self.mode.replace('_', ' ').upper()} run. "
                     f"{len(requirements)} requirements extracted and "
@@ -487,9 +534,11 @@ class DirectLLMOrchestrator:
         repository: RepositorySnapshot | None,
         events: list[RunEvent],
         stage: Literal["measure", "re_measure"] = "measure",
+        *,
+        runner: TestRunner | None = None,
     ) -> ExecutionResult | None:
         """Run the generated tests in the sandbox, or record that it is unavailable."""
-        if self._runner is None:
+        if runner is None:
             events.append(
                 _event(
                     stage,
@@ -512,10 +561,11 @@ class DirectLLMOrchestrator:
         if not eligible:
             return None
 
+        result = None
         try:
             artifact = repository.artifact if repository else None
             execution_root = verified_snapshot_root(artifact, self._settings)
-            result = self._runner.execute(eligible, str(execution_root))
+            result = runner.execute(eligible, str(execution_root))
             # A read-only container mount prevents test writes. Recheck host storage
             # as well: discard outcomes if another host process changed the copy.
             verified_snapshot_root(artifact, self._settings)
@@ -531,7 +581,11 @@ class DirectLLMOrchestrator:
                 timed_out=False,
                 stderr_excerpt=message,
                 snapshot_error=message,
+                environment=result.environment if result else None,
             )
+        if result.environment_error:
+            events.append(_event(stage, result.environment_error, datetime.now(UTC)))
+            return result
         if result.timed_out:
             events.append(
                 _event(stage, f"Execution timed out. {result.stderr_excerpt}", datetime.now(UTC))
@@ -563,6 +617,7 @@ class DirectLLMOrchestrator:
         plan: TestPlan | None = None,
         repository: RepositorySnapshot | None = None,
         source_audit: SourceAnalysisAudit | None = None,
+        project_readiness: ProjectReadiness | None = None,
     ) -> VerificationRun:
         events = [*events, _event(stage, f"Run failed: {message}", datetime.now(UTC))]
         return VerificationRun(
@@ -580,6 +635,7 @@ class DirectLLMOrchestrator:
                 ),
                 requirements=requirements or [],
                 source_audit=source_audit,
+                project_readiness=project_readiness,
                 test_plan=plan,
                 repository=repository,
                 planning_gaps=planning_gaps(requirements or [], plan) if plan else [],
@@ -844,6 +900,8 @@ def _execution_issues(
         return [f"Execution timed out: {execution.stderr_excerpt}"]
     if execution.snapshot_error:
         return [execution.snapshot_error]
+    if execution.environment_error:
+        return [execution.environment_error]
 
     issues = []
     counts = Counter(item.outcome for item in execution.executions)

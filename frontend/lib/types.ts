@@ -102,6 +102,7 @@ export interface CodeSnapshot {
 }
 export interface RepositorySnapshot {
   artifact?: CodeSnapshot | null;
+  import_roots?: string[];
   root: string;
   modules: ModuleInterface[];
   skipped: string[];
@@ -122,6 +123,17 @@ export interface TestDiagnosis {
   classification: "invalid_test" | "suspected_defect" | "inconclusive";
   explanation: string;
 }
+export interface ExecutionEnvironment {
+  requested_image: string;
+  image_id: string;
+  repo_digests: string[];
+  image_os: string;
+  image_architecture: string;
+  python_version: string;
+  platform: string;
+  packages: { name: string; version: string }[];
+  fingerprint: string;
+}
 export interface ExecutionAttempt {
   number: number;
   stage: "measure" | "re_measure";
@@ -134,6 +146,8 @@ export interface ExecutionAttempt {
     stderr_excerpt: string;
     repository_content_sha256?: string | null;
     snapshot_error?: string | null;
+    environment?: ExecutionEnvironment | null;
+    environment_error?: string | null;
   };
   diagnoses: TestDiagnosis[];
 }
@@ -155,7 +169,20 @@ export interface SourceAnalysisAudit {
   semantic_completeness: "not_established";
   issues: string[];
 }
+export interface ProjectReadiness {
+  status: "ready" | "blocked" | "unknown";
+  checks: {
+    kind: "layout" | "python" | "dependency" | "import";
+    subject: string;
+    status: "passed" | "failed" | "unknown";
+    detail: string;
+  }[];
+  notes: string[];
+  import_roots: string[];
+  environment?: ExecutionEnvironment | null;
+}
 export interface VerificationReport {
+  project_readiness?: ProjectReadiness | null;
   source_audit?: SourceAnalysisAudit | null;
   validation_version?: number | null;
   summary: string;

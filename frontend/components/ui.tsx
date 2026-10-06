@@ -94,6 +94,8 @@ export function runBadge(run?: VerificationRun): {
   if (run.status === "queued") return { label: "Queued", tone: "neutral" };
   if (run.status === "running") return { label: "Running", tone: "teal" };
   if (run.status === "failed") return { label: "Failed", tone: "amber" };
+  if (run.report.project_readiness?.status === "blocked")
+    return { label: "Blocked · Project setup", tone: "amber" };
   if (run.status === "blocked")
     return { label: "Blocked · Integration required", tone: "amber" };
   if (

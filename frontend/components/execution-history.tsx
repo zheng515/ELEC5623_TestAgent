@@ -1,4 +1,5 @@
 import type { VerificationReport } from "../lib/types";
+import { RuntimeEnvironment } from "./runtime-environment";
 import { Badge } from "./ui";
 
 export function ExecutionHistory({ report }: { report: VerificationReport }) {
@@ -25,6 +26,10 @@ export function ExecutionHistory({ report }: { report: VerificationReport }) {
               {attempt.result.repository_content_sha256 ?? "Not recorded"}
             </code>
           </p>
+          <RuntimeEnvironment
+            environment={attempt.result.environment}
+            error={attempt.result.environment_error}
+          />
           {attempt.result.stderr_excerpt && (
             <pre className="test-code">{attempt.result.stderr_excerpt}</pre>
           )}

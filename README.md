@@ -266,3 +266,47 @@ silently truncated. Storage currently has no automatic retention cleanup. Copyin
 is checked with a second source scan, not an atomic filesystem transaction; keep
 source files stable during capture. The content fingerprint does not pin the
 sandbox image or installed dependencies.
+
+Each verification run resolves the sandbox tag once to a full local image ID.
+Initial execution and repair reuse that ID with `--pull never`, so retagging the
+image cannot change the environment within a run. A constrained container without
+project mounts first records Python, platform and installed distribution versions.
+Execution history and HTML/JSON exports include this environment fingerprint and
+inventory. Preparation failures record no test outcomes and remain environment
+issues, not product defects. Historical attempts without metadata show unknown
+runtime versions. The default image pins pytest and its dependencies in
+`backend/sandbox/requirements.lock`; rebuild it after changes to that file.
+
+Run the optional real-container workflow checks after building the sandbox:
+
+```bash
+cd backend
+REQTEST_RUN_DOCKER_TESTS=1 .venv/bin/pytest -q tests/test_docker_integration.py
+```
+
+These checks exercise the authenticated API, background worker, saved code copy,
+actual Docker execution, defect preservation, safe fixture repair, and exported
+provenance. Model responses are deterministic fixtures; these checks do not call
+or validate a live model provider. The image must remain available locally for
+replay; an environment record does not archive Docker layers or prove that the
+image contains every dependency needed by a particular project.
+
+Before test planning and generation, a pinned sandbox checks the saved project's
+runtime dependency declarations, Python requirement and unconditional import roots.
+Supported metadata is static `[project].dependencies` / `requires-python` in
+`pyproject.toml`, plus simple `requirements.txt` declarations and relative `-r`
+includes. Package markers are evaluated inside the actual runtime; installed versions,
+transitive dependencies and requested distribution extras are checked. Optional project
+extras are not selected automatically. Missing/incompatible dependencies, unresolved
+metadata or conflicting import paths stop planning and generation while preserving
+the requirement analysis and source audit. The UI and exported reports list the setup
+checks and actions. Rebuild a compatible custom image or correct the project reference,
+then start a new run; no runtime installation or setup script execution is performed.
+
+A conventional `src` directory is added to the sandbox import path automatically,
+and `src/shipping.py` is inspected as `shipping`, preserving the original source path.
+A Python package actually named `src` (with `src/__init__.py`) retains its package name.
+These checks inspect data without importing project code. Passing them does not prove
+startup readiness: conditional imports, external services and native system libraries
+remain outside this check. Without a sandbox, readiness stays unknown and generated
+tests remain proposals.

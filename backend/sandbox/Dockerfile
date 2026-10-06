@@ -5,8 +5,10 @@
 # filesystem, dropped capabilities, and memory/CPU/PID limits on top.
 FROM python:3.11-slim
 
-# Pinned so an execution result is reproducible (NFR6).
-RUN pip install --no-cache-dir pytest==9.1.1
+# Pin pytest and its dependencies. The runner also records the actual Python
+# version and binds every attempt in one run to an immutable local image ID.
+COPY requirements.lock /tmp/requirements.lock
+RUN pip install --no-cache-dir -r /tmp/requirements.lock
 
 RUN useradd --create-home --uid 10001 sandbox
 USER sandbox

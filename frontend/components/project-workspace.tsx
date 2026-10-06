@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Behavior, Project, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
+import { ProjectSetup } from "./project-setup";
 import { RepositoryVersion } from "./repository-version";
 import { SourceAudit } from "./source-audit";
 import { TestPlanDetails } from "./test-plan";
@@ -81,9 +82,11 @@ function stageStates(run?: VerificationRun) {
         ? "Complete"
         : run?.stage === "plan" && run.status === "failed"
           ? "Failed"
-          : run?.mode === "scaffold"
-            ? "Blocked"
-            : "Not recorded",
+          : run?.report.project_readiness?.status === "blocked"
+            ? "Blocked by project setup"
+            : run?.mode === "scaffold"
+              ? "Blocked"
+              : "Not recorded",
     },
     {
       name: "Generate tests",
@@ -91,11 +94,14 @@ function stageStates(run?: VerificationRun) {
         ? "Not started"
         : run.mode === "scaffold"
           ? "Blocked"
-          : run.status === "completed" || run.report.generated_tests.length > 0
-            ? "Complete"
-            : run.stage === "generate"
-              ? "Failed"
-              : "Not started",
+          : run.report.project_readiness?.status === "blocked"
+            ? "Blocked by project setup"
+            : run.status === "completed" ||
+                run.report.generated_tests.length > 0
+              ? "Complete"
+              : run.stage === "generate"
+                ? "Failed"
+                : "Not started",
     },
     {
       name: "Execute tests",
@@ -380,6 +386,7 @@ export function Workspace({
             </Badge>
           }
         />
+        <ProjectSetup readiness={run?.report.project_readiness} />
         <RepositoryVersion repository={run?.report.repository} />
         <SourceAudit report={run?.report} />
         <TestPlanDetails report={run?.report} />
@@ -556,6 +563,7 @@ export function Evidence({
           </small>
         </div>
       </section>
+      <ProjectSetup readiness={run?.report.project_readiness} />
       <RepositoryVersion repository={run?.report.repository} />
       <SourceAudit report={run?.report} />
       {!behaviors.length && !!run?.report.requirements.length && (
@@ -932,6 +940,7 @@ export function Report({
             </section>
             <section>
               <h3>Test plan</h3>
+              <ProjectSetup readiness={run.report.project_readiness} />
               <RepositoryVersion repository={run.report.repository} />
               <SourceAudit report={run.report} />
               <TestPlanDetails report={run.report} />

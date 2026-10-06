@@ -1,5 +1,6 @@
 """Sandbox execution tests. Docker is never invoked; the command is captured instead."""
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -8,6 +9,8 @@ import pytest
 from app.core.config import Settings
 from app.schemas import GeneratedTest
 from app.services.runner import DockerTestRunner, _image_exists, create_runner
+
+PINNED_IMAGE = "sha256:" + "a" * 64
 
 JUNIT = """<?xml version="1.0" encoding="utf-8"?>
 <testsuites><testsuite name="pytest" tests="3">
@@ -59,6 +62,35 @@ class FakeDocker:
 
     def __call__(self, command, **kwargs):
         self.commands.append(command)
+        if command[1:3] == ["image", "ls"]:
+            return subprocess.CompletedProcess(command, 0, PINNED_IMAGE + "\n", "")
+        if command[1:3] == ["image", "inspect"]:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                json.dumps(
+                    {
+                        "Id": PINNED_IMAGE,
+                        "RepoDigests": [],
+                        "Os": "linux",
+                        "Architecture": "arm64",
+                    }
+                ),
+                "",
+            )
+        if command[1] == "run" and "-I" in command:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                json.dumps(
+                    {
+                        "python_version": "3.11.14",
+                        "platform": "Linux-aarch64",
+                        "packages": [{"name": "pytest", "version": "9.1.1"}],
+                    }
+                ),
+                "",
+            )
         if self.raises and command[1] == "run":
             raise self.raises
         if command[1] == "run":
@@ -95,7 +127,9 @@ def test_generated_code_runs_without_network_privileges_or_a_writable_image(sett
 
     DockerTestRunner(settings, docker).execute(TESTS)
 
-    command = " ".join(docker.commands[0])
+    command = " ".join(
+        next(command for command in docker.commands if "--junit-xml=/work/report.xml" in command)
+    )
     assert "--network none" in command
     assert "--read-only" in command
     assert "--cap-drop ALL" in command
@@ -141,7 +175,9 @@ def test_one_uncollectable_module_does_not_discard_the_other_results(settings):
 
     # Without this flag pytest aborts the session on the first import error, and a
     # generated suite loses every result behind it.
-    assert "--continue-on-collection-errors" in docker.commands[0]
+    assert "--continue-on-collection-errors" in next(
+        command for command in docker.commands if "--junit-xml=/work/report.xml" in command
+    )
 
 
 def test_the_test_files_are_written_where_the_container_reads_them(settings):
@@ -149,7 +185,9 @@ def test_the_test_files_are_written_where_the_container_reads_them(settings):
 
     DockerTestRunner(settings, docker).execute(TESTS)
 
-    command = docker.commands[0]
+    command = next(
+        command for command in docker.commands if "--junit-xml=/work/report.xml" in command
+    )
     assert command[command.index("--workdir") + 1] == "/work"
     assert command[command.index("--volume") + 1].endswith(":/work")
     assert "--junit-xml=/work/report.xml" in command
@@ -163,7 +201,7 @@ def test_a_timeout_removes_the_container_and_records_no_outcome(settings):
     assert result.timed_out
     assert result.executions == []
     assert "30s" in result.stderr_excerpt
-    assert docker.commands[1][1:3] == ["rm", "--force"]
+    assert docker.commands[-1][1:3] == ["rm", "--force"]
 
 
 def test_a_missing_report_is_not_treated_as_a_passing_suite(settings):
@@ -246,3 +284,15 @@ def test_an_empty_image_listing_means_the_image_is_absent(monkeypatch):
         lambda command, **kwargs: subprocess.CompletedProcess(command, 0, "\n", ""),
     )
     assert _image_exists(Settings(_env_file=None)) is False
+
+
+def test_startup_readiness_supports_an_explicit_image_id(monkeypatch):
+    commands = []
+
+    def fake_run(command, **kwargs):
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 0, PINNED_IMAGE + "\n", "")
+
+    monkeypatch.setattr("app.services.runner.subprocess.run", fake_run)
+    assert _image_exists(Settings(sandbox_image=PINNED_IMAGE, _env_file=None))
+    assert commands[0][1:3] == ["image", "inspect"]

@@ -168,3 +168,22 @@ def test_a_configured_root_is_still_read_from_the_env_file(tmp_path):
 
     assert settings.repository_root == tmp_path
     assert repository_available(settings) is True
+
+
+def test_src_layout_has_importable_module_names_and_preserves_source_paths(repository, settings):
+    (repository / "src").mkdir()
+    (repository / "src" / "shipping.py").write_text("def fee(amount_cents): return 0\n")
+    snapshot = inspect_repository("repo", settings)
+    module = next(item for item in snapshot.modules if item.path == "src/shipping.py")
+    assert module.module == "shipping"
+    assert snapshot.import_roots == ["src", "."]
+
+
+def test_package_named_src_is_not_mistaken_for_a_source_root(repository, settings):
+    (repository / "src").mkdir()
+    (repository / "src" / "__init__.py").write_text("")
+    (repository / "src" / "shipping.py").write_text("def fee(amount_cents): return 0\n")
+    snapshot = inspect_repository("repo", settings)
+    module = next(item for item in snapshot.modules if item.path == "src/shipping.py")
+    assert module.module == "src.shipping"
+    assert snapshot.import_roots == ["."]

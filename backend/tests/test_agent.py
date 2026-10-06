@@ -15,6 +15,7 @@ from app.schemas import (
     GeneratedTestSuite,
     ModuleInterface,
     Project,
+    ProjectReadiness,
     RepositorySnapshot,
     RequirementAnalysis,
     RequirementItem,
@@ -149,6 +150,16 @@ class FakeRunner:
         self.received.append(tests)
         self.roots.append(repository_root)
         return self.result
+
+    def for_run(self):
+        return self
+
+    def preflight(self, repository_root, import_roots, module_paths):
+        return ProjectReadiness(
+            status="unknown",
+            import_roots=import_roots,
+            notes=["Test double: no real runtime check."],
+        )
 
 
 class SequenceRunner(FakeRunner):
@@ -1000,7 +1011,12 @@ def test_snapshot_tampering_never_produces_trusted_passing_outcomes(when):
     assert run.report.executions == []
     assert run.report.execution_success_rate is None
     assert run.report.behaviors[0].verification_status == "Unverified"
-    assert run.report.execution_attempts[0].result.snapshot_error
+    if when == "before":
+        assert run.status == "blocked"
+        assert run.report.execution_attempts == []
+        assert run.report.project_readiness.status == "blocked"
+    else:
+        assert run.report.execution_attempts[0].result.snapshot_error
     assert any("integrity check failed" in issue for issue in run.report.unresolved_issues)
     assert len(runner.received) == (0 if when == "before" else 1)
 
@@ -1024,3 +1040,49 @@ def test_legacy_interface_snapshot_is_not_an_execution_input():
     assert runner.received == []
     assert run.report.executions == []
     assert any("live repository is refused" in issue for issue in run.report.unresolved_issues)
+
+
+def test_environment_preparation_failure_does_not_become_a_product_defect():
+    result = ExecutionResult(
+        executions=[],
+        exit_code=-1,
+        timed_out=False,
+        stderr_excerpt="Sandbox environment could not be established: missing image.",
+        environment_error="Sandbox environment could not be established: missing image.",
+    )
+    run = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(result)).run(PROJECT)
+    assert run.report.behaviors[0].verification_status == "Unverified"
+    assert run.report.executions == []
+    assert run.report.execution_success_rate is None
+    assert any("missing image" in issue for issue in run.report.unresolved_issues)
+    assert not any(item.classification == "suspected_defect" for item in run.report.diagnoses)
+
+
+def test_blocked_readiness_preserves_requirements_and_skips_planning_generation_execution():
+    from app.schemas import ReadinessCheck
+    from app.services.report_renderer import render_html_report
+
+    runner = FakeRunner(execution("passed"))
+    runner.preflight = lambda *args: ProjectReadiness(
+        status="blocked",
+        checks=[
+            ReadinessCheck(
+                kind="dependency",
+                subject="missing-package",
+                status="failed",
+                detail="Install the dependency in a custom sandbox image.",
+            )
+        ],
+    )
+    agent = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=runner)
+    run = agent.run(PROJECT)
+    assert run.status == "blocked"
+    assert run.report.requirements == ANALYSIS.requirements
+    assert run.report.source_audit
+    assert run.report.project_readiness.status == "blocked"
+    assert run.report.test_plan is None
+    assert run.report.generated_tests == []
+    assert runner.received == []
+    assert len(agent._llm.responses) == 2
+    assert run.report.execution_success_rate is None
+    assert "missing-package" in render_html_report(PROJECT, run)

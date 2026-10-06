@@ -6,6 +6,7 @@ PID and wall-clock limits. There is deliberately no host-subprocess fallback: wh
 Docker is unavailable, execution stays unconnected and the report says so.
 """
 
+import json
 import logging
 import shutil
 import subprocess
@@ -16,7 +17,13 @@ from typing import Protocol
 from uuid import uuid4
 
 from app.core.config import Settings
-from app.schemas import ExecutedTest, ExecutionResult, GeneratedTest
+from app.schemas import ExecutedTest, ExecutionResult, GeneratedTest, ProjectReadiness
+from app.services.execution_environment import (
+    IMAGE_ID,
+    RUNTIME_PROBE,
+    EnvironmentError,
+    parse_environment,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +32,12 @@ STDERR_LIMIT = 4000
 
 
 class TestRunner(Protocol):
+    def for_run(self) -> "TestRunner": ...
+
+    def preflight(
+        self, repository_root: str, import_roots: list[str], module_paths: list[str]
+    ) -> ProjectReadiness: ...
+
     def execute(
         self, tests: list[GeneratedTest], repository_root: str | None = None
     ) -> ExecutionResult: ...
@@ -38,12 +51,77 @@ class DockerTestRunner:
     def __init__(self, settings: Settings, run_command=subprocess.run):
         self._settings = settings
         self._run = run_command
+        self._environment = None
+        self._import_roots = ["."]
+
+    def for_run(self) -> "DockerTestRunner":
+        """Each verification run resolves its image once, independently of other runs."""
+        return DockerTestRunner(self._settings, self._run)
+
+    def preflight(
+        self, repository_root: str, import_roots: list[str], module_paths: list[str]
+    ) -> ProjectReadiness:
+        """Inspect declarations and imports as data in the pinned runtime."""
+        self._import_roots = list(import_roots)
+        container = f"reqtest-readiness-{uuid4().hex[:12]}"
+        try:
+            if self._environment is None:
+                self._environment = self._prepare_environment()
+            code = Path(__file__).with_name("readiness_probe.py").read_text(encoding="utf-8")
+            result = self._run(
+                [
+                    *self._base_command(container),
+                    "--volume",
+                    f"{repository_root}:/repo:ro",
+                    "--entrypoint",
+                    "python",
+                    self._environment.image_id,
+                    "-I",
+                    "-c",
+                    code,
+                    json.dumps({"import_roots": import_roots, "module_paths": module_paths}),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=min(self._settings.sandbox_timeout_seconds, 30),
+            )
+            if result.returncode:
+                raise EnvironmentError(
+                    "Project readiness probe failed. "
+                    "Check the sandbox image's Python and packaging tools."
+                )
+            readiness = ProjectReadiness.model_validate_json(result.stdout)
+            return readiness.model_copy(update={"environment": self._environment})
+        except subprocess.TimeoutExpired:
+            self._force_remove(container)
+            message = "Project readiness probe timed out; no tests were generated."
+        except (EnvironmentError, OSError, subprocess.SubprocessError, ValueError) as error:
+            message = f"Project readiness could not be established: {error}"
+        return ProjectReadiness(
+            status="blocked",
+            notes=[message],
+            import_roots=import_roots,
+            environment=self._environment,
+        )
 
     def execute(
         self, tests: list[GeneratedTest], repository_root: str | None = None
     ) -> ExecutionResult:
         if not tests:
             return ExecutionResult(executions=[], exit_code=0, timed_out=False, stderr_excerpt="")
+
+        try:
+            if self._environment is None:
+                self._environment = self._prepare_environment()
+        except (EnvironmentError, OSError, subprocess.SubprocessError) as error:
+            message = f"Sandbox environment could not be established: {error}"
+            return ExecutionResult(
+                executions=[],
+                exit_code=-1,
+                timed_out=False,
+                stderr_excerpt=message,
+                environment_error=message,
+            )
 
         with tempfile.TemporaryDirectory(prefix="reqtest-run-") as directory:
             workspace = Path(directory)
@@ -66,13 +144,81 @@ class DockerTestRunner:
                         f"Execution exceeded {self._settings.sandbox_timeout_seconds:.0f}s "
                         "and the container was removed."
                     ),
+                    environment=self._environment,
+                )
+            except OSError as error:
+                return ExecutionResult(
+                    executions=[],
+                    exit_code=-1,
+                    timed_out=False,
+                    stderr_excerpt=f"Sandbox could not start: {error}",
+                    environment=self._environment,
+                    environment_error=f"Sandbox could not start: {error}",
                 )
             return ExecutionResult(
                 executions=_parse_junit(workspace / "report.xml", modules),
                 exit_code=completed.returncode,
                 timed_out=False,
                 stderr_excerpt=(completed.stderr or "")[:STDERR_LIMIT],
+                environment=self._environment,
             )
+
+    def _prepare_environment(self):
+        settings = self._settings
+        if IMAGE_ID.fullmatch(settings.sandbox_image):
+            identifier = settings.sandbox_image
+        else:
+            result = self._run(
+                [
+                    settings.docker_binary,
+                    "image",
+                    "ls",
+                    "--quiet",
+                    "--no-trunc",
+                    settings.sandbox_image,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            identifiers = sorted(set(result.stdout.split()))
+            if result.returncode or len(identifiers) != 1 or not IMAGE_ID.fullmatch(identifiers[0]):
+                raise EnvironmentError(
+                    "Configured sandbox image does not resolve to one local immutable image ID."
+                )
+            identifier = identifiers[0]
+        metadata = self._run(
+            [settings.docker_binary, "image", "inspect", identifier, "--format", "{{json .}}"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if metadata.returncode:
+            raise EnvironmentError("Pinned sandbox image is missing or unreadable.")
+        container = f"reqtest-probe-{uuid4().hex[:12]}"
+        try:
+            probe = self._run(
+                [
+                    *self._base_command(container),
+                    "--entrypoint",
+                    "python",
+                    identifier,
+                    "-I",
+                    "-c",
+                    RUNTIME_PROBE,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=min(settings.sandbox_timeout_seconds, 30),
+            )
+        except subprocess.TimeoutExpired:
+            self._force_remove(container)
+            raise EnvironmentError("Sandbox dependency probe timed out.") from None
+        if probe.returncode:
+            raise EnvironmentError(
+                "Pinned image could not provide its Python dependency inventory."
+            )
+        return parse_environment(settings.sandbox_image, identifier, metadata.stdout, probe.stdout)
 
     def _write_tests(self, workspace: Path, tests: list[GeneratedTest]) -> dict[str, str]:
         """Write each test module and map its module name back to the test id (FR8)."""
@@ -88,20 +234,52 @@ class DockerTestRunner:
     def _command(
         self, workspace: Path, container: str, repository_root: str | None = None
     ) -> list[str]:
-        settings = self._settings
         # The project under test is mounted read-only and put on the import path, so a
         # generated test can import it but cannot modify it.
         repository = (
-            ["--volume", f"{repository_root}:/repo:ro", "--env", "PYTHONPATH=/repo"]
+            [
+                "--volume",
+                f"{repository_root}:/repo:ro",
+                "--env",
+                "PYTHONPATH="
+                + ":".join(
+                    "/repo" if relative == "." else f"/repo/{relative}"
+                    for relative in self._import_roots
+                ),
+            ]
             if repository_root
             else []
         )
+        return [
+            *self._base_command(container),
+            "--volume",
+            f"{workspace}:/work",
+            "--workdir",
+            "/work",
+            *repository,
+            "--entrypoint",
+            "python",
+            self._environment.image_id,
+            "-m",
+            "pytest",
+            "-q",
+            "--no-header",
+            "-p",
+            "no:cacheprovider",
+            "--continue-on-collection-errors",
+            "--junit-xml=/work/report.xml",
+        ]
+
+    def _base_command(self, container: str) -> list[str]:
+        settings = self._settings
         return [
             settings.docker_binary,
             "run",
             "--rm",
             "--name",
             container,
+            "--pull",
+            "never",
             # Generated code gets no network, no writable image, and no privileges.
             "--network",
             "none",
@@ -118,20 +296,6 @@ class DockerTestRunner:
             settings.sandbox_cpus,
             "--tmpfs",
             "/tmp:rw,size=64m",
-            "--volume",
-            f"{workspace}:/work",
-            "--workdir",
-            "/work",
-            *repository,
-            settings.sandbox_image,
-            "-q",
-            "--no-header",
-            "-p",
-            "no:cacheprovider",
-            # Generated tests routinely fail to import. Without this, one bad module
-            # aborts collection and every other test is lost from the report.
-            "--continue-on-collection-errors",
-            "--junit-xml=/work/report.xml",
         ]
 
     def _force_remove(self, container: str):
@@ -236,6 +400,21 @@ def _image_exists(settings: Settings) -> bool:
     for an image that `docker run <short-name>` starts happily, because inspect does
     not normalise the reference. Listing the id works on both image stores.
     """
+    if IMAGE_ID.fullmatch(settings.sandbox_image):
+        result = subprocess.run(
+            [
+                settings.docker_binary,
+                "image",
+                "inspect",
+                settings.sandbox_image,
+                "--format",
+                "{{.Id}}",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        return result.returncode == 0 and result.stdout.strip() == settings.sandbox_image
     result = subprocess.run(
         [settings.docker_binary, "image", "ls", "--quiet", settings.sandbox_image],
         capture_output=True,
