@@ -379,6 +379,7 @@ function WorkspaceApp({
                   start={start}
                   busy={busy}
                   activeRun={runs.find(isRunActive)}
+                  refresh={refresh}
                 />
               ) : route.view === "evidence" ? (
                 <Evidence

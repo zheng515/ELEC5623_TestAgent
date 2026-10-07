@@ -6,6 +6,7 @@ import type {
   User,
   Project,
   ProjectCreate,
+  RepositoryWatch,
   SystemInfo,
   VerificationReport,
   VerificationRun,
@@ -131,6 +132,13 @@ export const api = {
   createRun: (id: string) =>
     request<VerificationRun>(`/projects/${encodeURIComponent(id)}/runs`, {
       method: "POST",
+    }),
+  watch: (id: string) =>
+    request<RepositoryWatch>(`/projects/${encodeURIComponent(id)}/watch`),
+  setWatch: (id: string, enabled: boolean) =>
+    request<RepositoryWatch>(`/projects/${encodeURIComponent(id)}/watch`, {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
     }),
   system: () => request<SystemInfo>("/system"),
   report: (id: string) =>

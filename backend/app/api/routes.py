@@ -14,14 +14,22 @@ from app.schemas import (
     Project,
     ProjectCreate,
     ProjectUpdate,
+    RepositoryWatch,
     RequirementDocument,
     SystemInfo,
     VerificationReport,
     VerificationRun,
+    WatchUpdate,
 )
 from app.services.document_parser import extract_document
 from app.services.document_tools import DocumentOptions, document_capabilities
-from app.services.github_source import CREDENTIALS, contains_credentials
+from app.services.github_source import (
+    CREDENTIALS,
+    GitHubError,
+    contains_credentials,
+    is_remote,
+    names_fixed_commit,
+)
 from app.services.jobs import JobInterrupted
 from app.services.report_renderer import render_html_report
 
@@ -40,6 +48,7 @@ def system_info(request: Request):
     execution_ready = getattr(request.app.state, "execution_ready", False)
     inspection_ready = getattr(request.app.state, "inspection_ready", False)
     diagnosis_ready = getattr(request.app.state, "diagnosis_ready", False)
+    watch_ready = getattr(request.app.state, "watcher", None) is not None
     return SystemInfo(
         mode=mode,
         integrations=[
@@ -97,6 +106,19 @@ def system_info(request: Request):
                 name="Repository inspection",
                 status="ready" if inspection_ready else "not_connected",
                 description=_inspection_description(request.app.state.settings, inspection_ready),
+            ),
+            Integration(
+                key="watch",
+                name="Repository watching",
+                status="ready" if watch_ready else "not_connected",
+                description=(
+                    "Watched GitHub projects are checked for new commits every "
+                    f"{request.app.state.settings.watch_interval_seconds} seconds. A new "
+                    "commit adds tests for new or changed functions and re-executes the rest."
+                    if watch_ready
+                    else "Watching needs model credentials, GitHub downloads and "
+                    "REQTEST_WATCH_ENABLED=true."
+                ),
             ),
             Integration(
                 key="retrieval",
@@ -238,6 +260,9 @@ def update_project(project_id: str, payload: ProjectUpdate, request: Request, us
         changes["requirement_document"] = None
     updated = Project.model_validate({**project.model_dump(), **changes})
     request.app.state.store.update_project(updated, user.id)
+    if _unwatchable(updated.repository_ref):
+        # Its watch could never succeed again, and the panel for it is no longer shown.
+        request.app.state.store.set_watch(project_id, enabled=False)
     return updated
 
 
@@ -260,6 +285,67 @@ def create_run(project_id: str, request: Request, response: Response, user: Curr
         raise HTTPException(503, str(error)) from error
     response.headers["Location"] = f"/api/v1/runs/{run.id}"
     return run
+
+
+@router.get("/projects/{project_id}/watch", response_model=RepositoryWatch, tags=["projects"])
+def get_watch(project_id: str, request: Request, user: CurrentUser):
+    get_project(project_id, request, user)
+    return _watch(request, project_id)
+
+
+@router.post("/projects/{project_id}/watch", response_model=RepositoryWatch, tags=["projects"])
+def update_watch(project_id: str, payload: WatchUpdate, request: Request, user: CurrentUser):
+    """Start or stop polling the project's GitHub repository for new commits."""
+    project = get_project(project_id, request, user)
+    store = request.app.state.store
+    if not payload.enabled:
+        store.set_watch(project_id, enabled=False)
+        return _watch(request, project_id)
+    watcher = getattr(request.app.state, "watcher", None)
+    if watcher is None:
+        raise HTTPException(
+            409,
+            "Repository watching is unavailable: it needs model credentials, GitHub downloads "
+            "and REQTEST_WATCH_ENABLED=true on the server.",
+        )
+    problem = _unwatchable(project.repository_ref)
+    if problem:
+        raise HTTPException(422, problem)
+    # Start from the code the latest completed run read, so only later commits trigger.
+    latest = store.latest_completed_run(project_id)
+    repository = latest.report.repository if latest else None
+    commit = repository.source.commit_sha if repository and repository.source else None
+    store.set_watch(project_id, enabled=True, last_commit=commit)
+    watcher.wake()
+    return _watch(request, project_id)
+
+
+def _unwatchable(reference: str) -> str | None:
+    """Why a repository reference cannot be watched, or None when it can."""
+    if not is_remote(reference):
+        return "Only projects with a GitHub repository URL can be watched."
+    try:
+        fixed = names_fixed_commit(reference)
+    except GitHubError as error:
+        return str(error)
+    if fixed:
+        return "A commit URL never changes. Watch a branch URL such as .../tree/main instead."
+    return None
+
+
+def _watch(request: Request, project_id: str) -> RepositoryWatch:
+    row = request.app.state.store.get_watch(project_id) or {}
+    running = getattr(request.app.state, "watcher", None) is not None
+    return RepositoryWatch(
+        project_id=project_id,
+        enabled=bool(row.get("enabled")),
+        active=bool(row.get("enabled")) and running,
+        interval_seconds=request.app.state.settings.watch_interval_seconds,
+        last_checked_at=row.get("last_checked_at"),
+        last_commit=row.get("last_commit"),
+        last_run_id=row.get("last_run_id"),
+        last_error=row.get("last_error"),
+    )
 
 
 @router.get("/runs", response_model=list[VerificationRun], tags=["runs"])
