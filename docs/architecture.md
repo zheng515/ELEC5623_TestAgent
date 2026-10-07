@@ -61,6 +61,8 @@ and rechecks authentication on window focus and cross-tab session changes.
 | GET | /runs/{id} | Run, events, input fingerprint and report |
 | GET | /runs/{id}/report | JSON report download |
 | GET | /runs/{id}/report.html | Portable HTML report download |
+| GET | /projects/{id}/watch | Repository watch state |
+| POST | /projects/{id}/watch | `{"enabled": bool}`: start or stop watching a GitHub branch |
 
 All paths above are prefixed with `/api/v1`. Missing records return 404; invalid project fields return 422. A repository reference is an optional string, not permission or a command to access the filesystem.
 
@@ -198,6 +200,44 @@ only. Redirects are followed only over HTTPS to `api.github.com` and
 `codeload.github.com`. HTTP, rate-limit and network failures become `RepositoryError`
 messages that the run records as **Repository not read** without failing. The test
 suite replaces the single network function with a fake GitHub and blocks real requests.
+
+### Repository watching and incremental runs
+
+`services/watcher.py` runs one daemon thread next to the run worker. It is started only
+when the agent is configured, GitHub downloads are enabled and `REQTEST_WATCH_ENABLED`
+is true. Each interval, or immediately when a watch is enabled, it resolves every
+enabled watch's URL to a commit with `github_source.latest_commit`, which needs two API
+calls and no download. A commit that differs from the watch's `last_commit` queues a
+run with `trigger = "watch"` through `RunManager.submit_watch`. The commit is stored
+only after the run is queued, so an active run for the project, a full queue or a
+GitHub error leaves it to be retried at the next check, with the reason on the watch.
+Enabling a watch sets `last_commit` to the commit the latest completed run read, so
+only later commits trigger.
+
+For a watch-triggered run, the worker looks up the latest completed run when the job
+starts, not when it was queued, and passes it as `baseline` with `incremental=True`.
+`services/incremental.baseline_problem` accepts it only if it completed with the same
+input fingerprint under the current validation and outcome-mapping versions, and
+recorded requirements, a source audit, a plan and a snapshot with `callables`.
+`callables` maps qualified public names to docless signatures. The inspector records
+it for every snapshot, and it is never sent to the model. Otherwise the full workflow
+runs and becomes the next baseline.
+
+The orchestrator then reuses the baseline's requirements and source audit, and diffs
+`callables`. New or changed module-level functions are the planner's `focus`: a fixed
+system-prompt addition restricts planning to them and to requirement-stated
+behaviour, and the payload carries the focus list and existing scenario summaries as
+data. The server drops any scenario without a check on a focus target, numbers new
+scenarios after the baseline's, reviews their oracles, generates tests for them only,
+and renumbers test ids and module files away from carried ones. A model error in this
+phase is recorded and the carried suite still executes. All carried tests are
+re-validated against the new snapshot; those that no longer validate are listed and
+excluded. Execution covers carried and new tests together, and refinement is limited
+to new test ids so the regression baseline is never rewritten. `RepositoryChange`
+records the diff, new and carried ids, untraced focus functions, invalidated tests,
+and regressions: functions that passed at the baseline and now fail or error. When an
+incremental run cannot read the repository, it returns `blocked` at `inspect` before
+any model or sandbox call.
 
 ### Saved code snapshots
 

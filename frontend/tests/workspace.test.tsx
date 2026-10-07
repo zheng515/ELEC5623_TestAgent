@@ -30,6 +30,8 @@ vi.mock("../lib/api", () => ({
     importDocument: vi.fn(),
     createProject: vi.fn(),
     createRun: vi.fn(),
+    watch: vi.fn(),
+    setWatch: vi.fn(),
   },
   downloadReport: vi.fn(),
   downloadHtmlReport: vi.fn(),
@@ -669,7 +671,9 @@ it("restores active work from its URL, polls without hiding it, and stops after 
   expect(
     screen.getAllByText(/Free shipping at the exact threshold/).length,
   ).toBeGreaterThan(0);
-  const scenario = within(document.querySelector(".technical-drawer")!)
+  const scenario = within(
+    document.querySelector(".technical-drawer:not(.repository-monitoring)")!,
+  )
     .getByText(/Free shipping at the exact threshold/)
     .closest("details")!;
   scenario.setAttribute("open", "");
@@ -1376,7 +1380,9 @@ it("keeps diagnostics collapsed and lets users search the compact test browser",
   window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
   render(<App />);
   await screen.findByRole("heading", { name: "Agent workspace" });
-  const drawer = document.querySelector(".technical-drawer")!;
+  const drawer = document.querySelector(
+    ".technical-drawer:not(.repository-monitoring)",
+  )!;
   expect(drawer.hasAttribute("open")).toBe(false);
   const explorer = screen.getByRole("region", { name: "Test explorer" });
   fireEvent.change(

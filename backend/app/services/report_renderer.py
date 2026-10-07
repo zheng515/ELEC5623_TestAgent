@@ -2,7 +2,13 @@
 
 from html import escape
 
-from app.schemas import DocumentLocation, Project, SourceFragment, VerificationRun
+from app.schemas import (
+    DocumentLocation,
+    Project,
+    RepositoryChange,
+    SourceFragment,
+    VerificationRun,
+)
 from app.services.outcome_mapping import OUTCOME_MAPPING_VERSION, requirement_outcomes
 from app.services.test_validator import VALIDATION_VERSION
 
@@ -213,6 +219,7 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 <h2>Specification analysis scope</h2>{source_html}
 <h2>Project setup checks</h2>{readiness_html}
 <h2>Code version used for verification</h2>{version_html}
+{_render_change(report.change, run.trigger)}
 <h2>Test plan</h2>{plan_html}
 <h2>Code-to-plan validation</h2>
 <p>Only validated links count in new-run coverage. Matching a plan does not prove
@@ -226,6 +233,38 @@ that its expectations are correct or complete.</p><p>{validation_notice}</p>
 <h2>Execution evidence</h2><table><thead><tr><th>Test</th><th>Outcome</th><th>Detail</th></tr></thead><tbody>{executions or '<tr><td colspan="3">No tests executed.</td></tr>'}</tbody></table>
 <h2>Input fingerprint</h2><code>{escape(run.input_sha256)}</code>
 </body></html>"""
+
+
+def _render_change(change: RepositoryChange | None, trigger: str) -> str:
+    if change is None:
+        return ""
+
+    def commit(value: str | None) -> str:
+        return f"<code>{escape(value[:12])}</code>" if value else "unknown commit"
+
+    rows = [
+        ("Added public names", change.added),
+        ("Changed public names", change.changed),
+        ("Removed public names", change.removed),
+        ("New scenarios", change.new_scenario_ids),
+        ("New tests", change.new_test_ids),
+        ("Carried tests re-executed", change.carried_test_ids),
+        ("New or changed functions without a requirement", change.untraced),
+        ("Carried tests that no longer validate", change.invalidated_tests),
+        ("Regressions", change.regressions),
+    ]
+    return (
+        "<h2>Changes since the baseline run</h2>"
+        f"<p>{'Started by repository watching. ' if trigger == 'watch' else ''}"
+        f"Baseline run <code>{escape(change.baseline_run_id)}</code> at "
+        f"{commit(change.baseline_commit)}; this run at {commit(change.commit)}. "
+        f"File contents {'changed' if change.content_changed else 'are identical'}. "
+        "Requirements were reused from the baseline; new tests were planned only for new or "
+        "changed functions with a requirement-backed expectation.</p>"
+        + "".join(
+            f"<h3>{escape(title)} ({len(values)})</h3>" + _items(values) for title, values in rows
+        )
+    )
 
 
 def _render_attempts(run: VerificationRun) -> str:

@@ -2,7 +2,7 @@
 
 import json
 
-from app.schemas import Project, RepositorySnapshot, RequirementItem, TestPlan
+from app.schemas import Project, RepositorySnapshot, RequirementItem, TestPlan, TestScenario
 from app.services.llm import StructuredLLM
 
 SYSTEM = """You plan pytest scenarios from software requirements and project evidence.
@@ -37,6 +37,15 @@ not scenario assumptions. Runtime checks and execution report import failures se
 do not assume imports have already succeeded. Link behavior requirements, not merely an
 interface declaration, unless that declaration itself states the behavior being checked.
 oracle_grounding is server-owned and populated by a separate review; leave it null.
+"""
+
+INCREMENTAL = """
+This plan extends an earlier one after the code changed. Plan scenarios only for the
+functions named in focus_functions, and only where a supplied requirement states their
+expected behaviour. Every scenario must provide `check` with one of those functions as
+its target. Do not repeat behaviour that existing_scenarios already cover. A focus
+function that no requirement describes gets no scenario: name it in notes instead of
+inventing an expectation from its name, signature or docstring.
 """
 
 
@@ -98,7 +107,11 @@ def plan_tests(
     repository: RepositorySnapshot | None = None,
     *,
     max_scenarios: int = 80,
+    focus: list[str] | None = None,
+    existing: list[TestScenario] | None = None,
+    first_number: int = 1,
 ) -> TestPlan:
+    """Plan scenarios; with `focus`, only new ones checking those functions."""
     testable = [item for item in requirements if item.testable]
     if not testable:
         return TestPlan(scenarios=[], notes="No requirement was testable as written.")
@@ -118,25 +131,41 @@ def plan_tests(
             else {}
         ),
     }
-    prompt = json.dumps(
-        {
-            "project": project.name,
-            "goal": project.goal,
-            "requirements": [item.model_dump() for item in testable],
-            "evidence_catalog": evidence_catalog,
-            "repository_available": repository is not None,
-            "repository_truncated": repository.truncated if repository else False,
-            "max_scenarios": max_scenarios,
-        },
-        ensure_ascii=False,
-    )
-    raw = llm.parse(system=SYSTEM, prompt=prompt, output_format=TestPlan)
+    payload = {
+        "project": project.name,
+        "goal": project.goal,
+        "requirements": [item.model_dump() for item in testable],
+        "evidence_catalog": evidence_catalog,
+        "repository_available": repository is not None,
+        "repository_truncated": repository.truncated if repository else False,
+        "max_scenarios": max_scenarios,
+    }
+    if focus is not None:
+        payload["focus_functions"] = focus
+        payload["existing_scenarios"] = [
+            {
+                "id": item.id,
+                "title": item.title,
+                "requirement_ids": item.requirement_ids,
+                "target": item.check.target if item.check else None,
+            }
+            for item in existing or []
+        ]
+    prompt = json.dumps(payload, ensure_ascii=False)
+    system = SYSTEM + INCREMENTAL if focus is not None else SYSTEM
+    raw = llm.parse(system=system, prompt=prompt, output_format=TestPlan)
     scenarios = []
     notes = [raw.notes] if raw.notes.strip() else []
     for candidate in raw.scenarios:
         refs = list(dict.fromkeys(ref for ref in candidate.requirement_ids if ref in source_ids))
         if not refs:
             notes.append(f"Omitted scenario '{candidate.title}': no testable requirement link.")
+            continue
+        if focus is not None and (candidate.check is None or candidate.check.target not in focus):
+            notes.append(
+                f"Omitted scenario '{candidate.title}': it does not check a new or changed "
+                "function."
+            )
             continue
         if len(scenarios) >= max_scenarios:
             notes.append(f"Planning limited to {max_scenarios} scenarios; remaining ones omitted.")
@@ -165,7 +194,7 @@ def plan_tests(
         scenarios.append(
             candidate.model_copy(
                 update={
-                    "id": f"S{len(scenarios) + 1}",
+                    "id": f"S{first_number + len(scenarios)}",
                     "requirement_ids": refs,
                     "evidence_refs": evidence_refs,
                     "preconditions": preconditions,

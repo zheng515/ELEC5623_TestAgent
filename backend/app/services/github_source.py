@@ -141,6 +141,15 @@ def parse_github_url(reference: str) -> GitHubLocation:
     raise GitHubError("This GitHub URL does not name a repository or folder. " + USAGE)
 
 
+def names_fixed_commit(reference: str) -> bool:
+    """Whether a GitHub URL pins one commit (/commit/<sha> or /tree/<full sha>)."""
+    location = parse_github_url(reference)
+    if reference.strip().startswith("git@") or not location.tree:
+        return False
+    marker = _segments(urlsplit(reference.strip()).path)[2]
+    return marker == "commit" or bool(COMMIT.fullmatch(location.tree[0].lower()))
+
+
 def _segments(path: str) -> list[str]:
     return [unquote(item) for item in path.split("/") if item]
 
@@ -155,6 +164,14 @@ def _location(owner: str, name: str, tree: tuple[str, ...]) -> GitHubLocation:
     ):
         raise GitHubError("The branch or folder in this GitHub URL is not valid. " + USAGE)
     return GitHubLocation(owner, name, tree)
+
+
+def latest_commit(reference: str, settings: Settings) -> str:
+    """The commit a GitHub URL names right now, resolved without downloading it."""
+    location = parse_github_url(reference)
+    deadline = time.monotonic() + settings.github_timeout_seconds
+    repository, default_branch = _repository(location, settings, deadline)
+    return _commit_for(location, repository, default_branch, settings, deadline)[2]
 
 
 @contextmanager

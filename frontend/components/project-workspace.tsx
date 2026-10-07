@@ -5,6 +5,8 @@ import { urlFor } from "../lib/navigation";
 import { requirementOutcomes } from "../lib/outcome-mapping";
 import { ProjectSetup } from "./project-setup";
 import { RepositoryVersion } from "./repository-version";
+import { RepositoryChangeSummary } from "./repository-change";
+import { RepositoryWatchPanel } from "./repository-watch";
 import { SourceAudit } from "./source-audit";
 import { TestPlanDetails } from "./test-plan";
 import { isRunActive, VALIDATION_VERSION } from "../lib/types";
@@ -196,12 +198,14 @@ export function Workspace({
   start,
   busy,
   activeRun,
+  refresh,
 }: {
   project: Project;
   run?: VerificationRun;
   start: () => void;
   busy: boolean;
   activeRun?: VerificationRun;
+  refresh?: () => void;
 }) {
   return (
     <>
@@ -277,6 +281,11 @@ export function Workspace({
         </p>
       )}
       <TestBrowser key={run?.id ?? project.id} run={run} />
+      <details className="technical-drawer repository-monitoring">
+        <summary>Repository monitoring and changes</summary>
+        <RepositoryWatchPanel project={project} onNewRun={refresh} />
+        <RepositoryChangeSummary run={run} />
+      </details>
       <details className="technical-drawer">
         <summary>
           Technical details · Agent activity, checks and reports
@@ -289,6 +298,7 @@ export function Workspace({
           </span>
           <span>{run ? formatDate(run.created_at) : "Inputs saved"}</span>
           <span>{modeLabel(run?.mode)}</span>
+          {run?.trigger === "watch" && <span>STARTED BY REPOSITORY WATCH</span>}
         </div>
         <section className="stage-panel">
           <div>
@@ -1014,6 +1024,7 @@ export function Report({
               <h3>Test plan</h3>
               <ProjectSetup readiness={run.report.project_readiness} />
               <RepositoryVersion repository={run.report.repository} />
+              <RepositoryChangeSummary run={run} />
               <SourceAudit report={run.report} />
               <TestPlanDetails report={run.report} />
             </section>
