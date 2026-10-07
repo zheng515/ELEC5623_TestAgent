@@ -10,7 +10,7 @@ This repository contains a working **frontend, backend, B0/B2 agent, repository 
 | --- | --- |
 | Frontend | React 19, TypeScript, vinext/Vite, and an English responsive interface |
 | Backend | FastAPI, Pydantic, and versioned REST endpoints with OpenAPI documentation |
-| Agent | Anthropic Messages API with structured output for requirement analysis, scenario planning, independent oracle review, and test generation |
+| Agent | OpenAI Responses API with structured output for requirement analysis, scenario planning, independent oracle review, and test generation |
 | Inspection | Read-only AST reading of the project under test, downloaded from a GitHub URL at a pinned commit or confined to a configured local root |
 | Execution | pytest inside a Docker sandbox with no network, a read-only filesystem, and resource limits |
 | Persistence | SQLite for projects, requirements, goals, runs, events, and reports |
@@ -20,7 +20,9 @@ This repository contains a working **frontend, backend, B0/B2 agent, repository 
 
 Install Python 3.11+ and Node.js 22.13+. The recommended Node version is recorded in `.nvmrc`.
 
-The agent stages need an Anthropic API key. Copy `backend/.env.example` to `backend/.env` and set `ANTHROPIC_API_KEY`, or export it in your shell. **Without a key the app still starts**, in scaffold mode: projects and runs are recorded, but no requirement is analysed and no test is generated. `GET /api/v1/system` reports which mode is active.
+The agent stages need an OpenAI API key. Copy `backend/.env.example` to `backend/.env` and set `OPENAI_API_KEY`, or export it in your shell. **Without a key the app still starts**, in scaffold mode: projects and runs are recorded, but no requirement is analysed and no test is generated. `GET /api/v1/system` reports which mode is active.
+
+The default model is `gpt-6-luna`; override it with `REQTEST_LLM_MODEL` using an OpenAI model that supports the Responses API and Structured Outputs. Restart the backend after changing `.env`. The adapter sends `store=false` and does not automatically retry failed API requests. A configured key enables the agent stages, but the key, model access, and available quota are only verified when a model request runs. A ChatGPT or Codex subscription does not replace an OpenAI API key.
 
 Reading the project under test works from a GitHub URL with no further setting: each run resolves the URL's branch to a commit, downloads that commit through the GitHub API, and records which commit it read. Private repositories need `REQTEST_GITHUB_TOKEN`. To read local directories instead, set `REQTEST_REPOSITORY_ROOT` to the directory that project repositories live under; a run may only read paths inside it. Either way, the server saves a bounded code copy locally and sends only public interfaces to the model. Leaving the root unset means a local path is stored but never read, which is the safe default.
 
@@ -46,7 +48,7 @@ Open the frontend at http://localhost:3000. The API is available at http://127.0
 
 | To get | Do this | Then `/api/v1/system` reports |
 | --- | --- | --- |
-| Requirement analysis, test planning, and generation | Set `ANTHROPIC_API_KEY` in `backend/.env` or your shell | `analysis`, `planning`, `generation` ready; mode `baseline_b0` |
+| Requirement analysis, test planning, and generation | Set `OPENAI_API_KEY` in `backend/.env` or your shell | `analysis`, `planning`, `generation` ready; mode `baseline_b0` |
 | Reading the project under test from GitHub | Nothing for public repositories; set `REQTEST_GITHUB_TOKEN` for private ones | `inspection` ready |
 | Reading the project under test from a local path | Set `REQTEST_REPOSITORY_ROOT` to the directory your repositories live under | `inspection` ready |
 | Running the generated tests | Start Docker, then `bash scripts/build-sandbox.sh` | `execution` ready |
@@ -247,7 +249,7 @@ backend/
     api/routes.py             Versioned API routes
     core/config.py            Environment settings
     core/database.py          SQLite storage
-    services/llm.py           Anthropic client and structured-output wrapper
+    services/llm.py           OpenAI client and structured-output wrapper
     services/analyzer.py      Requirement structuring and ambiguity detection
     services/planner.py       Structured scenarios, source links, and planning gaps
     services/generator.py     Plan-driven test generation, traceability, and coverage gaps

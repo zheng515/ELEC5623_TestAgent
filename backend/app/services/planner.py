@@ -26,8 +26,69 @@ exception_type. Ground these values in the source requirement and available inte
 Do not invent an executable contract for uncertain inputs, setup, or unsupported APIs;
 set check to null and explain the limitation. Generation must implement this saved
 contract, not reinterpret it. The plan is a proposal, not evidence or verification.
+For a direct function call with literal inputs and no extra setup, use preconditions=[].
+Do not repeat function existence or availability as a precondition: the supplied
+repository interface already records that declaration. This does not establish runtime
+importability. Keep real setup (accounts, database state, services, dependencies) and
+unconfirmed assumptions explicit; never omit them to make a scenario executable.
+For a direct literal-input call to a declared function, use assumptions=[] unless a
+business rule or actual setup is unknown. Put generic runtime-import caveats in notes,
+not scenario assumptions. Runtime checks and execution report import failures separately;
+do not assume imports have already succeeded. Link behavior requirements, not merely an
+interface declaration, unless that declaration itself states the behavior being checked.
 oracle_grounding is server-owned and populated by a separate review; leave it null.
 """
+
+
+def _remove_declared_interface_preconditions(scenario, repository):
+    """Remove only closed statements of a known function's declaration, never setup.
+
+    An inspected signature proves declaration only. It cannot prove that imports work,
+    dependencies are installed, or a runtime service/state is available.
+    """
+    if repository is None or scenario.check is None:
+        return scenario.preconditions, 0
+    target = scenario.check.target
+    declared = {
+        f"{module.module}.{signature.split('(', 1)[0].strip()}"
+        for module in repository.modules
+        for signature in module.functions
+    }
+    if target not in declared:
+        return scenario.preconditions, 0
+    redundant = {
+        f"The {target} function is available",
+        f"The function {target} is available",
+        f"{target} is available",
+        f"The {target} function exists",
+        f"The function {target} exists",
+        f"{target} exists",
+    }
+    retained = [
+        condition
+        for condition in scenario.preconditions
+        if condition.strip().removesuffix(".") not in redundant
+    ]
+    return retained, len(scenario.preconditions) - len(retained)
+
+
+def _separate_runtime_caveats(scenario, repository):
+    """Move a closed generic caveat into notes without claiming runtime readiness."""
+    if repository is None or scenario.check is None:
+        return scenario.assumptions, []
+    target = scenario.check.target
+    if not any(
+        target == f"{module.module}.{signature.split('(', 1)[0].strip()}"
+        for module in repository.modules
+        for signature in module.functions
+    ):
+        return scenario.assumptions, []
+    caveats = {
+        "The module can be imported when the scenario is executed; "
+        "the supplied interface declaration does not establish runtime importability.",
+    }
+    moved = [item for item in scenario.assumptions if item.strip() in caveats]
+    return [item for item in scenario.assumptions if item.strip() not in caveats], moved
 
 
 def plan_tests(
@@ -87,12 +148,28 @@ def plan_tests(
                 + [ref for ref in candidate.evidence_refs if ref in allowed]
             )
         )
+        preconditions, removed = _remove_declared_interface_preconditions(candidate, repository)
+        assumptions, runtime_caveats = _separate_runtime_caveats(candidate, repository)
+        for caveat in runtime_caveats:
+            notes.append(
+                f"S{len(scenarios) + 1}: Runtime caveat (not a business assumption): {caveat} "
+                "Import success is not established; execution failures remain reportable."
+            )
+        if removed:
+            notes.append(
+                f"S{len(scenarios) + 1}: Removed {removed} redundant declaration "
+                f"precondition(s) for {candidate.check.target}, which is listed in the "
+                "inspected repository interface. Runtime imports and dependencies "
+                "remain subject to project readiness checks."
+            )
         scenarios.append(
             candidate.model_copy(
                 update={
                     "id": f"S{len(scenarios) + 1}",
                     "requirement_ids": refs,
                     "evidence_refs": evidence_refs,
+                    "preconditions": preconditions,
+                    "assumptions": assumptions,
                     "oracle_grounding": None,
                 }
             )

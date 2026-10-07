@@ -24,7 +24,7 @@ React workspace → typed API client → /api/v1 → FastAPI routes
                                                                  repo mounted read-only)
 ```
 
-`create_app` picks the orchestrator once at startup: `DirectLLMOrchestrator` when the Anthropic SDK resolves a credential, `ScaffoldOrchestrator` otherwise. Every agent stage declares a Pydantic output contract and receives a validated instance, so no stage parses free-form model prose.
+`create_app` picks the orchestrator once at startup: `DirectLLMOrchestrator` when an OpenAI API key is configured, `ScaffoldOrchestrator` otherwise. Every agent stage declares a Pydantic output contract and receives a validated instance, so no stage parses free-form model prose.
 
 ## API v1
 
@@ -84,6 +84,8 @@ Create-project body:
 - `requirement_coverage` in new reports (`validation_version = 3`) counts only generated artifacts with server-computed `validation_status = validated` and nonempty validated checks. Requirement IDs are derived from their known plan references. It measures validated code-to-plan links, not semantic correctness, source completeness, execution success, or adequacy. Older reports keep historical values and are not revalidated under the current rules.
 - `execution_success_rate` is the share of executed tests that passed, and `null` when nothing ran. `executed_tests` counts cases pytest actually reported, so a sandbox that produced no readable report counts as zero rather than as success.
 - `test_plan` stores the planner output before generation. `planning_gaps` lists testable requirements without scenarios; `uncovered_scenarios` lists planned scenarios without generated tests. These are distinct from requirement coverage and execution outcomes.
+- Planning removes only a closed set of standalone function-existence or availability statements when the exact structured target is declared in the inspected repository's public functions. Each removal is recorded in plan notes before oracle review and fingerprinting. This establishes declaration only, not runtime importability. Real setup, business assumptions, unknown targets, and combined or ambiguous prerequisites remain unchanged and block automatic generation. Existing saved runs are not rewritten; rerun them to use the updated planner.
+- For a declared function, the captured generic caveat that interface inspection does not establish runtime importability is moved from scenario assumptions into audit notes. Readiness checks and sandbox execution still report missing dependencies and import failures; real setup and business assumptions remain blocking.
 - A planning failure preserves extracted requirements and repository interfaces; a generation failure also preserves the plan. A legacy report without these fields loads with `test_plan = null` and empty gap lists; legacy tests default to empty `scenario_ids`. SQLite stores report JSON, so this additive change needs no database migration.
 - `coverage_gaps` lists extracted testable requirements without a validated generated artifact (FR14).
 - Verification status is decided in `_status` and never rises above what was proven. `Uncertain` when the requirement is ambiguous or untestable. `Unverified` when the project was not inspected, when no linked test ran, or when any validated function implementing this requirement lacks a final outcome, when a planned scenario lacks an implementation, or when any linked test failed or errored — a green test against a *guessed* module is not evidence. `Partially Verified` when the project was inspected, every planned scenario was implemented, and every validated function implementing this requirement has a final passing outcome. `Verified` is deliberately unreachable: passing tests show the behavior held for the cases that were written, and nothing yet evaluates whether those cases were adequate. Mutation testing is what unlocks it.
@@ -131,7 +133,7 @@ Analysis rejects blank or fabricated source quotes before planning. Execution ar
 
 ## Development and production
 
-The dev frontend proxies `/api` to `BACKEND_URL` (default `http://127.0.0.1:8000`). A separate hosted API can be selected via the build-time `VITE_API_BASE_URL`; it is a public URL and must never contain credentials. Backend settings use the `REQTEST_` prefix, except `ANTHROPIC_API_KEY`, which keeps the SDK's own name. Leaving it unset is a supported configuration, not an error: the app falls back to scaffold mode and says so through `/api/v1/system`. The same applies to a missing Docker daemon or sandbox image, which leaves execution unconnected.
+The dev frontend proxies `/api` to `BACKEND_URL` (default `http://127.0.0.1:8000`). A separate hosted API can be selected via the build-time `VITE_API_BASE_URL`; it is a public URL and must never contain credentials. Backend settings use the `REQTEST_` prefix, except `OPENAI_API_KEY`, which keeps the SDK's own name. Leaving it unset is a supported configuration, not an error: the app falls back to scaffold mode and says so through `/api/v1/system`. The same applies to a missing Docker daemon or sandbox image, which leaves execution unconnected.
 
 A blank value in `.env` is normalised to `None`, because `Path("")` resolves to the process working directory and would otherwise switch repository inspection on silently. Image availability is checked with `docker image ls --quiet`, not `docker image inspect`: with the containerd image store, `inspect` fails for a short reference that `docker run` accepts, which would disable execution for a working image.
 
@@ -271,6 +273,8 @@ packaging runner dependencies are rejected as layout conflicts. This prevents an
 import path from replacing the tools used to collect and interpret test outcomes.
 
 ### Original-source oracle assessment
+
+If a reviewer changes only prose whitespace, the server can restore a uniquely matching passage to the exact linked source quotation. Words, numbers, punctuation, inline code, and quoted string values must remain unchanged. Ambiguous matches are rejected. The saved citation contains the original text, and the review rationale records the restoration.
 
 `services/oracle_review.py` performs one independent structured request for each nonempty plan before generation. Its prompt includes original submitted requirements and the precise contracts, excludes prior approval fields, and treats interface documentation as context rather than a business oracle. `OracleReview` returns one supported/contradicted/insufficient decision per scenario, a rationale, and citations. The server requires exactly one decision, exact nonempty quotations from every linked original source, and no unsupported setup. It overwrites any planner-authored `oracle_grounding` and stores the assessment, issues, scenario hash, and input-source hash. The scenario hash covers all scenario fields except the assessment itself.
 

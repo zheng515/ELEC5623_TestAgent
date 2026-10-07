@@ -16,9 +16,9 @@ class Settings(BaseSettings):
     # orchestrator, so the API stays usable and the test suite never calls the network.
     llm_enabled: bool = True
     # Read without the REQTEST_ prefix so the SDK's own variable name works, in the
-    # environment or in backend/.env. Left unset, the SDK resolves its own credentials.
-    anthropic_api_key: SecretStr | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
-    llm_model: str = "claude-opus-5"
+    # environment or in backend/.env. An unset key leaves agent stages disconnected.
+    openai_api_key: SecretStr | None = Field(default=None, validation_alias="OPENAI_API_KEY")
+    llm_model: str = "gpt-6-luna"
     llm_max_tokens: int = 16000
     llm_timeout_seconds: float = 180.0
     max_requirements: int = 40
@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     @field_validator(
         "repository_root",
         "repository_snapshot_root",
-        "anthropic_api_key",
+        "openai_api_key",
         "github_token",
         mode="before",
     )

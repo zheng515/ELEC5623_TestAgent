@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TestBrowser } from "./test-browser";
 import type { Behavior, Project, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
 import { requirementOutcomes } from "../lib/outcome-mapping";
@@ -117,28 +118,37 @@ function stageStates(run?: VerificationRun) {
           ? "Blocked"
           : run.report.project_readiness?.status === "blocked"
             ? "Blocked by project setup"
-            : run.status === "completed" ||
-                run.report.generated_tests.length > 0
+            : run.report.generated_tests.length > 0
               ? "Complete"
-              : run.stage === "generate"
-                ? "Failed"
-                : "Not started",
+              : run.status === "completed"
+                ? run.report.test_plan?.scenarios.length &&
+                  run.report.test_plan.scenarios.every(
+                    (scenario) =>
+                      scenario.oracle_grounding?.status === "needs_review",
+                  )
+                  ? "Blocked by scenario review"
+                  : "No tests generated"
+                : run.stage === "generate"
+                  ? "Failed"
+                  : "Not started",
     },
     {
       name: "Execute tests",
       state:
-        run?.report.generated_tests.length &&
-        run.report.generated_tests.every(
-          (test) => test.validation_status === "needs_review",
-        )
-          ? "Excluded by validation"
-          : run?.report.execution_attempts?.at(-1)?.result.timed_out
-            ? "Timed out"
-            : run?.report.executions.length
-              ? "Complete"
-              : run?.report.execution_attempts?.length
-                ? "No outcomes recorded"
-                : "Not connected",
+        run?.status === "completed" && run.report.generated_tests.length === 0
+          ? "Skipped · no generated tests"
+          : run?.report.generated_tests.length &&
+              run.report.generated_tests.every(
+                (test) => test.validation_status === "needs_review",
+              )
+            ? "Excluded by validation"
+            : run?.report.execution_attempts?.at(-1)?.result.timed_out
+              ? "Timed out"
+              : run?.report.executions.length
+                ? "Complete"
+                : run?.report.execution_attempts?.length
+                  ? "No outcomes recorded"
+                  : "Not connected",
     },
     {
       name: "Diagnose & refine",
@@ -266,301 +276,314 @@ export function Workspace({
           </a>
         </p>
       )}
-      <div className="run-context">
-        <span>
-          {run ? `RUN ${run.id.slice(0, 8).toUpperCase()}` : "NO RUN SELECTED"}
-        </span>
-        <span>{run ? formatDate(run.created_at) : "Inputs saved"}</span>
-        <span>{modeLabel(run?.mode)}</span>
-      </div>
-      <section className="stage-panel">
-        <div>
-          <span className="eyebrow">CURRENT STATE</span>
-          <h2>
-            {!run
-              ? "Your verification goal is ready."
-              : run.status === "completed"
-                ? `${run.report.requirements.length} requirements analyzed, ${run.report.generated_tests.length} tests generated.`
-                : isRunActive(run)
-                  ? run.report.summary
-                  : run.status === "failed"
-                    ? run.report.requirements.length || run.report.test_plan
-                      ? "The run stopped. Completed stage outputs are retained."
-                      : "The run failed before it produced a result."
-                    : "Inputs recorded. Waiting for agent integration."}
-          </h2>
-          <p>
-            {run?.report.executed_tests
-              ? "Review recorded execution evidence and remaining gaps. Passing tests alone do not establish complete verification."
-              : run?.report.requirements.length
-                ? "Review the saved requirements, test plan, and gaps. No execution evidence has been recorded."
-                : isRunActive(run)
-                  ? "Results will appear as the agent completes each stage."
-                  : "No requirement analysis or test execution has taken place."}
-          </p>
+      <TestBrowser key={run?.id ?? project.id} run={run} />
+      <details className="technical-drawer">
+        <summary>
+          Technical details · Agent activity, checks and reports
+        </summary>
+        <div className="run-context">
+          <span>
+            {run
+              ? `RUN ${run.id.slice(0, 8).toUpperCase()}`
+              : "NO RUN SELECTED"}
+          </span>
+          <span>{run ? formatDate(run.created_at) : "Inputs saved"}</span>
+          <span>{modeLabel(run?.mode)}</span>
         </div>
-        <div className="stages">
-          {stageStates(run).map((stage, i) => (
-            <div
-              key={stage.name}
-              className={
-                stage.state === "Complete"
-                  ? "stage complete"
-                  : stage.state === "Running"
-                    ? "stage running"
-                    : stage.state === "Not started"
-                      ? "stage"
-                      : "stage blocked"
-              }
-            >
-              <span>0{i + 1}</span>
-              <strong>{stage.name}</strong>
-              <small>{stage.state}</small>
-            </div>
-          ))}
-        </div>
-      </section>
-      <div className="workspace-grid">
-        <section className="panel">
-          <SectionTitle
-            eyebrow="OBSERVABLE ACTIONS"
-            title="Agent activity"
-            action={<Badge>{run?.events.length ?? 0} recorded events</Badge>}
-          />
-          {run ? (
-            <ol className="timeline">
-              {run.events.map((event, i) => (
-                <li key={event.id}>
-                  <div className="timeline-dot">{i + 1}</div>
-                  <div>
-                    <span className="event-time">
-                      {formatDate(event.created_at)} · {event.stage}
-                    </span>
-                    <h3>{eventTitle(event.stage, i)}</h3>
-                    <p>{event.message}</p>
-                    <details>
-                      <summary>View record</summary>
-                      <dl className="key-values">
-                        <dt>Event ID</dt>
-                        <dd>
-                          <code>{event.id}</code>
-                        </dd>
-                        <dt>Evidence type</dt>
-                        <dd>Workflow record · not test execution evidence</dd>
-                      </dl>
-                    </details>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <Empty title="No actions recorded yet">
-              Create a setup run to record the project inputs and integration
-              status.
-            </Empty>
-          )}
+        <section className="stage-panel">
+          <div>
+            <span className="eyebrow">CURRENT STATE</span>
+            <h2>
+              {!run
+                ? "Your verification goal is ready."
+                : run.status === "completed"
+                  ? `${run.report.requirements.length} requirements analyzed, ${run.report.generated_tests.length} tests generated.`
+                  : isRunActive(run)
+                    ? run.report.summary
+                    : run.status === "failed"
+                      ? run.report.requirements.length || run.report.test_plan
+                        ? "The run stopped. Completed stage outputs are retained."
+                        : "The run failed before it produced a result."
+                      : "Inputs recorded. Waiting for agent integration."}
+            </h2>
+            <p>
+              {run?.report.executed_tests
+                ? "Review recorded execution evidence and remaining gaps. Passing tests alone do not establish complete verification."
+                : run?.report.requirements.length
+                  ? "Review the saved requirements, test plan, and gaps. No execution evidence has been recorded."
+                  : isRunActive(run)
+                    ? "Results will appear as the agent completes each stage."
+                    : "No requirement analysis or test execution has taken place."}
+            </p>
+          </div>
+          <div className="stages">
+            {stageStates(run).map((stage, i) => (
+              <div
+                key={stage.name}
+                className={
+                  stage.state === "Complete"
+                    ? "stage complete"
+                    : stage.state === "Running"
+                      ? "stage running"
+                      : stage.state === "Not started"
+                        ? "stage"
+                        : "stage blocked"
+                }
+              >
+                <span>0{i + 1}</span>
+                <strong>{stage.name}</strong>
+                <small>{stage.state}</small>
+              </div>
+            ))}
+          </div>
         </section>
-        <div>
+        <div className="workspace-grid">
           <section className="panel">
             <SectionTitle
-              eyebrow="EVIDENCE FIRST"
-              title="Verification snapshot"
+              eyebrow="OBSERVABLE ACTIONS"
+              title="Agent activity"
+              action={<Badge>{run?.events.length ?? 0} recorded events</Badge>}
             />
-            <div className="snapshot">
-              <div>
-                <span>Requirements analyzed</span>
-                <strong>{run?.report.requirements.length || "—"}</strong>
-              </div>
-              <div>
-                <span>Tests generated</span>
-                <strong>{run?.report.generated_tests.length || "—"}</strong>
-              </div>
-              <div>
-                <span>Executed tests</span>
-                <strong>{run?.report.executed_tests ?? "—"}</strong>
-              </div>
-              <div>
-                <span>
-                  {run?.report.validation_version === VALIDATION_VERSION
-                    ? "Validated requirement links"
-                    : "Requirement coverage"}
-                </span>
-                <strong>
-                  {percent(run?.report.requirement_coverage) ?? "Not evaluated"}
-                </strong>
-              </div>
-            </div>
-            <a
-              className="text-button"
-              href={urlFor("evidence", project.id, run?.id)}
-            >
-              Explore requirements & evidence →
-            </a>
+            {run ? (
+              <ol className="timeline">
+                {run.events.map((event, i) => (
+                  <li key={event.id}>
+                    <div className="timeline-dot">{i + 1}</div>
+                    <div>
+                      <span className="event-time">
+                        {formatDate(event.created_at)} · {event.stage}
+                      </span>
+                      <h3>{eventTitle(event.stage, i)}</h3>
+                      <p>{event.message}</p>
+                      <details>
+                        <summary>View record</summary>
+                        <dl className="key-values">
+                          <dt>Event ID</dt>
+                          <dd>
+                            <code>{event.id}</code>
+                          </dd>
+                          <dt>Evidence type</dt>
+                          <dd>Workflow record · not test execution evidence</dd>
+                        </dl>
+                      </details>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <Empty title="No actions recorded yet">
+                Create a setup run to record the project inputs and integration
+                status.
+              </Empty>
+            )}
           </section>
-          <section className="panel blocker-panel">
-            <SectionTitle
-              eyebrow="WHAT NEEDS ATTENTION?"
-              title={
-                run?.status === "completed"
-                  ? "Unresolved issues"
-                  : "Integration needed"
-              }
-            />
-            <p>
-              Ambiguous requirements, coverage gaps, and missing integrations.
-              Nothing here is a verification claim.
-            </p>
-            <ul>
-              {(
-                run?.report.unresolved_issues ?? [
-                  "Connect the requirement analyzer and isolated test runner.",
-                ]
-              ).map((issue) => (
-                <li key={issue}>{issue}</li>
-              ))}
-            </ul>
-          </section>
+          <div>
+            <section className="panel">
+              <SectionTitle
+                eyebrow="EVIDENCE FIRST"
+                title="Verification snapshot"
+              />
+              <div className="snapshot">
+                <div>
+                  <span>Requirements analyzed</span>
+                  <strong>{run?.report.requirements.length || "—"}</strong>
+                </div>
+                <div>
+                  <span>Tests generated</span>
+                  <strong>
+                    {run ? run.report.generated_tests.length : "—"}
+                  </strong>
+                </div>
+                <div>
+                  <span>Executed tests</span>
+                  <strong>{run?.report.executed_tests ?? "—"}</strong>
+                </div>
+                <div>
+                  <span>
+                    {run?.report.validation_version === VALIDATION_VERSION
+                      ? "Validated requirement links"
+                      : "Requirement coverage"}
+                  </span>
+                  <strong>
+                    {percent(run?.report.requirement_coverage) ??
+                      "Not evaluated"}
+                  </strong>
+                </div>
+              </div>
+              <a
+                className="text-button"
+                href={urlFor("evidence", project.id, run?.id)}
+              >
+                Explore requirements & evidence →
+              </a>
+            </section>
+            <section className="panel blocker-panel">
+              <SectionTitle
+                eyebrow="WHAT NEEDS ATTENTION?"
+                title={
+                  run?.status === "completed"
+                    ? "Unresolved issues"
+                    : "Integration needed"
+                }
+              />
+              <p>
+                Ambiguous requirements, coverage gaps, and missing integrations.
+                Nothing here is a verification claim.
+              </p>
+              <ul>
+                {(
+                  run?.report.unresolved_issues ?? [
+                    "Connect the requirement analyzer and isolated test runner.",
+                  ]
+                ).map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            </section>
+          </div>
         </div>
-      </div>
-      <section className="panel">
-        <SectionTitle
-          eyebrow="REQUIREMENT → SCENARIO → TEST"
-          title="Test plan"
-          action={
-            <Badge>
-              {run?.report.test_plan?.scenarios.length ?? 0}{" "}
-              {run?.report.test_plan?.scenarios.length === 1
-                ? "scenario"
-                : "scenarios"}
-            </Badge>
-          }
-        />
-        <ProjectSetup readiness={run?.report.project_readiness} />
-        <RepositoryVersion repository={run?.report.repository} />
-        <SourceAudit report={run?.report} />
-        <TestPlanDetails report={run?.report} />
-      </section>
-      <section className="panel">
-        <SectionTitle
-          eyebrow="OUTPUTS"
-          title="Generated tests"
-          action={
-            <Badge>{run?.report.generated_tests.length ?? 0} tests</Badge>
-          }
-        />
-        {run?.report.generated_tests.length ? (
-          <>
-            <ul className="test-list">
-              {run.report.generated_tests.map((test) => (
-                <li key={test.id}>
-                  <div className="test-heading">
-                    <code>{test.module}</code>
-                    <span className="test-tags">
-                      <Badge>
-                        {test.requirement_ids.length
-                          ? test.requirement_ids.join(", ")
-                          : "No linked requirement"}
-                      </Badge>
-                      {!!test.scenario_ids?.length && (
-                        <Badge>{test.scenario_ids.join(", ")}</Badge>
-                      )}
-                      {outcomesFor(run, test.id).map((outcome, index) => (
-                        <Badge key={index} tone={outcomeTone(outcome)}>
-                          {outcome}
-                        </Badge>
-                      ))}
-                    </span>
-                  </div>
-                  <p>{test.rationale || test.name}</p>
-                  <Badge
-                    tone={
-                      test.validation_status === "validated" ? "teal" : "amber"
-                    }
-                  >
-                    {test.validation_status === "validated"
-                      ? "Plan contract matched"
-                      : test.validation_status === "needs_review"
-                        ? "Needs review"
-                        : "Links not checked"}
-                  </Badge>
-                  <p className="small muted">
-                    {test.validation_status === "validated"
-                      ? "Code matches the plan contract. This does not prove test adequacy."
-                      : test.validation_status === "needs_review"
-                        ? "Excluded from validated coverage and automatic execution."
-                        : "This artifact has no code-to-plan validation record."}
-                  </p>
-                  {!!test.validation_issues?.length && (
-                    <ul>
-                      {test.validation_issues.map((issue, index) => (
-                        <li key={index}>{issue}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {!!test.validated_checks?.length && (
-                    <ul>
-                      {test.validated_checks.map((check, index) => (
-                        <li key={index}>
-                          {check.scenario_id}: {check.function_name} →{" "}
-                          {check.target} (call line {check.call_line}, assertion
-                          line {check.assertion_line})
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <details>
-                    <summary>View generated code</summary>
-                    <pre className="test-code">{test.code}</pre>
-                  </details>
-                </li>
-              ))}
-            </ul>
-            <p className="small muted">
-              {run.report.executed_tests
-                ? "Outcomes come from a sandboxed pytest run. A passing test is not verification of test adequacy; review source links and coverage gaps."
-                : "These tests were generated from the requirements and available test plan. They have not been executed, so none of them is known to run or pass."}
-            </p>
-          </>
-        ) : (
-          <Empty title="No test artifacts yet">
-            Generated tests appear here after the generation stage. Execution
-            results follow when the sandboxed runner is connected.
-          </Empty>
-        )}
-      </section>
-      {!!run?.report.execution_attempts?.length && (
         <section className="panel">
           <SectionTitle
-            title="Execution history"
-            eyebrow="ORIGINAL AND REPAIRED TEST ARTIFACTS"
-          />
-          <ExecutionHistory report={run.report} />
-        </section>
-      )}
-      {!!run?.report.diagnoses?.length && (
-        <section className="panel">
-          <SectionTitle
-            eyebrow="EXECUTION FEEDBACK"
-            title="Failure diagnosis"
+            eyebrow="REQUIREMENT → SCENARIO → TEST"
+            title="Test plan"
             action={
               <Badge>
-                {run.report.refinement_iterations ?? 0} refinement iteration
+                {run?.report.test_plan?.scenarios.length ?? 0}{" "}
+                {run?.report.test_plan?.scenarios.length === 1
+                  ? "scenario"
+                  : "scenarios"}
               </Badge>
             }
           />
-          <ul className="issue-list">
-            {run.report.diagnoses.map((diagnosis, index) => (
-              <li key={`${diagnosis.test_id}-${index}`}>
-                <strong>{diagnosis.test_id || "Unmatched test"}</strong>{" "}
-                <Badge tone="amber">
-                  {diagnosis.classification.replaceAll("_", " ")}
-                </Badge>
-                <p>{diagnosis.explanation}</p>
-              </li>
-            ))}
-          </ul>
+          <ProjectSetup readiness={run?.report.project_readiness} />
+          <RepositoryVersion repository={run?.report.repository} />
+          <SourceAudit report={run?.report} />
+          <TestPlanDetails report={run?.report} />
         </section>
-      )}
+        <section className="panel">
+          <SectionTitle
+            eyebrow="OUTPUTS"
+            title="Generated tests"
+            action={
+              <Badge>{run?.report.generated_tests.length ?? 0} tests</Badge>
+            }
+          />
+          {run?.report.generated_tests.length ? (
+            <>
+              <ul className="test-list">
+                {run.report.generated_tests.map((test) => (
+                  <li key={test.id}>
+                    <div className="test-heading">
+                      <code>{test.module}</code>
+                      <span className="test-tags">
+                        <Badge>
+                          {test.requirement_ids.length
+                            ? test.requirement_ids.join(", ")
+                            : "No linked requirement"}
+                        </Badge>
+                        {!!test.scenario_ids?.length && (
+                          <Badge>{test.scenario_ids.join(", ")}</Badge>
+                        )}
+                        {outcomesFor(run, test.id).map((outcome, index) => (
+                          <Badge key={index} tone={outcomeTone(outcome)}>
+                            {outcome}
+                          </Badge>
+                        ))}
+                      </span>
+                    </div>
+                    <p>{test.rationale || test.name}</p>
+                    <Badge
+                      tone={
+                        test.validation_status === "validated"
+                          ? "teal"
+                          : "amber"
+                      }
+                    >
+                      {test.validation_status === "validated"
+                        ? "Plan contract matched"
+                        : test.validation_status === "needs_review"
+                          ? "Needs review"
+                          : "Links not checked"}
+                    </Badge>
+                    <p className="small muted">
+                      {test.validation_status === "validated"
+                        ? "Code matches the plan contract. This does not prove test adequacy."
+                        : test.validation_status === "needs_review"
+                          ? "Excluded from validated coverage and automatic execution."
+                          : "This artifact has no code-to-plan validation record."}
+                    </p>
+                    {!!test.validation_issues?.length && (
+                      <ul>
+                        {test.validation_issues.map((issue, index) => (
+                          <li key={index}>{issue}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {!!test.validated_checks?.length && (
+                      <ul>
+                        {test.validated_checks.map((check, index) => (
+                          <li key={index}>
+                            {check.scenario_id}: {check.function_name} →{" "}
+                            {check.target} (call line {check.call_line},
+                            assertion line {check.assertion_line})
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <details>
+                      <summary>View generated code</summary>
+                      <pre className="test-code">{test.code}</pre>
+                    </details>
+                  </li>
+                ))}
+              </ul>
+              <p className="small muted">
+                {run.report.executed_tests
+                  ? "Outcomes come from a sandboxed pytest run. A passing test is not verification of test adequacy; review source links and coverage gaps."
+                  : "These tests were generated from the requirements and available test plan. They have not been executed, so none of them is known to run or pass."}
+              </p>
+            </>
+          ) : (
+            <Empty title="No test artifacts yet">
+              Generated tests appear here after the generation stage. Execution
+              results follow when the sandboxed runner is connected.
+            </Empty>
+          )}
+        </section>
+        {!!run?.report.execution_attempts?.length && (
+          <section className="panel">
+            <SectionTitle
+              title="Execution history"
+              eyebrow="ORIGINAL AND REPAIRED TEST ARTIFACTS"
+            />
+            <ExecutionHistory report={run.report} />
+          </section>
+        )}
+        {!!run?.report.diagnoses?.length && (
+          <section className="panel">
+            <SectionTitle
+              eyebrow="EXECUTION FEEDBACK"
+              title="Failure diagnosis"
+              action={
+                <Badge>
+                  {run.report.refinement_iterations ?? 0} refinement iteration
+                </Badge>
+              }
+            />
+            <ul className="issue-list">
+              {run.report.diagnoses.map((diagnosis, index) => (
+                <li key={`${diagnosis.test_id}-${index}`}>
+                  <strong>{diagnosis.test_id || "Unmatched test"}</strong>{" "}
+                  <Badge tone="amber">
+                    {diagnosis.classification.replaceAll("_", " ")}
+                  </Badge>
+                  <p>{diagnosis.explanation}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </details>
     </>
   );
 }

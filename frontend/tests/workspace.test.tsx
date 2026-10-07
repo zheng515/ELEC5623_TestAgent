@@ -666,8 +666,10 @@ it("restores active work from its URL, polls without hiding it, and stops after 
   expect(
     screen.getByText("Generate tests").closest(".stage")?.textContent,
   ).toContain("Running");
-  expect(screen.getByText(/Free shipping at the exact threshold/)).toBeTruthy();
-  const scenario = screen
+  expect(
+    screen.getAllByText(/Free shipping at the exact threshold/).length,
+  ).toBeGreaterThan(0);
+  const scenario = within(document.querySelector(".technical-drawer")!)
     .getByText(/Free shipping at the exact threshold/)
     .closest("details")!;
   scenario.setAttribute("open", "");
@@ -1320,4 +1322,123 @@ it("shows missing document tools while keeping ordinary import available", async
       ) as HTMLInputElement
     ).disabled,
   ).toBe(false);
+});
+
+it("shows reviewed-out scenarios as blocked, zero tests, and skipped execution", async () => {
+  const empty: VerificationRun = {
+    ...plannedRun,
+    mode: "baseline_b2",
+    status: "completed",
+    stage: "report",
+    report: {
+      ...plannedRun.report,
+      generated_tests: [],
+      executions: [],
+      execution_attempts: [],
+      executed_tests: 0,
+      refinement_iterations: 0,
+      diagnoses: [],
+      test_plan: {
+        ...plannedRun.report.test_plan!,
+        scenarios: plannedRun.report.test_plan!.scenarios.map((scenario) => ({
+          ...scenario,
+          oracle_grounding: {
+            version: 1,
+            status: "needs_review",
+            verdict: "insufficient",
+            rationale: "Setup is not established.",
+            citations: [],
+            issues: ["Setup is not established."],
+            scenario_sha256: "scenario",
+            source_sha256: "source",
+          },
+        })),
+      },
+    },
+  };
+  vi.mocked(api.runs).mockResolvedValue([empty]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Agent workspace" });
+  expect(
+    screen.getByText("Generate tests").closest(".stage")?.textContent,
+  ).toContain("Blocked by scenario review");
+  expect(
+    screen.getByText("Execute tests").closest(".stage")?.textContent,
+  ).toContain("Skipped · no generated tests");
+  expect(
+    screen.getByText("Tests generated").closest("div")?.textContent,
+  ).toContain("0");
+});
+
+it("keeps diagnostics collapsed and lets users search the compact test browser", async () => {
+  vi.mocked(api.runs).mockResolvedValue([plannedRun]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Agent workspace" });
+  const drawer = document.querySelector(".technical-drawer")!;
+  expect(drawer.hasAttribute("open")).toBe(false);
+  const explorer = screen.getByRole("region", { name: "Test explorer" });
+  fireEvent.change(
+    within(explorer).getByRole("textbox", { name: "Search test cases" }),
+    { target: { value: "no-match-xyz" } },
+  );
+  expect(within(explorer).getByText("No matching test cases.")).toBeTruthy();
+  fireEvent.change(
+    within(explorer).getByRole("textbox", { name: "Search test cases" }),
+    { target: { value: "" } },
+  );
+  expect(
+    within(explorer).getByRole("heading", { name: "Requirement context" }),
+  ).toBeTruthy();
+});
+
+it("selects a failed case using the runner artifact id and checked function even when its file was renamed", async () => {
+  const scenarios = plannedRun.report.test_plan!.scenarios;
+  const scenario = scenarios[0];
+  const executed: VerificationRun = {
+    ...plannedRun,
+    report: {
+      ...plannedRun.report,
+      generated_tests: [
+        {
+          id: "t1",
+          name: "Generated case",
+          module: "test_fee.py",
+          code: "def test_fee(): pass",
+          rationale: "Fixture",
+          requirement_ids: scenario.requirement_ids,
+          scenario_ids: [scenario.id],
+          validation_status: "validated",
+          validated_checks: [
+            {
+              scenario_id: scenario.id,
+              function_name: "test_fee",
+              target: "shipping.fee",
+              call_line: 2,
+              assertion_line: 3,
+            },
+          ],
+        },
+      ],
+      executions: [
+        {
+          test_id: "t1",
+          module: "test_fee_2.py",
+          name: "test_fee",
+          outcome: "failed",
+          duration_seconds: 0.01,
+          message: "assert 1000 == 0",
+        },
+      ],
+      executed_tests: 1,
+    },
+  };
+  vi.mocked(api.runs).mockResolvedValue([executed]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Agent workspace" });
+  const explorer = screen.getByRole("region", { name: "Test explorer" });
+  expect(within(explorer).getByText("assert 1000 == 0")).toBeTruthy();
+  expect(within(explorer).getByText("1 failed")).toBeTruthy();
 });

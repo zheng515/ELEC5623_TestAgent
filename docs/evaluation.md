@@ -37,8 +37,8 @@ bash scripts/evaluate.sh --mode replay \
   --output data/evaluations/replayed.json
 ```
 
-`--mode live` calls the configured Anthropic model and may incur API charges. It reads
-`backend/.env` and the same environment/SDK credentials as the application. Set model
+`--mode live` calls the configured OpenAI model and may incur API charges. It reads
+`backend/.env` and the same OPENAI_API_KEY configuration as the application. Set model
 access and credentials before running it; unresolved credentials produce exit code 2
 without a quality report. Each selected case requires one structured model request per
 repeat; `--repeat` accepts 1–5. `--stage analysis` or `--stage oracle` restricts the stage,
