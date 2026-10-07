@@ -371,8 +371,7 @@ def test_api_serves_an_agent_run_end_to_end(settings):
 
 
 def test_missing_credentials_fall_back_to_scaffold_mode(tmp_path, monkeypatch):
-    for name in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"):
-        monkeypatch.delenv(name, raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     live = Settings(database_path=tmp_path / "live.db", sandbox_enabled=False, _env_file=None)
 
     with TestClient(create_app(live)) as client:
@@ -385,7 +384,7 @@ def test_missing_credentials_fall_back_to_scaffold_mode(tmp_path, monkeypatch):
 
 
 def test_configured_credentials_enable_the_agent(tmp_path, monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-not-a-real-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-not-a-real-key")
     # sandbox_enabled=False so the result does not depend on whether the machine
     # running the suite happens to have Docker started.
     live = Settings(database_path=tmp_path / "live.db", sandbox_enabled=False, _env_file=None)

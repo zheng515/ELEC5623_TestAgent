@@ -343,11 +343,11 @@ def test_html_marks_earlier_validation_versions_as_historical(version):
 
 
 def test_planner_contract_is_compatible_with_the_real_sdk_schema_transform():
-    from anthropic import transform_schema
+    from openai.lib._pydantic import to_strict_json_schema
 
     from app.schemas import TestPlan as ScenarioPlan
 
-    transformed = transform_schema(ScenarioPlan)
+    transformed = to_strict_json_schema(ScenarioPlan)
     assert transformed["type"] == "object"
     assert "ScenarioCheck" in transformed["$defs"]
     assert "KeywordArgument" in transformed["$defs"]

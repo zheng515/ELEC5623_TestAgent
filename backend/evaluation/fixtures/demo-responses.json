@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "created_at": "2026-10-06T05:42:21.640881+00:00",
+  "created_at": "2026-10-07T01:40:01.854816+00:00",
   "mode": "synthetic",
   "response_origin": "synthetic",
   "model": null,
@@ -110,12 +110,14 @@
         ],
         "source_audit": {
           "version": 1,
+          "document": null,
           "extraction_limit": 40,
           "limit_reached": false,
           "returned_requirements": 1,
           "retained_requirements": 1,
           "links": [
             {
+              "locations": [],
               "text": "At 10000 cents, fee returns 0 cents.",
               "start": 0,
               "end": 36,
@@ -127,6 +129,7 @@
           ],
           "unlinked_fragments": [
             {
+              "locations": [],
               "text": "A negative amount raises ValueError.",
               "start": 37,
               "end": 73,
@@ -151,7 +154,7 @@
       "calls": [
         {
           "output_format": "OracleReview",
-          "request_sha256": "9bb5f8c0a80ef2b9b4fd695a82088acf51a1cde2d0693c873a56ad406d411304",
+          "request_sha256": "0bd92af77eb2987851298e369769e114685d0e79e5314c12dcde677547b65f93",
           "response": {
             "decisions": [
               {

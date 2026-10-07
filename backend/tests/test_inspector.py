@@ -169,12 +169,12 @@ def test_the_digest_changes_when_the_interface_changes(repository, settings):
 def test_a_blank_setting_does_not_silently_enable_inspection(tmp_path):
     """Copying .env.example leaves the root blank; Path("") would mean the CWD."""
     env = tmp_path / ".env"
-    env.write_text("REQTEST_REPOSITORY_ROOT=\nANTHROPIC_API_KEY=\nREQTEST_GITHUB_TOKEN=\n")
+    env.write_text("REQTEST_REPOSITORY_ROOT=\nOPENAI_API_KEY=\nREQTEST_GITHUB_TOKEN=\n")
 
     settings = Settings(_env_file=str(env))
 
     assert settings.repository_root is None
-    assert settings.anthropic_api_key is None
+    assert settings.openai_api_key is None
     assert settings.github_token is None
     assert local_repositories_available(settings) is False
 
