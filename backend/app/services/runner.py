@@ -1,6 +1,6 @@
 """Sandboxed pytest execution for generated tests (FR9, FR10, NFR5).
 
-Generated test code is untrusted model output, so it runs only inside a container
+Generated test code is untrusted, so it runs only inside a container
 with no network, a read-only root filesystem, dropped capabilities, and memory, CPU,
 PID and wall-clock limits. There is deliberately no host-subprocess fallback: when
 Docker is unavailable, execution stays unconnected and the report says so.
@@ -35,16 +35,12 @@ class TestRunner(Protocol):
     def for_run(self) -> "TestRunner": ...
 
     def preflight(
-        self, repository_root: str, import_roots: list[str], module_paths: list[str]
+        self, repository_root: str, import_roots: list[str], modules: list[tuple[str, str]]
     ) -> ProjectReadiness: ...
 
     def execute(
         self, tests: list[GeneratedTest], repository_root: str | None = None
     ) -> ExecutionResult: ...
-
-
-class SandboxUnavailable(RuntimeError):
-    """Docker, or the sandbox image, is missing."""
 
 
 class DockerTestRunner:
@@ -59,7 +55,7 @@ class DockerTestRunner:
         return DockerTestRunner(self._settings, self._run)
 
     def preflight(
-        self, repository_root: str, import_roots: list[str], module_paths: list[str]
+        self, repository_root: str, import_roots: list[str], modules: list[tuple[str, str]]
     ) -> ProjectReadiness:
         """Inspect declarations and imports as data in the pinned runtime."""
         self._import_roots = list(import_roots)
@@ -79,7 +75,7 @@ class DockerTestRunner:
                     "-I",
                     "-c",
                     code,
-                    json.dumps({"import_roots": import_roots, "module_paths": module_paths}),
+                    json.dumps({"import_roots": import_roots, "modules": modules}),
                 ],
                 capture_output=True,
                 text=True,
@@ -220,15 +216,18 @@ class DockerTestRunner:
             )
         return parse_environment(settings.sandbox_image, identifier, metadata.stdout, probe.stdout)
 
-    def _write_tests(self, workspace: Path, tests: list[GeneratedTest]) -> dict[str, str]:
-        """Write each test module and map its module name back to the test id (FR8)."""
-        modules: dict[str, str] = {}
+    def _write_tests(self, workspace: Path, tests: list[GeneratedTest]) -> dict[str, GeneratedTest]:
+        """Write unique filenames and retain each original artifact for attribution (FR8)."""
+        modules: dict[str, GeneratedTest] = {}
         for index, test in enumerate(tests, start=1):
             name = Path(test.module).name or f"test_generated_{index}.py"
-            if name in modules:
-                name = f"{Path(name).stem}_{index}.py"
+            stem = Path(name).stem
+            suffix = index
+            while name in modules:
+                name = f"{stem}_{suffix}.py"
+                suffix += 1
             (workspace / name).write_text(test.code)
-            modules[name] = test.id
+            modules[name] = test
         return modules
 
     def _command(
@@ -310,7 +309,7 @@ class DockerTestRunner:
             logger.warning("Could not remove the timed-out container %s: %s", container, error)
 
 
-def _parse_junit(path: Path, modules: dict[str, str]) -> list[ExecutedTest]:
+def _parse_junit(path: Path, modules: dict[str, GeneratedTest]) -> list[ExecutedTest]:
     """Read pytest's own JUnit XML. A missing or malformed file means nothing ran."""
     if not path.exists():
         return []
@@ -330,10 +329,11 @@ def _parse_junit(path: Path, modules: dict[str, str]) -> list[ExecutedTest]:
                 message = (found.get("message") or found.text or "")[:MESSAGE_LIMIT]
                 break
         module = _module_name(case, modules)
+        artifact = modules.get(module)
         executions.append(
             ExecutedTest(
-                test_id=modules.get(module),
-                module=module,
+                test_id=artifact.id if artifact else None,
+                module=artifact.module if artifact else module,
                 name=case.get("name", "unknown"),
                 outcome=outcome,
                 duration_seconds=float(case.get("time") or 0.0),
@@ -343,7 +343,7 @@ def _parse_junit(path: Path, modules: dict[str, str]) -> list[ExecutedTest]:
     return executions
 
 
-def _module_name(case, modules: dict[str, str]) -> str:
+def _module_name(case, modules: dict[str, GeneratedTest]) -> str:
     """Recover the module a case belongs to.
 
     pytest reports `test_shipping` or `test_shipping.TestClass` as the classname for a
@@ -353,8 +353,6 @@ def _module_name(case, modules: dict[str, str]) -> str:
     classname = case.get("classname") or ""
     if classname:
         candidate = f"{classname.split('.')[0]}.py"
-        if candidate in modules:
-            return candidate
         return candidate
     from_name = f"{case.get('name', '')}.py"
     if from_name in modules:

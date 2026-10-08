@@ -24,19 +24,10 @@ export function TestPlanDetails({ report }: { report?: VerificationReport }) {
         const tests = (report?.generated_tests ?? []).filter((test) =>
           test.scenario_ids?.includes(scenario.id),
         );
-        const outcomes = (report?.executions ?? []).filter((item) =>
-          tests.some(
-            (test) =>
-              test.id === item.test_id &&
-              test.module === item.module &&
-              (test.validation_status === "validated"
-                ? test.validated_checks?.some(
-                    (check) =>
-                      check.scenario_id === scenario.id &&
-                      check.function_name === item.name,
-                  )
-                : test.validation_status !== "needs_review"),
-          ),
+        const savedRefs = report?.scenario_evidence_refs;
+        const refs = new Set(savedRefs?.[scenario.id] ?? []);
+        const outcomes = (report?.evidence ?? []).filter((item) =>
+          refs.has(item.id),
         );
         return (
           <details className="scenario-card" key={scenario.id}>
@@ -154,16 +145,18 @@ export function TestPlanDetails({ report }: { report?: VerificationReport }) {
               </dd>
               <dt>Execution outcomes</dt>
               <dd>
-                {outcomes.length
-                  ? outcomes.map((item, index) => (
-                      <Badge
-                        key={index}
-                        tone={item.outcome === "passed" ? "teal" : "amber"}
-                      >
-                        {item.name}: {item.outcome}
-                      </Badge>
-                    ))
-                  : "Not executed"}
+                {savedRefs == null
+                  ? "No saved scenario outcome attribution. Raw outcomes are not reassigned here."
+                  : outcomes.length
+                    ? outcomes.map((item, index) => (
+                        <Badge
+                          key={index}
+                          tone={item.outcome === "passed" ? "teal" : "amber"}
+                        >
+                          {item.test.split("::").at(-1)}: {item.outcome}
+                        </Badge>
+                      ))
+                    : "No attributable execution outcome"}
               </dd>
             </dl>
           </details>

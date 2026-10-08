@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { Project, SystemInfo, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
 import { Badge, Empty, formatDate, runBadge, SectionTitle } from "./ui";
-import { isRunActive } from "../lib/types";
 
 export function Home({
   projects,
@@ -21,15 +20,10 @@ export function Home({
     <>
       <section className="hero">
         <div>
-          <span className="eyebrow">FROM REQUIREMENTS TO EVIDENCE</span>
-          <h1>
-            Give your agent
-            <br />a verification goal.
-          </h1>
+          <h1>Verification workspace</h1>
           <p>
-            One goal. A traceable path from intended behavior
-            <br className="desktop-break" /> to stronger tests and explainable
-            results.
+            Create a verification task or review your projects and recorded
+            runs.
           </p>
           <a className="button primary" href={urlFor("new")}>
             New verification task <span>↗</span>
@@ -67,11 +61,9 @@ export function Home({
             ? "Inputs and reports are saved. Configure model access to enable the agent."
             : "Submit one goal. The agent analyzes requirements, plans scenarios, and generates traceable tests automatically."}
         </span>
-        <Badge>Foundation release</Badge>
       </div>
       <section className="panel">
         <SectionTitle
-          eyebrow="YOUR WORKSPACE"
           title="Projects"
           action={
             <label className="search">
@@ -106,10 +98,9 @@ export function Home({
                 href={urlFor("workspace", p.id)}
               >
                 <div className="tile-top">
-                  <span className="project-symbol">⌘</span>
-                  <span>↗</span>
+                  <h3>{p.name}</h3>
+                  <span aria-hidden="true">↗</span>
                 </div>
-                <h3>{p.name}</h3>
                 <p>
                   {p.description || "Requirement-aware verification project."}
                 </p>
@@ -124,7 +115,7 @@ export function Home({
       </section>
       <div className="home-bottom">
         <section className="panel">
-          <SectionTitle eyebrow="RECENT ACTIVITY" title="Latest runs" />
+          <SectionTitle title="Latest runs" />
           {recentRuns.length ? (
             recentRuns.slice(0, 5).map((run) => (
               <a
@@ -142,17 +133,7 @@ export function Home({
                     Run {run.id.slice(0, 8)} · {formatDate(run.created_at)}
                   </small>
                 </div>
-                <Badge tone={runBadge(run).tone}>
-                  {isRunActive(run)
-                    ? run.status === "queued"
-                      ? "Queued"
-                      : "Running"
-                    : run.status === "blocked"
-                      ? "Blocked"
-                      : run.status === "failed"
-                        ? "Failed"
-                        : "Generated"}
-                </Badge>
+                <Badge tone={runBadge(run).tone}>{runBadge(run).label}</Badge>
               </a>
             ))
           ) : (
@@ -163,7 +144,7 @@ export function Home({
           )}
         </section>
         <section className="panel">
-          <SectionTitle eyebrow="CAPABILITIES" title="Integration status" />
+          <SectionTitle title="Integration status" />
           <div className="capabilities">
             {system.integrations.map((i) => (
               <div key={i.key}>

@@ -31,7 +31,9 @@ from app.services.github_source import (
     names_fixed_commit,
 )
 from app.services.jobs import JobInterrupted
+from app.services.outcome_mapping import OUTCOME_MAPPING_VERSION
 from app.services.report_renderer import render_html_report
+from app.services.test_validator import VALIDATION_VERSION
 
 router = APIRouter(prefix="/api/v1")
 
@@ -43,14 +45,17 @@ def health():
 
 @router.get("/system", response_model=SystemInfo, tags=["system"])
 def system_info(request: Request):
-    mode = getattr(request.app.state, "mode", "scaffold")
+    orchestrator = request.app.state.orchestrator
+    mode = getattr(orchestrator, "mode", "scaffold")
     agent_ready = mode in {"baseline_b0", "baseline_b2"}
-    execution_ready = getattr(request.app.state, "execution_ready", False)
-    inspection_ready = getattr(request.app.state, "inspection_ready", False)
-    diagnosis_ready = getattr(request.app.state, "diagnosis_ready", False)
+    execution_ready = getattr(orchestrator, "executes_tests", False)
+    inspection_ready = getattr(orchestrator, "inspects_repositories", False)
+    diagnosis_ready = mode == "baseline_b2"
     watch_ready = getattr(request.app.state, "watcher", None) is not None
     return SystemInfo(
         mode=mode,
+        validation_version=VALIDATION_VERSION,
+        outcome_mapping_version=OUTCOME_MAPPING_VERSION,
         integrations=[
             Integration(
                 key="storage",
@@ -119,12 +124,6 @@ def system_info(request: Request):
                     else "Watching needs model credentials, GitHub downloads and "
                     "REQTEST_WATCH_ENABLED=true."
                 ),
-            ),
-            Integration(
-                key="retrieval",
-                name="RAG evidence retrieval",
-                status="not_connected",
-                description="Retrieval of testing knowledge and project evidence is not connected.",
             ),
             Integration(
                 key="execution",
@@ -206,15 +205,9 @@ def create_project(payload: ProjectCreate, request: Request, user: CurrentUser):
     if contains_credentials(payload.repository_ref):
         # A plain message: a validation error would echo the secret back in its input.
         raise HTTPException(422, CREDENTIALS)
-    document = None
-    if payload.requirement_document_id:
-        document = request.app.state.store.get_document(payload.requirement_document_id, user.id)
-        if document is None:
-            raise HTTPException(404, "Imported document not found.")
-        if payload.requirements_text != document.text:
-            raise HTTPException(
-                422, "Requirement text changed. Reimport the file or remove its source link."
-            )
+    document = _linked_document(
+        request, user, payload.requirement_document_id, payload.requirements_text
+    )
     project = Project(
         **payload.model_dump(),
         requirement_document=document,
@@ -223,6 +216,17 @@ def create_project(payload: ProjectCreate, request: Request, user: CurrentUser):
     )
     request.app.state.store.create_project(project, user.id)
     return project
+
+
+def _linked_document(request, user, document_id, requirements_text):
+    if not document_id:
+        return None
+    document = request.app.state.store.get_document(document_id, user.id)
+    if document is None:
+        raise HTTPException(404, "Imported document not found.")
+    if requirements_text != document.text:
+        raise HTTPException(422, "Requirement text changed. Reimport or remove its source link.")
+    return document
 
 
 @router.get("/projects/{project_id}", response_model=Project, tags=["projects"])
@@ -243,18 +247,10 @@ def update_project(project_id: str, payload: ProjectUpdate, request: Request, us
     if request.app.state.store.has_active_run(project_id):
         raise HTTPException(409, "Wait for the active run to finish before editing this project.")
     if "requirement_document_id" in changes:
-        document = None
-        if changes["requirement_document_id"]:
-            document = request.app.state.store.get_document(
-                changes["requirement_document_id"], user.id
-            )
-            if document is None:
-                raise HTTPException(404, "Imported document not found.")
-            if changes.get("requirements_text", project.requirements_text) != document.text:
-                raise HTTPException(
-                    422, "Requirement text changed. Reimport or remove its source link."
-                )
-        changes["requirement_document"] = document
+        changes["requirement_document"] = _linked_document(
+            request, user, changes["requirement_document_id"],
+            changes.get("requirements_text", project.requirements_text),
+        )
     elif changes.get("requirements_text", project.requirements_text) != project.requirements_text:
         changes["requirement_document_id"] = None
         changes["requirement_document"] = None
@@ -372,8 +368,6 @@ def get_report(run_id: str, request: Request, response: Response, user: CurrentU
 def get_html_report(run_id: str, request: Request, user: CurrentUser):
     run = get_run(run_id, request, user)
     project = get_project(run.project_id, request, user)
-    if run.inputs is not None:
-        project = Project(**run.inputs.model_dump(), id=project.id, created_at=project.created_at)
     return Response(
         render_html_report(project, run),
         media_type="text/html",

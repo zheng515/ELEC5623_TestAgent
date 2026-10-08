@@ -9,7 +9,7 @@ import type {
 import { documentLocation } from "../lib/source-location";
 import { api } from "../lib/api";
 import { urlFor } from "../lib/navigation";
-import { Badge, ErrorNotice } from "./ui";
+import { ErrorNotice } from "./ui";
 
 const defaultGoal =
   "Identify verification gaps and improve requirement-based tests.";
@@ -148,7 +148,7 @@ export function NewTask({
       return;
     }
     if (
-      !/^https:\/\/github\.com\/[^/\s]+\/[^/\s#?]+(?:\/tree\/[^\s]+)?\/?$/i.test(
+      !/^https:\/\/github\.com\/[^/\s]+\/[^/\s#?]+(?:\/(?:tree\/[^\s]+|commit\/[0-9a-f]{7,64}))?\/?$/i.test(
         form.repository_ref,
       )
     ) {
@@ -175,12 +175,8 @@ export function NewTask({
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">ONE GOAL. ONE STARTING POINT.</span>
           <h1>{editing ? "Edit inputs and rerun" : "New verification task"}</h1>
-          <p>
-            Define the intended behavior. Let the verification workflow take it
-            from there.
-          </p>
+          <p>Enter the project, requirements, and verification goal.</p>
         </div>
         <a className="text-button" href={cancelHref}>
           ← {editing ? "Cancel editing" : "Back to projects"}
@@ -229,9 +225,10 @@ export function NewTask({
             </label>
             <p className="field-help">
               Paste a public GitHub repository URL, optionally ending in
-              /tree/branch/folder. Each run downloads the code and records the
-              exact commit it read. Private repositories require a server-side
-              GitHub token; credentials must never be included in this field.
+              /tree/branch/folder or /commit/sha. Each run downloads the code
+              and records the exact commit it read. Private repositories require
+              a server-side GitHub token; credentials must never be included in
+              this field.
             </p>
             <div className="form-section">
               <span className="section-number">02</span>
@@ -373,12 +370,7 @@ export function NewTask({
           </fieldset>
         </form>
         <aside className="task-aside">
-          <Badge tone="teal">Foundation release</Badge>
-          <h2>
-            Set the goal.
-            <br />
-            Keep the evidence.
-          </h2>
+          <h2>Verification workflow</h2>
           <p>
             {mode === "scaffold"
               ? "Save your inputs and create a traceable setup run."

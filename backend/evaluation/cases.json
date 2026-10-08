@@ -890,12 +890,12 @@
     {
       "id": "oracle_conflicting_rules",
       "category": "conflict",
-      "specification": "fee(amount_cents) accepts integer amounts in cents and returns an integer fee in cents. Orders of at least 100 dollars have fee 0 cents. Smaller nonnegative orders have fee 1000 cents. All orders, including those of at least 100 dollars, instead have fee 1000 cents.",
+      "specification": "fee(amount_cents) accepts integer amounts in cents and returns an integer fee in cents. Orders of at least 100 dollars have fee 0 cents. Smaller nonnegative orders have fee 1000 cents. All orders, including those of at least 100 dollars, have fee 1000 cents. No precedence between these two fee rules is specified.",
       "requirements": [
         {
           "id": "R1",
-          "text": "fee(amount_cents) accepts integer amounts in cents and returns an integer fee in cents. Orders of at least 100 dollars have fee 0 cents. Smaller nonnegative orders have fee 1000 cents. All orders, including those of at least 100 dollars, instead have fee 1000 cents.",
-          "source_quote": "fee(amount_cents) accepts integer amounts in cents and returns an integer fee in cents. Orders of at least 100 dollars have fee 0 cents. Smaller nonnegative orders have fee 1000 cents. All orders, including those of at least 100 dollars, instead have fee 1000 cents.",
+          "text": "fee(amount_cents) accepts integer amounts in cents and returns an integer fee in cents. Orders of at least 100 dollars have fee 0 cents. Smaller nonnegative orders have fee 1000 cents. All orders, including those of at least 100 dollars, have fee 1000 cents. No precedence between these two fee rules is specified.",
+          "source_quote": "fee(amount_cents) accepts integer amounts in cents and returns an integer fee in cents. Orders of at least 100 dollars have fee 0 cents. Smaller nonnegative orders have fee 1000 cents. All orders, including those of at least 100 dollars, have fee 1000 cents. No precedence between these two fee rules is specified.",
           "testable": true,
           "ambiguity": null
         }

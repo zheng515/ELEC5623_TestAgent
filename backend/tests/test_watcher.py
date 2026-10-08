@@ -31,9 +31,8 @@ class RecordingOrchestrator:
         self.calls: list[tuple[bool, str | None]] = []
         self.commit = FIRST
 
-    def run(self, project, *, on_progress=None, incremental=False, baseline=None):
+    def run(self, project, *, on_progress=None, incremental=False, baseline=None, run=None):
         self.calls.append((incremental, baseline.id if baseline else None))
-        now = datetime.now(UTC)
         repository = RepositorySnapshot(
             root=URL,
             modules=[],
@@ -43,16 +42,14 @@ class RecordingOrchestrator:
                 repository="example/shipping", url=URL, ref="main", commit_sha=self.commit
             ),
         )
-        return VerificationRun(
-            id="ignored",
-            project_id=project.id,
-            mode=self.mode,
-            status="completed",
-            stage="report",
-            created_at=now,
-            input_sha256="0",
-            events=[],
-            report=VerificationReport(summary="Done.", repository=repository),
+        return run.model_copy(
+            update={
+                "mode": self.mode,
+                "status": "completed",
+                "stage": "report",
+                "events": [],
+                "report": VerificationReport(summary="Done.", repository=repository),
+            }
         )
 
 

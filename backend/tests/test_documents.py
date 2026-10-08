@@ -73,7 +73,8 @@ def test_pdf_pages_and_quote_provenance():
     assert audit.links[0].locations[0].kind == "page"
     assert audit.links[0].locations[0].number == 2
     assert audit.unlinked_fragments[0].locations[0].number == 1
-    assert audit.document.sha256 == document.sha256
+    assert audit.document is None
+    assert "document" not in audit.model_dump()
 
 
 def test_quote_crossing_pages_and_repeated_quotes():
@@ -304,7 +305,8 @@ def test_word_paragraph_location_survives_requirement_analysis():
     result = analyze_requirements(Model(), project, max_requirements=40)
     assert result.source_audit.links[0].locations[0].number == 2
     assert result.source_audit.links[0].locations[0].kind == "paragraph"
-    assert result.source_audit.document.id == document.id
+    assert result.source_audit.document is None
+    assert "document" not in result.source_audit.model_dump()
 
 
 def test_import_body_limit(tmp_path):
@@ -367,3 +369,28 @@ def test_unicode_offsets_are_code_points():
         ),
     )
     assert document.text[document.segments[1].start : document.segments[1].end] == "Second rule."
+
+
+
+def test_legacy_audit_document_is_promoted_and_only_saved_once():
+    from app.schemas import VerificationReport
+
+    document = _extract("old.pdf", pdf("Original rule."))
+    audit = audit_source(
+        document.text, [], extraction_limit=40, returned_requirements=0, document=document
+    ).model_dump()
+    audit["document"] = document.model_dump()
+    legacy = {
+        "summary": "Old report", "source_audit": audit,
+        "semantic_coverage": None, "mutation_score": None,
+    }
+    report = VerificationReport.model_validate(legacy)
+    assert report.requirement_document == document
+    assert report.source_audit.document == document
+    saved = report.model_dump()
+    assert saved["requirement_document"]["id"] == document.id
+    assert "document" not in saved["source_audit"]
+    assert "semantic_coverage" not in saved and "mutation_score" not in saved
+    restored = VerificationReport.model_validate_json(report.model_dump_json())
+    assert restored.requirement_document == document
+    assert legacy["source_audit"]["document"]["id"] == document.id

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,9 +17,12 @@ class Settings(BaseSettings):
     # orchestrator, so the API stays usable and the test suite never calls the network.
     llm_enabled: bool = True
     # Read without the REQTEST_ prefix so the SDK's own variable name works, in the
-    # environment or in backend/.env. An unset key leaves agent stages disconnected.
+    # environment or in backend/.env. OpenAI requires a configured key; Anthropic
+    # can also resolve its SDK credentials.
+    llm_provider: Literal["openai", "anthropic"] = "openai"
     openai_api_key: SecretStr | None = Field(default=None, validation_alias="OPENAI_API_KEY")
-    llm_model: str = "gpt-6-luna"
+    anthropic_api_key: SecretStr | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
+    llm_model: str = "gpt-5.6-luna"
     llm_max_tokens: int = 16000
     llm_timeout_seconds: float = 180.0
     max_requirements: int = 40
@@ -75,6 +79,7 @@ class Settings(BaseSettings):
         "repository_root",
         "repository_snapshot_root",
         "openai_api_key",
+        "anthropic_api_key",
         "github_token",
         mode="before",
     )

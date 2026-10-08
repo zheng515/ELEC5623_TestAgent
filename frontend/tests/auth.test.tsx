@@ -59,6 +59,8 @@ beforeEach(() => {
   vi.mocked(api.runs).mockResolvedValue([]);
   vi.mocked(api.system).mockResolvedValue({
     version: "0.1.0",
+    validation_version: 41,
+    outcome_mapping_version: 7,
     mode: "scaffold",
     integrations: [],
   });

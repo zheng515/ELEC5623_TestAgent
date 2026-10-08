@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { VerificationRun } from "../lib/types";
+import type { GeneratedTest, VerificationRun } from "../lib/types";
 import { Badge, Empty } from "./ui";
 import { sourceLocation } from "../lib/source-location";
 
@@ -8,57 +8,65 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
   const [selectedId, setSelectedId] = useState("");
   const report = run?.report;
   const scenarios = report?.test_plan?.scenarios ?? [];
+  const attributedRefs = new Set(
+    Object.values(report?.scenario_evidence_refs ?? {}).flat(),
+  );
+  const unassignedEvidence = (report?.evidence ?? []).filter(
+    (item) => !attributedRefs.has(item.id),
+  );
   const items = scenarios.map((scenario) => {
     const tests =
       report?.generated_tests.filter((test) =>
         test.scenario_ids?.includes(scenario.id),
       ) ?? [];
-    const outcomes =
-      report?.executions.filter((execution) =>
-        tests.some(
-          (test) =>
-            test.validation_status === "validated" &&
-            test.id === execution.test_id &&
-            test.validated_checks?.some(
-              (check) =>
-                check.scenario_id === scenario.id &&
-                check.function_name === execution.name,
-            ),
-        ),
-      ) ?? [];
-    // The runner records its actual filename, which can differ for duplicate modules.
-    // Match recorded artifact identity and checked functions, without claiming coverage.
-    const hasMissingOutcome = tests.some(
-      (test) =>
-        !test.validated_checks?.some(
-          (check) => check.scenario_id === scenario.id,
-        ) ||
-        test.validated_checks.some(
-          (check) =>
-            check.scenario_id === scenario.id &&
-            !outcomes.some(
-              (execution) =>
-                execution.test_id === test.id &&
-                execution.name === check.function_name,
-            ),
-        ),
+    // The server saves attribution once. Never assign raw executions to scenarios here.
+    const savedRefs = report?.scenario_evidence_refs;
+    const refs = new Set(savedRefs?.[scenario.id] ?? []);
+    const outcomes = (report?.evidence ?? []).filter((item) =>
+      refs.has(item.id),
     );
-    const status = outcomes.some((e) => e.outcome === "failed")
+    const expectedChecks = tests.reduce(
+      (count, test) =>
+        count +
+        (test.validation_status === "validated"
+          ? new Set(
+              test.validated_checks
+                ?.filter((check) => check.scenario_id === scenario.id)
+                .map((check) => check.function_name) ?? [],
+            ).size
+          : 0),
+      0,
+    );
+    const incomplete =
+      outcomes.length < refs.size || outcomes.length < expectedChecks;
+    const status = outcomes.some((item) => item.outcome === "failed")
       ? "Failed"
-      : outcomes.some((e) => e.outcome === "error")
+      : outcomes.some((item) => item.outcome === "error")
         ? "Error"
-        : tests.some((t) => t.validation_status === "needs_review") ||
+        : tests.some((test) => test.validation_status === "needs_review") ||
             scenario.oracle_grounding?.status === "needs_review"
           ? "Needs review"
-          : outcomes.length && hasMissingOutcome
-            ? "Partially executed"
-            : outcomes.length && outcomes.every((e) => e.outcome === "passed")
-              ? "Passed"
-              : outcomes.length
-                ? "Skipped"
-                : tests.length
-                  ? "Not executed"
-                  : "Planned";
+          : savedRefs == null
+            ? run?.status === "running" || run?.status === "queued"
+              ? "Awaiting execution evidence"
+              : "Outcome attribution unavailable"
+            : incomplete
+              ? outcomes.length
+                ? "Partially executed"
+                : "Outcome attribution unavailable"
+              : outcomes.length &&
+                  outcomes.every((item) => item.outcome === "passed")
+                ? "Passed"
+                : outcomes.some((item) => item.outcome === "passed")
+                  ? "Partially executed"
+                  : outcomes.length &&
+                      outcomes.every((item) => item.outcome === "skipped")
+                    ? "Skipped"
+                    : outcomes.length
+                      ? "Outcome attribution unavailable"
+                      : tests.length
+                        ? "Not executed"
+                        : "Planned";
     return { scenario, tests, outcomes, status };
   });
   const filtered = items.filter(({ scenario }) =>
@@ -74,7 +82,7 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
     filtered[0];
   const tone = (status: string) =>
     status === "Passed"
-      ? ("green" as const)
+      ? ("teal" as const)
       : ["Failed", "Error", "Needs review"].includes(status)
         ? ("amber" as const)
         : ("neutral" as const);
@@ -95,14 +103,10 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
         </label>
         <div className="browser-counts">
           <span>
-            {report?.executions.filter((e) => e.outcome === "passed").length ??
-              0}{" "}
-            passed
+            {items.filter((item) => item.status === "Passed").length} passed
           </span>
           <span>
-            {report?.executions.filter((e) => e.outcome === "failed").length ??
-              0}{" "}
-            failed
+            {items.filter((item) => item.status === "Failed").length} failed
           </span>
         </div>
         <div className="test-case-items">
@@ -113,10 +117,6 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
               onClick={() => setSelectedId(scenario.id)}
               aria-pressed={selected?.scenario.id === scenario.id}
             >
-              <span
-                className={`case-indicator ${status.toLowerCase().replaceAll(" ", "-")}`}
-                aria-hidden="true"
-              />
               <span>
                 <small>
                   {scenario.id} · {scenario.category}
@@ -143,10 +143,6 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
               <Badge tone={tone(selected.status)}>{selected.status}</Badge>
             </div>
             <h2 className="case-title">{selected.scenario.title}</h2>
-            <div className="case-tabs">
-              <span>Test details</span>
-              <span>{selected.scenario.category}</span>
-            </div>
             <div className="case-content">
               <h3>Inputs</h3>
               <ul>
@@ -172,7 +168,14 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
                     key={index}
                   >
                     <strong>{outcome.outcome.toUpperCase()}</strong>
-                    <span>{outcome.duration_seconds.toFixed(3)}s</span>
+                    {outcome.duration_seconds !== undefined && (
+                      <span>{outcome.duration_seconds}s</span>
+                    )}
+                    <p>
+                      <code>
+                        {outcome.id}: {outcome.test}
+                      </code>
+                    </p>
                     {outcome.message && <pre>{outcome.message}</pre>}
                   </div>
                 ))
@@ -180,21 +183,67 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
                 <p className="case-muted">
                   {selected.status === "Needs review"
                     ? "This case needs review before it can run."
-                    : "No execution evidence recorded for this case."}
+                    : report?.scenario_evidence_refs == null
+                      ? "No saved scenario outcome attribution. Raw outcomes are not reassigned here."
+                      : "No attributable execution outcome recorded for this case."}
                 </p>
               )}
               {selected.tests.map((test) => (
-                <details className="case-code" key={test.id}>
-                  <summary>View generated code · {test.module}</summary>
-                  <pre>{test.code}</pre>
-                </details>
+                <TestArtifact key={test.id} test={test} />
               ))}
             </div>
           </>
         ) : (
           <Empty title="No test case selected">
-            Start a verification run to generate requirement-based test cases.
+            {scenarios.length
+              ? "Select a case from the list."
+              : "No executable scenarios recorded. Review the planning notes and saved artifacts below."}
           </Empty>
+        )}
+        {report?.generated_tests
+          .filter(
+            (test) =>
+              !scenarios.some((scenario) =>
+                test.scenario_ids?.includes(scenario.id),
+              ),
+          )
+          .map((test) => (
+            <TestArtifact key={test.id} test={test} />
+          ))}
+        {!!report?.generated_tests.length && !report.executed_tests && (
+          <p className="case-content">
+            These tests were generated from the requirements and available test
+            plan. They have not been executed, so none of them is known to run
+            or pass.
+          </p>
+        )}
+        {!!unassignedEvidence.length && (
+          <details className="case-code raw-evidence">
+            <summary>
+              Unattributed execution records · {unassignedEvidence.length}
+            </summary>
+            <p>
+              These saved execution records have no saved scenario attribution.
+              They are not counted as passed cases.
+            </p>
+            {unassignedEvidence.map((item) => (
+              <div className="case-outcome" key={item.id}>
+                <Badge tone={item.outcome === "passed" ? "teal" : "amber"}>
+                  {item.outcome}
+                </Badge>
+                <p>
+                  <code>
+                    {item.id}: {item.test}
+                  </code>
+                </p>
+                {item.message && <pre>{item.message}</pre>}
+              </div>
+            ))}
+            <p>
+              A passing test is not verification of test adequacy; review source
+              links and coverage gaps.
+            </p>
+          </details>
         )}
       </article>
       <aside className="test-browser-evidence">
@@ -232,7 +281,7 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
             <Badge
               tone={
                 selected.scenario.oracle_grounding?.status === "supported"
-                  ? "green"
+                  ? "teal"
                   : "amber"
               }
             >
@@ -280,5 +329,51 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
         )}
       </aside>
     </section>
+  );
+}
+
+function TestArtifact({ test }: { test: GeneratedTest }) {
+  return (
+    <details className="case-code">
+      <summary>
+        View generated code · <code>{test.module}</code>
+      </summary>
+      <p>{test.rationale || test.name}</p>
+      <p>
+        Claimed requirement links: {test.requirement_ids.join(", ") || "None"}
+      </p>
+      <Badge tone={test.validation_status === "validated" ? "teal" : "amber"}>
+        {test.validation_status === "validated"
+          ? "Plan contract matched"
+          : test.validation_status === "needs_review"
+            ? "Needs review"
+            : "Links not checked"}
+      </Badge>
+      <p>
+        {test.validation_status === "validated"
+          ? "Code matches the plan contract. This does not prove test adequacy."
+          : test.validation_status === "needs_review"
+            ? "Excluded from validated coverage and automatic execution."
+            : "This artifact has no code-to-plan validation record."}
+      </p>
+      {!!test.validation_issues?.length && (
+        <ul>
+          {test.validation_issues.map((issue, index) => (
+            <li key={index}>{issue}</li>
+          ))}
+        </ul>
+      )}
+      {!!test.validated_checks?.length && (
+        <ul>
+          {test.validated_checks.map((check, index) => (
+            <li key={index}>
+              {check.scenario_id}: {check.function_name} → {check.target} (call
+              line {check.call_line}, assertion line {check.assertion_line})
+            </li>
+          ))}
+        </ul>
+      )}
+      <pre>{test.code}</pre>
+    </details>
   );
 }

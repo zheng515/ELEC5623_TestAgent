@@ -158,3 +158,30 @@ def test_runtime_caveat_does_not_remove_real_business_assumptions():
 def test_runtime_caveat_is_not_moved_without_a_known_target(repository, target):
     plan = planned([], repository=repository, target=target, assumptions=[RUNTIME_CAVEAT])
     assert plan.scenarios[0].assumptions == [RUNTIME_CAVEAT]
+
+
+def test_incremental_normalization_notes_use_the_saved_scenario_id():
+    raw = PLAN.model_copy(
+        update={
+            "scenarios": [
+                PLAN.scenarios[0].model_copy(
+                    update={
+                        "preconditions": ["The shipping.fee function is available."],
+                        "assumptions": [RUNTIME_CAVEAT],
+                    }
+                )
+            ]
+        }
+    )
+    plan = plan_tests(
+        FakeLLM(raw),
+        PROJECT,
+        ANALYSIS.requirements,
+        REPOSITORY,
+        existing=PLAN.scenarios,
+        first_number=7,
+    )
+    assert plan.scenarios[0].id == "S7"
+    assert "S7: Runtime caveat" in plan.notes
+    assert "S7: Removed 1 redundant declaration" in plan.notes
+    assert "S1:" not in plan.notes

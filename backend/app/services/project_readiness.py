@@ -26,7 +26,9 @@ def check_project_readiness(
     try:
         root = verified_snapshot_root(repository.artifact, settings)
         result = runner.preflight(
-            str(root), repository.import_roots, [module.path for module in repository.modules]
+            str(root),
+            repository.import_roots,
+            [(module.module, module.path) for module in repository.modules],
         )
         verified_snapshot_root(repository.artifact, settings)
         return result

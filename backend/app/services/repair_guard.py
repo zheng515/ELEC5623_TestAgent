@@ -18,18 +18,43 @@ class UnsafeRepair(ValueError):
     pass
 
 
+def propose_repair(
+    original: GeneratedTest,
+    errors: list[ExecutedTest],
+    repository: RepositorySnapshot,
+) -> GeneratedTest:
+    """Construct the single AST transformation the guard permits."""
+    protected = _protected_repair(original, errors, repository)
+    return original.model_copy(update={"code": ast.unparse(protected) + "\n"})
+
+
 def validate_repair(
     original: GeneratedTest,
     replacement: GeneratedTest,
     errors: list[ExecutedTest],
     repository: RepositorySnapshot,
 ) -> None:
+    protected = _protected_repair(original, errors, repository)
     try:
-        before = ast.parse(original.code)
         after = ast.parse(replacement.code)
     except SyntaxError as error:
         raise UnsafeRepair("Cannot establish a valid AST baseline for this repair.") from error
+    if ast.dump(protected) != ast.dump(after):
+        raise UnsafeRepair(
+            "Repair must only remove an unused fixture parameter identified by the error; "
+            "test bodies, assertions, inputs, calls, imports and decorators must stay unchanged."
+        )
 
+
+def _protected_repair(
+    original: GeneratedTest,
+    errors: list[ExecutedTest],
+    repository: RepositorySnapshot,
+) -> ast.Module:
+    try:
+        before = ast.parse(original.code)
+    except SyntaxError as error:
+        raise UnsafeRepair("Cannot establish a valid AST baseline for this repair.") from error
     tests = [
         node
         for node in ast.walk(before)
@@ -79,11 +104,9 @@ def validate_repair(
         ]
         removed |= len(kept) != len(node.args.args)
         node.args.args = kept
-    if not removed or ast.dump(protected) != ast.dump(after):
-        raise UnsafeRepair(
-            "Repair must only remove an unused fixture parameter identified by the error; "
-            "test bodies, assertions, inputs, calls, imports and decorators must stay unchanged."
-        )
+    if not removed:
+        raise UnsafeRepair("No unused fixture parameter identified by the error can be removed.")
+    return protected
 
 
 def _has_checks(test: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:

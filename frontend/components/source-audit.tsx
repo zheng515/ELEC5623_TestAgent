@@ -49,6 +49,16 @@ export function SourceAudit({ report }: { report?: VerificationReport }) {
             unambiguous quote link. These may be rules or context. Even fully
             linked text can contain rules that were not extracted.
           </p>
+          {audit.issues.length > 0 && (
+            <div>
+              <h4>Source review notes</h4>
+              <ul>
+                {audit.issues.map((issue, index) => (
+                  <li key={`${index}-${issue}`}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {audit.ambiguous_requirement_ids.length > 0 && (
             <p>
               Repeated quotes with ambiguous locations:{" "}

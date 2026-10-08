@@ -17,7 +17,7 @@ from test_agent import (
 
 from app.schemas import OracleReview
 from app.services.llm import LLMError
-from app.services.oracle_review import review_oracles
+from app.services.oracle_review import SYSTEM, review_oracles
 from app.services.report_renderer import render_html_report
 from app.services.test_validator import validate_test
 
@@ -149,6 +149,32 @@ def test_independent_request_contains_original_source_and_exact_contract_without
     assert validate_test(SUITE.tests[0], reviewed, REPOSITORY).validation_status == "validated"
 
 
+@pytest.mark.parametrize("setup_field", ["assumptions", "preconditions"])
+def test_unresolved_setup_is_in_review_request_and_cannot_receive_server_support(setup_field):
+    setup = "Assume a premium account exists."
+    scenario = PLAN.scenarios[0].model_copy(update={setup_field: [setup]})
+    plan = PLAN.model_copy(update={"scenarios": [scenario]})
+    llm = FakeLLM(OracleReview(decisions=[decision("supported")]))
+
+    reviewed = review_oracles(llm, PROJECT, ANALYSIS.requirements, plan)
+    request = json.loads(llm.review_prompts[0])
+    grounding = reviewed.scenarios[0].oracle_grounding
+
+    assert request["scenarios"][0][setup_field] == [setup]
+    assert grounding.verdict == "supported"  # Even an incorrect model approval is blocked.
+    assert grounding.status == "needs_review"
+    assert validate_test(SUITE.tests[0], reviewed, REPOSITORY).validation_status == "needs_review"
+
+
+def test_oracle_prompt_distinguishes_unsupported_setup_and_conflicting_source_rules():
+    assert "Assess each entire scenario" in SYSTEM
+    assert "every precondition and assumption" in SYSTEM
+    assert "return insufficient even when the check alone is" in SYSTEM
+    assert "Use contradicted only when a clear, unambiguous original rule conflicts" in SYSTEM
+    assert "If original rules conflict with each other and give no priority" in SYSTEM
+    assert "return insufficient rather than selecting one rule" in SYSTEM
+
+
 @pytest.mark.parametrize(
     "update",
     [
@@ -176,10 +202,13 @@ def test_missing_oracle_review_on_old_plan_cannot_establish_new_validation():
     )
 
 
-def test_oracle_review_schema_is_supported_by_the_sdk():
+@pytest.mark.parametrize("provider", ["openai", "anthropic"])
+def test_oracle_review_schema_is_supported_by_the_sdk(provider):
+    from anthropic import transform_schema
     from openai.lib._pydantic import to_strict_json_schema
 
-    transformed = to_strict_json_schema(OracleReview)
+    transform = to_strict_json_schema if provider == "openai" else transform_schema
+    transformed = transform(OracleReview)
     assert transformed["type"] == "object"
 
 
@@ -213,6 +242,24 @@ def test_wrapped_prose_citation_is_restored_to_exact_original_source():
         ('Display "No matches found".', 'Display "No\nmatches found".', None),
         ("Call `shipping.fee(0)`.", "Call `shipping.fee( 0)`.", None),
         ("Display 'No matches found'.", "Display 'No\nmatches found'.", None),
+        ("a b", 'Return exact string "a  b".', None),
+        ("a b", "Return exact string 'a  b'.", None),
+        ("a b", "Return exact string `a  b`.", None),
+        ("a b", "Return exact string ``a  b``.", None),
+        ("a b", 'Return exact string "a  b', None),
+        ("a b", "Return exact string 'a  b", None),
+        ("a b", "Return exact string `a  b", None),
+        ("a b", "Return exact string ``a  b", None),
+        ("a b", "Return exact string ```a  b", None),
+        ("a b", "Return exact string “a  b”.", None),
+        ("a b", "Return exact string ‘a  b’.", None),
+        ("a b", r'Return exact string "a  b\"', None),
+        ("a  b", "Return exact string “a  b”.", "a  b"),
+        ("Display 'No matches found", "Display 'No\nmatches found", None),
+        ("Call ``a b``.", "Call ``a  b``.", None),
+        ('Display "a b".', 'Display\n"a b".', 'Display\n"a b".'),
+        ("Display 'a b'.", "Display\n'a b'.", "Display\n'a b'."),
+        ("a  b", 'Return exact string "a  b".', "a  b"),
         ("A B", "A\nB and A\tB", None),
         ("", "Some source text", None),
     ],

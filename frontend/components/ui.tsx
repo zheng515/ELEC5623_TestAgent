@@ -11,9 +11,6 @@ export function Empty({
 }) {
   return (
     <div className="empty">
-      <span className="empty-orbit" aria-hidden="true">
-        ↗
-      </span>
       <h3>{title}</h3>
       <p>{children}</p>
       {action}

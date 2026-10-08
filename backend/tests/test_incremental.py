@@ -123,7 +123,7 @@ def outcomes(*items) -> ExecutionResult:
     )
 
 
-FEE_PASSED = ("T1", "test_shipping.py", "test_fee", "passed")
+FEE_PASSED = ("T1", "test_generated_1.py", "test_scenario_1", "passed")
 
 
 @pytest.fixture
@@ -160,7 +160,7 @@ def test_a_new_function_gets_new_tests_while_carried_tests_run_again(repo, setti
         settings,
         REFUND_PLAN,
         REFUND_SUITE,
-        result=outcomes(FEE_PASSED, ("T2", "test_shipping_t2.py", "test_refund", "passed")),
+        result=outcomes(FEE_PASSED, ("T2", "test_generated_1_t2.py", "test_scenario_1", "passed")),
     )
 
     run = orchestrator.run(PROJECT, incremental=True, baseline=baseline)
@@ -173,12 +173,12 @@ def test_a_new_function_gets_new_tests_while_carried_tests_run_again(repo, setti
     assert change.new_test_ids == ["T2"]
     assert change.carried_test_ids == ["T1"]
     assert change.untraced == [] and change.regressions == []
-    # Requirements are reused: the model was asked to plan and generate, never to analyse.
-    assert len(llm.prompts) == 2
+    # Requirements are reused; only planning and independent review ask the model.
+    assert len(llm.prompts) == 1
     assert json.loads(llm.prompts[0])["focus_functions"] == ["shipping.refund"]
     assert [item["id"] for item in json.loads(llm.prompts[0])["existing_scenarios"]] == ["S1"]
     tests = {item.id: item for item in run.report.generated_tests}
-    assert tests["T2"].module == "test_shipping_t2.py"
+    assert tests["T2"].module == "test_generated_1_t2.py"
     assert all(item.validation_status == "validated" for item in tests.values())
     assert [item.id for item in runner.received[0]] == ["T1", "T2"]
     assert [item.id for item in run.report.test_plan.scenarios] == ["S1", "S2"]
@@ -225,7 +225,7 @@ def test_new_code_without_a_requirement_is_reported_not_tested(repo, settings, b
 def test_an_implementation_change_reruns_carried_tests_without_the_model(repo, settings, baseline):
     (repo / "shipping.py").write_text(FEE.replace("return 0 if", "return 1 if"))
     orchestrator, llm, runner = agent(
-        settings, result=outcomes(("T1", "test_shipping.py", "test_fee", "failed"))
+        settings, result=outcomes(("T1", "test_generated_1.py", "test_scenario_1", "failed"))
     )
 
     run = orchestrator.run(PROJECT, incremental=True, baseline=baseline)
@@ -235,13 +235,15 @@ def test_an_implementation_change_reruns_carried_tests_without_the_model(repo, s
     assert change.content_changed is True
     assert change.added == change.changed == change.removed == []
     assert [item.id for item in runner.received[0]] == ["T1"]
-    assert change.regressions == ["T1::test_fee: passed at the baseline, failed now"]
-    assert any(item.startswith("Regression: T1::test_fee") for item in run.report.unresolved_issues)
+    assert change.regressions == ["T1::test_scenario_1: passed at the baseline, failed now"]
+    assert any(
+        item.startswith("Regression: T1::test_scenario_1") for item in run.report.unresolved_issues
+    )
 
 
 def test_carried_tests_are_never_refined(repo, settings, baseline):
     (repo / "shipping.py").write_text(FEE + "# touched\n")
-    error = ("T1", "test_shipping.py", "test_fee", "error")
+    error = ("T1", "test_generated_1.py", "test_scenario_1", "error")
     result = outcomes(error)
     result.executions[0].message = "fixture 'missing_fixture' not found"
     orchestrator, llm, runner = agent(settings, result=result)
@@ -274,7 +276,7 @@ def test_without_a_usable_baseline_the_full_workflow_creates_one(repo, settings,
 
     assert run.status == "completed"
     assert run.report.change is None
-    assert len(llm.prompts) == 3
+    assert len(llm.prompts) == 2
     assert any("No usable baseline run: it ended as failed" in e.message for e in run.events)
 
 

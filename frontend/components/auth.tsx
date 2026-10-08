@@ -182,11 +182,7 @@ function AuthForm({
           reqtest<span className="brand-dot">.</span>
         </div>
         <div className="auth-intro">
-          <span className="eyebrow">FROM REQUIREMENTS TO EVIDENCE</span>
-          <h1>
-            Every requirement.
-            <br />A traceable outcome.
-          </h1>
+          <h1>Requirement-aware verification</h1>
           <p>
             Bring your requirements, tests, and verification evidence together
             in one workspace.
@@ -201,7 +197,6 @@ function AuthForm({
       </section>
       <section className="auth-content" aria-labelledby="auth-heading">
         <div className="auth-card">
-          <span className="eyebrow">YOUR VERIFICATION WORKSPACE</span>
           <h2 id="auth-heading">
             {registering ? "Create your account" : "Welcome back"}
           </h2>
@@ -316,7 +311,6 @@ function AuthForm({
             </button>
           </p>
         </div>
-        <p className="auth-footer">REQTEST / REQUIREMENT-AWARE VERIFICATION</p>
       </section>
     </main>
   );

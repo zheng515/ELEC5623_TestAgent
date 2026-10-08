@@ -41,7 +41,7 @@ backend_pid=$!
 (
   cd "$ROOT/frontend"
   # Run Node directly so the retained PID belongs to the frontend process.
-  exec node node_modules/vinext/dist/cli.js dev --host 127.0.0.1 --port 3000
+  exec node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 3000
 ) &
 frontend_pid=$!
 echo "Frontend: http://localhost:3000 | API docs: http://127.0.0.1:8000/docs"

@@ -1,6 +1,5 @@
 """Persisted, bounded background runs for a single local API process."""
 
-import hashlib
 import logging
 from datetime import UTC, datetime
 from queue import Queue
@@ -9,8 +8,9 @@ from typing import Literal
 from uuid import uuid4
 
 from app.core.database import Store
-from app.schemas import Project, ProjectCreate, RunEvent, VerificationReport, VerificationRun
+from app.schemas import Project, RunEvent, VerificationReport, VerificationRun
 from app.services.orchestrator import Orchestrator
+from app.services.run_context import new_run
 
 logger = logging.getLogger(__name__)
 
@@ -47,29 +47,26 @@ class RunManager:
     def _submit(
         self, project: Project, trigger: Literal["manual", "watch"]
     ) -> tuple[VerificationRun, bool]:
-        now = datetime.now(UTC)
-        queued = VerificationRun(
-            id=str(uuid4()),
-            project_id=project.id,
-            trigger=trigger,
-            created_at=now,
-            updated_at=now,
-            mode=getattr(self.orchestrator, "mode", "scaffold"),
-            status="queued",
-            input_sha256=hashlib.sha256(project.model_dump_json().encode()).hexdigest(),
-            inputs=project.model_dump(include=set(ProjectCreate.model_fields)),
-            events=[
-                RunEvent(
-                    id=str(uuid4()),
-                    stage="queue",
-                    created_at=now,
-                    message="Run queued. Waiting for the background worker.",
-                )
-            ],
-            report=VerificationReport(
-                summary="Run queued. Results will appear as stages finish.",
-                requirement_document=project.requirement_document,
-            ),
+        context = new_run(
+            project, mode=getattr(self.orchestrator, "mode", "scaffold"), trigger=trigger
+        )
+        queued = context.model_copy(
+            update={
+                "updated_at": context.created_at,
+                "status": "queued",
+                "events": [
+                    RunEvent(
+                        id=str(uuid4()),
+                        stage="queue",
+                        created_at=context.created_at,
+                        message="Run queued. Waiting for the background worker.",
+                    )
+                ],
+                "report": VerificationReport(
+                    summary="Run queued. Results will appear as stages finish.",
+                    requirement_document=project.requirement_document,
+                ),
+            }
         )
         with self._lock:
             if self._stopped.is_set():
@@ -105,13 +102,7 @@ class RunManager:
                 raise JobInterrupted()
             latest = snapshot.model_copy(
                 update={
-                    "id": queued.id,
-                    "project_id": queued.project_id,
-                    "trigger": queued.trigger,
-                    "created_at": queued.created_at,
                     "updated_at": datetime.now(UTC),
-                    "input_sha256": queued.input_sha256,
-                    "inputs": queued.inputs,
                     "events": [queued.events[0], *snapshot.events],
                 },
                 deep=True,
@@ -137,7 +128,7 @@ class RunManager:
                     "incremental": True,
                     "baseline": self.store.latest_completed_run(project.id),
                 }
-            result = self.orchestrator.run(project, on_progress=save, **options)
+            result = self.orchestrator.run(project, on_progress=save, run=queued, **options)
             save(result)
         except JobInterrupted:
             return

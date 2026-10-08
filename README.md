@@ -8,9 +8,9 @@ This repository contains a working **frontend, backend, B0/B2 agent, repository 
 
 | Area | Current implementation |
 | --- | --- |
-| Frontend | React 19, TypeScript, vinext/Vite, and an English responsive interface |
+| Frontend | React 19, TypeScript, Vite, and an English responsive interface |
 | Backend | FastAPI, Pydantic, and versioned REST endpoints with OpenAPI documentation |
-| Agent | OpenAI Responses API with structured output for requirement analysis, scenario planning, independent oracle review, and test generation |
+| Agent | OpenAI Responses API with structured output for requirement analysis, scenario planning, and independent oracle review; deterministic pytest templates; Anthropic remains optional |
 | Inspection | Read-only AST reading of the project under test, downloaded from a GitHub URL at a pinned commit or confined to a configured local root |
 | Execution | pytest inside a Docker sandbox with no network, a read-only filesystem, and resource limits |
 | Persistence | SQLite for projects, requirements, goals, runs, events, and reports |
@@ -18,11 +18,11 @@ This repository contains a working **frontend, backend, B0/B2 agent, repository 
 
 ## Requirements and setup
 
-Install Python 3.11+ and Node.js 22.13+. The recommended Node version is recorded in `.nvmrc`.
+Install Python 3.11+ (linked SQLite 3.35+) and Node.js 22.13+. The recommended Node version is recorded in `.nvmrc`.
 
-The agent stages need an OpenAI API key. Copy `backend/.env.example` to `backend/.env` and set `OPENAI_API_KEY`, or export it in your shell. **Without a key the app still starts**, in scaffold mode: projects and runs are recorded, but no requirement is analysed and no test is generated. `GET /api/v1/system` reports which mode is active.
+The agent stages use OpenAI by default. Copy `backend/.env.example` to `backend/.env` and set `OPENAI_API_KEY`, or export it in your shell. `REQTEST_LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY` and an Anthropic `REQTEST_LLM_MODEL` keeps the previous provider available. **Without a key the app still starts**, in scaffold mode: projects and runs are recorded, but no requirement is analysed and no test is generated. `GET /api/v1/system` reports which mode is active.
 
-The default model is `gpt-6-luna`; override it with `REQTEST_LLM_MODEL` using an OpenAI model that supports the Responses API and Structured Outputs. Restart the backend after changing `.env`. The adapter sends `store=false` and does not automatically retry failed API requests. A configured key enables the agent stages, but the key, model access, and available quota are only verified when a model request runs. A ChatGPT or Codex subscription does not replace an OpenAI API key.
+The default OpenAI model is `gpt-5.6-luna`; override it with `REQTEST_LLM_MODEL`. Restart the backend after changing `.env`. The OpenAI adapter sends `store=false` and does not automatically retry failed API requests. Model access, credentials and available quota are checked when a model request runs.
 
 Reading the project under test works from a GitHub URL with no further setting: each run resolves the URL's branch to a commit, downloads that commit through the GitHub API, and records which commit it read. Private repositories need `REQTEST_GITHUB_TOKEN`. To read local directories instead, set `REQTEST_REPOSITORY_ROOT` to the directory that project repositories live under; a run may only read paths inside it. Either way, the server saves a bounded code copy locally and sends only public interfaces to the model. Leaving the root unset means a local path is stored but never read, which is the safe default.
 
@@ -32,7 +32,7 @@ Executing generated tests additionally needs Docker. Build the sandbox image onc
 bash scripts/build-sandbox.sh
 ```
 
-Without Docker or the image, runs still analyse requirements, plan scenarios, and generate tests; they report that execution is not connected rather than skipping it silently. **Generated test code is model output and only ever runs inside that container** — there is no host-execution fallback.
+Without Docker or the image, runs still analyse requirements, plan scenarios, and generate tests; they report that execution is not connected rather than skipping it silently. **Tests are rendered from independently reviewed scenario contracts and only ever run inside that container** — there is no host-execution fallback.
 
 From the repository root:
 
@@ -159,7 +159,7 @@ configure trusted proxy addresses before relying on per-client throttling.
 1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
 2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference: a GitHub URL such as `https://github.com/owner/repository`, optionally ending in `/tree/<branch>/<folder>` or `/commit/<sha>`, or a local path inside the configured root. You can import a `.txt`, `.md`, `.pdf` (including scanned pages), or Word `.docx`/`.doc` requirement file, or use the English shipping example.
 3. Submit the form to save the project, queue a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
-4. Follow live workflow stages (refreshed every two seconds), recorded events, current metrics, and unresolved issues in **Agent workspace**. Expand **Test plan** scenarios to see their normal, boundary, or negative category, preconditions, inputs, steps, expected result, source evidence, assumptions, linked tests, and execution outcomes.
+4. In **Agent workspace**, search and select test cases to inspect inputs, steps, expected results, saved execution evidence, and requirement sources. Expand the technical details for recorded events, metrics, unresolved issues, and the full test plan. Active runs refresh every two seconds; progress shows the recorded stage without an estimated percentage.
 5. Open **Requirements & evidence** to read the saved requirements and filter the extracted behaviors by verification status.
 6. Open **Runs & reports** for the saved test plan, requirement-to-test mapping table, run metrics, and portable HTML or JSON report downloads. Page links retain the selected project and run. Downloads are available after the run stops. Expand **Execution history** to compare original and repaired test code, outcomes, and sandbox diagnostics.
 
@@ -167,7 +167,7 @@ configure trusted proxy addresses before relying on per-client throttling.
 
 1. Configure model credentials in `backend/.env` and restart the backend. Confirm `/api/v1/system` shows `baseline_b0` or `baseline_b2` and **Structured test planning** is ready.
 2. Create a task using **Use shipping example**, then submit once. The agent performs analysis, planning, and generation automatically; no manual approval is required between stages.
-3. In **Agent workspace**, check **Plan tests** and the **Test plan created** event. Expand a scenario and compare its expected result and source quote with the submitted requirements. Category counts and scenario content depend on the model and the stated requirements; missing business rules should remain gaps or assumptions.
+3. In **Agent workspace**, select a test case and compare its expected result and source quote with the submitted requirements. The technical details retain the **Test plan created** event and complete scenario records. Category counts and scenario content depend on the model and the stated requirements; missing business rules should remain gaps or assumptions.
 4. Confirm each generated test names its scenario ID and requirement ID. Review **Requirements without scenarios** and **Scenarios without validated implementations** when present; a generated-test coverage rate does not mean every planned scenario was implemented.
 5. Open **Runs & reports**, download HTML and JSON, and check that the plan and references are preserved. Refresh the page to verify persistence. Older runs display **No test plan recorded for this run** rather than inventing one.
 
@@ -187,10 +187,10 @@ Use one API process with this SQLite worker. On shutdown or restart, unfinished 
 
 A completed agent run reports two rates, and they measure different things:
 
-- `requirement_coverage` — for new runs (`validation_version = 3`), share of extracted testable requirements linked to at least one artifact whose code passes server-side code-to-plan validation. It is labeled **Validated requirement links** in the UI. Unchecked or unsupported claims do not count; a requirement-level link does not mean every planned scenario is implemented. Old reports retain their historical metrics and are explicitly marked as not revalidated.
+- `requirement_coverage` — for new runs using the current validation rules, share of extracted testable requirements linked to at least one artifact whose code passes server-side code-to-plan validation. It is labeled **Validated requirement links** in the UI. Unchecked or unsupported claims do not count; a requirement-level link does not mean every planned scenario is implemented. Old reports retain their historical metrics and are explicitly marked as not revalidated.
 - `execution_success_rate` — share of **executed** tests that passed. `null` means nothing ran.
 
-`semantic_coverage` and `mutation_score` stay `null`; `null` means *not evaluated*.
+Reports expose the calculated requirement-link coverage and execution success rate. Semantic coverage and mutation score are not implemented and are omitted from new reports; old report JSON remains readable.
 
 Verification statuses follow the evidence, and only ever downward from what was proven:
 
@@ -205,7 +205,7 @@ Verification statuses follow the evidence, and only ever downward from what was 
 
 Validation version 3 adds a separate AI oracle review after planning and before generation. The reviewer receives the original requirement text, linked source quotes, exact scenario contracts, and inspected interfaces, without any prior grounding approval. It assesses expected values, units, boundaries, exception types, and missing assumptions. The server verifies that every linked requirement has a verbatim original-source citation and binds the assessment to a hash of the saved scenario; model-authored approvals are discarded. A contradicted or insufficient assessment, missing/duplicate decision, invalid citation, review API failure, or changed scenario excludes its generated artifacts from coverage and automatic execution. Proposed scenarios and review reasons remain visible in the test plan and HTML export.
 
-Before generation, the server selects only scenarios with current source support. If none qualify, it skips the generation model request and sandbox execution, preserving the full plan, review reasons, and coverage gaps. Mixed plans send only supported scenarios to the generator. Runs with zero artifacts show `No tests generated` or `Review needed · no tests generated`; a completed workflow does not imply tests exist.
+Before generation, the server selects only scenarios with current source support. If none qualify, it skips test rendering and sandbox execution, preserving the full plan, review reasons, and coverage gaps. Mixed plans render only supported scenarios. Runs with zero artifacts show `No tests generated` or `Review needed · no tests generated`; a completed workflow does not imply tests exist.
 
 This adds one structured model request per nonempty plan. Citations are checked deterministically, but the semantic judgment remains an AI assessment using the configured model, not proof or test adequacy. No additional human approval step is required. A mixed artifact containing an unsupported scenario is excluded as a whole. Old results keep their stored evidence and must be rerun for these checks.
 
@@ -219,7 +219,7 @@ New reports save `outcome_mapping_version = 1`. Requirement conclusions, evidenc
 
 Nested input objects, missing repository interfaces or contracts, classes, helpers, parameterization, fixture-dependent behavior, unresolved assumptions, and setup preconditions currently require review. No manual approval step is inserted: supported checks continue automatically. Matching a contract is not proof that the planner interpreted the requirement correctly, that extraction was complete, or that the tests are adequate. The original document-to-plan semantics still need separate assessment.
 
-Automatic repair is deliberately narrow: it can remove an unused fixture parameter explicitly named by a recorded missing-fixture error. The server compares the complete module AST and preserves test bodies, assertions, inputs, project calls, imports, helper functions, decorators, and control flow. Constant-only checks, modules without identifiable project calls, dynamic namespace access, and unparseable baselines are rejected. Syntax errors and other unsupported edits remain recorded errors rather than being rewritten without a protected baseline. Rejected replacements are not executed; their reasons appear in activity and unresolved issues, and original code and execution evidence remain available. This protects repair integrity; it does not prove the original tests implement every planned scenario or establish test adequacy.
+Automatic repair is deliberately narrow: it can remove an unused fixture parameter explicitly named by a recorded missing-fixture error. The server compares the complete module AST and preserves test bodies, assertions, inputs, project calls, imports, helper functions, decorators, and control flow. Constant-only checks, modules without identifiable project calls, dynamic namespace access, and unparseable baselines are rejected. Syntax errors and other unsupported edits remain recorded errors rather than being rewritten without a protected baseline. Rejected replacements are not executed; their reasons appear in activity and unresolved issues, and original code and execution evidence remain available. This protects repair integrity; it does not prove the original tests implement every planned scenario or establish test adequacy. The candidate is computed deterministically. Current validation rejects fixture arguments, so normal new tests do not reach this repair case.
 
 ### GitHub repositories
 
@@ -259,7 +259,7 @@ Each check makes about two GitHub API calls. Watching several projects without `
 | GET | `/api/v1/projects/{id}/watch` | Watch state: `enabled`, `active`, `interval_seconds`, last check, commit, run and error |
 | POST | `/api/v1/projects/{id}/watch` | `{"enabled": true}` or `{"enabled": false}`; 422 for a non-GitHub or commit URL, 409 when watching is unavailable |
 
-`mode` records the active workflow. `baseline_b0` is one direct generation pass without retrieval or feedback. `baseline_b2` adds execution feedback and one bounded repair attempt for invalid tests. Neither mode includes RAG retrieval yet.
+`mode` records the active workflow. `baseline_b0` performs analysis, planning, independent oracle review and template rendering. `baseline_b2` adds isolated execution feedback and one bounded, guarded repair attempt. Neither mode includes RAG retrieval.
 
 ## Repository layout
 
@@ -271,10 +271,10 @@ backend/
     api/routes.py             Versioned API routes
     core/config.py            Environment settings
     core/database.py          SQLite storage
-    services/llm.py           OpenAI client and structured-output wrapper
+    services/llm.py           OpenAI/Anthropic clients and structured-output wrapper
     services/analyzer.py      Requirement structuring and ambiguity detection
     services/planner.py       Structured scenarios, source links, and planning gaps
-    services/generator.py     Plan-driven test generation, traceability, and coverage gaps
+    services/generator.py     Deterministic pytest templates from reviewed scenario contracts
     services/inspector.py     Read-only interface extraction from the project under test
     services/github_source.py GitHub URL parsing and pinned-commit archive download
     services/incremental.py   Interface diffs, baselines, and id continuation for watch runs

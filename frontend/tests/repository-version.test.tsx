@@ -76,8 +76,6 @@ it("shows the content fingerprint bound to each execution attempt", () => {
     executed_tests: 0,
     execution_success_rate: null,
     requirement_coverage: null,
-    semantic_coverage: null,
-    mutation_score: null,
     execution_attempts: [
       {
         number: 1,

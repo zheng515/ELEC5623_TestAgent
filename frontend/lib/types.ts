@@ -1,5 +1,3 @@
-export const VALIDATION_VERSION = 3;
-
 export interface User {
   id: string;
   name: string;
@@ -247,6 +245,7 @@ export interface VerificationReport {
   generated_tests: GeneratedTest[];
   behaviors: Behavior[];
   evidence: Record<string, string>[];
+  scenario_evidence_refs?: Record<string, string[]> | null;
   unresolved_issues: string[];
   coverage_gaps: string[];
   executions: ExecutedTest[];
@@ -257,8 +256,6 @@ export interface VerificationReport {
   executed_tests: number;
   execution_success_rate: number | null;
   requirement_coverage: number | null;
-  semantic_coverage: number | null;
-  mutation_score: number | null;
   change?: RepositoryChange | null;
 }
 export interface RepositoryChange {
@@ -315,6 +312,8 @@ export function isRunActive(run?: VerificationRun): boolean {
 }
 export interface SystemInfo {
   version: string;
+  validation_version: number;
+  outcome_mapping_version: number;
   mode: RunMode;
   integrations: {
     key: string;

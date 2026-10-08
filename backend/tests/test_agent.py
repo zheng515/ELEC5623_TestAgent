@@ -178,7 +178,19 @@ class FakeRunner:
     def execute(self, tests, repository_root=None):
         self.received.append(tests)
         self.roots.append(repository_root)
-        return self.result
+        return self._result_for(tests, self.result)
+
+    def _result_for(self, tests, result):
+        # Only the original standard fixture identity follows the current renderer.
+        # Deliberately wrong identities and extra function outcomes stay untouched.
+        by_id = {test.id: test for test in tests}
+        executions = []
+        for item in result.executions:
+            test = by_id.get(item.test_id)
+            if test and item.module == SUITE.tests[0].module and item.name == SUITE.tests[0].name:
+                item = item.model_copy(update={"module": test.module, "name": test.name})
+            executions.append(item)
+        return result.model_copy(update={"executions": executions})
 
     def for_run(self):
         return self
@@ -199,7 +211,7 @@ class SequenceRunner(FakeRunner):
     def execute(self, tests, repository_root=None):
         self.received.append(tests)
         self.roots.append(repository_root)
-        return self.results.pop(0)
+        return self._result_for(tests, self.results.pop(0))
 
 
 def execution(*outcomes) -> ExecutionResult:
@@ -227,6 +239,18 @@ def execution(*outcomes) -> ExecutionResult:
     )
 
 
+def install_generated_suite(monkeypatch, suite):
+    """Inject pre-existing artifacts to exercise gates; production uses templates."""
+    from app.services.test_validator import validate_test
+
+    monkeypatch.setattr(
+        "app.services.orchestrator.generate_tests",
+        lambda requirements, repository, *, plan: suite.model_copy(
+            update={"tests": [validate_test(test, plan, repository) for test in suite.tests]}
+        ),
+    )
+
+
 def run_agent(*responses, runner=None):
     return DirectLLMOrchestrator(FakeLLM(*responses), runner=runner).run(PROJECT)
 
@@ -245,15 +269,13 @@ def test_b0_run_records_requirements_tests_and_traceability():
     # R1 is covered by a test but nothing ran, so it is still unverified, not verified.
     statuses = {b.requirement_id: b.verification_status for b in run.report.behaviors}
     assert statuses == {"R1": "Unverified", "R2": "Uncertain"}
-    assert [b.test_refs for b in run.report.behaviors] == [["test_shipping.py"], []]
+    assert [b.test_refs for b in run.report.behaviors] == [["test_generated_1.py"], []]
 
 
 def test_b0_run_never_claims_execution_or_measurement():
     report = run_agent(ANALYSIS, PLAN, SUITE).report
 
     assert report.executed_tests == 0
-    assert report.semantic_coverage is None
-    assert report.mutation_score is None
     assert any("were not executed" in issue for issue in report.unresolved_issues)
     assert report.execution_success_rate is None
     assert report.executions == []
@@ -267,51 +289,32 @@ def test_ambiguity_and_untestable_requirements_are_reported_not_invented():
 
 
 def test_uncovered_testable_requirement_becomes_a_gap():
-    empty = GeneratedTestSuite(tests=[], notes="")
-    report = run_agent(ANALYSIS, PLAN, empty).report
-
+    plan = ScenarioPlan(scenarios=[], notes="No implementable scenario.")
+    report = run_agent(ANALYSIS, plan).report
     assert report.coverage_gaps == ["R1: An order of at least 100 dollars ships free."]
     assert report.requirement_coverage == 0.0
     assert any("no generated test" in issue for issue in report.unresolved_issues)
 
 
-def test_invented_requirement_references_are_dropped():
-    suite = GeneratedTestSuite(
-        tests=[
-            GeneratedTest(
-                id="T1",
-                requirement_ids=["R1", "R99"],
-                scenario_ids=["S1", "S99"],
-                name="test_x",
-                module="test_x",
-                code="def test_x():\n    assert True\n",
-                rationale="",
-            )
-        ],
-        notes="",
+def test_template_derives_links_only_from_the_saved_plan():
+    suite = generate_tests(ANALYSIS.requirements, REPOSITORY, plan=PLAN)
+    assert suite.tests[0].requirement_ids == ["R1"]
+    assert suite.tests[0].scenario_ids == ["S1"]
+    assert suite.tests[0].validation_status == "validated"
+
+
+def test_template_does_not_render_untestable_requirement_links():
+    scenario = PLAN.scenarios[0].model_copy(update={"requirement_ids": ["R2"]})
+    plan = review_oracles(
+        FakeLLM(), PROJECT, ANALYSIS.requirements, PLAN.model_copy(update={"scenarios": [scenario]})
     )
-    report = run_agent(ANALYSIS, PLAN, suite).report
-
-    assert report.generated_tests[0].requirement_ids == ["R1"]
-    assert report.generated_tests[0].module == "test_x.py"
-
-
-def test_untestable_requirements_are_not_sent_to_the_generator():
-    llm = FakeLLM(SUITE)
-    generate_tests(llm, PROJECT, ANALYSIS.requirements, plan=PLAN)
-
-    assert "R1" in llm.prompts[0]
-    assert "R2" not in llm.prompts[0]
+    suite = generate_tests(ANALYSIS.requirements, REPOSITORY, plan=plan)
+    assert suite.tests == []
 
 
 def test_generator_is_skipped_when_nothing_is_testable():
-    llm = FakeLLM()
-    suite = generate_tests(
-        llm, PROJECT, [ANALYSIS.requirements[1]], plan=ScenarioPlan(scenarios=[], notes="")
-    )
-
+    suite = generate_tests([ANALYSIS.requirements[1]], plan=ScenarioPlan(scenarios=[], notes=""))
     assert suite.tests == []
-    assert llm.prompts == []
 
 
 def test_model_failure_produces_a_failed_run_not_a_fake_result():
@@ -320,17 +323,17 @@ def test_model_failure_produces_a_failed_run_not_a_fake_result():
     assert run.status == "failed"
     assert run.stage == "analyze"
     assert run.report.generated_tests == []
-    assert run.report.unresolved_issues == ["The model API could not be reached."]
+    assert run.report.unresolved_issues[0] == "The model API could not be reached."
 
 
-def test_generation_failure_keeps_the_requirements_already_extracted():
-    run = run_agent(ANALYSIS, PLAN, LLMError("rate limited"))
-
-    assert run.status == "failed"
-    assert run.stage == "generate"
-    assert run.report.test_plan == PLAN
-    assert [r.id for r in run.report.requirements] == ["R1", "R2"]
-    assert run.report.uncovered_scenarios == ["S1: Free shipping at threshold"]
+def test_template_checkpoint_keeps_requirements_and_reviewed_plan():
+    snapshots = []
+    run = DirectLLMOrchestrator(FakeLLM(ANALYSIS, PLAN)).run(PROJECT, on_progress=snapshots.append)
+    generating = next(item for item in snapshots if item.stage == "generate")
+    assert generating.report.requirements == ANALYSIS.requirements
+    assert generating.report.test_plan == run.report.test_plan
+    assert generating.report.source_audit == run.report.source_audit
+    assert all(item.status == "running" for item in snapshots)
 
 
 def test_coverage_helpers_return_none_when_nothing_is_testable():
@@ -357,7 +360,7 @@ def test_api_serves_an_agent_run_end_to_end(settings):
         stored = client.get(f"/api/v1/runs/{run['id']}").json()
         assert stored == run
         report = client.get(f"/api/v1/runs/{run['id']}/report").json()
-        assert report["generated_tests"][0]["module"] == "test_shipping.py"
+        assert report["generated_tests"][0]["module"] == "test_generated_1.py"
         assert report["requirement_coverage"] == 0.0
         assert report["test_plan"]["scenarios"][0]["expected_result"] == "Free shipping."
         assert report["generated_tests"][0]["scenario_ids"] == ["S1"]
@@ -371,7 +374,8 @@ def test_api_serves_an_agent_run_end_to_end(settings):
 
 
 def test_missing_credentials_fall_back_to_scaffold_mode(tmp_path, monkeypatch):
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    for name in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
     live = Settings(database_path=tmp_path / "live.db", sandbox_enabled=False, _env_file=None)
 
     with TestClient(create_app(live)) as client:
@@ -469,7 +473,7 @@ def test_errored_and_failed_tests_are_reported_as_distinct_problems():
 
     issues = " ".join(report.unresolved_issues)
     assert "1 generated tests still could not run" in issues
-    assert "1 generated tests ran and failed" in issues
+    assert "1 failing tests are suspected product defects" in issues
     assert "suspected product defects" in issues
 
 
@@ -565,8 +569,9 @@ def test_the_real_interfaces_reach_the_generator_and_the_sandbox():
 
     run = orchestrator.run(PROJECT)
 
-    assert "module shipping (shipping.py)" in llm.prompts[2]
-    assert "fee(amount_cents: int) -> int" in llm.prompts[2]
+    assert len(llm.prompts) == 2
+    assert "shipping" in llm.prompts[1]
+    assert "from shipping import fee as project_call" in run.report.generated_tests[0].code
     from app.services.repository_snapshot import verified_snapshot_root
 
     assert runner.roots == [
@@ -596,7 +601,8 @@ def test_a_failing_test_leaves_the_behavior_unverified():
     assert statuses["R1"] == "Unverified"
 
 
-def test_invalid_test_is_refined_and_reexecuted_once():
+def test_unused_fixture_stays_pending_review_without_refinement(monkeypatch):
+    install_generated_suite(monkeypatch, INVALID_SUITE)
     refined = GeneratedTestSuite(
         tests=[SUITE.tests[0].model_copy(update={"code": SUITE.tests[0].code})],
         notes="Corrected the invalid test construction.",
@@ -606,17 +612,14 @@ def test_invalid_test_is_refined_and_reexecuted_once():
     run = inspecting_agent(ANALYSIS, PLAN, INVALID_SUITE, refined, runner=runner).run(PROJECT)
 
     assert run.mode == "baseline_b2"
-    assert len(runner.received) == 2
-    assert runner.received[1][0].code == refined.tests[0].code
-    assert [item.outcome for item in run.report.executions] == ["passed"]
-    assert run.report.refinement_iterations == 1
+    assert runner.received == []
+    assert run.report.generated_tests[0].code == INVALID_SUITE.tests[0].code
+    assert run.report.generated_tests[0].validation_status == "needs_review"
+    assert run.report.executions == []
+    assert run.report.refinement_iterations == 0
     assert run.report.diagnoses == []
-    assert run.report.execution_attempts[0].diagnoses[0].classification == "invalid_test"
-    assert [item.result.executions[0].outcome for item in run.report.execution_attempts] == [
-        "error",
-        "passed",
-    ]
-    assert [event.stage for event in run.events][-2:] == ["improve", "re_measure"]
+    assert run.report.execution_attempts == []
+    assert not any(event.stage in {"improve", "re_measure"} for event in run.events)
 
 
 def test_assertion_failure_is_preserved_as_a_suspected_defect():
@@ -677,8 +680,6 @@ def test_inspection_status_follows_the_configured_sources(tmp_path):
     # GitHub downloads expose nothing on this server, so they need no repository root.
     assert integrations(github)["inspection"]["status"] == "ready"
     assert "pinned commit" in integrations(github)["inspection"]["description"]
-    # RAG is a separate integration and is still unbuilt.
-    assert integrations(local)["retrieval"]["status"] == "not_connected"
 
 
 def test_planning_failure_keeps_requirements_and_stops_generation():
@@ -745,20 +746,11 @@ def test_empty_plan_records_planning_gap_without_generating_unplanned_tests():
     assert any("no planned scenario" in item for item in run.report.unresolved_issues)
 
 
-def test_generator_uses_plan_oracle_and_rejects_unlinked_tests():
-    invented = SUITE.tests[0].model_copy(
-        update={
-            "scenario_ids": ["invented"],
-            "requirement_ids": ["R1"],
-        }
-    )
-    llm = FakeLLM(GeneratedTestSuite(tests=[invented], notes=""))
-    suite = generate_tests(llm, PROJECT, ANALYSIS.requirements, REPOSITORY, plan=PLAN)
-
-    assert "Free shipping." in llm.prompts[0]
-    assert "amount = 100 dollars" in llm.prompts[0]
-    assert suite.tests == []
-    assert "no valid scenario link" in suite.notes
+def test_generator_renders_the_plan_oracle_without_a_model_response():
+    suite = generate_tests(ANALYSIS.requirements, REPOSITORY, plan=PLAN)
+    assert len(suite.tests) == 1
+    assert "assert project_call(10000) == 0" in suite.tests[0].code
+    assert suite.tests[0].validated_checks[0].scenario_id == "S1"
 
 
 def test_unimplemented_scenario_is_reported_separately_from_requirement_coverage():
@@ -766,6 +758,7 @@ def test_unimplemented_scenario_is_reported_separately_from_requirement_coverage
         update={
             "id": "S2",
             "title": "Above the shipping threshold",
+            "check": None,
         }
     )
     plan = ScenarioPlan(scenarios=[*PLAN.scenarios, second], notes="")
@@ -778,7 +771,8 @@ def test_unimplemented_scenario_is_reported_separately_from_requirement_coverage
     )
 
 
-def test_refinement_cannot_rewrite_requirement_or_scenario_lineage():
+def test_pending_review_preserves_lineage_without_accepting_replacement(monkeypatch):
+    install_generated_suite(monkeypatch, INVALID_SUITE)
     replacement = SUITE.tests[0].model_copy(
         update={
             "requirement_ids": ["R2"],
@@ -797,7 +791,10 @@ def test_refinement_cannot_rewrite_requirement_or_scenario_lineage():
 
     assert run.report.generated_tests[0].requirement_ids == ["R1"]
     assert run.report.generated_tests[0].scenario_ids == ["S1"]
-    assert runner.received[1][0].module == "test_shipping.py"
+    assert run.report.generated_tests[0].module == "test_shipping.py"
+    assert run.report.generated_tests[0].code == INVALID_SUITE.tests[0].code
+    assert runner.received == []
+    assert run.report.execution_attempts == []
 
 
 def test_html_plan_escapes_model_text_and_links_execution_outcomes():
@@ -821,7 +818,7 @@ def test_html_plan_escapes_model_text_and_links_execution_outcomes():
     assert "<img src=x" not in html
     assert "&lt;img src=x onerror=alert(1)&gt;" in html
     assert "fee(amount_cents: int) -&gt; int" in html
-    assert "test_free_shipping_at_threshold: passed" in html
+    assert "test_scenario_1: passed" in html
 
 
 def test_legacy_run_without_a_plan_remains_readable():
@@ -854,17 +851,17 @@ def test_invalid_source_quote_stops_before_planning(quote):
 
 
 def test_unexecuted_linked_test_prevents_partial_verification():
-    second = SUITE.tests[0].model_copy(update={"id": "T2", "module": "test_other.py"})
-    suite = GeneratedTestSuite(tests=[SUITE.tests[0], second], notes="")
-    run = inspecting_agent(ANALYSIS, PLAN, suite, runner=FakeRunner(execution("passed"))).run(
-        PROJECT
-    )
+    second = PLAN.scenarios[0].model_copy(update={"id": "S2"})
+    plan = ScenarioPlan(scenarios=[*PLAN.scenarios, second], notes="")
+    run = inspecting_agent(ANALYSIS, plan, runner=FakeRunner(execution("passed"))).run(PROJECT)
     assert run.report.behaviors[0].verification_status == "Unverified"
-    assert run.report.execution_gaps == ["T2: test_other.py"]
+    assert run.report.execution_gaps == ["T2: test_generated_2.py"]
 
 
 def test_missing_planned_scenario_prevents_partial_verification():
-    second = PLAN.scenarios[0].model_copy(update={"id": "S2", "title": "Above threshold"})
+    second = PLAN.scenarios[0].model_copy(
+        update={"id": "S2", "title": "Above threshold", "check": None}
+    )
     plan = ScenarioPlan(scenarios=[*PLAN.scenarios, second], notes="")
     run = inspecting_agent(ANALYSIS, plan, SUITE, runner=FakeRunner(execution("passed"))).run(
         PROJECT
@@ -873,7 +870,8 @@ def test_missing_planned_scenario_prevents_partial_verification():
     assert run.report.uncovered_scenarios == ["S2: Above threshold"]
 
 
-def test_repair_timeout_preserves_both_attempts_and_uses_latest_execution_metadata():
+def test_pending_review_does_not_fabricate_repair_timeout_or_attempts(monkeypatch):
+    install_generated_suite(monkeypatch, INVALID_SUITE)
     timeout = ExecutionResult(
         executions=[], exit_code=-1, timed_out=True, stderr_excerpt="Repair exceeded 120s."
     )
@@ -890,15 +888,13 @@ def test_repair_timeout_preserves_both_attempts_and_uses_latest_execution_metada
     )
     runner = SequenceRunner(execution("error"), timeout)
     run = inspecting_agent(ANALYSIS, PLAN, INVALID_SUITE, refined, runner=runner).run(PROJECT)
-    assert "latest sandbox attempt timed out" in run.report.summary
-    assert any("Repair exceeded 120s" in item for item in run.report.unresolved_issues)
-    assert not any("Exit code 1" in item for item in run.report.unresolved_issues)
+    assert "No test was executed" in run.report.summary
+    assert not any("Repair exceeded 120s" in item for item in run.report.unresolved_issues)
     assert run.report.executions == []
     assert run.report.behaviors[0].verification_status == "Unverified"
-    assert run.report.execution_attempts[0].tests[0].code == INVALID_SUITE.tests[0].code
-    assert run.report.execution_attempts[0].result.executions[0].outcome == "error"
-    assert run.report.execution_attempts[1].result.timed_out
-    assert run.report.execution_attempts[1].tests[0].code == refined.tests[0].code
+    assert run.report.generated_tests[0].code == INVALID_SUITE.tests[0].code
+    assert run.report.execution_attempts == []
+    assert runner.received == []
 
 
 def test_unknown_environment_error_is_not_automatically_repaired():
@@ -911,21 +907,22 @@ def test_unknown_environment_error_is_not_automatically_repaired():
     assert run.report.diagnoses[0].classification == "inconclusive"
 
 
-def test_duplicate_generated_test_ids_are_distinct_traceable_artifacts():
-    second = SUITE.tests[0].model_copy(update={"module": "test_other.py"})
-    suite = generate_tests(
-        FakeLLM(GeneratedTestSuite(tests=[SUITE.tests[0], second], notes="")),
+def test_template_artifacts_have_distinct_ids_modules_and_function_names():
+    second = PLAN.scenarios[0].model_copy(update={"id": "S2"})
+    plan = review_oracles(
+        FakeLLM(),
         PROJECT,
         ANALYSIS.requirements,
-        plan=PLAN,
+        PLAN.model_copy(update={"scenarios": [*PLAN.scenarios, second]}),
     )
-    assert len({test.id for test in suite.tests}) == 2
-    assert suite.tests[1].module == "test_other.py"
-    assert suite.tests[1].scenario_ids == ["S1"]
-    assert "Renumbered duplicate test id" in suite.notes
+    suite = generate_tests(ANALYSIS.requirements, REPOSITORY, plan=plan)
+    assert [test.id for test in suite.tests] == ["T1", "T2"]
+    assert len({test.module for test in suite.tests}) == 2
+    assert len({test.name for test in suite.tests}) == 2
+    assert all(test.validation_status == "validated" for test in suite.tests)
 
 
-def test_html_archives_original_and_repaired_artifacts_and_escapes_code():
+def test_html_preserves_pending_review_artifact_and_escapes_code(monkeypatch):
     from app.services.report_renderer import render_html_report
 
     repaired = SUITE.model_copy(
@@ -937,10 +934,20 @@ def test_html_archives_original_and_repaired_artifacts_and_escapes_code():
             ]
         }
     )
+    unsafe = INVALID_SUITE.model_copy(
+        update={
+            "tests": [
+                INVALID_SUITE.tests[0].model_copy(
+                    update={"code": "# <script>alert(1)</script>\n" + INVALID_SUITE.tests[0].code}
+                )
+            ]
+        }
+    )
+    install_generated_suite(monkeypatch, unsafe)
     run = inspecting_agent(
         ANALYSIS,
         PLAN,
-        INVALID_SUITE,
+        unsafe,
         repaired,
         runner=SequenceRunner(
             execution("error"),
@@ -950,9 +957,10 @@ def test_html_archives_original_and_repaired_artifacts_and_escapes_code():
         ),
     ).run(PROJECT)
     html = render_html_report(PROJECT, run)
-    assert "Execution history" in html
-    assert "Attempt 1" in html and "Attempt 2" in html
-    assert "Repair timed out." in html
+    assert "Code-to-plan validation" in html
+    assert "needs_review" in html
+    assert "Attempt 1" not in html
+    assert "Repair timed out." not in html
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
     assert "<script>alert(1)</script>" not in html
     assert "T1: test_shipping.py" in html
@@ -1057,15 +1065,14 @@ def test_snapshot_tampering_never_produces_trusted_passing_outcomes(when):
     assert len(runner.received) == (0 if when == "before" else 1)
 
 
-def test_repaired_tests_execute_against_the_same_saved_code_version():
+def test_pending_review_fixture_never_reaches_saved_code_execution(monkeypatch):
+    install_generated_suite(monkeypatch, INVALID_SUITE)
     runner = SequenceRunner(execution("error"), execution("passed"))
     run = inspecting_agent(ANALYSIS, PLAN, INVALID_SUITE, SUITE, runner=runner).run(PROJECT)
-    assert len(runner.roots) == 2
-    assert len(set(runner.roots)) == 1
-    fingerprints = {
-        attempt.result.repository_content_sha256 for attempt in run.report.execution_attempts
-    }
-    assert fingerprints == {run.report.repository.artifact.content_sha256}
+    assert run.report.repository.artifact.content_sha256
+    assert run.report.generated_tests[0].validation_status == "needs_review"
+    assert run.report.execution_attempts == []
+    assert runner.roots == []
 
 
 def test_legacy_interface_snapshot_is_not_an_execution_input():

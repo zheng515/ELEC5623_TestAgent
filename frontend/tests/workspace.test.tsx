@@ -5,8 +5,8 @@ import {
   fireEvent,
   render,
   screen,
-  within,
   waitFor,
+  within,
 } from "@testing-library/react";
 import App from "../app/page";
 import { SourceAudit } from "../components/source-audit";
@@ -14,9 +14,8 @@ import { Evidence } from "../components/project-workspace";
 import { NewTask, sample } from "../components/new-task";
 import { TestPlanDetails } from "../components/test-plan";
 import { ExecutionHistory } from "../components/execution-history";
-import { api, downloadHtmlReport, downloadReport } from "../lib/api";
+import { api, downloadReport } from "../lib/api";
 import type { Project, VerificationRun } from "../lib/types";
-import { requirementOutcomes } from "../lib/outcome-mapping";
 import { runBadge } from "../components/ui";
 vi.mock("../lib/api", () => ({
   api: {
@@ -25,6 +24,7 @@ vi.mock("../lib/api", () => ({
     projects: vi.fn(),
     system: vi.fn(),
     recentRuns: vi.fn(),
+    reportHtml: vi.fn(),
     runs: vi.fn(),
     documentCapabilities: vi.fn(),
     importDocument: vi.fn(),
@@ -34,8 +34,9 @@ vi.mock("../lib/api", () => ({
     setWatch: vi.fn(),
   },
   downloadReport: vi.fn(),
-  downloadHtmlReport: vi.fn(),
 }));
+// Arbitrary server versions prove the UI does not maintain its own policy literals.
+const currentRules = { validation_version: 41, outcome_mapping_version: 7 };
 const project: Project = {
   ...sample,
   id: "p1",
@@ -70,8 +71,6 @@ const run: VerificationRun = {
     executed_tests: 0,
     execution_success_rate: null,
     requirement_coverage: null,
-    semantic_coverage: null,
-    mutation_score: null,
   },
 };
 const agentRun: VerificationRun = {
@@ -138,15 +137,18 @@ beforeEach(() => {
   vi.mocked(api.projects).mockResolvedValue([project]);
   vi.mocked(api.system).mockResolvedValue({
     version: "0.1.0",
+    ...currentRules,
     mode: "scaffold",
     integrations: [],
   });
   vi.mocked(api.recentRuns).mockResolvedValue([run]);
   vi.mocked(api.runs).mockResolvedValue([run]);
+  vi.mocked(api.reportHtml).mockResolvedValue(
+    "<!doctype html><html><head></head><body><h1>Saved report</h1></body></html>",
+  );
   vi.mocked(api.createProject).mockResolvedValue(project);
   vi.mocked(api.createRun).mockResolvedValue(run);
   vi.mocked(downloadReport).mockResolvedValue();
-  vi.mocked(downloadHtmlReport).mockResolvedValue();
 });
 afterEach(() => {
   cleanup();
@@ -174,6 +176,34 @@ async function go(hash: string) {
     window.dispatchEvent(new HashChangeEvent("hashchange"));
   });
 }
+it("shows the saved report state for completed recent runs with zero tests", async () => {
+  vi.mocked(api.recentRuns).mockResolvedValue([
+    { ...agentRun, report: { ...agentRun.report, generated_tests: [] } },
+  ]);
+  render(<App />);
+  expect(await screen.findByText("No tests generated")).toBeTruthy();
+});
+
+it("retains the historical outcome mapping warning using the server version", async () => {
+  const historical = {
+    ...agentRun,
+    report: {
+      ...agentRun.report,
+      validation_version: currentRules.validation_version,
+      outcome_mapping_version: currentRules.outcome_mapping_version - 1,
+    },
+  };
+  vi.mocked(api.runs).mockResolvedValue([historical]);
+  window.history.replaceState({}, "", "/#view=reports&project=p1&run=r1");
+  render(<App />);
+  await screen.findByText(
+    /This run predates function-level requirement outcome mapping/,
+  );
+  expect(
+    screen.queryByText(/This run predates the current code-to-plan checks/),
+  ).toBeNull();
+});
+
 it("creates a project and setup run in one submission, then opens the blocked workspace", async () => {
   render(<App />);
   await screen.findByText("Projects");
@@ -214,12 +244,16 @@ it("restores a report from its URL and downloads the selected run", async () => 
   render(<App />);
   await screen.findByRole("heading", { name: "Runs & reports" });
   fireEvent.click(screen.getByRole("button", { name: "Download JSON ↓" }));
-  await waitFor(() => expect(downloadReport).toHaveBeenCalledWith("r1"));
+  await waitFor(() =>
+    expect(downloadReport).toHaveBeenCalledWith("r1", "json"),
+  );
   expect(
-    screen.getByText("Setup only · no executed verification"),
+    screen.getByRole("option", { name: /Blocked · Integration required/ }),
   ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Download HTML ↓" }));
-  await waitFor(() => expect(downloadHtmlReport).toHaveBeenCalledWith("r1"));
+  await waitFor(() =>
+    expect(downloadReport).toHaveBeenCalledWith("r1", "html"),
+  );
 });
 it("does not substitute the latest run for an invalid deep link", async () => {
   window.history.replaceState({}, "", "/#view=reports&project=p1&run=missing");
@@ -266,6 +300,24 @@ it("uses English application validation instead of browser-localized messages", 
     "Enter a project name.",
   );
   expect(submit).not.toHaveBeenCalled();
+});
+it("accepts a GitHub URL pinned to a commit", async () => {
+  const submit = vi.fn().mockResolvedValue(undefined);
+  const repositoryRef =
+    "https://github.com/zheng515/ScheduleAgent_DOLMA/commit/44ee78d7053a8744f711fb507f9af86e258fcd75";
+  render(<NewTask busy={false} submit={submit} />);
+  fireEvent.click(screen.getByText("Use shipping example"));
+  fireEvent.change(screen.getByLabelText(/GitHub repository URL/), {
+    target: { value: repositoryRef },
+  });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Create verification task →" }),
+  );
+  await waitFor(() =>
+    expect(submit).toHaveBeenCalledWith(
+      expect.objectContaining({ repository_ref: repositoryRef }),
+    ),
+  );
 });
 it("rejects unsupported requirement documents without overwriting the text", async () => {
   render(<NewTask busy={false} submit={vi.fn()} />);
@@ -356,8 +408,8 @@ it("shows generated tests and their requirement links, without claiming executio
   expect(
     screen.getByText(/They have not been executed, so none of them is known/),
   ).toBeTruthy();
-  // Inspection, execution and refinement are all unconnected, and the UI says so.
-  expect(screen.getAllByText("Not connected")).toHaveLength(3);
+  expect(screen.getByText("Recorded stage: report")).toBeTruthy();
+  expect(screen.queryByRole("progressbar")).toBeNull();
 });
 
 it("reports a failed run as failed instead of showing an empty result", async () => {
@@ -376,9 +428,7 @@ it("reports a failed run as failed instead of showing an empty result", async ()
   render(<App />);
   await screen.findByRole("heading", { name: "Agent workspace" });
 
-  expect(
-    screen.getByText("The run failed before it produced a result."),
-  ).toBeTruthy();
+  expect(screen.getByText("Run failed during the analyze stage.")).toBeTruthy();
   expect(screen.getByText("The model API could not be reached.")).toBeTruthy();
   expect(screen.queryByText("Tests generated · not executed")).toBeNull();
 });
@@ -411,6 +461,13 @@ const executedRun: VerificationRun = {
         outcome: "error",
         duration_seconds: 0.01,
         message: "ModuleNotFoundError: No module named 'shipping'",
+      },
+    ],
+    evidence: [
+      {
+        id: "E1",
+        test: "test_shipping.py::test_free_shipping_at_threshold",
+        outcome: "error",
       },
     ],
     executed_tests: 1,
@@ -457,7 +514,7 @@ it("shows the bounded B2 diagnosis and refinement result", async () => {
 
   expect(screen.getByText("B2 closed-loop mode")).toBeTruthy();
   expect(screen.getByText("invalid test")).toBeTruthy();
-  expect(screen.getByText("Complete · 1 iteration")).toBeTruthy();
+  expect(screen.getByText("1 refinement iteration")).toBeTruthy();
   expect(screen.getByText("Tests refined")).toBeTruthy();
   expect(screen.getByText("Tests re-executed")).toBeTruthy();
 });
@@ -470,27 +527,28 @@ it("shows each executed outcome without turning a green test into verification",
 
   expect(screen.getByText("error")).toBeTruthy();
   expect(screen.getByText(/A passing test is not verification/)).toBeTruthy();
-  // Inspection, analysis, generation and execution are done; refinement is not.
-  expect(screen.getAllByText("Not connected")).toHaveLength(1);
-  expect(screen.getAllByText("Complete")).toHaveLength(4);
+  expect(screen.getByText("Recorded stage: report")).toBeTruthy();
 });
 
-it("reports execution evidence and a success rate in the report", async () => {
+it("previews the selected server report with execution evidence and isolates its HTML", async () => {
   vi.mocked(api.runs).mockResolvedValue([executedRun]);
+  const html =
+    "<!doctype html><html><head></head><body><h2>Execution evidence</h2><p>Execution success: 0%</p><p>test_shipping.py::test_free_shipping_at_threshold</p><p>ModuleNotFoundError: No module named 'shipping'</p></body></html>";
+  vi.mocked(api.reportHtml).mockResolvedValue(html);
   window.history.replaceState({}, "", "/#view=reports&project=p1&run=r1");
   render(<App />);
-  await screen.findByRole("heading", { name: "Runs & reports" });
-
-  expect(
-    screen.getByRole("heading", { name: "05 / Execution evidence" }),
-  ).toBeTruthy();
-  expect(screen.getByText("Execution success rate")).toBeTruthy();
-  expect(
-    screen.getByText("ModuleNotFoundError: No module named 'shipping'"),
-  ).toBeTruthy();
-  expect(
-    screen.getByText("test_shipping.py::test_free_shipping_at_threshold"),
-  ).toBeTruthy();
+  const frame = await screen.findByTitle("Verification report for run r1");
+  expect(api.reportHtml).toHaveBeenCalledWith("r1");
+  expect(frame.getAttribute("sandbox")).toBe("");
+  expect(frame.getAttribute("referrerpolicy")).toBe("no-referrer");
+  const content = frame.getAttribute("srcdoc")!;
+  expect(content).toContain("default-src 'none'");
+  expect(content).toContain("form-action 'none'");
+  expect(content).toContain("Execution success: 0%");
+  expect(content).toContain(
+    "test_shipping.py::test_free_shipping_at_threshold",
+  );
+  expect(content).toContain("ModuleNotFoundError");
 });
 
 it("shows only the interfaces the agent was allowed to see", async () => {
@@ -532,6 +590,7 @@ const plannedRun: VerificationRun = {
       ...test,
       scenario_ids: ["S1"],
     })),
+    scenario_evidence_refs: { S1: ["E1"] },
     planning_gaps: ["R3: Refunds follow the original payment method."],
     uncovered_scenarios: [],
   },
@@ -563,12 +622,13 @@ it("shows missing scenario implementations separately from execution results", (
       report={{
         ...plannedRun.report,
         generated_tests: [],
+        scenario_evidence_refs: {},
         uncovered_scenarios: ["S1: Free shipping at the exact threshold"],
       }}
     />,
   );
   expect(screen.getByText("No generated test")).toBeTruthy();
-  expect(screen.getByText("Not executed")).toBeTruthy();
+  expect(screen.getByText("No attributable execution outcome")).toBeTruthy();
   expect(
     screen.getByText("Scenarios without validated implementations"),
   ).toBeTruthy();
@@ -588,11 +648,16 @@ it("displays the saved test plan in both the workspace and report", async () => 
   window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
   render(<App />);
   await screen.findByRole("heading", { name: "Test plan" });
-  expect(screen.getByText("Plan tests")).toBeTruthy();
+  expect(screen.getByText("Recorded stage: report")).toBeTruthy();
   expect(screen.getByText("1 scenario")).toBeTruthy();
+  vi.mocked(api.reportHtml).mockResolvedValue(
+    "<html><head></head><body><h2>Test plan</h2><p>Free shipping at the exact threshold</p></body></html>",
+  );
   await go("view=reports&project=p1&run=r1");
-  await screen.findByRole("heading", { name: "Test plan" });
-  expect(screen.getByText(/Free shipping at the exact threshold/)).toBeTruthy();
+  const frame = await screen.findByTitle("Verification report for run r1");
+  expect(frame.getAttribute("srcdoc")).toContain(
+    "Free shipping at the exact threshold",
+  );
 });
 
 it("retains analyzed requirements when planning fails", async () => {
@@ -611,12 +676,8 @@ it("retains analyzed requirements when planning fails", async () => {
   window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
   render(<App />);
   await screen.findByText("Planning model unavailable.");
-  expect(
-    screen.getByText("Plan tests").closest(".stage")?.textContent,
-  ).toContain("Failed");
-  expect(
-    screen.getByText("Analyze requirements").closest(".stage")?.textContent,
-  ).toContain("Complete");
+  expect(screen.getByText("Recorded stage: plan")).toBeTruthy();
+  expect(screen.getByText("Run failed during the plan stage.")).toBeTruthy();
   expect(screen.getByText("No test plan recorded for this run.")).toBeTruthy();
   await go("view=evidence&project=p1&run=r1");
   await screen.findByText("An order of at least 100 dollars ships free.");
@@ -650,24 +711,26 @@ it("restores active work from its URL, polls without hiding it, and stops after 
   });
   expect(screen.getByRole("heading", { name: "Agent workspace" })).toBeTruthy();
   expect(screen.getByText("Waiting for the worker")).toBeTruthy();
-  expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
-    "5",
-  );
+  expect(screen.queryByRole("progressbar")).toBeNull();
+  expect(screen.getByText(/Current stage: understand/)).toBeTruthy();
   expect(
     screen
       .getByRole("button", { name: "Run in progress" })
       .hasAttribute("disabled"),
   ).toBe(true);
   expect(api.createRun).not.toHaveBeenCalled();
+  expect(api.recentRuns).toHaveBeenCalledTimes(1);
 
   vi.mocked(api.runs).mockResolvedValue([generating]);
   vi.mocked(api.recentRuns).mockResolvedValue([generating]);
   await act(async () => {
     await vi.advanceTimersByTimeAsync(2000);
   });
-  expect(
-    screen.getByText("Generate tests").closest(".stage")?.textContent,
-  ).toContain("Running");
+  expect(screen.getByText(/Current stage: generate/)).toBeTruthy();
+  expect(screen.getByText("Running")).toBeTruthy();
+  expect(api.recentRuns).toHaveBeenCalledTimes(1);
+  expect(api.system).toHaveBeenCalledTimes(1);
+  expect(api.projects).toHaveBeenCalledTimes(1);
   expect(
     screen.getAllByText(/Free shipping at the exact threshold/).length,
   ).toBeGreaterThan(0);
@@ -704,6 +767,10 @@ it("restores active work from its URL, polls without hiding it, and stops after 
     await vi.advanceTimersByTimeAsync(4000);
   });
   expect(api.runs).toHaveBeenCalledTimes(count);
+  await go("view=home");
+  expect(api.recentRuns).toHaveBeenCalledTimes(2);
+  expect(api.projects).toHaveBeenCalledTimes(2);
+  expect(api.system).toHaveBeenCalledTimes(2);
 });
 
 it("preserves original test evidence beside a repaired attempt that timed out", () => {
@@ -763,6 +830,7 @@ it("distinguishes a claimed scenario link from validated code and preserves revi
       report={{
         ...plannedRun.report,
         validation_version: 3,
+        scenario_evidence_refs: {},
         generated_tests: plannedRun.report.generated_tests.map((test) => ({
           ...test,
           validation_status: "needs_review",
@@ -785,7 +853,7 @@ it("distinguishes a claimed scenario link from validated code and preserves revi
   expect(
     screen.queryByText("test_free_shipping_at_threshold: error"),
   ).toBeNull();
-  expect(screen.getByText("Not executed")).toBeTruthy();
+  expect(screen.getByText("No attributable execution outcome")).toBeTruthy();
 });
 
 it("shows the planned contract and validated call location without claiming adequacy", () => {
@@ -841,7 +909,7 @@ it("shows excluded artifacts and their reasons in the workspace without implying
     ...plannedRun,
     report: {
       ...plannedRun.report,
-      validation_version: 3,
+      validation_version: currentRules.validation_version,
       executions: [],
       executed_tests: 0,
       requirement_coverage: 0,
@@ -867,7 +935,7 @@ it("shows excluded artifacts and their reasons in the workspace without implying
     ),
   ).toBeTruthy();
   expect(screen.getByText("Validated requirement links")).toBeTruthy();
-  expect(screen.getByText("Excluded by validation")).toBeTruthy();
+  expect(screen.getAllByText("Needs review").length).toBeGreaterThan(0);
   expect(screen.getByText("Review needed · tests excluded")).toBeTruthy();
   expect(
     screen.queryByText(
@@ -876,7 +944,7 @@ it("shows excluded artifacts and their reasons in the workspace without implying
   ).toBeNull();
 });
 
-it.each([undefined, 1, 2])(
+it.each([undefined, 1, 2, 3])(
   "flags historical validation version %s without changing saved evidence",
   async (version) => {
     const historical: VerificationRun = {
@@ -898,95 +966,65 @@ it.each([undefined, 1, 2])(
   },
 );
 
-it("attributes requirement table outcomes to independent functions in the same artifact", async () => {
+it("displays saved server outcome associations without rejudging raw test links", async () => {
   const base = plannedRun.report.generated_tests[0];
   const report = {
     ...plannedRun.report,
-    validation_version: 3,
-    outcome_mapping_version: 1,
+    ...currentRules,
+    behaviors: [
+      {
+        id: "B-R1",
+        requirement_id: "R1",
+        description: "Free shipping",
+        source_quote: "Free shipping at threshold.",
+        expected_result: "Zero fee",
+        verification_status: "Partially Verified" as const,
+        code_refs: ["shipping.fee"],
+        test_refs: [base.module],
+        evidence_refs: ["E1", "missing"],
+      },
+      {
+        id: "B-R2",
+        requirement_id: "R2",
+        description: "Paid shipping",
+        source_quote: "Paid shipping below threshold.",
+        expected_result: "Paid fee",
+        verification_status: "Unverified" as const,
+        code_refs: ["shipping.fee"],
+        test_refs: [base.module],
+        evidence_refs: ["E2"],
+      },
+    ],
+    evidence: [
+      { id: "E1", test: `${base.module}::test_free`, outcome: "passed" },
+      { id: "E2", test: `${base.module}::test_paid`, outcome: "failed" },
+      { id: "E3", test: "test_unmatched.py::test_other", outcome: "passed" },
+    ],
+    // These raw links differ from the saved decisions. Rendering must not reattribute them.
     test_plan: {
       ...plannedRun.report.test_plan!,
-      scenarios: [
-        plannedRun.report.test_plan!.scenarios[0],
-        {
-          ...plannedRun.report.test_plan!.scenarios[0],
-          id: "S2",
-          requirement_ids: ["R2"],
-        },
-      ],
+      scenarios: plannedRun.report.test_plan!.scenarios.map((scenario) => ({
+        ...scenario,
+        requirement_ids: ["R2"],
+      })),
     },
-    generated_tests: [
-      {
-        ...base,
-        requirement_ids: ["R1", "R2"],
-        scenario_ids: ["S1", "S2"],
-        validation_status: "validated" as const,
-        validated_checks: [
-          {
-            scenario_id: "S1",
-            function_name: "test_free",
-            target: "shipping.fee",
-            call_line: 3,
-            assertion_line: 3,
-          },
-          {
-            scenario_id: "S2",
-            function_name: "test_paid",
-            target: "shipping.fee",
-            call_line: 6,
-            assertion_line: 6,
-          },
-        ],
-      },
-    ],
-    executions: [
-      {
-        ...plannedRun.report.executions[0],
-        test_id: base.id,
-        module: base.module,
-        name: "test_free",
-        outcome: "passed" as const,
-      },
-      {
-        ...plannedRun.report.executions[0],
-        test_id: base.id,
-        module: base.module,
-        name: "test_paid",
-        outcome: "failed" as const,
-      },
-    ],
+    executions: plannedRun.report.executions.map((item) => ({
+      ...item,
+      module: "test_wrong.py",
+      name: "test_other",
+      outcome: "passed" as const,
+    })),
   };
-  expect(requirementOutcomes(report, "R1").map((item) => item.name)).toEqual([
-    "test_free",
-  ]);
-  expect(requirementOutcomes(report, "R2").map((item) => item.name)).toEqual([
-    "test_paid",
-  ]);
-  expect(
-    requirementOutcomes(
-      {
-        ...report,
-        executions: report.executions.map((item) => ({
-          ...item,
-          module: "test_wrong.py",
-        })),
-      },
-      "R1",
-    ),
-  ).toEqual([]);
   vi.mocked(api.runs).mockResolvedValue([{ ...plannedRun, report }]);
+  const savedHtml =
+    "<html><head></head><body><p>R1 test_free: passed</p><p>R2 test_paid: failed</p></body></html>";
+  vi.mocked(api.reportHtml).mockResolvedValue(savedHtml);
   window.history.replaceState({}, "", "/#view=reports&project=p1&run=r1");
   render(<App />);
-  await screen.findByRole("heading", { name: "Runs & reports" });
-  const table = screen.getByText(
-    "03 / Requirement to test mapping",
-  ).parentElement!;
-  const firstRow = within(table).getByText("R1").closest("tr")!;
-  const secondRow = within(table).getByText("R2").closest("tr")!;
-  expect(within(firstRow).getByText("test_free: passed")).toBeTruthy();
-  expect(within(firstRow).queryByText(/test_paid/)).toBeNull();
-  expect(within(secondRow).getByText("test_paid: failed")).toBeTruthy();
-  expect(within(secondRow).queryByText(/test_free/)).toBeNull();
+  const frame = await screen.findByTitle("Verification report for run r1");
+  expect(frame.getAttribute("srcdoc")).toContain("R1 test_free: passed");
+  expect(frame.getAttribute("srcdoc")).toContain("R2 test_paid: failed");
+  expect(frame.getAttribute("srcdoc")).not.toContain("test_other");
   expect(screen.queryByText(/This run predates function-level/)).toBeNull();
 });
 
@@ -1328,7 +1366,39 @@ it("shows missing document tools while keeping ordinary import available", async
   ).toBe(false);
 });
 
-it("shows reviewed-out scenarios as blocked, zero tests, and skipped execution", async () => {
+it("does not attribute raw scenario outcomes when the saved historical mapping is missing", () => {
+  render(
+    <TestPlanDetails
+      report={{ ...plannedRun.report, scenario_evidence_refs: null }}
+    />,
+  );
+  expect(
+    screen.getByText(/No saved scenario outcome attribution/),
+  ).toBeTruthy();
+  expect(
+    screen.queryByText("test_free_shipping_at_threshold: error"),
+  ).toBeNull();
+  expect(screen.getByText(/Free shipping at the exact threshold/)).toBeTruthy();
+});
+
+it("renders saved scenario evidence without reassigning changed raw test links", () => {
+  render(
+    <TestPlanDetails
+      report={{
+        ...plannedRun.report,
+        generated_tests: [],
+        executions: [],
+        scenario_evidence_refs: { S1: ["E1"] },
+      }}
+    />,
+  );
+  expect(
+    screen.getByText("test_free_shipping_at_threshold: error"),
+  ).toBeTruthy();
+  expect(screen.getByText("No generated test")).toBeTruthy();
+});
+
+it("retains reviewed-out cases, zero tests and skipped execution without fabricated stages", async () => {
   const empty: VerificationRun = {
     ...plannedRun,
     mode: "baseline_b2",
@@ -1338,10 +1408,10 @@ it("shows reviewed-out scenarios as blocked, zero tests, and skipped execution",
       ...plannedRun.report,
       generated_tests: [],
       executions: [],
+      evidence: [],
+      scenario_evidence_refs: {},
       execution_attempts: [],
       executed_tests: 0,
-      refinement_iterations: 0,
-      diagnoses: [],
       test_plan: {
         ...plannedRun.report.test_plan!,
         scenarios: plannedRun.report.test_plan!.scenarios.map((scenario) => ({
@@ -1364,15 +1434,20 @@ it("shows reviewed-out scenarios as blocked, zero tests, and skipped execution",
   window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
   render(<App />);
   await screen.findByRole("heading", { name: "Agent workspace" });
-  expect(
-    screen.getByText("Generate tests").closest(".stage")?.textContent,
-  ).toContain("Blocked by scenario review");
-  expect(
-    screen.getByText("Execute tests").closest(".stage")?.textContent,
-  ).toContain("Skipped · no generated tests");
+  const explorer = screen.getByRole("region", { name: "Test explorer" });
+  expect(within(explorer).getAllByText("Needs review").length).toBeGreaterThan(
+    0,
+  );
+  expect(within(explorer).getByText("Setup is not established.")).toBeTruthy();
   expect(
     screen.getByText("Tests generated").closest("div")?.textContent,
   ).toContain("0");
+  expect(
+    screen.getByText("Executed tests").closest("div")?.textContent,
+  ).toContain("0");
+  expect(screen.getByText("Skipped · no generated tests")).toBeTruthy();
+  expect(screen.queryByRole("progressbar")).toBeNull();
+  expect(document.querySelector(".stages")).toBeNull();
 });
 
 it("keeps diagnostics collapsed and lets users search the compact test browser", async () => {
@@ -1397,54 +1472,4 @@ it("keeps diagnostics collapsed and lets users search the compact test browser",
   expect(
     within(explorer).getByRole("heading", { name: "Requirement context" }),
   ).toBeTruthy();
-});
-
-it("selects a failed case using the runner artifact id and checked function even when its file was renamed", async () => {
-  const scenarios = plannedRun.report.test_plan!.scenarios;
-  const scenario = scenarios[0];
-  const executed: VerificationRun = {
-    ...plannedRun,
-    report: {
-      ...plannedRun.report,
-      generated_tests: [
-        {
-          id: "t1",
-          name: "Generated case",
-          module: "test_fee.py",
-          code: "def test_fee(): pass",
-          rationale: "Fixture",
-          requirement_ids: scenario.requirement_ids,
-          scenario_ids: [scenario.id],
-          validation_status: "validated",
-          validated_checks: [
-            {
-              scenario_id: scenario.id,
-              function_name: "test_fee",
-              target: "shipping.fee",
-              call_line: 2,
-              assertion_line: 3,
-            },
-          ],
-        },
-      ],
-      executions: [
-        {
-          test_id: "t1",
-          module: "test_fee_2.py",
-          name: "test_fee",
-          outcome: "failed",
-          duration_seconds: 0.01,
-          message: "assert 1000 == 0",
-        },
-      ],
-      executed_tests: 1,
-    },
-  };
-  vi.mocked(api.runs).mockResolvedValue([executed]);
-  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
-  render(<App />);
-  await screen.findByRole("heading", { name: "Agent workspace" });
-  const explorer = screen.getByRole("region", { name: "Test explorer" });
-  expect(within(explorer).getByText("assert 1000 == 0")).toBeTruthy();
-  expect(within(explorer).getByText("1 failed")).toBeTruthy();
 });

@@ -70,13 +70,15 @@ class Store:
                 CREATE TABLE IF NOT EXISTS watches (
                     project_id TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
                     enabled INTEGER NOT NULL,
-                    updated_at TEXT NOT NULL,
                     last_checked_at TEXT,
                     last_commit TEXT,
                     last_run_id TEXT,
                     last_error TEXT
                 );
             """)
+            watch_columns = {row[1] for row in connection.execute("PRAGMA table_info(watches)")}
+            if "updated_at" in watch_columns:
+                connection.execute("ALTER TABLE watches DROP COLUMN updated_at")
             # Legacy projects stay unowned until an administrator assigns them explicitly.
             columns = {row[1] for row in connection.execute("PRAGMA table_info(projects)")}
             if "owner_id" not in columns:
@@ -156,20 +158,6 @@ class Store:
                 (project_id,),
             ).fetchone()
         return row is not None
-
-    def create_run(self, run: VerificationRun):
-        with self.connection() as connection:
-            connection.execute(
-                "INSERT INTO runs (id, project_id, created_at, payload, status) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (
-                    run.id,
-                    run.project_id,
-                    run.created_at.isoformat(),
-                    run.model_dump_json(),
-                    run.status,
-                ),
-            )
 
     def reserve_run(
         self, run: VerificationRun, worker_id: str, capacity: int
@@ -285,20 +273,19 @@ class Store:
 
     def set_watch(self, project_id: str, enabled: bool, last_commit: str | None = None):
         """Enabling starts from a known commit and clears the previous outcome."""
-        now = datetime.now(UTC).isoformat()
         with self.connection() as connection:
             if enabled:
                 connection.execute(
-                    "INSERT INTO watches (project_id, enabled, updated_at, last_commit) "
-                    "VALUES (?, 1, ?, ?) ON CONFLICT(project_id) DO UPDATE SET enabled = 1, "
-                    "updated_at = excluded.updated_at, last_commit = excluded.last_commit, "
+                    "INSERT INTO watches (project_id, enabled, last_commit) "
+                    "VALUES (?, 1, ?) ON CONFLICT(project_id) DO UPDATE SET enabled = 1, "
+                    "last_commit = excluded.last_commit, "
                     "last_checked_at = NULL, last_run_id = NULL, last_error = NULL",
-                    (project_id, now, last_commit),
+                    (project_id, last_commit),
                 )
             else:
                 connection.execute(
-                    "UPDATE watches SET enabled = 0, updated_at = ? WHERE project_id = ?",
-                    (now, project_id),
+                    "UPDATE watches SET enabled = 0 WHERE project_id = ?",
+                    (project_id,),
                 )
 
     def enabled_watches(self) -> list[tuple[Project, dict]]:
