@@ -8,6 +8,7 @@ import pytest
 
 from app.core.config import Settings
 from app.schemas import GeneratedTest
+from app.services.outcome_mapping import matches_function
 from app.services.runner import DockerTestRunner, _image_exists, create_runner
 
 PINNED_IMAGE = "sha256:" + "a" * 64
@@ -234,6 +235,49 @@ def test_duplicate_module_names_do_not_overwrite_each_other(settings):
 
     # Both files must reach the workspace, or the second test is silently lost.
     assert docker.written == ["test_shipping.py", "test_shipping_2.py"]
+
+
+def test_duplicate_suffix_collision_keeps_every_artifact(settings, tmp_path):
+    tests = [
+        TESTS[0],
+        TESTS[0].model_copy(update={"id": "T2", "module": "test_shipping_3.py"}),
+        TESTS[0].model_copy(update={"id": "T3", "code": "def test_third():\n    assert False\n"}),
+    ]
+    written = DockerTestRunner(settings, FakeDocker())._write_tests(tmp_path, tests)
+
+    assert sorted(written) == ["test_shipping.py", "test_shipping_3.py", "test_shipping_4.py"]
+    assert written["test_shipping_4.py"] is tests[2]
+    assert (tmp_path / "test_shipping_3.py").read_text() == tests[1].code
+    assert (tmp_path / "test_shipping_4.py").read_text() == tests[2].code
+
+
+def test_renamed_junit_module_is_attributed_to_the_original_artifact(settings):
+    tests = [TESTS[0], TESTS[0].model_copy(update={"id": "T9"})]
+    junit = """<testsuites><testsuite>
+      <testcase classname="test_shipping_2" name="test_free_shipping" time="0"/>
+      <testcase classname="test_unknown" name="test_free_shipping" time="0"/>
+    </testsuite></testsuites>"""
+    result = DockerTestRunner(settings, FakeDocker(report=junit)).execute(tests)
+
+    renamed, unknown = result.executions
+    assert (renamed.test_id, renamed.module) == ("T9", "test_shipping.py")
+    assert matches_function(renamed, tests[1], "test_free_shipping")
+    assert not matches_function(renamed, tests[0], "test_free_shipping")
+    assert (unknown.test_id, unknown.module) == (None, "test_unknown.py")
+    assert not any(matches_function(unknown, test, "test_free_shipping") for test in tests)
+
+
+def test_original_artifact_mapping_does_not_lookup_duplicate_test_ids(settings):
+    tests = [TESTS[0], TESTS[1].model_copy(update={"id": TESTS[0].id})]
+    junit = """<testsuites><testsuite>
+      <testcase classname="test_orders" name="test_rejects_negative" time="0"/>
+    </testsuite></testsuites>"""
+    result = DockerTestRunner(settings, FakeDocker(report=junit)).execute(tests)
+
+    execution = result.executions[0]
+    assert (execution.test_id, execution.module) == ("T1", "test_orders.py")
+    assert matches_function(execution, tests[1], "test_rejects_negative")
+    assert not matches_function(execution, tests[0], "test_rejects_negative")
 
 
 def test_each_generated_module_reaches_the_workspace(settings):

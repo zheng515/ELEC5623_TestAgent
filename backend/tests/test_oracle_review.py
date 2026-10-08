@@ -202,8 +202,69 @@ def test_missing_oracle_review_on_old_plan_cannot_establish_new_validation():
     )
 
 
-def test_oracle_review_schema_is_supported_by_the_sdk():
+@pytest.mark.parametrize("provider", ["openai", "anthropic"])
+def test_oracle_review_schema_is_supported_by_the_sdk(provider):
     from anthropic import transform_schema
+    from openai.lib._pydantic import to_strict_json_schema
 
-    transformed = transform_schema(OracleReview)
+    transform = to_strict_json_schema if provider == "openai" else transform_schema
+    transformed = transform(OracleReview)
     assert transformed["type"] == "object"
+
+
+def test_wrapped_prose_citation_is_restored_to_exact_original_source():
+    old = ANALYSIS.requirements[0].source_quote
+    original = old.replace("at least ", "at least\n")
+    requirement = ANALYSIS.requirements[0].model_copy(update={"source_quote": original})
+    project = PROJECT.model_copy(
+        update={
+            "requirements_text": PROJECT.requirements_text.replace(old, original),
+        }
+    )
+    review = OracleReview(decisions=[decision(citations=[{"requirement_id": "R1", "quote": old}])])
+    reviewed = review_oracles(FakeLLM(review), project, [requirement], PLAN)
+    grounding = reviewed.scenarios[0].oracle_grounding
+    assert grounding.status == "supported"
+    assert grounding.citations[0].quote == original
+    assert "whitespace was restored" in grounding.rationale
+
+
+@pytest.mark.parametrize(
+    "quote, original, expected",
+    [
+        (
+            "The public interface is `shipping.fee(amount_cents: int) -> int`.",
+            "The public interface is\n`shipping.fee(amount_cents: int) -> int`.",
+            "The public interface is\n`shipping.fee(amount_cents: int) -> int`.",
+        ),
+        ("Orders of at least 100 ship free.", "Orders of at least 1000 ship free.", None),
+        ("Amount <= 100.", "Amount < 100.", None),
+        ('Display "No matches found".', 'Display "No\nmatches found".', None),
+        ("Call `shipping.fee(0)`.", "Call `shipping.fee( 0)`.", None),
+        ("Display 'No matches found'.", "Display 'No\nmatches found'.", None),
+        ("a b", 'Return exact string "a  b".', None),
+        ("a b", "Return exact string 'a  b'.", None),
+        ("a b", "Return exact string `a  b`.", None),
+        ("a b", "Return exact string ``a  b``.", None),
+        ("a b", 'Return exact string "a  b', None),
+        ("a b", "Return exact string 'a  b", None),
+        ("a b", "Return exact string `a  b", None),
+        ("a b", "Return exact string ``a  b", None),
+        ("a b", "Return exact string ```a  b", None),
+        ("a b", "Return exact string “a  b”.", None),
+        ("a b", "Return exact string ‘a  b’.", None),
+        ("a b", r'Return exact string "a  b\"', None),
+        ("a  b", "Return exact string “a  b”.", "a  b"),
+        ("Display 'No matches found", "Display 'No\nmatches found", None),
+        ("Call ``a b``.", "Call ``a  b``.", None),
+        ('Display "a b".', 'Display\n"a b".', 'Display\n"a b".'),
+        ("Display 'a b'.", "Display\n'a b'.", "Display\n'a b'."),
+        ("a  b", 'Return exact string "a  b".', "a  b"),
+        ("A B", "A\nB and A\tB", None),
+        ("", "Some source text", None),
+    ],
+)
+def test_citation_restoration_does_not_rewrite_meaning(quote, original, expected):
+    from app.services.oracle_review import _restore_source_whitespace
+
+    assert _restore_source_whitespace(quote, original) == expected

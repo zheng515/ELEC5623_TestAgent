@@ -3,7 +3,7 @@
 import logging
 from typing import Protocol, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app.core.config import Settings
 
@@ -31,13 +31,17 @@ class OpenAILLM:
         import openai
 
         key = settings.openai_api_key
-        if key is None:
+        if client is None and key is None:
             raise MissingCredentials("OPENAI_API_KEY is not configured.")
         self._openai = openai
-        self._client = client or openai.OpenAI(
-            api_key=key.get_secret_value(),
-            timeout=settings.llm_timeout_seconds,
-            max_retries=0,
+        self._client = (
+            client
+            if client is not None
+            else openai.OpenAI(
+                api_key=key.get_secret_value(),
+                timeout=settings.llm_timeout_seconds,
+                max_retries=0,
+            )
         )
         self._model = settings.llm_model
         self._max_tokens = settings.llm_max_tokens
@@ -48,7 +52,7 @@ class OpenAILLM:
             response = self._client.responses.parse(
                 model=self._model,
                 instructions=system,
-                input=prompt,
+                input=[{"role": "user", "content": prompt}],
                 text_format=output_format,
                 max_output_tokens=self._max_tokens,
                 store=False,
@@ -63,11 +67,17 @@ class OpenAILLM:
                 raise LLMError(
                     f"The OpenAI API is rate limited. Retry after {retry_after} seconds."
                 ) from error
-            raise LLMError("The OpenAI API is rate limited. Retry this run later.") from error
+            raise LLMError(
+                "The OpenAI API is rate limited or has no available quota. Retry this run later."
+            ) from error
         except openai.APIStatusError as error:
             raise LLMError(f"The OpenAI API returned {error.status_code}.") from error
+        except openai.APITimeoutError as error:
+            raise LLMError("The model API request timed out.") from error
         except openai.APIConnectionError as error:
             raise LLMError("The OpenAI API could not be reached.") from error
+        except (ValidationError, ValueError, openai.APIResponseValidationError) as error:
+            raise LLMError("The model returned invalid structured output.") from error
         except openai.OpenAIError as error:
             raise LLMError("The OpenAI API request failed.") from error
 

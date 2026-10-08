@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import App from "../app/page";
 import { SourceAudit } from "../components/source-audit";
@@ -730,8 +731,12 @@ it("restores active work from its URL, polls without hiding it, and stops after 
   expect(api.recentRuns).toHaveBeenCalledTimes(1);
   expect(api.system).toHaveBeenCalledTimes(1);
   expect(api.projects).toHaveBeenCalledTimes(1);
-  expect(screen.getByText(/Free shipping at the exact threshold/)).toBeTruthy();
-  const scenario = screen
+  expect(
+    screen.getAllByText(/Free shipping at the exact threshold/).length,
+  ).toBeGreaterThan(0);
+  const scenario = within(
+    document.querySelector(".technical-drawer:not(.repository-monitoring)")!,
+  )
     .getByText(/Free shipping at the exact threshold/)
     .closest("details")!;
   scenario.setAttribute("open", "");
@@ -930,7 +935,7 @@ it("shows excluded artifacts and their reasons in the workspace without implying
     ),
   ).toBeTruthy();
   expect(screen.getByText("Validated requirement links")).toBeTruthy();
-  expect(screen.getByText("Needs review")).toBeTruthy();
+  expect(screen.getAllByText("Needs review").length).toBeGreaterThan(0);
   expect(screen.getByText("Review needed · tests excluded")).toBeTruthy();
   expect(
     screen.queryByText(
@@ -1391,4 +1396,80 @@ it("renders saved scenario evidence without reassigning changed raw test links",
     screen.getByText("test_free_shipping_at_threshold: error"),
   ).toBeTruthy();
   expect(screen.getByText("No generated test")).toBeTruthy();
+});
+
+it("retains reviewed-out cases, zero tests and skipped execution without fabricated stages", async () => {
+  const empty: VerificationRun = {
+    ...plannedRun,
+    mode: "baseline_b2",
+    status: "completed",
+    stage: "report",
+    report: {
+      ...plannedRun.report,
+      generated_tests: [],
+      executions: [],
+      evidence: [],
+      scenario_evidence_refs: {},
+      execution_attempts: [],
+      executed_tests: 0,
+      test_plan: {
+        ...plannedRun.report.test_plan!,
+        scenarios: plannedRun.report.test_plan!.scenarios.map((scenario) => ({
+          ...scenario,
+          oracle_grounding: {
+            version: 1,
+            status: "needs_review",
+            verdict: "insufficient",
+            rationale: "Setup is not established.",
+            citations: [],
+            issues: ["Setup is not established."],
+            scenario_sha256: "scenario",
+            source_sha256: "source",
+          },
+        })),
+      },
+    },
+  };
+  vi.mocked(api.runs).mockResolvedValue([empty]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Agent workspace" });
+  const explorer = screen.getByRole("region", { name: "Test explorer" });
+  expect(within(explorer).getAllByText("Needs review").length).toBeGreaterThan(
+    0,
+  );
+  expect(within(explorer).getByText("Setup is not established.")).toBeTruthy();
+  expect(
+    screen.getByText("Tests generated").closest("div")?.textContent,
+  ).toContain("0");
+  expect(
+    screen.getByText("Executed tests").closest("div")?.textContent,
+  ).toContain("0");
+  expect(screen.getByText("Skipped · no generated tests")).toBeTruthy();
+  expect(screen.queryByRole("progressbar")).toBeNull();
+  expect(document.querySelector(".stages")).toBeNull();
+});
+
+it("keeps diagnostics collapsed and lets users search the compact test browser", async () => {
+  vi.mocked(api.runs).mockResolvedValue([plannedRun]);
+  window.history.replaceState({}, "", "/#view=workspace&project=p1&run=r1");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Agent workspace" });
+  const drawer = document.querySelector(
+    ".technical-drawer:not(.repository-monitoring)",
+  )!;
+  expect(drawer.hasAttribute("open")).toBe(false);
+  const explorer = screen.getByRole("region", { name: "Test explorer" });
+  fireEvent.change(
+    within(explorer).getByRole("textbox", { name: "Search test cases" }),
+    { target: { value: "no-match-xyz" } },
+  );
+  expect(within(explorer).getByText("No matching test cases.")).toBeTruthy();
+  fireEvent.change(
+    within(explorer).getByRole("textbox", { name: "Search test cases" }),
+    { target: { value: "" } },
+  );
+  expect(
+    within(explorer).getByRole("heading", { name: "Requirement context" }),
+  ).toBeTruthy();
 });

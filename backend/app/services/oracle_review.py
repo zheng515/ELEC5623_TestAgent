@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 
 from app.schemas import OracleGrounding, OracleReview, Project, RequirementItem, TestPlan
 from app.services.llm import LLMError, StructuredLLM
@@ -28,7 +29,56 @@ linked requirement's source_quote, present verbatim in original_requirements. Ex
 how those passages support or contradict the precise inputs and oracle; name missing
 information. No external facts, invented citations, or approvals based on plan prose.
 This is an AI assessment, not a proof of semantic correctness or test adequacy.
+Copy citation whitespace and line breaks exactly from source_quote, including text
+around inline code. Do not unwrap source lines or reconstruct a quoted passage.
 """
+
+
+def _restore_source_whitespace(quote: str, original: str) -> str | None:
+    """Resolve a unique whitespace-only prose change back to the exact source.
+
+    Quoted strings and inline code remain byte-for-byte literal: their whitespace
+    can define inputs or expected messages. Words, punctuation and numbers never change.
+    """
+    if not quote.strip():
+        return None
+    if quote in original:
+        return quote
+    # Ambiguous or unsupported source delimiters cannot establish literal-safe restoration.
+    if any(original.count(marker) % 2 for marker in ("`", '"', "'")) or any(
+        marker in original for marker in ("``", '\\"', "\\'", "\\`", "“", "”", "‘", "’")
+    ):
+        return None
+    if any(quote.count(marker) % 2 for marker in ("`", '"', "'")) or any(
+        marker in quote for marker in ("``", '\\"', "\\'", "\\`")
+    ):
+        return None
+    parts = re.split(r"(`[^`]*`|\"[^\"]*\"|'[^']*')", quote.strip())
+    pattern = "".join(
+        re.escape(part)
+        if index % 2
+        else "".join(
+            r"\s+" if token.isspace() else re.escape(token) for token in re.split(r"(\s+)", part)
+        )
+        for index, part in enumerate(parts)
+    )
+    matches = list(re.finditer(pattern, original))
+    if len(matches) != 1:
+        return None
+    match = matches[0]
+    literals = re.finditer(
+        r"(?P<code>`+).*?(?P=code)|\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'",
+        original,
+        flags=re.DOTALL,
+    )
+    if any(
+        match.start() < literal.end()
+        and literal.start() < match.end()
+        and not (match.start() <= literal.start() and literal.end() <= match.end())
+        for literal in literals
+    ):
+        return None
+    return match.group()
 
 
 def scenario_fingerprint(scenario) -> str:
@@ -89,14 +139,15 @@ def review_oracles(
             issues.append(
                 "The scenario has no supported contract or has unresolved setup/assumptions."
             )
-        citations = decision.citations if decision else []
+        citations = []
+        restored_whitespace = False
         cited = set()
-        for citation in citations:
+        for citation in decision.citations if decision else []:
             original = originals.get(citation.requirement_id, "")
+            resolved = _restore_source_whitespace(citation.quote, original)
             if (
                 citation.requirement_id not in scenario.requirement_ids
-                or not citation.quote.strip()
-                or citation.quote not in original
+                or resolved is None
                 or original not in project.requirements_text
             ):
                 issues.append(
@@ -104,6 +155,9 @@ def review_oracles(
                 )
             else:
                 cited.add(citation.requirement_id)
+                restored_whitespace |= resolved != citation.quote
+                citation = citation.model_copy(update={"quote": resolved})
+            citations.append(citation)
         if not set(scenario.requirement_ids) <= cited:
             issues.append("Original-source citations are required for every linked requirement.")
         if decision and decision.verdict != "supported":
@@ -113,7 +167,16 @@ def review_oracles(
         grounding = OracleGrounding(
             status="needs_review" if issues else "supported",
             verdict=decision.verdict if decision else None,
-            rationale=decision.rationale if decision else "No independent assessment recorded.",
+            rationale=(
+                decision.rationale
+                + (
+                    " Citation whitespace was restored to the verbatim source."
+                    if restored_whitespace
+                    else ""
+                )
+                if decision
+                else "No independent assessment recorded."
+            ),
             citations=citations,
             issues=issues,
             scenario_sha256=scenario_fingerprint(scenario),
