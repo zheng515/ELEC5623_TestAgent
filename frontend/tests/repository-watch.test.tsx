@@ -139,8 +139,6 @@ const run: VerificationRun = {
     executed_tests: 0,
     execution_success_rate: null,
     requirement_coverage: null,
-    semantic_coverage: null,
-    mutation_score: null,
     change: {
       baseline_run_id: "r1",
       baseline_commit: "1111111111111111",

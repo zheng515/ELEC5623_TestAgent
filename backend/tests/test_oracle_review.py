@@ -17,7 +17,7 @@ from test_agent import (
 
 from app.schemas import OracleReview
 from app.services.llm import LLMError
-from app.services.oracle_review import review_oracles
+from app.services.oracle_review import SYSTEM, review_oracles
 from app.services.report_renderer import render_html_report
 from app.services.test_validator import validate_test
 
@@ -147,6 +147,32 @@ def test_independent_request_contains_original_source_and_exact_contract_without
     assert "oracle_grounding" not in data["scenarios"][0]
     assert reviewed.scenarios[0].oracle_grounding.status == "supported"
     assert validate_test(SUITE.tests[0], reviewed, REPOSITORY).validation_status == "validated"
+
+
+@pytest.mark.parametrize("setup_field", ["assumptions", "preconditions"])
+def test_unresolved_setup_is_in_review_request_and_cannot_receive_server_support(setup_field):
+    setup = "Assume a premium account exists."
+    scenario = PLAN.scenarios[0].model_copy(update={setup_field: [setup]})
+    plan = PLAN.model_copy(update={"scenarios": [scenario]})
+    llm = FakeLLM(OracleReview(decisions=[decision("supported")]))
+
+    reviewed = review_oracles(llm, PROJECT, ANALYSIS.requirements, plan)
+    request = json.loads(llm.review_prompts[0])
+    grounding = reviewed.scenarios[0].oracle_grounding
+
+    assert request["scenarios"][0][setup_field] == [setup]
+    assert grounding.verdict == "supported"  # Even an incorrect model approval is blocked.
+    assert grounding.status == "needs_review"
+    assert validate_test(SUITE.tests[0], reviewed, REPOSITORY).validation_status == "needs_review"
+
+
+def test_oracle_prompt_distinguishes_unsupported_setup_and_conflicting_source_rules():
+    assert "Assess each entire scenario" in SYSTEM
+    assert "every precondition and assumption" in SYSTEM
+    assert "return insufficient even when the check alone is" in SYSTEM
+    assert "Use contradicted only when a clear, unambiguous original rule conflicts" in SYSTEM
+    assert "If original rules conflict with each other and give no priority" in SYSTEM
+    assert "return insufficient rather than selecting one rule" in SYSTEM
 
 
 @pytest.mark.parametrize(

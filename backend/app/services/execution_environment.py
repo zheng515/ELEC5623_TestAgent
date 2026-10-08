@@ -9,11 +9,8 @@ from app.schemas import ExecutionEnvironment, RuntimePackage
 IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}\Z")
 # This is server-authored code. It runs without project mounts or generated tests.
 RUNTIME_PROBE = """import importlib.metadata, json, platform, sys
-packages = sorted(
-    [{"name": item.metadata["Name"], "version": item.version}
-     for item in importlib.metadata.distributions()],
-    key=lambda item: (item["name"].lower(), item["version"]),
-)
+packages = [{"name": item.metadata["Name"], "version": item.version}
+            for item in importlib.metadata.distributions()]
 print(json.dumps({"python_version": sys.version, "platform": platform.platform(),
                   "packages": packages}))
 """

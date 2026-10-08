@@ -13,6 +13,7 @@ dependencies = [
   "pydantic-settings>=2.8,<3",
   "email-validator>=2.2,<3",
   "anthropic>=1,<2",
+  "openai>=2.5,<3",
   "pypdf>=6,<7",
   "defusedxml>=0.7,<1",
   "pypdfium2>=5,<6",

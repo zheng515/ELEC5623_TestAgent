@@ -75,6 +75,22 @@ def audit_source(
         issues.append(
             f"Repeated source quotes cannot be located unambiguously for: {', '.join(ambiguous)}."
         )
+    for link in links:
+        # A broad citation can cover all source characters while one extracted item
+        # describes only one of several rules. We cannot determine that from wording
+        # alone, so flag the span for review without calling any part "unlinked".
+        units = _potential_rule_units(link.text)
+        if units < 2:
+            continue
+        last_line = source.count("\n", 0, link.end - 1) + 1
+        location = (
+            f"line {link.line}" if last_line == link.line else f"lines {link.line}-{last_line}"
+        )
+        issues.append(
+            f"Quote linked to {', '.join(link.requirement_ids)} spans {units} potential "
+            f"rule units at {location}. Review each unit against the extracted requirements; "
+            "a text-covered span does not establish that every rule was extracted."
+        )
     limit_reached = returned_requirements >= extraction_limit
     if limit_reached:
         issues.append(
@@ -102,7 +118,6 @@ def audit_source(
                 if segment.start < fragment.end and segment.end > fragment.start
             ]
     return SourceAnalysisAudit(
-        document=document,
         extraction_limit=extraction_limit,
         limit_reached=limit_reached,
         returned_requirements=returned_requirements,
@@ -111,4 +126,20 @@ def audit_source(
         unlinked_fragments=fragments,
         ambiguous_requirement_ids=ambiguous,
         issues=issues,
+    )
+
+
+def _potential_rule_units(quote: str) -> int:
+    """Count only visible review cues, not semantic rules or coverage credit."""
+    lines = [line.strip() for line in quote.splitlines() if any(c.isalnum() for c in line)]
+    if len(lines) > 1:
+        return len(lines)
+    if not lines:
+        return 0
+    return len(
+        [
+            part
+            for part in re.split(r"(?<=[.!?。！？;；])\s+(?=\S)", lines[0])
+            if any(character.isalnum() for character in part)
+        ]
     )

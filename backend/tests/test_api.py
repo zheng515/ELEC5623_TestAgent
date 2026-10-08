@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 from app.core.config import Settings
 from app.main import create_app
 from app.schemas import Project
+from app.services.outcome_mapping import OUTCOME_MAPPING_VERSION
+from app.services.test_validator import VALIDATION_VERSION
 
 
 @pytest.fixture
@@ -54,8 +56,8 @@ def test_project_run_report_flow_does_not_claim_verification(client):
     assert report.json()["executed_tests"] == 0
     assert report.json()["behaviors"] == []
     assert report.json()["evidence"] == []
-    assert report.json()["semantic_coverage"] is None
-    assert report.json()["mutation_score"] is None
+    assert "semantic_coverage" not in report.json()
+    assert "mutation_score" not in report.json()
     assert report.json()["unresolved_issues"]
     assert "attachment" in report.headers["content-disposition"]
 
@@ -104,7 +106,10 @@ def test_cannot_create_run_for_unknown_project(client):
 
 def test_system_health_and_cors(client):
     assert client.get("/api/v1/health").json()["status"] == "ok"
-    assert client.get("/api/v1/system").json()["mode"] == "scaffold"
+    system = client.get("/api/v1/system").json()
+    assert system["mode"] == "scaffold"
+    assert system["validation_version"] == VALIDATION_VERSION
+    assert system["outcome_mapping_version"] == OUTCOME_MAPPING_VERSION
     response = client.options(
         "/api/v1/projects",
         headers={
@@ -201,3 +206,23 @@ def test_html_report_is_downloadable_and_escapes_user_content(client):
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in response.text
     assert "<script>alert(1)</script>" not in response.text
     assert "Requirement-to-test mapping" in response.text
+
+
+
+def test_watch_legacy_unused_timestamp_is_removed_without_losing_watch_state(client):
+    project = create_project(client)
+    store = client.app.state.store
+    store.set_watch(project["id"], enabled=True, last_commit="old-commit")
+    store.record_watch_check(project["id"], run_id="old-run", error="old-error")
+    before = store.get_watch(project["id"])
+    with store.connection() as connection:
+        connection.execute(
+            "ALTER TABLE watches ADD COLUMN updated_at TEXT NOT NULL DEFAULT 'legacy'"
+        )
+    store.initialize()
+    store.initialize()
+    assert store.get_watch(project["id"]) == before
+    store.set_watch(project["id"], enabled=False)
+    assert not store.get_watch(project["id"])["enabled"]
+    store.set_watch(project["id"], enabled=True, last_commit="new-commit")
+    assert store.get_watch(project["id"])["last_commit"] == "new-commit"

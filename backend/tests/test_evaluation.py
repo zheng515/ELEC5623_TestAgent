@@ -74,6 +74,16 @@ def test_corpus_sources_and_categories_are_valid():
     }
 
 
+def test_conflict_gold_has_no_rule_precedence_and_exact_original_source():
+    corpus, _ = load_corpus()
+    case = next(item for item in corpus.oracle if item.id == "oracle_conflicting_rules")
+    assert case.expected_verdict == "insufficient"
+    assert "No precedence between these two fee rules is specified." in case.specification
+    assert "instead" not in case.specification
+    assert case.requirements[0].source_quote == case.specification
+    assert case.requirements[0].text == case.specification
+
+
 def test_omitted_rule_reduces_recall_instead_of_reporting_complete_coverage():
     corpus, _ = load_corpus()
     case = next(item for item in corpus.analysis if item.id == "analysis_omitted_rule")
@@ -111,6 +121,78 @@ def test_false_testable_and_missed_ambiguity_are_counted():
     assert summary["false_testable_rules"] == 1
     assert summary["missed_ambiguity_rules"] == 1
     assert summary["source_aligned_classification_accuracy"] == 0
+
+
+@pytest.mark.parametrize(
+    ("restatement", "unsupported"),
+    [
+        ("Amounts of at least 10000 cents return fee 999 cents.", "999 cents"),
+        ("Amounts of at least 10000 dollars return fee 0 cents.", "10000 dollars"),
+    ],
+)
+def test_wrong_explicit_quantity_fails_even_when_labels_and_quote_are_correct(
+    restatement, unsupported
+):
+    corpus, _ = load_corpus()
+    case = next(item for item in corpus.analysis if item.id == "analysis_clear_rules")
+    response = analysis_response(case)
+    response.requirements[0].text = restatement
+    record = run_case(case, "analysis", 1, llm=ResponseLLM(response))
+    score = record["score"]
+    assert score["correctly_classified_rules"] == score["gold_rules"]
+    assert score["rules_passing_current_checks"] == score["gold_rules"] - 1
+    assert score["literal_mismatches"][0]["unsupported"] == [unsupported]
+    assert summarize([record])["analysis"]["source_aligned_check_pass_rate"] == 0.5
+    assert failed(record)
+
+
+def test_equivalent_conversion_and_rewording_do_not_create_literal_mismatches():
+    corpus, _ = load_corpus()
+    case = next(item for item in corpus.analysis if item.id == "analysis_clear_rules")
+    response = analysis_response(case)
+    response.requirements[0].text = (
+        "A fee of 0 cents applies to orders worth at least 100 dollars "
+        "(10000 cents)."
+    )
+    record = run_case(case, "analysis", 1, llm=ResponseLLM(response))
+    assert record["score"]["literal_mismatches"] == []
+    assert record["score"]["rules_passing_current_checks"] == 2
+    assert not failed(record)
+
+
+def test_reordered_quantities_before_sentence_period_are_not_false_mismatches():
+    corpus, _ = load_corpus()
+    case = next(item for item in corpus.analysis if item.id == "analysis_omitted_rule")
+    response = analysis_response(case, omit_last=True)
+    response.requirements[0].text = (
+        "The fee returns 0 cents when the amount is 10000 cents."
+    )
+    record = run_case(case, "analysis", 1, llm=ResponseLLM(response))
+    assert record["score"]["literal_mismatches"] == []
+    assert record["score"]["missing_rules"] == [case.rules[1].quote]
+
+
+def test_restatement_may_use_a_threshold_from_another_rule_in_same_specification():
+    corpus, _ = load_corpus()
+    case = next(item for item in corpus.analysis if item.id == "analysis_clear_rules")
+    response = analysis_response(case)
+    response.requirements[1].text = (
+        "Nonnegative amounts smaller than 10000 cents return a shipping fee of 1000 cents."
+    )
+    record = run_case(case, "analysis", 1, llm=ResponseLLM(response))
+    assert record["score"]["literal_mismatches"] == []
+    assert not failed(record)
+
+
+def test_an_unspecified_input_unit_cannot_be_supplied_in_the_restatement():
+    corpus, _ = load_corpus()
+    case = next(item for item in corpus.analysis if item.id == "analysis_missing_unit")
+    response = analysis_response(case)
+    response.requirements[0].text = "Orders of at least 100 dollars get free shipping."
+    record = run_case(case, "analysis", 1, llm=ResponseLLM(response))
+    assert record["score"]["correctly_classified_rules"] == 1
+    assert record["score"]["literal_mismatches"][0]["unsupported"] == ["100 dollars"]
+    assert failed(record)
 
 
 def test_duplicate_rules_reduce_precision_and_fail_the_sample():

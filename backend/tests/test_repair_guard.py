@@ -2,18 +2,13 @@
 
 import pytest
 from test_agent import (
-    ANALYSIS,
     INVALID_SUITE,
     PLAN,
-    PROJECT,
     REPOSITORY,
     SUITE,
-    SequenceRunner,
     execution,
-    inspecting_agent,
 )
 
-from app.schemas import GeneratedTestSuite
 from app.services.repair_guard import UnsafeRepair, validate_repair
 
 
@@ -40,20 +35,12 @@ from app.services.repair_guard import UnsafeRepair, validate_repair
         "invalid Python(",
     ],
 )
-def test_unsafe_repair_preserves_original_error_and_is_never_executed(code):
-    candidate = SUITE.model_copy(
-        update={"tests": [SUITE.tests[0].model_copy(update={"code": code})]}
-    )
-    runner = SequenceRunner(execution("error"), execution("passed"))
-    run = inspecting_agent(ANALYSIS, PLAN, INVALID_SUITE, candidate, runner=runner).run(PROJECT)
-    assert len(runner.received) == 1
-    assert run.report.generated_tests[0].code == INVALID_SUITE.tests[0].code
-    assert run.report.executions[0].outcome == "error"
-    assert run.report.behaviors[0].verification_status == "Unverified"
-    assert run.report.refinement_iterations == 0
-    assert len(run.report.execution_attempts) == 1
-    assert any("Rejected repair T1:" in note for note in run.report.unresolved_issues)
-    assert "No safe repair was accepted" in run.events[-1].message
+def test_unsafe_repair_is_rejected_by_the_guard(code):
+    candidate = SUITE.tests[0].model_copy(update={"code": code})
+    with pytest.raises(UnsafeRepair):
+        validate_repair(
+            INVALID_SUITE.tests[0], candidate, execution("error").executions, REPOSITORY
+        )
 
 
 def test_safe_repair_preserves_assertions_calls_and_all_original_metadata():
@@ -106,18 +93,18 @@ def test_second_test_cannot_be_removed_from_the_module():
 
 
 def test_partial_safe_batch_keeps_other_original_artifacts_and_records_rejection():
-    from test_agent import FakeLLM
-
     from app.services.refiner import refine_tests
 
-    second = INVALID_SUITE.tests[0].model_copy(update={"id": "T2", "module": "test_second.py"})
-    replacement = second.model_copy(update={"code": "def test_second():\n    assert True\n"})
+    second = INVALID_SUITE.tests[0].model_copy(
+        update={
+            "id": "T2",
+            "module": "test_second.py",
+            "code": INVALID_SUITE.tests[0].code.replace("fee(10000)", "fee(missing_fixture)"),
+        }
+    )
     errors = execution("error").executions
     errors.append(errors[0].model_copy(update={"test_id": "T2"}))
     result = refine_tests(
-        FakeLLM(GeneratedTestSuite(tests=[SUITE.tests[0], replacement], notes="")),
-        PROJECT,
-        ANALYSIS.requirements,
         [INVALID_SUITE.tests[0], second],
         errors,
         REPOSITORY,
@@ -154,3 +141,29 @@ def test_used_fixture_parameter_cannot_be_removed():
     )
     with pytest.raises(UnsafeRepair):
         validate_repair(original, candidate, execution("error").executions, REPOSITORY)
+
+
+def test_deterministic_repair_preserves_contract_and_metadata_without_a_model():
+    import ast
+
+    from app.services.refiner import refine_tests
+
+    original = INVALID_SUITE.tests[0]
+    suite = refine_tests([original], execution("error").executions, REPOSITORY, plan=PLAN)
+    assert len(suite.tests) == 1
+    repaired = suite.tests[0]
+    assert ast.dump(ast.parse(repaired.code)) == ast.dump(ast.parse(SUITE.tests[0].code))
+    assert repaired.id == original.id and repaired.module == original.module
+    assert repaired.name == original.name
+    assert repaired.scenario_ids == original.scenario_ids
+    assert repaired.requirement_ids == original.requirement_ids
+    assert repaired.validation_status == "validated"
+
+
+def test_repair_without_recorded_missing_fixture_cannot_change_expectations():
+    from app.services.refiner import refine_tests
+
+    errors = execution("failed").executions
+    suite = refine_tests([INVALID_SUITE.tests[0]], errors, REPOSITORY, plan=PLAN)
+    assert suite.tests == []
+    assert "Rejected repair T1" in suite.notes

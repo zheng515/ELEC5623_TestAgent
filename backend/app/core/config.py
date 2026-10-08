@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,8 +18,10 @@ class Settings(BaseSettings):
     llm_enabled: bool = True
     # Read without the REQTEST_ prefix so the SDK's own variable name works, in the
     # environment or in backend/.env. Left unset, the SDK resolves its own credentials.
+    llm_provider: Literal["openai", "anthropic"] = "openai"
+    openai_api_key: SecretStr | None = Field(default=None, validation_alias="OPENAI_API_KEY")
     anthropic_api_key: SecretStr | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
-    llm_model: str = "claude-opus-5"
+    llm_model: str = "gpt-6.1-sol"
     llm_max_tokens: int = 16000
     llm_timeout_seconds: float = 180.0
     max_requirements: int = 40
@@ -74,6 +77,7 @@ class Settings(BaseSettings):
     @field_validator(
         "repository_root",
         "repository_snapshot_root",
+        "openai_api_key",
         "anthropic_api_key",
         "github_token",
         mode="before",

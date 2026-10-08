@@ -5,7 +5,15 @@ import os
 import pytest
 from conftest import register, wait_for_run
 from fastapi.testclient import TestClient
-from test_agent import ANALYSIS, INVALID_SUITE, PLAN, PROJECT, SUITE, FakeLLM
+from test_agent import (
+    ANALYSIS,
+    INVALID_SUITE,
+    PLAN,
+    PROJECT,
+    SUITE,
+    FakeLLM,
+    install_generated_suite,
+)
 from test_oracle_review import decision
 from test_outcome_mapping import mixed_requirement_inputs
 
@@ -26,7 +34,7 @@ pytestmark = pytest.mark.skipif(
     [
         "passing",
         "defect",
-        "repair",
+        "pending_review",
         "setup_blocked",
         "unplanned",
         "mixed",
@@ -34,7 +42,9 @@ pytestmark = pytest.mark.skipif(
         "unsupported_oracle",
     ],
 )
-def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_path, case):
+def test_real_container_workflow_preserves_code_and_environment_provenance(
+    tmp_path, case, monkeypatch
+):
     source = tmp_path / "project"
     source.mkdir()
     (source / "shipping.py").write_text(
@@ -48,11 +58,11 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
         repository_snapshot_root=tmp_path / "snapshots",
         _env_file=None,
     )
-    responses = (
-        [ANALYSIS, PLAN, INVALID_SUITE, SUITE] if case == "repair" else [ANALYSIS, PLAN, SUITE]
-    )
+    responses = [ANALYSIS, PLAN]
+    if case == "pending_review":
+        install_generated_suite(monkeypatch, INVALID_SUITE)
     if case == "unplanned":
-        responses[-1] = SUITE.model_copy(
+        unplanned = SUITE.model_copy(
             update={
                 "tests": [
                     SUITE.tests[0].model_copy(
@@ -61,6 +71,7 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
                 ]
             }
         )
+        install_generated_suite(monkeypatch, unplanned)
     requirements_text = PROJECT.requirements_text
     if case == "unsupported_oracle":
         scenario = PLAN.scenarios[0].model_copy(
@@ -84,7 +95,8 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
     if case in {"mixed", "shared"}:
         project, analysis, plan, suite = mixed_requirement_inputs(shared_function=case == "shared")
         requirements_text = project.requirements_text
-        responses = [analysis, plan, suite]
+        responses = [analysis, plan]
+        install_generated_suite(monkeypatch, suite)
     agent = DirectLLMOrchestrator(
         FakeLLM(*responses), runner=DockerTestRunner(settings), settings=settings
     )
@@ -132,9 +144,9 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
                 ["passed", "failed"] if case == "mixed" else ["failed"]
             )
             return
-        if case in {"unplanned", "unsupported_oracle"}:
+        if case in {"unplanned", "unsupported_oracle", "pending_review"}:
             assert report["project_readiness"]["status"] == "ready"
-            assert report["validation_version"] == 3
+            assert report["validation_version"] == 4
             if case == "unsupported_oracle":
                 assert report["generated_tests"] == []
             else:
@@ -150,9 +162,11 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
             assert (
                 "no matching linked scenario contract"
                 if case == "unplanned"
+                else "fixture arguments need review"
+                if case == "pending_review"
                 else "Oracle assessed as contradicted"
             ) in html
-            assert "No tests executed." in html
+            assert "No execution evidence recorded." in html
             return
         expected = "failed" if case == "defect" else "passed"
         assert [item["outcome"] for item in report["executions"]] == [expected]
@@ -160,7 +174,7 @@ def test_real_container_workflow_preserves_code_and_environment_provenance(tmp_p
             "Unverified" if case == "defect" else "Partially Verified"
         )
         attempts = report["execution_attempts"]
-        assert len(attempts) == (2 if case == "repair" else 1)
+        assert len(attempts) == 1
         assert len({item["result"]["environment"]["image_id"] for item in attempts}) == 1
         assert all(
             item["result"]["repository_content_sha256"]

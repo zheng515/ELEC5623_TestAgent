@@ -94,6 +94,13 @@ def main(argv=None):
                     "Live evaluation requires enabled LLM access and resolved credentials."
                 )
             model = settings.llm_model
+        report_options = dict(
+            corpus_sha256=fingerprint,
+            mode=args.mode,
+            model=model,
+            expected_samples=len(selected) * args.repeat,
+            response_origin=response_origin,
+        )
         records = []
         print(f"Running {len(selected) * args.repeat} samples in {args.mode} mode.", flush=True)
         for repeat in range(1, args.repeat + 1):
@@ -109,28 +116,12 @@ def main(argv=None):
                 records.append(record)
                 save_report(
                     args.output,
-                    make_report(
-                        records,
-                        corpus_sha256=fingerprint,
-                        mode=args.mode,
-                        model=model,
-                        expected_samples=len(selected) * args.repeat,
-                        complete=False,
-                        response_origin=response_origin,
-                    ),
+                    make_report(records, complete=False, **report_options),
                 )
                 print(f"{case.id} [{repeat}]: {'FAIL' if failed(record) else 'PASS'}", flush=True)
         save_report(
             args.output,
-            make_report(
-                records,
-                corpus_sha256=fingerprint,
-                mode=args.mode,
-                model=model,
-                expected_samples=len(selected) * args.repeat,
-                complete=True,
-                response_origin=response_origin,
-            ),
+            make_report(records, complete=True, **report_options),
         )
         print(f"Saved {args.output} and {args.output.with_suffix('.md')}")
         return int(any(failed(record) for record in records))

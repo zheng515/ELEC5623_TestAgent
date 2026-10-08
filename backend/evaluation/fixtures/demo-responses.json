@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "created_at": "2026-10-06T05:42:21.640881+00:00",
+  "created_at": "2026-10-07T00:56:11+00:00",
   "mode": "synthetic",
   "response_origin": "synthetic",
   "model": null,
-  "corpus_sha256": "cafcc8f69d6945377e0b0c37d5f03c2b509b40ba12070d43e24a4a9318e08411",
+  "corpus_sha256": "9fda1bc7ac292a0791b9b24b7cea9ac7755b0ae08e9553b2178314b919566578",
   "expected_samples": 2,
   "complete": true,
   "summary": {
@@ -17,10 +17,12 @@
       "decision_coverage": 1.0,
       "rule_recall": 0.5,
       "source_aligned_classification_accuracy": 0.5,
+      "source_aligned_check_pass_rate": 0.5,
       "source_aligned_precision": 1.0,
       "missing_rules": 1,
       "false_testable_rules": 0,
       "missed_ambiguity_rules": 0,
+      "literal_mismatches": 0,
       "errors": 0
     },
     "oracle": {
@@ -66,7 +68,7 @@
       "calls": [
         {
           "output_format": "RequirementAnalysis",
-          "request_sha256": "ed04ad8ec837d32e40206f25c7982151997f501009fa835e1f1da35dcb237098",
+          "request_sha256": "cdcc4dcb5b67814ff94fb6dd5ad79897d3a0231b22985d6c0f9976c78f3ed16a",
           "response": {
             "requirements": [
               {
@@ -88,6 +90,7 @@
         "returned_requirements": 1,
         "recovered_rules": 1,
         "correctly_classified_rules": 1,
+        "rules_passing_current_checks": 1,
         "missing_rules": [
           "A negative amount raises ValueError."
         ],
@@ -96,7 +99,8 @@
         "unexpected_requirement_ids": [],
         "classification_mismatches": [],
         "false_testable_rules": 0,
-        "missed_ambiguity_rules": 0
+        "missed_ambiguity_rules": 0,
+        "literal_mismatches": []
       },
       "stage_output": {
         "requirements": [
@@ -110,12 +114,14 @@
         ],
         "source_audit": {
           "version": 1,
+          "document": null,
           "extraction_limit": 40,
           "limit_reached": false,
           "returned_requirements": 1,
           "retained_requirements": 1,
           "links": [
             {
+              "locations": [],
               "text": "At 10000 cents, fee returns 0 cents.",
               "start": 0,
               "end": 36,
@@ -127,6 +133,7 @@
           ],
           "unlinked_fragments": [
             {
+              "locations": [],
               "text": "A negative amount raises ValueError.",
               "start": 37,
               "end": 73,
@@ -151,7 +158,7 @@
       "calls": [
         {
           "output_format": "OracleReview",
-          "request_sha256": "9bb5f8c0a80ef2b9b4fd695a82088acf51a1cde2d0693c873a56ad406d411304",
+          "request_sha256": "48aa8a791fb14450e81e2648c0666cbb3e6cd053ab055bd5358445b264454bc8",
           "response": {
             "decisions": [
               {
@@ -194,6 +201,7 @@
   "limitations": [
     "Curated cases are not evidence of general project correctness.",
     "Analysis scores use source-aligned rule labels, not semantic paraphrase grading.",
+    "Explicit quantity checks compare numerals and common convertible units in the full specification and each restatement. They flag values absent from the input, not omitted values, values used for the wrong rule or role, changed relationships, or semantic equivalence in general.",
     "Merged quotes covering several gold rules receive no individual rule credit.",
     "Oracle cases use fixed requirements/contracts; planning is not scored.",
     "Model errors are reported separately and are not counted as successful rejections.",

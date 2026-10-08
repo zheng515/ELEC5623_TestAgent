@@ -114,7 +114,7 @@ def failed(record):
         )
     score = record["score"]
     return (
-        score["correctly_classified_rules"] != score["gold_rules"]
+        score["rules_passing_current_checks"] != score["gold_rules"]
         or score["duplicate_rules"]
         or score["merged_requirement_ids"]
         or score["unexpected_requirement_ids"]
@@ -146,6 +146,10 @@ def make_report(
         "limitations": [
             "Curated cases are not evidence of general project correctness.",
             "Analysis scores use source-aligned rule labels, not semantic paraphrase grading.",
+            "Explicit quantity checks compare numerals and common convertible units in the "
+            "full specification and each restatement. They flag values absent from the input, "
+            "not omitted values, values used for the wrong rule or role, changed relationships, "
+            "or semantic equivalence in general.",
             "Merged quotes covering several gold rules receive no individual rule credit.",
             "Oracle cases use fixed requirements/contracts; planning is not scored.",
             "Model errors are reported separately and are not counted as successful rejections.",
@@ -172,6 +176,10 @@ def markdown_report(report):
         f"model/protocol errors: {summary['errors']}",
         "",
         "## Metrics",
+        "",
+        "Classification accuracy covers testability and ambiguity labels. "
+        "The source-aligned check pass rate also rejects unsupported explicit quantities; "
+        "neither measure establishes full semantic correctness.",
         "",
         "```json",
         json.dumps(summary, indent=2),

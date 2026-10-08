@@ -1,6 +1,6 @@
 """Sandboxed pytest execution for generated tests (FR9, FR10, NFR5).
 
-Generated test code is untrusted model output, so it runs only inside a container
+Generated test code is untrusted, so it runs only inside a container
 with no network, a read-only root filesystem, dropped capabilities, and memory, CPU,
 PID and wall-clock limits. There is deliberately no host-subprocess fallback: when
 Docker is unavailable, execution stays unconnected and the report says so.
@@ -35,16 +35,12 @@ class TestRunner(Protocol):
     def for_run(self) -> "TestRunner": ...
 
     def preflight(
-        self, repository_root: str, import_roots: list[str], module_paths: list[str]
+        self, repository_root: str, import_roots: list[str], modules: list[tuple[str, str]]
     ) -> ProjectReadiness: ...
 
     def execute(
         self, tests: list[GeneratedTest], repository_root: str | None = None
     ) -> ExecutionResult: ...
-
-
-class SandboxUnavailable(RuntimeError):
-    """Docker, or the sandbox image, is missing."""
 
 
 class DockerTestRunner:
@@ -59,7 +55,7 @@ class DockerTestRunner:
         return DockerTestRunner(self._settings, self._run)
 
     def preflight(
-        self, repository_root: str, import_roots: list[str], module_paths: list[str]
+        self, repository_root: str, import_roots: list[str], modules: list[tuple[str, str]]
     ) -> ProjectReadiness:
         """Inspect declarations and imports as data in the pinned runtime."""
         self._import_roots = list(import_roots)
@@ -79,7 +75,7 @@ class DockerTestRunner:
                     "-I",
                     "-c",
                     code,
-                    json.dumps({"import_roots": import_roots, "module_paths": module_paths}),
+                    json.dumps({"import_roots": import_roots, "modules": modules}),
                 ],
                 capture_output=True,
                 text=True,
@@ -353,8 +349,6 @@ def _module_name(case, modules: dict[str, str]) -> str:
     classname = case.get("classname") or ""
     if classname:
         candidate = f"{classname.split('.')[0]}.py"
-        if candidate in modules:
-            return candidate
         return candidate
     from_name = f"{case.get('name', '')}.py"
     if from_name in modules:

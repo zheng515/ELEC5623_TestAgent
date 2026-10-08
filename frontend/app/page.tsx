@@ -1,17 +1,24 @@
-"use client";
+import { Report } from "../components/report-preview";
 
 import { useCallback, useState } from "react";
 import { AuthGate } from "../components/auth";
 import { Home } from "../components/home";
 import { NewTask } from "../components/new-task";
-import { Evidence, Report, Workspace } from "../components/project-workspace";
-import { Badge, Empty, ErrorNotice, Loading } from "../components/ui";
+import { Evidence, Workspace } from "../components/project-workspace";
+import {
+  Badge,
+  Empty,
+  ErrorNotice,
+  Loading,
+  formatDate,
+  runBadge,
+} from "../components/ui";
 import { useResource } from "../hooks/use-resource";
-import { api, downloadHtmlReport, downloadReport } from "../lib/api";
+import { api, downloadReport } from "../lib/api";
+import type { ReportFormat } from "../lib/api";
 import { navigate, urlFor, useRoute } from "../lib/navigation";
-import { OUTCOME_MAPPING_VERSION } from "../lib/outcome-mapping";
 import type { ProjectCreate, User } from "../lib/types";
-import { isRunActive, VALIDATION_VERSION } from "../lib/types";
+import { isRunActive } from "../lib/types";
 import type { VerificationRun } from "../lib/types";
 
 const indexHasActiveRuns = (data: { recentRuns: VerificationRun[] }) =>
@@ -41,10 +48,14 @@ function WorkspaceApp({
     ]);
     return { projects, system, recentRuns };
   }, []);
-  const resource = useResource(`index:${revision}`, load, {
-    pollIntervalMs: 2000,
-    shouldPoll: indexHasActiveRuns,
-  });
+  const resource = useResource(
+    `index:${route.view === "home" ? "home" : "project"}:${revision}`,
+    load,
+    {
+      pollIntervalMs: 2000,
+      shouldPoll: route.view === "home" ? indexHasActiveRuns : undefined,
+    },
+  );
   const loadRuns = useCallback(
     () => (route.projectId ? api.runs(route.projectId) : Promise.resolve([])),
     [route.projectId],
@@ -130,29 +141,15 @@ function WorkspaceApp({
       setBusy(false);
     }
   }
-  async function download() {
+  async function download(format: ReportFormat) {
     if (!run) return;
     setBusy(true);
     setActionError("");
     try {
-      await downloadReport(run.id);
+      await downloadReport(run.id, format);
     } catch (e) {
       setActionError(
         e instanceof Error ? e.message : "Unable to download the report.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function downloadHtml() {
-    if (!run) return;
-    setBusy(true);
-    setActionError("");
-    try {
-      await downloadHtmlReport(run.id);
-    } catch (e) {
-      setActionError(
-        e instanceof Error ? e.message : "Unable to download the HTML report.",
       );
     } finally {
       setBusy(false);
@@ -172,7 +169,6 @@ function WorkspaceApp({
           </span>
           reqtest<span className="brand-dot">.</span>
         </a>
-        <span className="sidebar-caption">GROUP 04 / WORKSPACE</span>
         <nav aria-label="Main navigation">
           <a
             className={`nav-item ${route.view === "home" ? "active" : ""}`}
@@ -207,16 +203,6 @@ function WorkspaceApp({
             </>
           )}
         </nav>
-        <div className="sidebar-footer">
-          <span className="eyebrow">BUILT ON EVIDENCE</span>
-          <p>
-            Every requirement.
-            <br />
-            Every decision.
-            <br />A traceable outcome.
-          </p>
-          <span>ELEC5623 · FOUNDATION</span>
-        </div>
       </aside>
       <div className="main-shell">
         <header className="topbar">
@@ -243,9 +229,6 @@ function WorkspaceApp({
             <span className="account-name" title={user.email}>
               {user.name}
             </span>
-            <span className="avatar" aria-hidden="true">
-              {user.name.slice(0, 2).toUpperCase()}
-            </span>
             <button className="text-button" onClick={logout} disabled={busy}>
               Sign out
             </button>
@@ -253,8 +236,10 @@ function WorkspaceApp({
         </header>
         <main className="main-content">
           {actionError && <ErrorNotice message={actionError} />}
-          {!!run?.report.generated_tests.length &&
-            run.report.validation_version !== VALIDATION_VERSION && (
+          {data &&
+            !!run?.report.generated_tests.length &&
+            run.report.validation_version !==
+              data.system.validation_version && (
               <p className="notice" role="note">
                 This run predates the current code-to-plan checks. Historical
                 coverage and conclusions have not been revalidated. Start a new
@@ -262,8 +247,10 @@ function WorkspaceApp({
                 original-source oracle support.
               </p>
             )}
-          {!!run?.report.generated_tests.length &&
-            run.report.outcome_mapping_version !== OUTCOME_MAPPING_VERSION && (
+          {data &&
+            !!run?.report.generated_tests.length &&
+            run.report.outcome_mapping_version !==
+              data.system.outcome_mapping_version && (
               <p className="notice" role="note">
                 This run predates function-level requirement outcome mapping.
                 Historical conclusions have not been recalculated. Start a new
@@ -338,9 +325,10 @@ function WorkspaceApp({
                   <a
                     className="text-button"
                     href={urlFor("edit", project.id, run?.id)}
-                    aria-disabled={!!runs.find(isRunActive)}
+                    aria-disabled={busy || !!runs.find(isRunActive)}
                     onClick={(event) => {
-                      if (runs.find(isRunActive)) event.preventDefault();
+                      if (busy || runs.find(isRunActive))
+                        event.preventDefault();
                     }}
                   >
                     Edit inputs & rerun
@@ -358,7 +346,8 @@ function WorkspaceApp({
                       {!runs.length && <option value="">No runs yet</option>}
                       {runs.map((r) => (
                         <option key={r.id} value={r.id}>
-                          Run {r.id.slice(0, 8)}
+                          Run {r.id.slice(0, 8)} · {formatDate(r.created_at)} ·{" "}
+                          {runBadge(r).label}
                         </option>
                       ))}
                     </select>
@@ -380,6 +369,7 @@ function WorkspaceApp({
                   busy={busy}
                   activeRun={runs.find(isRunActive)}
                   refresh={refresh}
+                  validationVersion={data.system.validation_version}
                 />
               ) : route.view === "evidence" ? (
                 <Evidence
@@ -391,18 +381,13 @@ function WorkspaceApp({
                 <Report
                   project={runProject ?? project}
                   run={run}
-                  runs={runs}
                   download={download}
-                  downloadHtml={downloadHtml}
                   busy={busy}
+                  revision={revision}
                 />
               )}
             </>
           )}
-          <footer className="site-footer">
-            <span>REQTEST / REQUIREMENT-AWARE VERIFICATION</span>
-            <span>Understand → Measure → Improve → Re-measure</span>
-          </footer>
         </main>
       </div>
     </div>

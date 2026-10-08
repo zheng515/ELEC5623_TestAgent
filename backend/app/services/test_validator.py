@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from app.schemas import GeneratedTest, RepositorySnapshot, TestPlan, ValidatedCheck
 from app.services.oracle_review import has_current_oracle_support
 
-VALIDATION_VERSION = 3
+VALIDATION_VERSION = 4
 
 
 class UnsupportedCheck(ValueError):
@@ -54,12 +54,6 @@ def validate_test(test: GeneratedTest, plan: TestPlan, repository: RepositorySna
                 )
                 if grounding:
                     issues.extend(f"{scenario_id}: {issue}" for issue in grounding.issues)
-                continue
-            if scenario.assumptions or scenario.preconditions:
-                issues.append(
-                    f"{scenario_id}: setup or assumptions need validation "
-                    "beyond the supported subset."
-                )
                 continue
             contract = scenario.check
             expected = (
@@ -217,16 +211,12 @@ def _observe(code, repository):
             arg.arg
             for arg in [*function.args.args, *function.args.posonlyargs, *function.args.kwonlyargs]
         }
-        used_names = {
-            node.id
-            for statement in function.body
-            for node in ast.walk(statement)
-            if isinstance(node, ast.Name)
-        }
-        if arguments & used_names:
-            raise UnsupportedCheck("Fixture-dependent behavior needs review.")
         if arguments & (set(bindings) | pytest_names):
             raise UnsupportedCheck("Fixture arguments must not shadow imports.")
+        if arguments:
+            # Pytest resolves parameters as fixtures before running the body. An
+            # apparently unused parameter can still fail setup or run fixture code.
+            raise UnsupportedCheck("Pytest fixture arguments need review before execution.")
         variables, results = {}, {}
         checked_results = set()
         before = len(checks)

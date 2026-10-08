@@ -207,7 +207,7 @@ def main():
         "passed",
         "These relative import roots will be used for execution.",
     )
-    if not payload["module_paths"]:
+    if not payload["modules"]:
         check(
             "layout",
             "Python modules",
@@ -215,13 +215,7 @@ def main():
             "No inspectable Python module was found. Select the project source directory.",
         )
     module_names = {}
-    for relative in payload["module_paths"]:
-        parts = pathlib.PurePosixPath(relative).with_suffix("").parts
-        if roots[0] == "src" and parts[0] == "src":
-            parts = parts[1:]
-        if parts[-1] == "__init__":
-            parts = parts[:-1]
-        name = ".".join(parts)
+    for name, relative in payload["modules"]:
         if name.split(".")[0] in {"pytest", "pluggy", "packaging", *sys.stdlib_module_names}:
             check(
                 "layout",
@@ -239,7 +233,7 @@ def main():
                 "Select one source directory.",
             )
         module_names[name] = relative
-    for relative in payload["module_paths"]:
+    for _, relative in payload["modules"]:
         try:
             tree = ast.parse((root / relative).read_text(encoding="utf-8"))
         except (OSError, SyntaxError, UnicodeError):

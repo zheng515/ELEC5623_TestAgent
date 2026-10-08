@@ -35,6 +35,7 @@ async function request<T>(
   path: string,
   options: RequestInit = {},
   timeoutMs = 15000,
+  responseFormat: "json" | "blob" | "text" = "json",
 ): Promise<T> {
   let response: Response;
   try {
@@ -85,7 +86,13 @@ async function request<T>(
     );
   }
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  return (
+    responseFormat === "blob"
+      ? response.blob()
+      : responseFormat === "text"
+        ? response.text()
+        : response.json()
+  ) as Promise<T>;
 }
 export const api = {
   documentCapabilities: () =>
@@ -141,50 +148,37 @@ export const api = {
       body: JSON.stringify({ enabled }),
     }),
   system: () => request<SystemInfo>("/system"),
+  reportHtml: (id: string) =>
+    request<string>(
+      `/runs/${encodeURIComponent(id)}/report.html`,
+      {},
+      15000,
+      "text",
+    ),
   report: (id: string) =>
     request<VerificationReport>(`/runs/${encodeURIComponent(id)}/report`),
 };
-export async function downloadReport(id: string) {
-  const report = await api.report(id);
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }),
-  );
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `reqtest-report-${id}.json`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+export type ReportFormat = "json" | "html";
 
-export async function downloadHtmlReport(id: string) {
-  let response: Response;
-  try {
-    response = await fetch(
-      `${base}/runs/${encodeURIComponent(id)}/report.html`,
-      {
-        credentials: "include",
-        cache: "no-store",
-        signal: AbortSignal.timeout(15000),
-      },
-    );
-  } catch {
-    throw new Error(
-      "Unable to reach the API. Check that the backend is running and try again.",
-    );
-  }
-  if (!response.ok) {
-    if (response.status === 401) sessionExpired();
-    throw new ApiError(
-      `Report download failed (${response.status}).`,
-      response.status,
-    );
-  }
-  const url = URL.createObjectURL(await response.blob());
+export async function downloadReport(
+  id: string,
+  format: ReportFormat = "json",
+) {
+  const blob =
+    format === "json"
+      ? new Blob([JSON.stringify(await api.report(id), null, 2)], {
+          type: "application/json",
+        })
+      : await request<Blob>(
+          `/runs/${encodeURIComponent(id)}/report.html`,
+          {},
+          15000,
+          "blob",
+        );
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `reqtest-report-${id}.html`;
+  link.download = `reqtest-report-${id}.${format}`;
   document.body.appendChild(link);
   link.click();
   link.remove();

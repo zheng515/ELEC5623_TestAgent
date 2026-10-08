@@ -30,16 +30,14 @@ def create_app(
         app.state.store = store
         app.state.settings = settings
         app.state.orchestrator = orchestrator or _default_orchestrator(settings)
-        app.state.mode = getattr(app.state.orchestrator, "mode", "scaffold")
-        app.state.execution_ready = getattr(app.state.orchestrator, "executes_tests", False)
-        app.state.inspection_ready = getattr(app.state.orchestrator, "inspects_repositories", False)
-        app.state.diagnosis_ready = app.state.mode == "baseline_b2"
         app.state.run_manager = RunManager(store, app.state.orchestrator, settings.max_active_runs)
         app.state.run_manager.start()
         # Watching needs the agent (scaffold runs would only be blocked) and GitHub access.
         app.state.watcher = (
             RepositoryWatcher(store, app.state.run_manager, settings)
-            if settings.watch_enabled and settings.github_enabled and app.state.mode != "scaffold"
+            if settings.watch_enabled
+            and settings.github_enabled
+            and getattr(app.state.orchestrator, "mode", "scaffold") != "scaffold"
             else None
         )
         if app.state.watcher:

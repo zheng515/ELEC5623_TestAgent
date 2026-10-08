@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import Literal
 
 from email_validator import EmailNotValidError, validate_email
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
 
 class Credentials(BaseModel):
@@ -163,7 +163,8 @@ class SourceAnalysisAudit(BaseModel):
     """Server-computed quote provenance; not a semantic completeness assessment."""
 
     version: int = 1
-    document: RequirementDocument | None = None
+    # Read legacy audit copies, but only the report keeps a serialized document snapshot.
+    document: RequirementDocument | None = Field(default=None, exclude=True)
     extraction_limit: int
     limit_reached: bool
     returned_requirements: int
@@ -481,6 +482,7 @@ class VerificationReport(BaseModel):
     generated_tests: list[GeneratedTest] = Field(default_factory=list)
     behaviors: list[Behavior] = Field(default_factory=list)
     evidence: list[dict[str, str]] = Field(default_factory=list)
+    scenario_evidence_refs: dict[str, list[str]] | None = None
     unresolved_issues: list[str] = Field(default_factory=list)
     coverage_gaps: list[str] = Field(default_factory=list)
     executions: list[ExecutedTest] = Field(default_factory=list)
@@ -491,9 +493,21 @@ class VerificationReport(BaseModel):
     executed_tests: int = 0
     execution_success_rate: float | None = None
     requirement_coverage: float | None = None
-    semantic_coverage: float | None = None
-    mutation_score: float | None = None
     change: RepositoryChange | None = None
+
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy_document(cls, value):
+        if isinstance(value, dict) and not value.get("requirement_document"):
+            audit = value.get("source_audit")
+            document = (
+                audit.document if isinstance(audit, SourceAnalysisAudit)
+                else audit.get("document") if isinstance(audit, dict) else None
+            )
+            if document is not None:
+                return {**value, "requirement_document": document}
+        return value
 
 
 class VerificationRun(BaseModel):
@@ -550,4 +564,6 @@ class Integration(BaseModel):
 class SystemInfo(BaseModel):
     version: str = "0.1.0"
     mode: Literal["scaffold", "baseline_b0", "baseline_b2"] = "scaffold"
+    validation_version: int
+    outcome_mapping_version: int
     integrations: list[Integration]

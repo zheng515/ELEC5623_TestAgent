@@ -11,6 +11,7 @@ from test_agent import (
     FakeRunner,
     execution,
     inspecting_agent,
+    install_generated_suite,
 )
 
 from app.schemas import GeneratedTestSuite, ScenarioCheck
@@ -64,7 +65,7 @@ from app.services.test_validator import validate_test
         SUITE.tests[0].code.replace("== 0", "== 0, str(fee(0))"),
     ],
 )
-def test_invalid_claim_is_retained_but_excluded_from_execution_and_coverage(code):
+def test_invalid_claim_is_retained_but_excluded_from_execution_and_coverage(code, monkeypatch):
     suite = SUITE.model_copy(
         update={
             "tests": [
@@ -79,6 +80,7 @@ def test_invalid_claim_is_retained_but_excluded_from_execution_and_coverage(code
         }
     )
     runner = FakeRunner(execution("passed"))
+    install_generated_suite(monkeypatch, suite)
     run = inspecting_agent(ANALYSIS, PLAN, suite, runner=runner).run(PROJECT)
     test = run.report.generated_tests[0]
     assert test.code == code
@@ -114,6 +116,27 @@ def test_exact_call_input_and_oracle_establish_a_validated_link(code):
     assert checked.validated_checks[0].target == "shipping.fee"
     assert checked.validated_checks[0].call_line > 0
     assert checked.validated_checks[0].assertion_line > 0
+
+
+@pytest.mark.parametrize("fixture_name", ["tmp_path", "missing_fixture"])
+def test_unused_fixture_parameter_stays_pending_review_and_cannot_execute(
+    fixture_name, monkeypatch
+):
+    code = SUITE.tests[0].code.replace("at_threshold():", f"at_threshold({fixture_name}):")
+    test = SUITE.tests[0].model_copy(update={"code": code})
+    checked = validate_test(test, PLAN, REPOSITORY)
+    assert checked.validation_status == "needs_review"
+    assert checked.validated_checks == []
+    assert any("fixture arguments need review" in issue for issue in checked.validation_issues)
+
+    runner = FakeRunner(execution("passed"))
+    suite = SUITE.model_copy(update={"tests": [test]})
+    install_generated_suite(monkeypatch, suite)
+    run = inspecting_agent(ANALYSIS, PLAN, suite, runner=runner).run(PROJECT)
+    assert run.report.generated_tests[0].validation_status == "needs_review"
+    assert run.report.requirement_coverage == 0
+    assert runner.received == []
+    assert run.report.executed_tests == 0
 
 
 def test_precise_exception_input_and_type_must_match():
@@ -229,7 +252,7 @@ def test_every_saved_result_is_checked_even_when_calls_share_a_line():
     assert any("unused has no checked result" in issue for issue in checked.validation_issues)
 
 
-def test_actual_test_function_outcome_is_required_not_just_a_module_outcome():
+def test_actual_test_function_outcome_is_required_not_just_a_module_outcome(monkeypatch):
     suite = SUITE.model_copy(
         update={
             "tests": [
@@ -242,6 +265,7 @@ def test_actual_test_function_outcome_is_required_not_just_a_module_outcome():
             ]
         }
     )
+    install_generated_suite(monkeypatch, suite)
     run = inspecting_agent(ANALYSIS, PLAN, suite, runner=FakeRunner(execution("passed"))).run(
         PROJECT
     )
@@ -254,12 +278,15 @@ def test_actual_test_function_outcome_is_required_not_just_a_module_outcome():
     assert complete.report.behaviors[0].verification_status == "Partially Verified"
 
 
-def test_partial_batch_executes_only_validated_artifacts_and_archives_only_executed_code():
+def test_partial_batch_executes_only_validated_artifacts_and_archives_only_executed_code(
+    monkeypatch,
+):
     invalid = SUITE.tests[0].model_copy(
         update={"id": "T2", "module": "test_fake.py", "code": "def test_fake():\n    assert True\n"}
     )
     suite = GeneratedTestSuite(tests=[SUITE.tests[0], invalid], notes="")
     runner = FakeRunner(execution("passed"))
+    install_generated_suite(monkeypatch, suite)
     run = inspecting_agent(ANALYSIS, PLAN, suite, runner=runner).run(PROJECT)
     assert [test.id for test in runner.received[0]] == ["T1"]
     assert [test.id for test in run.report.execution_attempts[0].tests] == ["T1"]
@@ -306,13 +333,16 @@ def test_json_types_are_not_coerced_and_keyword_arguments_match_exactly():
         )
 
 
-def test_html_preserves_rejected_code_and_its_explanation_without_fabricating_execution():
+def test_html_preserves_rejected_code_and_its_explanation_without_fabricating_execution(
+    monkeypatch,
+):
     from app.services.report_renderer import render_html_report
 
     bad = SUITE.tests[0].model_copy(
         update={"code": "# <script>alert(1)</script>\ndef test_bad():\n    assert True\n"}
     )
     runner = FakeRunner(execution("passed"))
+    install_generated_suite(monkeypatch, GeneratedTestSuite(tests=[bad], notes=""))
     run = inspecting_agent(
         ANALYSIS, PLAN, GeneratedTestSuite(tests=[bad], notes=""), runner=runner
     ).run(PROJECT)
@@ -322,22 +352,26 @@ def test_html_preserves_rejected_code_and_its_explanation_without_fabricating_ex
     assert "Structured check contract" in html
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
     assert "<script>alert(1)</script>" not in html
-    assert "No tests executed." in html
+    assert "No execution evidence recorded." in html
     assert not any("Start Docker" in issue for issue in run.report.unresolved_issues)
 
 
-@pytest.mark.parametrize("version", [None, 1, 2])
+@pytest.mark.parametrize("version", [None, 1, 2, 3])
 def test_html_marks_earlier_validation_versions_as_historical(version):
     from app.services.report_renderer import render_html_report
 
     run = inspecting_agent(ANALYSIS, PLAN, SUITE, runner=FakeRunner(execution("passed"))).run(
         PROJECT
     )
-    assert run.report.validation_version == 3
+    assert run.report.validation_version == 4
     run.report.validation_version = version
     coverage = run.report.requirement_coverage
     html = render_html_report(PROJECT, run)
-    assert "This run predates the current code-to-plan checks" in html
+    assert (
+        "No code-to-plan validation version was recorded"
+        if version is None
+        else "This run predates the current code-to-plan checks"
+    ) in html
     assert "have not been revalidated" in html
     assert run.report.requirement_coverage == coverage
 

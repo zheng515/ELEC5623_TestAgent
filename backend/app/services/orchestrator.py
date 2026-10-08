@@ -1,4 +1,3 @@
-import hashlib
 from collections import Counter
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -14,12 +13,10 @@ from app.schemas import (
     GeneratedTest,
     GeneratedTestSuite,
     Project,
-    ProjectReadiness,
     RepositoryChange,
     RepositorySnapshot,
     RequirementItem,
     RunEvent,
-    SourceAnalysisAudit,
     TestDiagnosis,
     TestPlan,
     VerificationReport,
@@ -51,11 +48,13 @@ from app.services.outcome_mapping import (
     matches_function,
     requirement_checks,
     requirement_outcomes,
+    scenario_evidence_refs,
 )
 from app.services.planner import plan_tests, planning_gaps
 from app.services.project_readiness import check_project_readiness
 from app.services.refiner import refine_tests
 from app.services.repository_snapshot import SnapshotError, verified_snapshot_root
+from app.services.run_context import new_run
 from app.services.runner import TestRunner
 from app.services.test_validator import VALIDATION_VERSION, validate_test, validated_scenarios
 
@@ -63,7 +62,7 @@ ProgressCallback = Callable[[VerificationRun], None]
 
 
 class Orchestrator(Protocol):
-    """Replace this adapter when the real evidence-driven workflow is integrated."""
+    """Workflow contract shared by queued and direct runs."""
 
     def run(
         self,
@@ -72,6 +71,7 @@ class Orchestrator(Protocol):
         on_progress: ProgressCallback | None = None,
         incremental: bool = False,
         baseline: VerificationRun | None = None,
+        run: VerificationRun | None = None,
     ) -> VerificationRun: ...
 
 
@@ -85,54 +85,53 @@ class ScaffoldOrchestrator:
         on_progress: ProgressCallback | None = None,
         incremental: bool = False,
         baseline: VerificationRun | None = None,
+        run: VerificationRun | None = None,
     ) -> VerificationRun:
-        now = datetime.now(UTC)
-        digest = hashlib.sha256(project.model_dump_json().encode()).hexdigest()
-        return VerificationRun(
-            id=str(uuid4()),
-            project_id=project.id,
-            created_at=now,
-            input_sha256=digest,
-            events=[
-                RunEvent(
-                    id=str(uuid4()),
-                    stage="understand",
-                    message=(
-                        "Project inputs and fingerprint recorded. Repository "
-                        "reference saved; source code not read."
+        context = run or new_run(project)
+        now = context.created_at
+        return context.model_copy(
+            update={
+                "status": "blocked",
+                "events": [
+                    RunEvent(
+                        id=str(uuid4()),
+                        stage="understand",
+                        message=(
+                            "Project inputs and fingerprint recorded. Repository "
+                            "reference saved; source code not read."
+                        ),
+                        created_at=now,
                     ),
-                    created_at=now,
-                ),
-                RunEvent(
-                    id=str(uuid4()),
-                    stage="understand",
-                    message=(
-                        "Run blocked: requirement analysis, code inspection, "
-                        "and isolated execution are not connected."
+                    RunEvent(
+                        id=str(uuid4()),
+                        stage="understand",
+                        message=(
+                            "Run blocked: requirement analysis, code inspection, "
+                            "and isolated execution are not connected."
+                        ),
+                        created_at=now,
                     ),
-                    created_at=now,
-                ),
-            ],
-            report=VerificationReport(
-                requirement_document=project.requirement_document,
-                summary=(
-                    "Setup report created. Requirements have not been analyzed, "
-                    "source code has not been read, and no tests have been executed."
-                ),
-                unresolved_issues=[
-                    "Connect requirement analysis and behavior decomposition.",
-                    "Connect code inspection, test mapping, and gap evaluation.",
-                    "Connect isolated pytest execution, failure diagnosis, and mutation testing.",
                 ],
-            ),
+                "report": VerificationReport(
+                    requirement_document=project.requirement_document,
+                    summary=(
+                        "Setup report created. Requirements have not been analyzed, "
+                        "source code has not been read, and no tests have been executed."
+                    ),
+                    unresolved_issues=[
+                        "Connect requirement analysis and behavior decomposition.",
+                        "Connect code inspection, test mapping, and gap evaluation.",
+                        "Connect isolated pytest execution and failure diagnosis.",
+                    ],
+                ),
+            }
         )
 
 
 class DirectLLMOrchestrator:
-    """B0 generation with optional B2 execution feedback and bounded refinement.
+    """Model analysis, planning and review; deterministic tests and bounded repair.
 
-    Without a sandbox, planning and generation remain B0. With a sandbox, invalid tests may be
-    refined and re-executed once, which makes the configured workflow B2.
+    The existing B0/B2 mode records whether isolated execution is available.
     """
 
     def __init__(
@@ -166,10 +165,12 @@ class DirectLLMOrchestrator:
         on_progress: ProgressCallback | None = None,
         incremental: bool = False,
         baseline: VerificationRun | None = None,
+        run: VerificationRun | None = None,
     ) -> VerificationRun:
         """Run the full workflow, or with `incremental` grow the baseline run's suite."""
-        now = datetime.now(UTC)
-        digest = hashlib.sha256(project.model_dump_json().encode()).hexdigest()
+        context = run or new_run(project, mode=self.mode)
+        now = context.created_at
+        digest = context.input_sha256
         events = [
             _event(
                 "understand",
@@ -179,31 +180,57 @@ class DirectLLMOrchestrator:
             )
         ]
 
-        run_id = str(uuid4())
-        progress_report = VerificationReport(
-            summary="Agent run started.", requirement_document=project.requirement_document
+        current = context.model_copy(
+            update={
+                "report": VerificationReport(
+                    summary="Agent run started.", requirement_document=project.requirement_document
+                )
+            }
         )
 
-        def checkpoint(stage: str, message: str, **updates):
-            nonlocal progress_report
-            progress_report = progress_report.model_copy(
-                update={"summary": message, **updates}, deep=True
+        def checkpoint(
+            stage: str,
+            message: str,
+            *,
+            status: Literal["running", "failed", "blocked", "completed"] = "running",
+            publish: bool = True,
+            **updates,
+        ) -> VerificationRun:
+            nonlocal current
+            current = current.model_copy(
+                update={
+                    "updated_at": datetime.now(UTC),
+                    "mode": self.mode,
+                    "status": status,
+                    "stage": stage,
+                    "events": list(events),
+                    "report": current.report.model_copy(
+                        update={"summary": message, **updates}, deep=True
+                    ),
+                }
             )
-            if on_progress:
-                on_progress(
-                    VerificationRun(
-                        id=run_id,
-                        project_id=project.id,
-                        created_at=now,
-                        updated_at=datetime.now(UTC),
-                        mode=self.mode,
-                        status="running",
-                        stage=stage,
-                        input_sha256=digest,
-                        events=list(events),
-                        report=progress_report,
-                    )
-                )
+            if publish and on_progress:
+                on_progress(current)
+            return current
+
+        def failed(stage: str, message: str) -> VerificationRun:
+            events.append(_event(stage, f"Run failed: {message}", datetime.now(UTC)))
+            report = current.report
+            return checkpoint(
+                stage,
+                f"Run failed during the {stage} stage. Completed stage outputs are retained.",
+                status="failed",
+                publish=False,
+                planning_gaps=planning_gaps(report.requirements, report.test_plan)
+                if report.test_plan
+                else [],
+                uncovered_scenarios=[
+                    f"{item.id}: {item.title}" for item in report.test_plan.scenarios
+                ]
+                if report.test_plan
+                else [],
+                unresolved_issues=[message, *report.unresolved_issues],
+            )
 
         checkpoint("inspect", "Inspecting the available repository interfaces.")
         repository, repository_issues = self._inspect(project, events)
@@ -211,7 +238,14 @@ class DirectLLMOrchestrator:
         if incremental:
             if repository is None:
                 # Without the new code there is nothing to compare or re-execute against.
-                return self._unread(project, run_id, digest, events, now, repository_issues)
+                return checkpoint(
+                    "inspect",
+                    "The repository could not be read for this incremental check, so no "
+                    "tests were added or re-executed. Earlier runs are unchanged.",
+                    status="blocked",
+                    publish=False,
+                    unresolved_issues=repository_issues,
+                )
             problem = baseline_problem(baseline, digest)
             if problem:
                 events.append(
@@ -254,9 +288,7 @@ class DirectLLMOrchestrator:
                     self._llm, project, max_requirements=self._max_requirements
                 )
             except LLMError as error:
-                return self._failed(
-                    project, digest, events, "analyze", str(error), now, repository=repository
-                )
+                return failed("analyze", str(error))
 
         requirements = analysis.requirements
         ambiguous = [item for item in requirements if item.ambiguity]
@@ -295,32 +327,13 @@ class DirectLLMOrchestrator:
                 for check in readiness.checks
                 if check.status != "passed"
             ]
-            return VerificationRun(
-                id=run_id,
-                project_id=project.id,
-                mode=self.mode,
+            return checkpoint(
+                "plan",
+                "Project setup blocked test planning and generation. No tests were executed.",
                 status="blocked",
-                stage="plan",
-                created_at=now,
-                updated_at=datetime.now(UTC),
-                input_sha256=digest,
-                events=events,
-                report=VerificationReport(
-                    requirement_document=project.requirement_document,
-                    summary="Project setup blocked test planning and generation. "
-                    "No tests were executed.",
-                    repository=repository,
-                    requirements=requirements,
-                    source_audit=analysis.source_audit,
-                    project_readiness=readiness,
-                    behaviors=_behaviors(requirements, [], [], inspected=False),
-                    unresolved_issues=[
-                        *repository_issues,
-                        *analysis.source_audit.issues,
-                        *issues,
-                        *readiness.notes,
-                    ],
-                ),
+                publish=False,
+                behaviors=_behaviors(requirements, [], [], inspected=False),
+                unresolved_issues=[*current.report.unresolved_issues, *issues, *readiness.notes],
             )
 
         change = None
@@ -342,18 +355,7 @@ class DirectLLMOrchestrator:
                     max_scenarios=self._settings.max_scenarios,
                 )
             except LLMError as error:
-                return self._failed(
-                    project,
-                    digest,
-                    events,
-                    "plan",
-                    str(error),
-                    now,
-                    requirements,
-                    repository=repository,
-                    source_audit=analysis.source_audit,
-                    project_readiness=readiness,
-                )
+                return failed("plan", str(error))
             plan_gaps = planning_gaps(requirements, plan)
             checkpoint(
                 "plan", "Reviewing planned oracles against original requirements.", test_plan=plan
@@ -375,22 +377,7 @@ class DirectLLMOrchestrator:
                 planning_gaps=plan_gaps,
             )
 
-            try:
-                suite = generate_tests(self._llm, project, requirements, repository, plan=plan)
-            except LLMError as error:
-                return self._failed(
-                    project,
-                    digest,
-                    events,
-                    "generate",
-                    str(error),
-                    now,
-                    requirements,
-                    plan=plan,
-                    repository=repository,
-                    source_audit=analysis.source_audit,
-                    project_readiness=readiness,
-                )
+            suite = generate_tests(requirements, repository, plan=plan)
 
             gaps = coverage_gaps(requirements, suite.tests)
             events.append(
@@ -407,6 +394,9 @@ class DirectLLMOrchestrator:
             "Executing generated tests in the available sandbox."
             if suite.tests
             else "No tests generated; recording gaps without sandbox execution.",
+            test_plan=plan,
+            planning_gaps=plan_gaps,
+            change=change,
             generated_tests=suite.tests,
             validation_version=VALIDATION_VERSION,
             outcome_mapping_version=OUTCOME_MAPPING_VERSION,
@@ -426,6 +416,17 @@ class DirectLLMOrchestrator:
                     execution,
                 )
             )
+        checkpoint(
+            "execute",
+            "Execution stage finished; preserving recorded results.",
+            executions=executions,
+            execution_attempts=attempts,
+            diagnoses=_diagnose(executions),
+            evidence=_evidence(executions),
+            scenario_evidence_refs=scenario_evidence_refs(plan, suite.tests, executions),
+            executed_tests=len(executions),
+            execution_success_rate=_success_rate(executions),
+        )
         tests = suite.tests
         refinement_iterations = 0
         refinement_notes = []
@@ -441,62 +442,58 @@ class DirectLLMOrchestrator:
             checkpoint(
                 "improve",
                 "Repairing tests with identifiable construction errors.",
-                executions=executions,
-                execution_attempts=attempts,
-                diagnoses=_diagnose(executions),
-                evidence=_evidence(executions),
             )
-            try:
-                refined = refine_tests(
-                    self._llm, project, requirements, tests, repairable, repository, plan=plan
-                )
-                if refined.notes.strip():
-                    refinement_notes.append(f"Refinement note: {refined.notes.strip()}")
-                if not refined.tests:
-                    events.append(
-                        _event(
-                            "improve",
-                            "No safe repair was accepted. "
-                            "Original tests and execution errors retained.",
-                            datetime.now(UTC),
-                        )
-                    )
-                if refined.tests:
-                    tests = _replace_tests(tests, refined.tests)
-                    events.append(
-                        _event(
-                            "improve",
-                            f"Refined {len(refined.tests)} invalid tests from execution evidence.",
-                            datetime.now(UTC),
-                        )
-                    )
-                    refined_ids = {test.id for test in refined.tests}
-                    executions = [item for item in executions if item.test_id not in refined_ids]
-                    refinement_iterations = 1
-                    checkpoint(
-                        "re_measure",
-                        "Re-executing the repaired tests.",
-                        generated_tests=tests,
-                        executions=executions,
-                        refinement_iterations=1,
-                        execution_attempts=attempts,
-                        evidence=_evidence(executions),
-                    )
-                    rerun = self._execute(
-                        refined.tests, repository, events, stage="re_measure", runner=runner
-                    )
-                    if rerun is not None:
-                        attempts.append(_attempt(2, "re_measure", refined.tests, rerun))
-                        execution = rerun
-                        executions += rerun.executions
-            except LLMError as error:
+            refined = refine_tests(tests, repairable, repository, plan=plan)
+            if refined.notes.strip():
+                refinement_notes.append(f"Refinement note: {refined.notes.strip()}")
+            if not refined.tests:
                 events.append(
                     _event(
                         "improve",
-                        f"Refinement stopped after the model error: {error}",
+                        "No safe repair was accepted. "
+                        "Original tests and execution errors retained.",
                         datetime.now(UTC),
                     )
                 )
+            if refined.tests:
+                tests = _replace_tests(tests, refined.tests)
+                events.append(
+                    _event(
+                        "improve",
+                        f"Refined {len(refined.tests)} invalid tests from execution evidence.",
+                        datetime.now(UTC),
+                    )
+                )
+                refined_ids = {test.id for test in refined.tests}
+                executions = [item for item in executions if item.test_id not in refined_ids]
+                refinement_iterations = 1
+                checkpoint(
+                    "re_measure",
+                    "Re-executing the repaired tests.",
+                    generated_tests=tests,
+                    executions=executions,
+                    refinement_iterations=1,
+                    execution_attempts=attempts,
+                    evidence=_evidence(executions),
+                )
+                rerun = self._execute(
+                    refined.tests, repository, events, stage="re_measure", runner=runner
+                )
+                if rerun is not None:
+                    attempts.append(_attempt(2, "re_measure", refined.tests, rerun))
+                    execution = rerun
+                    executions += rerun.executions
+                    checkpoint(
+                        "re_measure",
+                        "Repaired test execution outcomes recorded.",
+                        executions=executions,
+                        execution_attempts=attempts,
+                        diagnoses=_diagnose(executions),
+                        evidence=_evidence(executions),
+                        scenario_evidence_refs=scenario_evidence_refs(plan, tests, executions),
+                        executed_tests=len(executions),
+                        execution_success_rate=_success_rate(executions),
+                    )
 
         unresolved = [
             *repository_issues,
@@ -570,45 +567,26 @@ class DirectLLMOrchestrator:
                 f"tests added; {len(change.carried_test_ids)} carried tests re-validated. "
                 + (f"{len(change.regressions)} regressions. " if change.regressions else "")
             )
-        return VerificationRun(
-            id=run_id,
-            project_id=project.id,
-            mode=self.mode,
+        return checkpoint(
+            "report",
+            summary + _execution_summary_from_items(executions, execution),
             status="completed",
-            stage="report",
-            created_at=now,
-            updated_at=datetime.now(UTC),
-            input_sha256=digest,
-            events=events,
-            report=VerificationReport(
-                requirement_document=project.requirement_document,
-                validation_version=VALIDATION_VERSION,
-                outcome_mapping_version=OUTCOME_MAPPING_VERSION,
-                source_audit=analysis.source_audit,
-                project_readiness=readiness,
-                summary=summary + _execution_summary_from_items(executions, execution),
-                change=change,
-                repository=repository,
-                requirements=requirements,
-                test_plan=plan,
-                planning_gaps=plan_gaps,
-                uncovered_scenarios=uncovered_scenarios,
-                generated_tests=tests,
-                behaviors=_behaviors(
-                    requirements, tests, executions, inspected=repository is not None, plan=plan
-                ),
-                evidence=_evidence(executions),
-                unresolved_issues=unresolved,
-                coverage_gaps=gaps,
-                executions=executions,
-                execution_attempts=attempts,
-                execution_gaps=execution_gaps,
-                diagnoses=diagnoses,
-                refinement_iterations=refinement_iterations,
-                executed_tests=len(executions),
-                execution_success_rate=_success_rate(executions),
-                requirement_coverage=requirement_coverage(requirements, tests),
+            publish=False,
+            change=change,
+            uncovered_scenarios=uncovered_scenarios,
+            generated_tests=tests,
+            behaviors=_behaviors(
+                requirements, tests, executions, inspected=repository is not None, plan=plan
             ),
+            evidence=_evidence(executions),
+            scenario_evidence_refs=scenario_evidence_refs(plan, tests, executions),
+            unresolved_issues=unresolved,
+            executions=executions,
+            execution_attempts=attempts,
+            execution_gaps=execution_gaps,
+            diagnoses=diagnoses,
+            refinement_iterations=refinement_iterations,
+            requirement_coverage=requirement_coverage(requirements, tests),
         )
 
     def _reviewed(
@@ -646,7 +624,7 @@ class DirectLLMOrchestrator:
         repository: RepositorySnapshot,
         prior: VerificationRun,
         events: list[RunEvent],
-        checkpoint: Callable[..., None],
+        checkpoint: Callable[..., VerificationRun],
     ) -> tuple[TestPlan, GeneratedTestSuite, RepositoryChange]:
         """Add scenarios and tests for new or changed functions; carry everything else."""
         before = prior.report.repository
@@ -683,7 +661,12 @@ class DirectLLMOrchestrator:
                 "REQTEST_MAX_SCENARIOS limit, so none was added for new or changed functions."
             )
         elif targets:
-            checkpoint("plan", "Planning scenarios for new or changed functions.")
+            checkpoint(
+                "plan",
+                "Planning scenarios for new or changed functions.",
+                test_plan=carried_plan,
+                generated_tests=carried_tests,
+            )
             try:
                 addition = plan_tests(
                     self._llm,
@@ -696,14 +679,6 @@ class DirectLLMOrchestrator:
                     first_number=next_number([item.id for item in carried_plan.scenarios], "S"),
                 )
                 addition = self._reviewed(project, requirements, addition, repository, events)
-                if addition.scenarios:
-                    checkpoint("generate", "Generating tests for the new scenarios.")
-                    suite = generate_tests(
-                        self._llm, project, requirements, repository, plan=addition
-                    )
-                    new_tests = renumber_tests(suite.tests, carried_tests)
-                    if suite.notes.strip():
-                        notes.append(suite.notes.strip())
             except LLMError as error:
                 # The carried suite still runs: a regression check is worth keeping.
                 notes.append(f"No tests were added for new or changed functions: {error}")
@@ -719,9 +694,19 @@ class DirectLLMOrchestrator:
             scenarios=[*carried_plan.scenarios, *addition.scenarios],
             notes="\n".join(note for note in (carried_plan.notes, addition.notes) if note.strip()),
         )
+        if addition.scenarios:
+            checkpoint(
+                "generate",
+                "Generating tests for the new scenarios.",
+                test_plan=plan,
+            )
+            suite = generate_tests(requirements, repository, plan=addition)
+            new_tests = renumber_tests(suite.tests, carried_tests)
+            if suite.notes.strip():
+                notes.append(suite.notes.strip())
+
         # Carried tests are checked against the new interfaces before they may run again.
         carried = [validate_test(test, plan, repository) for test in carried_tests]
-        added = [validate_test(test, plan, repository) for test in new_tests]
         checked = {item.check.target for item in plan.scenarios if item.check}
         change = RepositoryChange(
             baseline_run_id=prior.id,
@@ -732,7 +717,7 @@ class DirectLLMOrchestrator:
             removed=diff.removed,
             changed=diff.changed,
             new_scenario_ids=[item.id for item in addition.scenarios],
-            new_test_ids=[test.id for test in added],
+            new_test_ids=[test.id for test in new_tests],
             carried_test_ids=[test.id for test in carried],
             untraced=[name for name in targets if name not in checked],
             invalidated_tests=invalidated(carried_tests, carried),
@@ -740,38 +725,16 @@ class DirectLLMOrchestrator:
         events.append(
             _event(
                 "generate",
-                f"Added {len(addition.scenarios)} scenarios and {len(added)} tests for "
+                f"Added {len(addition.scenarios)} scenarios and {len(new_tests)} tests for "
                 f"{len(targets)} new or changed functions; carried {len(carried)} tests "
                 "from the baseline.",
                 datetime.now(UTC),
             )
         )
-        return plan, GeneratedTestSuite(tests=[*carried, *added], notes="\n".join(notes)), change
-
-    def _unread(
-        self,
-        project: Project,
-        run_id: str,
-        digest: str,
-        events: list[RunEvent],
-        created_at: datetime,
-        issues: list[str],
-    ) -> VerificationRun:
-        return VerificationRun(
-            id=run_id,
-            project_id=project.id,
-            mode=self.mode,
-            status="blocked",
-            stage="inspect",
-            created_at=created_at,
-            updated_at=datetime.now(UTC),
-            input_sha256=digest,
-            events=events,
-            report=VerificationReport(
-                summary="The repository could not be read for this incremental check, so no "
-                "tests were added or re-executed. Earlier runs are unchanged.",
-                unresolved_issues=issues,
-            ),
+        return (
+            plan,
+            GeneratedTestSuite(tests=[*carried, *new_tests], notes="\n".join(notes)),
+            change,
         )
 
     def _inspect(
@@ -901,49 +864,6 @@ class DirectLLMOrchestrator:
             )
         )
         return result
-
-    def _failed(
-        self,
-        project: Project,
-        digest: str,
-        events: list[RunEvent],
-        stage: Literal["analyze", "plan", "generate"],
-        message: str,
-        created_at: datetime,
-        requirements: list[RequirementItem] | None = None,
-        *,
-        plan: TestPlan | None = None,
-        repository: RepositorySnapshot | None = None,
-        source_audit: SourceAnalysisAudit | None = None,
-        project_readiness: ProjectReadiness | None = None,
-    ) -> VerificationRun:
-        events = [*events, _event(stage, f"Run failed: {message}", datetime.now(UTC))]
-        return VerificationRun(
-            id=str(uuid4()),
-            project_id=project.id,
-            mode=self.mode,
-            status="failed",
-            stage=stage,
-            created_at=created_at,
-            input_sha256=digest,
-            events=events,
-            report=VerificationReport(
-                requirement_document=project.requirement_document,
-                summary=(
-                    f"Run failed during the {stage} stage. Completed stage outputs are retained."
-                ),
-                requirements=requirements or [],
-                source_audit=source_audit,
-                project_readiness=project_readiness,
-                test_plan=plan,
-                repository=repository,
-                planning_gaps=planning_gaps(requirements or [], plan) if plan else [],
-                uncovered_scenarios=(
-                    [f"{item.id}: {item.title}" for item in plan.scenarios] if plan else []
-                ),
-                unresolved_issues=[message, *(source_audit.issues if source_audit else [])],
-            ),
-        )
 
 
 def _change_issues(change: RepositoryChange) -> list[str]:
@@ -1169,24 +1089,11 @@ def _diagnosis_issues(diagnoses: list[TestDiagnosis], refinement_iterations: int
     return issues
 
 
-def _execution_summary(execution: ExecutionResult | None) -> str:
-    if execution is None:
-        return "No test was executed, so no behavior is verified."
-    if execution.timed_out:
-        return "Execution timed out, so no outcome was recorded."
-    counts = Counter(item.outcome for item in execution.executions)
-    return (
-        f"{len(execution.executions)} tests executed in the sandbox "
-        f"({counts['passed']} passed, {counts['failed']} failed, {counts['error']} errored). "
-        "The system under test was not inspected, so no behavior is verified."
-    )
-
-
 def _execution_summary_from_items(
     executions: list[ExecutedTest], original: ExecutionResult | None
 ) -> str:
     if original is None:
-        return _execution_summary(original)
+        return "No test was executed, so no behavior is verified."
     counts = Counter(item.outcome for item in executions)
     return (
         f"{len(executions)} final test outcomes recorded "
@@ -1224,11 +1131,6 @@ def _execution_issues(
         issues.append(
             f"{counts['error']} generated tests still could not run after the available "
             "diagnosis and refinement steps."
-        )
-    if counts["failed"]:
-        issues.append(
-            f"{counts['failed']} generated tests ran and failed. Their stated expectations "
-            "were preserved as suspected product defects for human review."
         )
     if not execution.executions and tests:
         # 137 is SIGKILL, which in a limited container almost always means the

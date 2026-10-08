@@ -27,6 +27,20 @@ Rules:
 - `text` restates one requirement as a single self-contained sentence.
 - Set `testable` to false when the requirement has no observable outcome, or when the
   expected behaviour cannot be determined from the specification alone.
+- This workflow needs a precise exception class for a test that expects a raise.
+  If the specification says only that an exception is raised without naming its type,
+  set `testable` to false and explain the missing exception type in `ambiguity`.
+  Do not treat "an exception" as the name of a specific exception class.
+- Judge each rule in the context of the whole specification. If two rules assign
+  incompatible outcomes to any of the same inputs and no priority is stated, retain
+  both source quotes, set both `testable` to false, and explain the conflict in each
+  `ambiguity`. Do not choose one rule as the expected result.
+- A relative term such as "smaller" is resolved when the specification gives one
+  unique reference boundary; do not mark it ambiguous just because the reference is
+  in an earlier sentence. If the reference is not unique, mark it ambiguous.
+- A stated input condition and a named exception class are enough to test that
+  exception. Do not require an exception message, behavior for other inputs, or an
+  input representation that the specified condition does not depend on.
 - Set `ambiguity` to a short explanation whenever wording is vague, contradictory, or
   missing a value the test would need (thresholds, units, error behaviour). Use null
   only when the requirement is unambiguous.
@@ -76,11 +90,6 @@ def analyze_requirements(
                 "Analysis stopped because its source evidence could not be validated."
             )
     notes = analysis.notes
-    if len(analysis.requirements) >= max_requirements:
-        notes = (
-            notes + f"\nAnalysis is capped at {max_requirements} requirements; "
-            "completeness of the specification has not been established."
-        ).strip()
     requirements = _normalize(analysis.requirements[:max_requirements])
     return AnalysisResult(
         requirements=requirements,
