@@ -13,7 +13,7 @@ This repository contains a working **frontend, backend, B0/B2 agent, repository 
 | Agent | OpenAI Responses API with structured output for requirement analysis, scenario planning, and independent oracle review; deterministic pytest templates; Anthropic remains optional |
 | Inspection | Read-only AST reading of the project under test, downloaded from a GitHub URL at a pinned commit or confined to a configured local root |
 | Execution | pytest inside a Docker sandbox with no network, a read-only filesystem, and resource limits |
-| Persistence | SQLite for projects, requirements, goals, runs, events, and reports |
+| Persistence | SQLite for projects, requirements, runs, events, and reports |
 | Checks | pytest, Ruff, TypeScript, ESLint, Vitest, and a production build |
 
 ## Requirements and setup
@@ -54,7 +54,7 @@ Open the frontend at http://localhost:3000. The API is available at http://127.0
 | Running the generated tests | Start Docker, then `bash scripts/build-sandbox.sh` | `execution` ready |
 | Watching GitHub repositories for new commits | Model credentials and GitHub downloads (both above); on by default | `watch` ready |
 
-Copy `backend/.env.example` to `backend/.env` and fill in the values you want. A blank value means *not configured*, so copying the file without editing it changes nothing. Open http://localhost:3000 and check the **Integration status** panel, or `curl http://127.0.0.1:8000/api/v1/system`, to see which capabilities are live — the app always reports what it can and cannot do rather than failing silently.
+Copy `backend/.env.example` to `backend/.env` and fill in the values you want. A blank value means *not configured*, so copying the file without editing it changes nothing. Run `curl http://127.0.0.1:8000/api/v1/system` to see which capabilities are live — the app always reports what it can and cannot do rather than failing silently.
 
 Settings are read once at startup, so restart the backend after changing them.
 
@@ -156,8 +156,8 @@ configure trusted proxy addresses before relying on per-client throttling.
 
 ### Verification workspace
 
-1. Open **Overview** to browse or search projects, open recent runs, and see integration status.
-2. Open **New verification task** to enter a project name, requirement text, verification goal, and an optional repository reference: a GitHub URL such as `https://github.com/owner/repository`, optionally ending in `/tree/<branch>/<folder>` or `/commit/<sha>`, or a local path inside the configured root. You can import a `.txt`, `.md`, `.pdf` (including scanned pages), or Word `.docx`/`.doc` requirement file, or use the English shipping example.
+1. Open **Overview** to browse or search projects and open recent runs.
+2. Open **New verification task** to enter a project name, requirement text, and an optional repository reference: a GitHub URL such as `https://github.com/owner/repository`, optionally ending in `/tree/<branch>/<folder>` or `/commit/<sha>`, or a local path inside the configured root. You can import a `.txt`, `.md`, `.pdf` (including scanned pages), or Word `.docx`/`.doc` requirement file, or use the English shipping example.
 3. Submit the form to save the project, queue a run, and open **Agent workspace**. If run creation fails, the project remains saved and a run can be created from its workspace.
 4. In **Agent workspace**, search and select test cases to inspect inputs, steps, expected results, saved execution evidence, and requirement sources. Expand the technical details for recorded events, metrics, unresolved issues, and the full test plan. Active runs refresh every two seconds; progress shows the recorded stage without an estimated percentage.
 5. Open **Requirements & evidence** to read the saved requirements and filter the extracted behaviors by verification status.

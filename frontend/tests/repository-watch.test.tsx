@@ -21,7 +21,6 @@ const project: Project = {
   description: "",
   repository_ref: "https://github.com/example/shipping/tree/main",
   requirements_text: "Orders of at least 100 dollars ship free.",
-  goal: "Check the rules.",
   created_at: "2026-10-06T00:00:00Z",
 };
 const idle: RepositoryWatch = {

@@ -714,6 +714,7 @@ def test_planner_filters_unknown_sources_and_assigns_unique_scenario_ids():
     assert "no testable requirement link" in plan.notes
     assert '"repository:shipping.py"' in llm.prompts[0]
     assert "Orders of at least 100 dollars ship free." in llm.prompts[0]
+    assert PROJECT.goal not in llm.prompts[0]
 
 
 def test_planner_bounds_scenarios_and_reports_truncation():

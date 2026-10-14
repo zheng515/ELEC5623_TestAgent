@@ -15,7 +15,6 @@ const project: Project = {
   description: "",
   requirements_text: "Return zero.",
   repository_ref: "https://github.com/example/project",
-  goal: "Verify the saved source.",
   created_at: "2026-10-08T00:00:00Z",
 };
 const run: VerificationRun = {

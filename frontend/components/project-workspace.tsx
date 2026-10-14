@@ -62,7 +62,6 @@ export function Workspace({
         <div>
           <Badge tone={runBadge(run).tone}>{runBadge(run).label}</Badge>
           <h1>Agent workspace</h1>
-          <p>{project.goal}</p>
         </div>
         <div className="workspace-actions">
           <button

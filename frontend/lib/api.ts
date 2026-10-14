@@ -80,7 +80,7 @@ async function request<T>(
             ? "Check the document name, format, and size."
             : path.startsWith("/auth/")
               ? "Check your email and password. Use 8–128 characters for a new password."
-              : "Check the project name, requirements, and verification goal."
+              : "Check the project name and requirements."
           : `Request failed (${response.status}). Please try again.`,
       response.status,
     );

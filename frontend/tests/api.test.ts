@@ -52,7 +52,6 @@ it("updates project inputs through the versioned project endpoint", async () => 
     description: "",
     repository_ref: "https://github.com/example/project",
     requirements_text: "R1: Revised.",
-    goal: "Verify the revision.",
   });
   expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/projects/project%2Fone");
   expect(fetchMock.mock.calls[0][1]).toEqual(

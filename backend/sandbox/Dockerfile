@@ -10,6 +10,11 @@ FROM python:3.11-slim
 COPY requirements.lock /tmp/requirements.lock
 RUN pip install --no-cache-dir -r /tmp/requirements.lock
 
+# Dependencies of the project under test, installed at build time because the
+# container itself runs with no network.
+COPY project-requirements.txt /tmp/project-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/project-requirements.txt
+
 RUN useradd --create-home --uid 10001 sandbox
 USER sandbox
 WORKDIR /work

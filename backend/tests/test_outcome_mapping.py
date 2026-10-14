@@ -220,7 +220,7 @@ def test_html_interim_report_includes_saved_inputs_activity_and_escaped_ambiguit
     ))
     run.report.requirements[0].ambiguity = "<unknown>"
     html = render_html_report(PROJECT, run)
-    assert "Interim report" in html and "Original goal" in html
+    assert "Interim report" in html and "Original goal" not in html
     assert "https://github.com/example/original" in html and "Original &lt;rule&gt;" in html
     assert "Activity record" in html and "not test execution evidence" in html
     assert "&lt;script&gt;event&lt;/script&gt;" in html and "<script>event</script>" not in html

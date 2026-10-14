@@ -2,7 +2,14 @@
 
 import json
 
-from app.schemas import Project, RepositorySnapshot, RequirementItem, TestPlan, TestScenario
+from app.schemas import (
+    Project,
+    RepositorySnapshot,
+    RequirementItem,
+    TestPlan,
+    TestPlanDraft,
+    TestScenario,
+)
 from app.services.llm import StructuredLLM
 
 SYSTEM = """You plan pytest scenarios from software requirements and project evidence.
@@ -138,7 +145,6 @@ def plan_tests(
     }
     payload = {
         "project": project.name,
-        "goal": project.goal,
         "requirements": [item.model_dump() for item in testable],
         "evidence_catalog": evidence_catalog,
         "repository_available": repository is not None,
@@ -158,7 +164,7 @@ def plan_tests(
         ]
     prompt = json.dumps(payload, ensure_ascii=False)
     system = SYSTEM + INCREMENTAL if focus is not None else SYSTEM
-    raw = llm.parse(system=system, prompt=prompt, output_format=TestPlan)
+    raw = llm.parse(system=system, prompt=prompt, output_format=TestPlanDraft)
     scenarios = []
     notes = [raw.notes] if raw.notes.strip() else []
     for candidate in raw.scenarios:
@@ -198,8 +204,9 @@ def plan_tests(
                 "remain subject to project readiness checks."
             )
         scenarios.append(
-            candidate.model_copy(
-                update={
+            TestScenario(
+                **{
+                    **candidate.model_dump(exclude={"oracle_grounding"}),
                     "id": f"S{first_number + len(scenarios)}",
                     "requirement_ids": refs,
                     "evidence_refs": evidence_refs,

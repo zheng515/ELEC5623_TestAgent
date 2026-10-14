@@ -248,7 +248,7 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 <p>{_status_notice(run)}</p>
 <h2>Submitted inputs</h2>
 <p>{'Inputs are the saved snapshot for this run.' if run.inputs is not None else 'No input snapshot was recorded. The project inputs below may have changed since this run.'}</p>
-<p>Goal: {escape(inputs.goal)}</p><p>Description: {escape(inputs.description or 'None supplied.')}</p>
+<p>Description: {escape(inputs.description or 'None supplied.')}</p>
 <p>Repository reference: <code>{escape(inputs.repository_ref or 'Not supplied.')}</code></p>
 <details><summary>Submitted requirement text</summary><pre>{escape(inputs.requirements_text)}</pre></details>
 <h2>Results</h2><div class="metrics">

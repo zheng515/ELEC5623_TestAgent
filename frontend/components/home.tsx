@@ -1,16 +1,14 @@
 import { useState } from "react";
-import type { Project, SystemInfo, VerificationRun } from "../lib/types";
+import type { Project, VerificationRun } from "../lib/types";
 import { urlFor } from "../lib/navigation";
 import { Badge, Empty, formatDate, runBadge, SectionTitle } from "./ui";
 
 export function Home({
   projects,
   recentRuns,
-  system,
 }: {
   projects: Project[];
   recentRuns: VerificationRun[];
-  system: SystemInfo;
 }) {
   const [search, setSearch] = useState("");
   const filtered = projects.filter((p) =>
@@ -18,49 +16,17 @@ export function Home({
   );
   return (
     <>
-      <section className="hero">
+      <div className="page-heading">
         <div>
           <h1>Verification workspace</h1>
           <p>
             Create a verification task or review your projects and recorded
             runs.
           </p>
-          <a className="button primary" href={urlFor("new")}>
-            New verification task <span>↗</span>
-          </a>
-          <div className="hero-note">
-            Python + pytest <span>·</span> Requirement-aware verification
-          </div>
         </div>
-        <div
-          className="hero-loop"
-          aria-label="Planned autonomous verification loop"
-        >
-          <span className="loop-caption">THE AGENT LOOP</span>
-          {["Understand", "Measure", "Improve", "Re-measure"].map((s, i) => (
-            <div className="loop-row" key={s}>
-              <span>0{i + 1}</span>
-              <strong>{s}</strong>
-              <span aria-hidden="true">{i === 3 ? "↺" : "↓"}</span>
-            </div>
-          ))}
-          <span className="loop-note">
-            {system.mode === "baseline_b2"
-              ? "Sandbox execution and one repair attempt are available."
-              : system.mode === "baseline_b0"
-                ? "Analysis, test planning, and generation are available."
-                : "Agent integrations are not connected yet."}
-          </span>
-        </div>
-      </section>
-      <div className="readiness">
-        <span className="status-dot" />
-        <strong>Workspace ready</strong>
-        <span>
-          {system.mode === "scaffold"
-            ? "Inputs and reports are saved. Configure model access to enable the agent."
-            : "Submit one goal. The agent analyzes requirements, plans scenarios, and generates traceable tests automatically."}
-        </span>
+        <a className="button primary" href={urlFor("new")}>
+          New verification task <span>↗</span>
+        </a>
       </div>
       <section className="panel">
         <SectionTitle
@@ -101,65 +67,41 @@ export function Home({
                   <h3>{p.name}</h3>
                   <span aria-hidden="true">↗</span>
                 </div>
-                <p>
-                  {p.description || "Requirement-aware verification project."}
-                </p>
-                <div className="tile-bottom">
-                  <Badge>Python / pytest</Badge>
-                  <span>{formatDate(p.created_at)}</span>
-                </div>
+                {p.description && <p>{p.description}</p>}
+                <span className="tile-date">{formatDate(p.created_at)}</span>
               </a>
             ))}
           </div>
         )}
       </section>
-      <div className="home-bottom">
-        <section className="panel">
-          <SectionTitle title="Latest runs" />
-          {recentRuns.length ? (
-            recentRuns.slice(0, 5).map((run) => (
-              <a
-                key={run.id}
-                className="activity-row"
-                href={urlFor("workspace", run.project_id, run.id)}
-              >
-                <span className="activity-icon">↗</span>
-                <div>
-                  <strong>
-                    {projects.find((p) => p.id === run.project_id)?.name ||
-                      "Project"}
-                  </strong>
-                  <small>
-                    Run {run.id.slice(0, 8)} · {formatDate(run.created_at)}
-                  </small>
-                </div>
-                <Badge tone={runBadge(run).tone}>{runBadge(run).label}</Badge>
-              </a>
-            ))
-          ) : (
-            <p className="quiet-empty">
-              No runs yet. Create a task to record your first verification
-              setup.
-            </p>
-          )}
-        </section>
-        <section className="panel">
-          <SectionTitle title="Integration status" />
-          <div className="capabilities">
-            {system.integrations.map((i) => (
-              <div key={i.key}>
-                <span
-                  className={`status-dot ${i.status === "ready" ? "" : "pending"}`}
-                />
-                <span>{i.name}</span>
+      <section className="panel">
+        <SectionTitle title="Latest runs" />
+        {recentRuns.length ? (
+          recentRuns.slice(0, 5).map((run) => (
+            <a
+              key={run.id}
+              className="activity-row"
+              href={urlFor("workspace", run.project_id, run.id)}
+            >
+              <span className="activity-icon">↗</span>
+              <div>
+                <strong>
+                  {projects.find((p) => p.id === run.project_id)?.name ||
+                    "Project"}
+                </strong>
                 <small>
-                  {i.status === "ready" ? "Ready" : "Not connected"}
+                  Run {run.id.slice(0, 8)} · {formatDate(run.created_at)}
                 </small>
               </div>
-            ))}
-          </div>
-        </section>
-      </div>
+              <Badge tone={runBadge(run).tone}>{runBadge(run).label}</Badge>
+            </a>
+          ))
+        ) : (
+          <p className="quiet-empty">
+            No runs yet. Create a task to record your first verification setup.
+          </p>
+        )}
+      </section>
     </>
   );
 }

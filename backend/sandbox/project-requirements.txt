@@ -1,0 +1,12 @@
+# Runtime dependencies of the project under test (DOLMA backend), so its modules
+# import inside the sandbox. Ranges follow DOLMA's backend/pyproject.toml.
+flask>=3.1.2,<4
+flask-cors>=6.0.1,<7
+google-api-python-client>=2.185.0,<3
+google-auth>=2.41.1,<3
+google-auth-oauthlib>=1.2.2,<2
+httpx>=0.28.1,<0.29
+openai>=2.6.0,<3
+python-dotenv>=1.1.1,<2
+# zoneinfo needs IANA data for Australia/Sydney; slim images may not ship it.
+tzdata

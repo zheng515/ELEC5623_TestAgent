@@ -48,5 +48,6 @@ def test_unspecified_exception_type_is_explicitly_classified_as_untestable():
     assert "set `testable` to false" in llm.system
     assert "missing exception type in `ambiguity`" in llm.system
     assert specification in llm.prompt
+    assert project.goal not in llm.prompt
     assert result.requirements[0].testable is False
     assert result.requirements[0].ambiguity == "The exception type is unspecified."

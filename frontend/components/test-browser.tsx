@@ -3,9 +3,26 @@ import type { GeneratedTest, VerificationRun } from "../lib/types";
 import { Badge, Empty } from "./ui";
 import { sourceLocation } from "../lib/source-location";
 
+type ResultFilter = "all" | "passed" | "failed" | "none";
+const resultFilters: [ResultFilter, string][] = [
+  ["all", "All"],
+  ["passed", "Passed"],
+  ["failed", "Failed"],
+  ["none", "No result"],
+];
+const categories = ["nominal", "boundary", "negative"] as const;
+const resultOf = (status: string): ResultFilter =>
+  status === "Passed"
+    ? "passed"
+    : status === "Failed" || status === "Error"
+      ? "failed"
+      : "none";
+
 export function TestBrowser({ run }: { run?: VerificationRun }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
+  const [category, setCategory] = useState("all");
+  const [result, setResult] = useState<ResultFilter>("all");
   const report = run?.report;
   const scenarios = report?.test_plan?.scenarios ?? [];
   const attributedRefs = new Set(
@@ -69,11 +86,79 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
                         : "Planned";
     return { scenario, tests, outcomes, status };
   });
-  const filtered = items.filter(({ scenario }) =>
-    `${scenario.id} ${scenario.title}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
+  const search = query.trim().toLowerCase();
+  const matches = (text: string) => text.toLowerCase().includes(search);
+  const shown = (item: (typeof items)[number], requirementMatches: boolean) =>
+    (category === "all" || item.scenario.category === category) &&
+    (result === "all" || resultOf(item.status) === result) &&
+    (requirementMatches ||
+      matches(`${item.scenario.id} ${item.scenario.title}`));
+  const requirements = report?.requirements ?? [];
+  const known = new Set(requirements.map((requirement) => requirement.id));
+  const unlinked = items.filter(
+    ({ scenario }) => !scenario.requirement_ids.some((id) => known.has(id)),
   );
+  // A case linked to several requirements is listed under each of them.
+  const groups = [
+    ...requirements.map((requirement) => {
+      const cases = items.filter(({ scenario }) =>
+        scenario.requirement_ids.includes(requirement.id),
+      );
+      const requirementMatches = matches(
+        `${requirement.id} ${requirement.text}`,
+      );
+      return {
+        id: requirement.id,
+        label: requirement.text,
+        cases,
+        visible: cases.filter((item) => shown(item, requirementMatches)),
+        gap: cases.length
+          ? ""
+          : requirement.testable
+            ? "No test case planned"
+            : "Not testable as written",
+        showGap:
+          !!report?.test_plan &&
+          !cases.length &&
+          category === "all" &&
+          result === "all" &&
+          requirementMatches,
+      };
+    }),
+    ...(unlinked.length
+      ? [
+          {
+            id: "",
+            label: "Not linked to an extracted requirement",
+            cases: unlinked,
+            visible: unlinked.filter((item) => shown(item, false)),
+            gap: "",
+            showGap: false,
+          },
+        ]
+      : []),
+  ].filter((group) => group.visible.length || group.showGap);
+  const filtered = items.filter((item) =>
+    groups.some((group) => group.visible.includes(item)),
+  );
+  const count = (filter: ResultFilter) =>
+    items.filter((item) => filter === "all" || resultOf(item.status) === filter)
+      .length;
+  const summary = (cases: typeof items) => {
+    const failed = cases.filter(
+      (item) => resultOf(item.status) === "failed",
+    ).length;
+    const passed = cases.filter(
+      (item) => resultOf(item.status) === "passed",
+    ).length;
+    return [
+      `${cases.length} ${cases.length === 1 ? "case" : "cases"}`,
+      failed ? `${failed} failed` : "",
+      passed ? `${passed} passed` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  };
   const selected =
     filtered.find(({ scenario }) => scenario.id === selectedId) ??
     filtered.find(
@@ -91,44 +176,90 @@ export function TestBrowser({ run }: { run?: VerificationRun }) {
       <aside className="test-browser-list">
         <div className="browser-panel-heading">
           <h2>Test cases</h2>
-          <span>{scenarios.length}</span>
+          <label className="type-filter">
+            <span className="sr-only">Filter by type</span>
+            <select
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+            >
+              <option value="all">All types</option>
+              {categories.map((value) => (
+                <option key={value} value={value}>
+                  {`${value[0].toUpperCase()}${value.slice(1)} (${
+                    items.filter((item) => item.scenario.category === value)
+                      .length
+                  })`}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <label className="test-search">
           <span className="sr-only">Search test cases</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search test cases…"
+            placeholder="Search cases or requirements…"
           />
         </label>
-        <div className="browser-counts">
-          <span>
-            {items.filter((item) => item.status === "Passed").length} passed
-          </span>
-          <span>
-            {items.filter((item) => item.status === "Failed").length} failed
-          </span>
-        </div>
-        <div className="test-case-items">
-          {filtered.map(({ scenario, status }) => (
+        <div
+          className="browser-counts"
+          role="group"
+          aria-label="Filter by result"
+        >
+          {resultFilters.map(([value, label]) => (
             <button
-              key={scenario.id}
-              className={`test-case-item ${selected?.scenario.id === scenario.id ? "selected" : ""}`}
-              onClick={() => setSelectedId(scenario.id)}
-              aria-pressed={selected?.scenario.id === scenario.id}
+              key={value}
+              type="button"
+              className="filter-chip"
+              aria-pressed={result === value}
+              onClick={() => setResult(value)}
             >
-              <span>
-                <small>
-                  {scenario.id} · {scenario.category}
-                </small>
-                <strong>{scenario.title}</strong>
-                <small>{status}</small>
-              </span>
+              {label} {count(value)}
             </button>
           ))}
-          {!filtered.length && (
+        </div>
+        <div className="test-case-items">
+          {groups.map((group) => (
+            <div
+              className="case-group"
+              role="group"
+              aria-label={
+                group.id ? `${group.id}: ${group.label}` : group.label
+              }
+              key={group.id || "unlinked"}
+            >
+              <div className="case-group-heading">
+                <span>
+                  {group.id && <strong>{group.id}</strong>} {group.label}
+                </span>
+                <small className={group.gap ? "gap" : ""}>
+                  {group.gap || summary(group.cases)}
+                </small>
+              </div>
+              {group.visible.map(({ scenario, status }) => (
+                <button
+                  key={scenario.id}
+                  className={`test-case-item ${selected?.scenario.id === scenario.id ? "selected" : ""}`}
+                  onClick={() => setSelectedId(scenario.id)}
+                  aria-pressed={selected?.scenario.id === scenario.id}
+                >
+                  <span>
+                    <small>
+                      {scenario.id} · {scenario.category}
+                    </small>
+                    <strong>{scenario.title}</strong>
+                    <small className={`case-status ${resultOf(status)}`}>
+                      {status}
+                    </small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ))}
+          {!groups.length && (
             <p className="browser-empty">
-              {scenarios.length
+              {scenarios.length || (report?.test_plan && requirements.length)
                 ? "No matching test cases."
                 : "Test cases will appear after the agent plans them."}
             </p>

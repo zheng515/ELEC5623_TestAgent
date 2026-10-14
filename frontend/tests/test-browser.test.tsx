@@ -108,7 +108,7 @@ it("shows saved scenario evidence even when raw executions and artifacts change"
   );
   expect(screen.getByText("Saved success")).toBeTruthy();
   expect(screen.getByText("E1: test_fee.py::test_fee")).toBeTruthy();
-  expect(screen.getByText("1 passed")).toBeTruthy();
+  expect(screen.getByText("Passed 1")).toBeTruthy();
   expect(screen.queryByText("Unrelated failure")).toBeNull();
 });
 
@@ -142,7 +142,7 @@ it.each([undefined, null])(
     expect(
       screen.getByText(/No saved scenario outcome attribution/),
     ).toBeTruthy();
-    expect(screen.getByText("0 passed")).toBeTruthy();
+    expect(screen.getByText("Passed 0")).toBeTruthy();
     expect(
       document.querySelector(".test-browser-detail > .case-content")
         ?.textContent,
@@ -178,7 +178,7 @@ it("does not treat a raw execution from another module as saved scenario evidenc
       }}
     />,
   );
-  expect(screen.getByText("0 passed")).toBeTruthy();
+  expect(screen.getByText("Passed 0")).toBeTruthy();
   expect(screen.getByText(/No attributable execution outcome/)).toBeTruthy();
   expect(screen.queryByText("Different module")).toBeNull();
 });
@@ -212,7 +212,7 @@ it("retains the server's recorded artifact filename and selects its failed case"
   expect(screen.getByRole("heading", { name: scenario.title })).toBeTruthy();
   expect(screen.getByText("E1: test_fee_2.py::test_fee")).toBeTruthy();
   expect(screen.getByText("assert 1000 == 0")).toBeTruthy();
-  expect(screen.getByText("1 failed")).toBeTruthy();
+  expect(screen.getByText("Failed 1")).toBeTruthy();
 });
 
 it("keeps a pending oracle review from displaying Passed despite saved execution success", () => {
@@ -247,7 +247,7 @@ it("keeps a pending oracle review from displaying Passed despite saved execution
   expect(screen.getAllByText("Needs review").length).toBeGreaterThan(0);
   expect(screen.getByText("Missing setup")).toBeTruthy();
   expect(screen.getByText("Saved success")).toBeTruthy();
-  expect(screen.getByText("0 passed")).toBeTruthy();
+  expect(screen.getByText("Passed 0")).toBeTruthy();
 });
 
 it("shows partial execution when a validated planned check has no saved outcome", () => {
@@ -269,7 +269,7 @@ it("shows partial execution when a validated planned check has no saved outcome"
     />,
   );
   expect(screen.getAllByText("Partially executed").length).toBeGreaterThan(0);
-  expect(screen.getByText("0 passed")).toBeTruthy();
+  expect(screen.getByText("Passed 0")).toBeTruthy();
   expect(screen.getByText("Saved success")).toBeTruthy();
 });
 
@@ -286,7 +286,7 @@ it("does not report Passed if a saved evidence reference is missing", () => {
     />,
   );
   expect(screen.getAllByText("Partially executed").length).toBeGreaterThan(0);
-  expect(screen.getByText("0 passed")).toBeTruthy();
+  expect(screen.getByText("Passed 0")).toBeTruthy();
 });
 
 it.each([
@@ -312,7 +312,7 @@ it.each([
     />,
   );
   expect(screen.getAllByText(status).length).toBeGreaterThan(0);
-  expect(screen.getByText("0 passed")).toBeTruthy();
+  expect(screen.getByText("Passed 0")).toBeTruthy();
 });
 
 it("searches and selects cases without losing their requirement source", () => {
@@ -373,7 +373,168 @@ it("counts a function with repeated validated checks as one recorded test result
       }}
     />,
   );
-  expect(screen.getByText("1 passed")).toBeTruthy();
+  expect(screen.getByText("Passed 1")).toBeTruthy();
   expect(screen.queryByText("Partially executed")).toBeNull();
   expect(screen.getByText("Saved success")).toBeTruthy();
+});
+
+const refundRule = {
+  id: "R2",
+  text: "Negative amounts raise ValueError.",
+  source_quote: "Negative amounts raise ValueError.",
+  testable: true,
+  ambiguity: null,
+};
+
+it("groups cases by requirement and lists requirements without cases", () => {
+  render(
+    <TestBrowser
+      run={{
+        ...run,
+        report: {
+          ...run.report,
+          requirements: [
+            ...run.report.requirements,
+            refundRule,
+            {
+              ...refundRule,
+              id: "R3",
+              text: "Shipping should be fast.",
+              source_quote: "Shipping should be fast.",
+              testable: false,
+              ambiguity: "No time limit is stated.",
+            },
+            {
+              ...refundRule,
+              id: "R4",
+              text: "Fees are integer cents.",
+              source_quote: "Fees are integer cents.",
+            },
+          ],
+          test_plan: {
+            scenarios: [
+              scenario,
+              {
+                ...scenario,
+                id: "S2",
+                title: "Cents at the threshold",
+                requirement_ids: ["R1", "R4"],
+              },
+            ],
+            notes: "",
+          },
+        },
+      }}
+    />,
+  );
+  const r1 = screen.getByRole("group", { name: /^R1:/ });
+  expect(
+    within(r1).getByRole("button", { name: /S1.*Free shipping/ }),
+  ).toBeTruthy();
+  expect(within(r1).getByText("2 cases · 1 passed")).toBeTruthy();
+  const r4 = screen.getByRole("group", { name: /^R4:/ });
+  expect(within(r4).getByRole("button", { name: /S2.*Cents/ })).toBeTruthy();
+  expect(
+    within(screen.getByRole("group", { name: /^R2:/ })).getByText(
+      "No test case planned",
+    ),
+  ).toBeTruthy();
+  expect(
+    within(screen.getByRole("group", { name: /^R3:/ })).getByText(
+      "Not testable as written",
+    ),
+  ).toBeTruthy();
+});
+
+it("does not report planning gaps before the plan exists", () => {
+  render(
+    <TestBrowser
+      run={{
+        ...run,
+        status: "running",
+        report: { ...run.report, test_plan: null, generated_tests: [] },
+      }}
+    />,
+  );
+  expect(screen.queryByText("No test case planned")).toBeNull();
+  expect(
+    screen.getByText("Test cases will appear after the agent plans them."),
+  ).toBeTruthy();
+});
+
+it("filters cases by result, type, and requirement text", () => {
+  render(
+    <TestBrowser
+      run={{
+        ...run,
+        report: {
+          ...run.report,
+          requirements: [...run.report.requirements, refundRule],
+          test_plan: {
+            scenarios: [
+              scenario,
+              {
+                ...scenario,
+                id: "S2",
+                title: "Negative amount",
+                category: "negative",
+                requirement_ids: ["R2"],
+              },
+            ],
+            notes: "",
+          },
+          generated_tests: [
+            ...run.report.generated_tests,
+            {
+              ...run.report.generated_tests[0],
+              id: "T2",
+              requirement_ids: ["R2"],
+              scenario_ids: ["S2"],
+              name: "test_negative",
+              module: "test_negative.py",
+              validated_checks: [
+                { ...check, scenario_id: "S2", function_name: "test_negative" },
+              ],
+            },
+          ],
+          evidence: [
+            ...run.report.evidence,
+            {
+              id: "E2",
+              test: "test_negative.py::test_negative",
+              outcome: "failed",
+              message: "DID NOT RAISE",
+            },
+          ],
+          scenario_evidence_refs: { S1: ["E1"], S2: ["E2"] },
+        },
+      }}
+    />,
+  );
+  const region = screen.getByRole("region", { name: "Test explorer" });
+  const passing = /S1.*Free shipping/;
+  const failing = /S2.*Negative amount/;
+
+  fireEvent.click(within(region).getByRole("button", { name: "Failed 1" }));
+  expect(within(region).queryByRole("button", { name: passing })).toBeNull();
+  expect(within(region).getByRole("button", { name: failing })).toBeTruthy();
+
+  fireEvent.click(within(region).getByRole("button", { name: "All 2" }));
+  fireEvent.change(
+    within(region).getByRole("combobox", { name: "Filter by type" }),
+    { target: { value: "boundary" } },
+  );
+  expect(within(region).getByRole("button", { name: passing })).toBeTruthy();
+  expect(within(region).queryByRole("button", { name: failing })).toBeNull();
+
+  fireEvent.change(
+    within(region).getByRole("combobox", { name: "Filter by type" }),
+    { target: { value: "all" } },
+  );
+  fireEvent.change(
+    within(region).getByRole("textbox", { name: "Search test cases" }),
+    { target: { value: "ValueError" } },
+  );
+  expect(within(region).getByRole("button", { name: failing })).toBeTruthy();
+  expect(within(region).queryByRole("button", { name: passing })).toBeNull();
 });

@@ -162,13 +162,36 @@ function WorkspaceApp({
   ];
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <header className="topbar">
         <a href={urlFor("home")} className="brand">
           <span className="brand-mark">
             r<span>t</span>
           </span>
           reqtest<span className="brand-dot">.</span>
         </a>
+        <div className="breadcrumbs">
+          <a href={urlFor("home")}>Workspace</a>
+          <span>/</span>
+          <strong>
+            {projectView
+              ? (project?.name ?? "Project")
+              : route.view === "edit"
+                ? "Edit inputs"
+                : route.view === "new"
+                  ? "New task"
+                  : "Overview"}
+          </strong>
+        </div>
+        <div className="connection">
+          <span className="account-name" title={user.email}>
+            {user.name}
+          </span>
+          <button className="text-button" onClick={logout} disabled={busy}>
+            Sign out
+          </button>
+        </div>
+      </header>
+      <aside className="sidebar">
         <nav aria-label="Main navigation">
           <a
             className={`nav-item ${route.view === "home" ? "active" : ""}`}
@@ -205,35 +228,6 @@ function WorkspaceApp({
         </nav>
       </aside>
       <div className="main-shell">
-        <header className="topbar">
-          <div className="breadcrumbs">
-            <a href={urlFor("home")}>Workspace</a>
-            <span>/</span>
-            <strong>
-              {projectView
-                ? (project?.name ?? "Project")
-                : route.view === "edit"
-                  ? "Edit inputs"
-                  : route.view === "new"
-                    ? "New task"
-                    : "Overview"}
-            </strong>
-          </div>
-          <div className="connection">
-            <span className={`status-dot ${data ? "" : "pending"}`} />
-            {resource.loading
-              ? "Connecting"
-              : data
-                ? "API connected"
-                : "API offline"}
-            <span className="account-name" title={user.email}>
-              {user.name}
-            </span>
-            <button className="text-button" onClick={logout} disabled={busy}>
-              Sign out
-            </button>
-          </div>
-        </header>
         <main className="main-content">
           {actionError && <ErrorNotice message={actionError} />}
           {data &&

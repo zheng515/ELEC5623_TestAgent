@@ -92,6 +92,8 @@ class ProjectCreate(BaseModel):
     repository_ref: str = Field(default="", max_length=500)
     requirements_text: str = Field(min_length=1, max_length=50000)
     requirement_document_id: str | None = Field(default=None, max_length=36)
+    # Retired input: still accepted and stored so older clients and saved projects stay
+    # valid, but no stage sends it to the model and reports do not display it.
     goal: str = Field(
         default="Identify verification gaps and improve requirement-based tests.",
         min_length=1,
@@ -301,8 +303,12 @@ class OracleGrounding(BaseModel):
     source_sha256: str
 
 
-class TestScenario(BaseModel):
-    """A proposed check with source links and a separate oracle assessment (FR6)."""
+class ScenarioDraft(BaseModel):
+    """The scenario fields the planner model authors; server-owned fields are left out.
+
+    Keeping `oracle_grounding` out of the model-facing schema keeps the compiled
+    structured-output grammar within the API's size limit.
+    """
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -317,14 +323,25 @@ class TestScenario(BaseModel):
     evidence_refs: list[str]
     assumptions: list[str]
     check: ScenarioCheck | None = None
+
+
+class TestScenario(ScenarioDraft):
+    """A proposed check with source links and a separate oracle assessment (FR6)."""
+
     oracle_grounding: OracleGrounding | None = None
 
 
-class TestPlan(BaseModel):
+class TestPlanDraft(BaseModel):
+    """Model-facing planning output; the planner converts it into a TestPlan."""
+
+    scenarios: list[ScenarioDraft]
+    notes: str
+
+
+class TestPlan(TestPlanDraft):
     """Persisted output of the planning stage, distinct from executable tests."""
 
     scenarios: list[TestScenario]
-    notes: str
 
 
 class GeneratedTest(BaseModel):

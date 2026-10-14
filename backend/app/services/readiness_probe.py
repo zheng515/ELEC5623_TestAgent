@@ -239,6 +239,16 @@ def main():
         except (OSError, SyntaxError, UnicodeError):
             check("import", relative, "unknown", "Module could not be parsed for import checks.")
             continue
+        local = []
+        path = pathlib.PurePosixPath(relative)
+        is_test = path.name.startswith("test_") or path.stem.endswith("_test")
+        if is_test or path.name == "conftest.py":
+            # pytest's default prepend import mode puts a test module's basedir, the first
+            # directory upward without __init__.py, on sys.path, so its siblings import.
+            basedir = root / path.parent
+            while basedir != root and (basedir / "__init__.py").is_file():
+                basedir = basedir.parent
+            local = [str(basedir)]
         for node in tree.body:
             names = []
             if isinstance(node, ast.Import):
@@ -248,7 +258,7 @@ def main():
             for name in names:
                 if name in sys.stdlib_module_names or name in sys.builtin_module_names:
                     continue
-                spec = importlib.machinery.PathFinder.find_spec(name, search + sys.path)
+                spec = importlib.machinery.PathFinder.find_spec(name, local + search + sys.path)
                 check(
                     "import",
                     f"{relative}: {name}",

@@ -62,7 +62,6 @@ def run_case(case, stage, repeat, *, llm=None, replay=None):
         description="",
         repository_ref="",
         requirements_text=case.specification,
-        goal="Evaluate the stated requirements.",
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
     result = {
