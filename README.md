@@ -133,6 +133,24 @@ This is a single-machine deployment. Hosted TLS/reverse proxies, automatic resta
 after machine reboot and external backup storage are not configured. See
 [Local production and recovery](docs/local-production.md) for setup and a restore drill.
 
+### Runtime status
+
+The project verification page refreshes authenticated runtime status every ten
+seconds. It shows database/queue availability, verification-worker liveness, the
+default Docker sandbox and your own queued, active and retrying task counts.
+Worker status uses pg-boss instance registration; a web-only queue client does
+not count as a worker. Worker registry heartbeats run every five seconds and
+expire after three missed beats. Polling and network delay add detection latency.
+
+If the worker is offline, the form offers **Queue verification** and explains that
+the saved task waits for a worker. Queue/sandbox/status failures pause new UI
+submissions without clearing inputs or changing saved evidence. Existing tasks
+can reconnect or recover when services return. The status endpoint does not start
+a queue or worker, expose another user's task data, or treat a missing heartbeat
+as a test failure. Check model access and project dependencies separately with
+**Check model connection** and **Check project setup**. Heartbeats and image
+availability alone do not establish that a verification can succeed.
+
 ### Offline backups
 
 Stop the website, worker and other ReqTest commands, then run:
@@ -218,16 +236,25 @@ only their own schema. PostgreSQL must be available before running account tests
    Downloads are pinned to the resolved commit. Select **Check project setup** to
    check runtime and dependency declarations without importing the project. Select
    automatic dependency setup when needed; Node.js requires package-lock.json.
+   For a monorepo, set **Project directory** to a relative path such as `backend`.
+   It becomes the project root for runtime detection, dependencies, imports and
+   tests. Sibling directories are outside the analyzed scope; keep required shared
+   code inside the selected project or select a broader root.
 2. Paste up to 12 requirement lines, or upload a PDF, DOC, DOCX, UTF-8 TXT or Markdown
    file. Review extracted text and select up to 12 blocks / 12,000 characters. Only
    selected blocks are analyzed. State intended behavior, units, boundaries,
    response values and exception rules. Files must be approved for model processing.
+   **Select numbered requirements** selects readable blocks beginning with explicit
+   IDs such as R1, FR-001 or FR-CAL-03 when they fit the limits. Check other text for additional
+   rules; this shortcut does not establish complete extraction.
 3. Select **Run verification**. Inspect behavior states, source quotes, mapped tests,
    recorded test outcomes, diagnoses, mutation results and improvements.
 4. Download the evidence JSON and generated-test ZIP. Extract the ZIP in the original
    project and install its dependencies. Run `python -m pytest reqtest_generated`
    for Python, or `npx --yes tsx@4.23.0 --test reqtest_generated/*.test.ts` for Node.js.
    Local service tests also need disposable DATABASE_URL/REDIS_URL endpoints.
+   The ZIP includes a README with the source version, runtime, run command and
+   recorded outcomes. Only approved generated test files are included.
 
 Try the included small project:
 
@@ -243,6 +270,15 @@ fault that a supported threshold test should expose.
 For a Node.js defect demo, zip `examples/node-shipping/` and paste its SRS.md line.
 Its existing test passes above the threshold, while a generated exact-threshold
 check should expose the intentional defect. This is a development fixture.
+
+A local production acceptance run used the public `qajua/reqtest-shipping-demo`
+repository at commit `e5e22a108ede7d1ca0288de0139d27b996c6291b` and its original
+`docs/SRS.md`. Four numbered requirements were selected from 35 extracted blocks.
+Real model requests generated nine approved tests: eight passed and one exposed
+the intentional `10000`-cent boundary defect. The exported tests reproduced that
+result against a separate copy of the saved source in Docker. This demonstrates
+the connected workflow on synthetic data, not independent accuracy or complete
+document coverage.
 
 ### Workflow
 
@@ -264,9 +300,31 @@ check should expose the intentional defect. This is a development fixture.
   diagnosed before generation, including runs that produce no executable new tests.
   Every diagnosis records its phase; collection, baseline and latest execution
   logs remain separately available in the report.
+  Diagnosis output IDs are restricted to the supplied failed-test IDs. A legacy full
+  execution node maps to a generated artifact only through a unique recorded failed
+  node and matching file. Original model IDs remain in the audit trail. Duplicate
+  aliases, unknown nodes and unsupported evidence cannot authorize repair.
 - **Improve:** at most one improvement action. Only diagnosed generated-test errors
   are eligible for replacement. Otherwise passing tests trigger selected-file mutmut
   measurement, relevance review and targeted additions for supported surviving mutants.
+  Python mutation checks explicitly run approved generated tests. Static imports and
+  calls select top-level functions in one mapped source file; unresolved calls fall
+  back to the selected full file. This selection is not dynamic coverage. File,
+  functions and line scope are retained, and re-measurement keeps that scope.
+  Timeouts stop the command process group and retain available cached outcomes as
+  incomplete evidence. Counts from older implicit-suite runs are not comparable.
+  All retained survivors with usable diffs are reviewed in batches of at most 16,
+  including newly surviving mutations after re-measurement. Decisions bind the exact
+  mutant ID, file, diff and cited behavior; an exclusion cannot clear other behaviors
+  in the same file. Missing, duplicate, unsupported and older unbound decisions stay
+  unresolved. The current-survivor summary separates test gaps, requirement
+  clarification, changes outside the cited behavior and unreviewed evidence.
+  These model judgments do not establish an independently reviewed mutation score.
+  Each test directory's conftest (or a representative module when absent) retains
+  pytest collection and import setup. Its original test functions are deselected. Collection
+  hooks and module import effects still execute and can influence raw outcomes;
+  other modules' side effects and module-local fixtures are not reproduced.
+  The report records these setup files; exported instructions retain the same setup.
 - **Re-measure:** execute the changed suite and, where applicable, selected mutations
   again. Preserve original tests, measurements, diagnoses and before/after artifacts.
 
@@ -324,7 +382,11 @@ a development tag does not remove an in-use execution image. Keep images referen
 by saved reports when cleaning Docker storage.
 
 Limits: 500 archive entries, 10 MB compressed, 3 MB expanded, 200 KB per retained
-file, 100 KB model context, 24 extracted behaviors and 16 initially generated tests.
+source/configuration file, 1 MB for uv.lock/package-lock.json, 200 KB model context,
+24 extracted behaviors and 16 initially generated tests. These lockfiles remain
+in the fingerprinted snapshot but are excluded from model reasoning. Automatic
+Python setup uses declared compatible wheels, not uv.lock resolution; exact
+installed versions and the resulting sandbox image are retained.
 Archives retain supported source and project text/configuration files and reject traversal paths;
 hidden files are excluded. Large files/projects are rejected, not silently treated as
 fully inspected. The default worker processes at most two tasks concurrently, with one queued or
@@ -354,6 +416,20 @@ Use **Clarify and re-run** to add explicit requirement statements against the sa
 source snapshot. The original report stays unchanged and is linked from the new
 report. Changed requirements mean this comparison is not a controlled quality score.
 
+For multiline document requirements, model outputs reference stable requirement
+IDs; the SDK resolves these to unchanged original quotes before evidence validation.
+Generated gap indexes are constrained to their referenced behavior's own gap list.
+New SQLite databases created during Python tests are recorded separately by path
+and SHA-256. Original files, generated test code and unexpected new files remain
+subject to integrity checks; runtime database contents are not exported.
+
+Live-clock tests prefer specification-defined calendar invariants. Date-specific
+checks need explicit date inputs, an existing public clock parameter, or independent
+clock readings before/after the call with bounded rollover handling. The agent
+must not replace the target's clock helper or turn an example date into today's
+date. Unreachable frozen-date boundaries remain unresolved; fixed inputs to date
+conversion functions remain supported.
+
 PDF citations retain page and text-block numbers. Pages without extracted text use
 English Tesseract OCR, retaining the page, OCR label and mean word confidence.
 Pages containing both native text and images also receive OCR; supplementary
@@ -365,14 +441,16 @@ is a transcription warning, not a calibrated accuracy or verification score.
 At most 20 pages are attempted within a bounded processing budget; unreadable,
 failed or unprocessed pages are listed in extraction warnings. OCR is not exact
 transcription. PDF reading order and complex tables need visual review.
-DOCX citations retain body-block and table-cell locations. Legacy DOC is converted
+DOCX citations retain body-block and table-row locations. Each table row stays
+together so requirement IDs, conditions and expected results are not separated.
+Legacy DOC is converted
 with LibreOffice; its block locations refer to the converted document, not original
 rendered page numbers. The original file and SHA-256 are retained in both cases.
 Word headers, footers, drawings, tracked changes and nested tables are not fully
 extracted. Limits: 10 MB upload, 100 PDF pages, 1000 blocks and 100 KB extracted
 text. Unselected content is never claimed verified. Use **View original page** to
 open the authenticated PDF viewer at the cited page, or download the original
-Word document and locate its body block/table cell. Downloads and saved-document
+Word document and locate its body block/table row. Downloads and saved-document
 re-runs validate the original file hash. Changed originals are rejected; failed
 uploads are cleaned up. Protected, damaged and unsupported files include an action
 to export an unlocked copy or paste the text. Runtime compatibility is limited

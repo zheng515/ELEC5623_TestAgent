@@ -171,6 +171,147 @@ are not encrypted and do not include external secrets or Docker images. Hosted
 deployment, restart supervision, off-machine backup/retention and large-scale queue
 operation remain operational work.
 
+The project workspace now exposes authenticated runtime health, reusing pg-boss
+worker registry heartbeats. Queue clients without a verification work handler do
+not count as online workers. Task counts are restricted to the signed-in owner.
+Health reads do not initialize queues or register instances. Missing workers are
+distinct from normal pending work; queue/sandbox/status failures preserve form
+inputs and saved evidence. Graceful-stop and forced-worker-death regressions cover
+offline detection and subsequent checkpoint recovery. These checks do not establish
+model access or project readiness.
+
+### Production acceptance and artifact usability
+
+Local production acceptance exercised the public shipping demo at immutable commit
+`e5e22a108ede7d1ca0288de0139d27b996c6291b` with its original SRS and real model
+requests. Four selected functional requirements produced nine approved tests:
+eight passed, one exposed the seeded exact-threshold implementation defect, and
+none had execution errors. Exported tests reproduced the same result in a separate
+read-only Docker execution. Original document bytes, citations, pinned source,
+preflight, worker execution and private report access were checked. Only four of
+35 document blocks were selected; this is synthetic demonstration evidence.
+
+Readable explicitly numbered requirement blocks can now be selected with one
+action, within the existing limits and without silent truncation. Other document
+text still requires scope review. Test exports include runtime/run instructions,
+source provenance and recorded outcomes alongside the approved artifacts.
+
+### Real project compatibility
+
+Recent real-project acceptance fixes support a selected repository/ZIP subdirectory
+as the execution root, preserve dependency lockfiles up to 1 MB without sending
+them into model reasoning, and allow up to 200 KB of focused source/test context.
+The selected directory is recorded in setup, source provenance and test exports.
+Python dependency installation has a separate 256 MB temporary workspace; execution
+keeps its existing 32 MB temporary limit. Installer errors preserve stderr.
+
+Word table rows now retain IDs and requirement text together. Multiline requirement
+citations use stable-ID encoding through the model boundary and are decoded to the
+unchanged original text before validation. Generated gap indexes are constrained by
+the referenced behavior's own gap count. New Python SQLite outputs with a recognized
+header are recorded by path/hash separately from source integrity. Original files,
+generated test changes and unexpected new files remain protected. These are scoped
+compatibility fixes, not relaxed oracle or correctness criteria.
+
+Initial acceptance against `zheng515/ScheduleAgent_DOLMA` at commit
+`44ee78d7053a8744f711fb507f9af86e258fcd75`, directory `backend`, used verbatim
+FR-CAL-02/03/04 rows from its SRS in a locally converted Word document. A native
+PDF conversion was checked separately for extraction and page provenance. The
+initial real-model run analyzed ten behaviors, generated eight artifacts and approved
+six; two clock-dependent/target-patching proposals were blocked. All 51 existing
+and six generated checks passed with integrity retained. Mutation measurement
+hit its 75-second budget without usable outcomes; states remain Unverified or
+Partially Verified. The SRS was reverse-engineered and only three requirements
+were selected. This is integration evidence, not an independent accuracy score or
+verification of the frontend and live external services.
+
+A follow-up used unchanged source and the same three requirement rows. Clock-aware
+generation now prefers calendar invariants or independent before/after clock
+readings with date-rollover allowances. The Agent autonomously added today/tomorrow
+tests in one improvement action; all 51 existing and three approved generated
+checks passed with integrity retained. An explicit-window test remained blocked
+because its timezone expectation was not supported by the requirements.
+
+Mutation execution now explicitly selects the approved generated suite and uses
+static direct-call analysis to focus on supported top-level functions, with an
+explicit whole-file fallback. Re-measurement preserves the original scope.
+Timeouts terminate the process group and retain available cache evidence as
+incomplete results. In this follow-up, both attempts finished within 75 seconds
+on the same 66 mutant IDs and diffs for `formatting.py:resolve_window`: killed
+mutants increased from 27 to 42, with 24 survivors remaining. These raw tool
+counts are not an independently reviewed mutation score or whole-file coverage.
+Remaining survivors, uncovered behaviors and date/time-format ambiguity remain
+unresolved. Regression checks passed: 49 tests passed, three optional tests skipped,
+with no failures; lint, types, English-only checks and the production build passed.
+
+### Survivor review and collection context
+
+Survivor relevance review now processes all retained usable diffs in bounded batches
+of 16, including newly surviving mutants after re-measurement. A decision binds the
+mutant ID, file, exact diff, original requirement quote and mapped behavior. Duplicate,
+missing, mismatched or older unbound decisions cannot exclude a survivor. A negative
+decision for one behavior cannot clear other behaviors in the same source file.
+The UI summarizes only the latest recorded survivors, separating test gaps,
+clarification, changes outside the cited behavior and unreviewed evidence. Incomplete
+measurements with no survivor outcomes do not resolve earlier gaps.
+
+Real-model follow-up on the same DOLMA source and three selected requirements reviewed
+all 24 previous survivors and proposed two supported additions: explicit UTC bounds
+and incomplete-window correction. The original three approved tests were reused as
+the starting suite; this was a controlled continuation, not a new extraction or an
+independent benchmark. All 51 existing and five approved generated checks passed.
+
+The incomplete-window test exposed a pytest context difference: full-suite execution
+loaded `tests/conftest.py`, while isolated mutation execution could not import its
+local helper. Mutation runs now collect each original test directory's conftest, or a
+representative module when no conftest exists, then deselect its test functions.
+The report records setup files and exported commands preserve them. Collection hooks
+and module import effects remain part of raw outcomes; unrelated module side effects
+and module-local fixtures are not reproduced. Loading every original test module was
+rejected after exceeding the unchanged 75-second measurement budget.
+
+With the smaller conftest setup, both controlled mutation attempts completed within
+75 seconds on identical scope, setup files and 66 mutant IDs/diffs. Killed mutants
+increased from 42 to 49; 17 survived. The remaining model labels are one test gap
+and 16 changes outside the cited behavior, with no missing reviews. The remaining
+Monday-midnight microsecond change needs precision clarification before a strict
+assertion is added. One formerly negative relevance judgment (Mutant #56) disagreed
+with the later execution result; retain it for independent review rather than
+turning model labels into gold data. Regression: 55 passed, three optional tests
+skipped, zero failed; lint, types, English-only checks and production build passed.
+
+An exploratory re-review also admitted a previously blocked timezone-identity
+assertion; execution failed and the report remained uncertain. A model diagnosis
+using a full node ID instead of the requested artifact ID was not accepted. These
+cases remain evaluation inputs for review consistency and diagnosis-ID handling;
+they are not evidence of an implementation defect in the target repository.
+
+### Diagnosis ID recovery
+
+Diagnosis provider schemas now restrict IDs to the supplied canonical failure list.
+For older/custom outputs, an exact recorded failed node can map to its generated
+artifact ID only when the approved artifact file uniquely matches. Function names,
+guessed filenames, passed nodes and ambiguous matches are not aliases. Original model
+IDs remain in proposed diagnoses; accepted diagnoses use canonical IDs. Duplicate
+canonical/node decisions remain uncertain, and requirement/code/test/log evidence
+checks and the one-improvement limit are unchanged.
+
+Docker regression covers successful recovery from a grounded node-ID diagnosis,
+duplicate aliases and unsupported source evidence. Existing implementation defects
+and original test failures still cannot authorize generated-test repair. Provider
+schema regression verifies canonical IDs and exact original-quote decoding.
+
+A controlled real-model DOLMA replay reused the previously observed false approval
+of T2 to exercise recovery, rather than claiming the initial review was correct.
+The first replay produced the canonical T2 ID but a category/reason contradiction,
+so no repair was authorized. After clarifying category definitions, a second replay
+used three real-model calls for diagnosis, repair and independent replacement review.
+It diagnosed the unsupported timezone-object assertion as a generated-test error,
+performed one improvement and passed all 51 existing plus one generated check with
+source/test integrity retained. Both attempts are preserved locally; this is recovery
+evidence, not an independent diagnosis-accuracy estimate. Regression: 61 tests,
+58 passed, three optional tests skipped, zero failures.
+
 ## Recommended order
 
 1. Independently review the pilot labels and run a held-out B0–B3 evaluation.

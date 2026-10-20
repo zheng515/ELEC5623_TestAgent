@@ -6,16 +6,16 @@ import { runPython, reason, type Reason, type Checkpoint } from "./python-agent"
 import { interruptedReport } from "./python-jobs";
 import type { PythonReport } from "./python-types";
 import { readFile, readdir } from "node:fs/promises";
+import { queueName, queueSchema } from "./queue-config";
+export { queueName, queueSchema } from "./queue-config";
 
-export const queueName = "verification";
-export const queueSchema = "reqtest_jobs" + (process.env.REQTEST_DATA_NAMESPACE ? "_" + createHash("sha256").update(process.env.REQTEST_DATA_NAMESPACE).digest("hex").slice(0, 20) : "");
 type RunJob = Pick<Job<{ runId: string; userId: string }>, "data" | "retryCount" | "signal">;
 const heldLease = `EXISTS (SELECT 1 FROM "${queueSchema}".job WHERE id=$2::uuid AND name='verification' AND state='active' AND retry_count=$4)`;
 let queue: Promise<PgBoss> | undefined;
 export function getQueue() {
   return queue ||= (async () => {
     await getAuth();
-    const boss = new PgBoss({ connectionString: process.env.DATABASE_URL!, schema: queueSchema, max: 3, superviseIntervalSeconds: 5, monitorIntervalSeconds: 5 });
+    const boss = new PgBoss({ connectionString: process.env.DATABASE_URL!, schema: queueSchema, max: 3, instanceHeartbeatSeconds: 5, superviseIntervalSeconds: 5, monitorIntervalSeconds: 5 });
     boss.on("error", () => console.error("Queue connection error. Check PostgreSQL."));
     try {
       await boss.start();
@@ -65,7 +65,7 @@ export async function checkpointStore(runId: string, job: RunJob): Promise<Check
       return entry.isDirectory() ? sourceFiles(path) : [Buffer.from(path.slice(root.length)), await readFile(path)];
     }))).flat();
   }
-  const files: Buffer[] = await Promise.all(["python-agent.ts", "python-tools.ts", "python-types.ts", "runtime.ts", "test-services.ts"].map(file => readFile(join(process.cwd(), "lib", file))));
+  const files: Buffer[] = await Promise.all(["python-agent.ts", "python-tools.ts", "python-types.ts", "mutation-review.ts", "runtime.ts", "test-services.ts"].map(file => readFile(join(process.cwd(), "lib", file))));
   files.push(...await sourceFiles(join(root, "source")), await readFile(join(root, "runtime.json")).catch(() => Buffer.from("python")));
   const hash = createHash("sha256");
   for (const file of files) hash.update(String(file.length) + ":").update(file);

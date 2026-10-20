@@ -2,14 +2,36 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdtemp, readFile, rm, readdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import JSZip from "jszip";
 import { extractRequirements, loadRequirements, documentRules, originalRequirements } from "../lib/requirements";
 import { prepareProject, copyPreparedProject } from "../lib/project-setup";
 import { dataDir } from "../lib/auth";
-import { githubArchive } from "../lib/python-tools";
+import { githubArchive, importProject, inspectProject } from "../lib/python-tools";
+
+test("project directories isolate runtime inputs while retaining bounded dependency lockfiles", async () => {
+  const root = await mkdtemp(join(tmpdir(), 'reqtest-directory-'));
+  const zip = new JSZip();
+  zip.file('repository/backend/service.py', 'def fee(): return 0\n');
+  zip.file('repository/backend/pyproject.toml', '[project]\nname="backend"\nversion="1"\ndependencies=["flask>=3"]');
+  zip.file('repository/backend/uv.lock', '# retained lock metadata\n' + 'x'.repeat(210000));
+  zip.file('repository/frontend/app.js', 'x'.repeat(250000));
+  zip.file('repository/backend-other/unrelated.py', 'raise RuntimeError("outside selected directory")');
+  const archive = await zip.generateAsync({ type: 'nodebuffer' });
+  try {
+    const snapshot = await importProject(root, archive, 'auto', 'backend/');
+    assert.equal(snapshot.runtime, 'python');
+    assert.deepEqual(Object.keys(snapshot.files).sort(), ['pyproject.toml', 'service.py', 'uv.lock']);
+    assert.match(await readFile(join(root, 'source/pyproject.toml'), 'utf8'), /flask/);
+    for (const path of ['../backend', '/backend', '/', 'backend/../frontend', 'backend\\service', '.hidden', 'backend//service']) await assert.rejects(importProject(root, archive, 'auto', path), /relative project directory/);
+    await assert.rejects(importProject(root, archive, 'auto', 'missing'), /No source files/);
+    await assert.rejects(importProject(root, archive, 'auto', 'frontend'), /source file exceeds 200 KB/);
+    zip.file('repository/backend/uv.lock', 'x'.repeat(1000001));
+    await assert.rejects(importProject(root, await zip.generateAsync({ type: 'nodebuffer' }), 'auto', 'backend'), /lockfile exceeds 1 MB/);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
 
 test("private GitHub downloads pin the commit and never forward tokens to the archive host", async () => {
   const original = globalThis.fetch, calls: { url: string; token?: string }[] = [];
@@ -50,7 +72,7 @@ test("real PDF and Word extraction retains locations, original bytes and account
     "writer.add_blank_page(width=612,height=792)",
     "pdf=BytesIO();writer.write(pdf)",
     "blank=PdfWriter();blank.add_blank_page(width=612,height=792);scan=BytesIO();blank.write(scan)",
-    "doc=Document();doc.add_paragraph('Negative amounts raise ValueError.');doc.add_table(rows=1,cols=1).cell(0,0).text='Boolean input raises TypeError.';word=BytesIO();doc.save(word)",
+    "doc=Document();doc.add_paragraph('Negative amounts raise ValueError.');table=doc.add_table(rows=1,cols=3);table.cell(0,0).text='FR-INPUT-01';table.cell(0,1).text='Boolean input';table.cell(0,2).text='raises TypeError.';word=BytesIO();doc.save(word)",
     "image=Image.new('RGB',(1800,600),'white');draw=ImageDraw.Draw(image);draw.text((70,150),'Shipping fee at 10000 cents is zero.',font=ImageFont.truetype('LiberationSans-Regular.ttf',48),fill='black');ocr=BytesIO();image.save(ocr,format='PDF',resolution=150)",
     "mixed_writer=PdfWriter();mixed_writer.add_page(writer.pages[0]);image_reader=PdfReader(BytesIO(ocr.getvalue()));mixed_writer.add_page(image_reader.pages[0]);mixed_writer.add_blank_page(width=612,height=792)",
     "hybrid=mixed_writer.add_page(image_reader.pages[0]);hybrid[NameObject('/Resources')][NameObject('/Font')]=DictionaryObject({NameObject('/F1'):font})",
@@ -87,6 +109,8 @@ test("real PDF and Word extraction retains locations, original bytes and account
     assert.equal((await loadRequirements(user, mixed.id)).pages[2].page, 3);
     const word = await extractRequirements(user, file("requirements.docx", files.docx), new AbortController().signal);
     assert.equal(word.segments[0].paragraph, 1); assert.match(word.segments[1].location, /table row 1/); assert.match(word.segments[1].text, /Boolean/);
+    assert.equal(word.segments.length, 2); assert.equal(word.segments[1].text, 'FR-INPUT-01\nBoolean input\nraises TypeError.');
+    assert.equal(documentRules(word, [word.segments[1].id])[0].source.location, 'Body block 2, table row 1');
     assert.throws(() => documentRules(pdf, ["invented"]), /Unknown/); assert.throws(() => documentRules(pdf, [pdf.segments[0].id, pdf.segments[0].id]), /unique/);
     const legacy = await extractRequirements(user, file("legacy.doc", files.doc), new AbortController().signal);
     assert.match(legacy.segments[0].text, /Negative amounts/); assert.equal(legacy.segments[0].paragraph, 1);
@@ -111,13 +135,19 @@ test("real PDF and Word extraction retains locations, original bytes and account
 
 test("preflight detects missing/versioned dependencies without importing project code and freezes its snapshot", { skip: process.env.REQTEST_DOCKER_TEST !== "1", timeout: 60000 }, async () => {
   const user = randomUUID(), destination = await mkdtemp(join(tmpdir(), "reqtest-preflight-"));
-  const zip = new JSZip(); zip.file("service.py", "raise RuntimeError('Project imports must not execute during setup checks')\n"); zip.file("requirements.txt", "pytest>=99\nreqtest-nonexistent-package==1.0\n");
+  const zip = new JSZip(); zip.file("backend/service.py", "raise RuntimeError('Project imports must not execute during setup checks')\n"); zip.file("backend/requirements.txt", "pytest>=99\nreqtest-nonexistent-package==1.0\n"); zip.file("backend/uv.lock", '# retained lock metadata\n' + 'x'.repeat(210000)); zip.file("frontend/app.js", "export const version = 1;");
   const form = new FormData(); form.set("project", new File([new Uint8Array(await zip.generateAsync({ type: "nodebuffer" }))], "project.zip"));
+  form.set('projectDirectory', 'backend');
   try {
     const setup = await prepareProject(user, form, new AbortController().signal);
     assert.equal(setup.setup.status, "needs_setup"); assert.equal(setup.setup.checks.filter(item => item.status === "failed").length, 2);
     assert.match(setup.sandboxImage, /^sha256:/);
+    assert.equal(setup.projectDirectory, 'backend'); assert.equal(setup.source, 'project.zip/backend');
     await copyPreparedProject(user, setup.id, destination); assert.match(await readFile(join(destination, "source/service.py"), "utf8"), /must not execute/);
+    await mkdir(join(destination, 'generated'));
+    const inspection = await inspectProject(destination, AbortSignal.timeout(30000), setup.sandboxImage);
+    assert.equal(inspection.files['uv.lock'], undefined); assert.ok((await readFile(join(destination, 'source/uv.lock'))).length > 200000);
+    assert.equal(inspection.files['frontend/app.js'], undefined);
     await assert.rejects(() => copyPreparedProject("other-" + user, setup.id, destination));
   } finally { await rm(destination, { recursive: true, force: true }); await rm(join(dataDir, "preflights", createHash("sha256").update(user).digest("hex")), { recursive: true, force: true }); }
 });

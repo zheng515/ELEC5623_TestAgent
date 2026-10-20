@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import JSZip from "jszip";
+import { testArchive } from "@/lib/test-export";
 import { EventSourceParserStream } from "eventsource-parser/stream";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,15 +10,34 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { PythonReport } from "@/lib/python-types";
 import type { RequirementDocument } from "@/lib/requirements";
-import { testFile } from "@/lib/runtime";
 import { initialDocumentBlocks } from "@/lib/document-selection";
-import { DocumentExtraction, OcrConfidence, OriginalPageLink } from "./document-extraction";
+import { DocumentExtraction, NumberedRequirementSelection, OcrConfidence, OriginalPageLink } from "./document-extraction";
 import type { ProjectSetup } from "@/lib/project-setup";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import type { GitHubConnectionStatus } from "@/lib/github-config";
+import { RuntimeStatus, useRuntimeHealth } from "./runtime-health";
+import { survivorLabels, survivorReviews } from '@/lib/mutation-review';
+
+function MutationReview({ report }: { report: PythonReport }) {
+  const rows = survivorReviews(report);
+  if (!rows.length) return report.mutations.at(-1)?.incomplete ? <p>No surviving outcomes were recorded in the incomplete latest attempt. Missing outcomes do not resolve earlier survivors or gaps.</p> : null;
+  return <section className="my-3 space-y-2">
+    <p>Current surviving mutants: {rows.length}. {Object.entries(survivorLabels).map(([category, label]) => `${label}: ${rows.filter(row => row.category === category).length}`).join(' · ')}.</p>
+    <p className="text-sm text-muted-foreground">Model judgments apply only to the cited behavior and exact saved diff. Other behavior links remain unresolved. Unspecified details are not equivalent code; independent review is still required.</p>
+    {rows.map(({ mutant, decision, category }) => <details key={mutant.id}><summary className="cursor-pointer">{mutant.id} · {survivorLabels[category]}{decision ? ` → ${decision.behaviorId}` : ''}</summary>
+      <p>{decision?.reason || 'No unique grounded review matches this file and diff. No exclusion or verification credit is granted.'}</p>
+      {decision && <blockquote className="whitespace-pre-wrap text-sm text-muted-foreground">{decision.quote}</blockquote>}
+      <pre className="whitespace-pre-wrap text-xs">{mutant.diff || 'Mutation diff unavailable.'}</pre>
+    </details>)}
+  </section>;
+}
 
 export function PythonWorkspace({ model, configured, onRunningChange }: { model: string; configured: boolean; onRunningChange: (running: boolean) => void }) {
+  const runtimeStatus = useRuntimeHealth();
+  const { health } = runtimeStatus;
+  const modelReady = health?.modelConfigured ?? configured;
+  const canSubmit = !!health && health.queue !== "unavailable" && health.sandbox === "available" && modelReady;
   const { data: organizations } = authClient.useListOrganizations();
   const [runs, setRuns] = useState<PythonReport[]>([]);
   const [selected, setSelected] = useState<PythonReport>();
@@ -106,6 +125,7 @@ export function PythonWorkspace({ model, configured, onRunningChange }: { model:
     setSelected(undefined); setError(''); setDocument(undefined); setBlocks([]); setSetup(undefined); setParent(previous); setComparison(previous);
   }
   async function run(event: FormEvent<HTMLFormElement>) {
+    if (!canSubmit) { event.preventDefault(); setError('Check runtime status and restore the required services before submitting. Your inputs are retained.'); return; }
     event.preventDefault(); setError(''); setBusy(true); onRunningChange(true); setSelected(undefined); setStage('Import project');
     const controller = new AbortController(); execution.current = controller;
     const form = new FormData(event.currentTarget); form.set('model', model);
@@ -138,9 +158,7 @@ export function PythonWorkspace({ model, configured, onRunningChange }: { model:
   }
   async function downloadTests() {
     if (!selected) return;
-    const zip = new JSZip();
-    for (const test of selected.tests.filter((test) => test.approved)) zip.file(testFile(test.id, selected.runtime), test.code);
-    zip.file('verification.json', JSON.stringify(selected, null, 2));
+    const zip = testArchive(selected);
     const url = URL.createObjectURL(await zip.generateAsync({ type: 'blob' }));
     const link = window.document.createElement('a'); link.href = url; link.download = 'reqtest_tests.zip'; link.click(); URL.revokeObjectURL(url);
   }
@@ -148,7 +166,7 @@ export function PythonWorkspace({ model, configured, onRunningChange }: { model:
   const initialFailure = selected?.collection?.timedOut || [1, 2, 3, 4].includes(selected?.collection?.exitCode || 0) || selected?.baseline?.timedOut || selected?.baseline?.integrity === false || [1, 2, 3, 4].includes(selected?.baseline?.exitCode || 0) || selected?.baseline?.outcomes.some((outcome) => ['failed', 'error'].includes(outcome.status));
   const unclear = selected?.analysis?.behaviors.filter(behavior => behavior.issue !== 'none') || [];
   const failed = latest?.outcomes.filter(outcome => ['failed', 'error'].includes(outcome.status)) || [];
-  const nextAction = selected?.status === 'running' ? 'Verification is running. You can leave this page and reconnect from history.' : initialFailure ? 'Review environment and existing-test failures below. Fix project setup before relying on results.' : selected?.status === 'failed' || selected?.status === 'cancelled' ? 'Review the saved error and partial evidence, then start a new run.' : unclear.length ? 'Clarify the flagged requirements, then re-run against the same saved code.' : failed.length ? 'Review the failing assertions and diagnoses against the original requirements.' : selected?.states.some(state => state.status !== 'Verified') ? 'Review the remaining gaps and blocked tests before accepting the result.' : 'Inspect the evidence and download the tests for your project. Passing checks do not prove exhaustive correctness.';
+  const nextAction = selected?.status === 'running' ? (runtimeStatus.error || !health ? 'Runtime status is unavailable. The saved task is retained; refresh status to check progress.' : health.worker !== 'online' ? 'No recent worker heartbeat. Your task is saved and waiting for a worker or recovery.' : selected.execution?.attempt === 0 ? 'Your task is queued and waiting for an available worker. You can reconnect from history.' : 'Verification is running. You can leave this page and reconnect from history.') : initialFailure ? 'Review environment and existing-test failures below. Fix project setup before relying on results.' : selected?.status === 'failed' || selected?.status === 'cancelled' ? 'Review the saved error and partial evidence, then start a new run.' : unclear.length ? 'Clarify the flagged requirements, then re-run against the same saved code.' : failed.length ? 'Review the failing assertions and diagnoses against the original requirements.' : selected?.states.some(state => state.status !== 'Verified') ? 'Review the remaining gaps and blocked tests before accepting the result.' : 'Inspect the evidence and download the tests for your project. Passing checks do not prove exhaustive correctness.';
   useEffect(() => {
     if (!selected?.parentRunId) return;
     let active = true;
@@ -157,6 +175,7 @@ export function PythonWorkspace({ model, configured, onRunningChange }: { model:
   }, [selected?.parentRunId]);
   return <section className="space-y-8">
     <header className="space-y-3"><h1 className="text-4xl font-bold uppercase">Requirement-aware verification</h1><p className="text-muted-foreground">Understand → Measure → Diagnose → Improve → Re-measure</p></header>
+    <RuntimeStatus {...runtimeStatus} />
     <form noValidate ref={formRef} key={parent?.id || 'new'} onSubmit={run} className="space-y-5" hidden={busy || Boolean(selected)}>
       <label className="block space-y-2">Run name<Input name="title" required maxLength={120} defaultValue={parent ? parent.title + ' — re-run' : 'Project verification'} /></label>
       {parent ? <div className="space-y-3 border rounded p-4"><p>Reusing the saved code snapshot from {parent.title}. The previous report stays unchanged.</p><p>{parent.source}</p>{parent.rules.map(rule => <blockquote key={rule.id}>{rule.id}: {rule.text}</blockquote>)}<label className="block">Clarification — additional requirements, one per line<Textarea name="clarification" rows={4} maxLength={4000} placeholder="State the intended rule that resolves the earlier ambiguity. These statements become new requirements in this run." /></label></div> : <>
@@ -164,6 +183,7 @@ export function PythonWorkspace({ model, configured, onRunningChange }: { model:
           <label className="block space-y-2">GitHub repository<Input name="repository" type="url" placeholder="https://github.com/owner/repository" onChange={() => setSetup(undefined)} /></label>
           <label className="block space-y-2">Or upload a project ZIP<FileInput name="project" accept=".zip" onChange={() => setSetup(undefined)} /></label>
           <label>Branch, tag or commit (optional)<Input name="ref" placeholder="Default branch" onChange={() => setSetup(undefined)} /></label>
+          <label>Project directory (optional)<Input name="projectDirectory" maxLength={200} placeholder="backend" onChange={() => setSetup(undefined)} /><span className="text-xs text-muted-foreground">Relative to the repository or ZIP root. Leave empty for the root. Only this directory is analyzed and executed.</span></label>
           <div className="space-y-2"><label className="flex gap-2 items-center"><input type="checkbox" name="useConnectedGitHub" value="true" checked={connectedGitHub} disabled={!github?.configured || !github.connected} onChange={event => { setConnectedGitHub(event.target.checked); setSetup(undefined); }} />Use connected GitHub account</label><p className="text-xs text-muted-foreground">{github?.connected ? 'Credentials stay on the server.' : 'Public repositories need no connection.'} <Link className="underline" href="/account">Manage GitHub connection</Link></p></div>
           {!connectedGitHub && <label>Temporary GitHub token (optional)<Input name="githubToken" type="password" autoComplete="off" placeholder="Read-only access to selected repositories" onChange={() => setSetup(undefined)} /><span className="text-xs text-muted-foreground">Used only to download the snapshot; never stored or sent to the model.</span></label>}
         </div>
@@ -179,11 +199,11 @@ export function PythonWorkspace({ model, configured, onRunningChange }: { model:
         {setup && <div className="border rounded p-4 space-y-2"><p>Project setup: {setup.setup.status} · {setup.runtime === "node" ? "Node.js" : "Python"} {setup.setup.python}</p>{setup.setup.checks.map((check, i) => <p key={i} className={check.status === 'failed' ? 'text-red-400' : 'text-muted-foreground'}>{check.status} · {check.label}: {check.detail}</p>)}{setup.automaticSetup && <details><summary>Installed dependency versions ({setup.installed.length})</summary>{setup.installed.map(dependency => <p className="text-xs" key={dependency}>{dependency}</p>)}{!setup.installed.length && <p>No additional declared dependencies were installed.</p>}</details>}{setup.setup.limitations.map(limit => <p className="text-xs text-muted-foreground" key={limit}>{limit}</p>)}{setup.setup.status === 'needs_setup' && <label className="flex gap-2"><input type="checkbox" name="allowEnvironmentFailure" value="true" />Run anyway to diagnose environment failures</label>}</div>}
         <label className="block space-y-2">Requirement file (optional)<FileInput accept=".pdf,.doc,.docx,.txt,.md" disabled={extracting} onChange={event => extract(event.target.files?.[0])} /></label>
         {extracting && <p role="status">Extracting requirement text…</p>}
-        {document ? <div className="space-y-3 border rounded p-4"><p>{document.fileName} · {blocks.length} / {document.segments.length} blocks selected</p><p>Only selected blocks are analyzed. Select up to 12 blocks and 12,000 characters; no unselected text is claimed as verified.</p><DocumentExtraction document={document} /><a className="inline-block underline text-sm" href={'/api/requirements?id=' + document.id}>Download original document</a>{document.segments.some(segment => segment.extraction === 'ocr') && <p className="text-xs text-muted-foreground">Low-confidence OCR blocks are not selected automatically. Compare them with the original before choosing them. Confidence is a tool signal, not an accuracy score.</p>}<div className="max-h-80 overflow-auto space-y-3">{document.segments.map(segment => <label className="flex gap-3 items-start" key={segment.id}><input type="checkbox" checked={blocks.includes(segment.id)} onChange={event => setBlocks(event.target.checked ? [...blocks, segment.id] : blocks.filter(id => id !== segment.id))} /><span><strong>{segment.location}</strong><OriginalPageLink documentId={document.id} page={segment.page} /><OcrConfidence source={segment} /><span className="block whitespace-pre-wrap text-sm">{segment.text}</span></span></label>)}</div><Button variant="outline" type="button" onClick={() => { setDocument(undefined); setBlocks([]); }}>Use pasted text instead</Button></div> : <label className="block space-y-2">Requirements — one per line<Textarea name="requirements" required maxLength={12000} rows={6} placeholder="Describe intended behavior, boundaries and exception rules. Up to 12 lines." /></label>}
+        {document ? <div className="space-y-3 border rounded p-4"><p>{document.fileName} · {blocks.length} / {document.segments.length} blocks selected</p><p>Only selected blocks are analyzed. Select up to 12 blocks and 12,000 characters; no unselected text is claimed as verified.</p><DocumentExtraction document={document} /><NumberedRequirementSelection document={document} onSelect={setBlocks} /><a className="inline-block underline text-sm" href={'/api/requirements?id=' + document.id}>Download original document</a>{document.segments.some(segment => segment.extraction === 'ocr') && <p className="text-xs text-muted-foreground">Low-confidence OCR blocks are not selected automatically. Compare them with the original before choosing them. Confidence is a tool signal, not an accuracy score.</p>}<div className="max-h-80 overflow-auto space-y-3">{document.segments.map(segment => <label className="flex gap-3 items-start" key={segment.id}><input type="checkbox" checked={blocks.includes(segment.id)} onChange={event => setBlocks(event.target.checked ? [...blocks, segment.id] : blocks.filter(id => id !== segment.id))} /><span><strong>{segment.location}</strong><OriginalPageLink documentId={document.id} page={segment.page} /><OcrConfidence source={segment} /><span className="block whitespace-pre-wrap text-sm">{segment.text}</span></span></label>)}</div><Button variant="outline" type="button" onClick={() => { setDocument(undefined); setBlocks([]); }}>Use pasted text instead</Button></div> : <label className="block space-y-2">Requirements — one per line<Textarea name="requirements" required maxLength={12000} rows={6} placeholder="Describe intended behavior, boundaries and exception rules. Up to 12 lines." /></label>}
       </>}
       <p className="text-sm text-muted-foreground">Submit only approved project data. Source code, tests and project documentation are sent to the selected model. Tests execute in Docker. Automatic setup installs registry dependencies without running project install scripts.</p>
-      {!configured && <p role="status">Configure OPENAI_API_KEY in the root .env.local, then restart.</p>}
-      <Button disabled={!configured || !model.trim() || extracting || checking || Boolean(document && !blocks.length)}>Run verification</Button>
+      {!modelReady && <p role="status">Configure OPENAI_API_KEY in the root .env.local, then restart.</p>}
+      <Button disabled={!canSubmit || !model.trim() || extracting || checking || Boolean(document && !blocks.length)}>{health?.worker === 'online' ? 'Run verification' : 'Queue verification'}</Button>
     </form>
     <div className="flex flex-wrap gap-3 items-center">
       <label htmlFor="python-history">Your runs</label><NativeSelect id="python-history" disabled={busy} value={selected?.id || ''} onChange={(event) => setSelected(runs.find((run) => run.id === event.target.value))}><NativeSelectOption value="">New verification</NativeSelectOption>{runs.map((run) => <NativeSelectOption key={run.id} value={run.id}>{run.title} · {run.status === 'running' && !busy ? 'Running / incomplete' : run.status}</NativeSelectOption>)}</NativeSelect>
@@ -223,8 +243,9 @@ export function PythonWorkspace({ model, configured, onRunningChange }: { model:
       <details><summary className="cursor-pointer">Requirement quality and inconsistencies</summary>{selected.analysis?.behaviors.filter((behavior) => behavior.issue !== 'none').map((behavior) => <p key={behavior.id}>{behavior.id} · {behavior.issue}: {behavior.reason}</p>)}{selected.analysis?.inconsistencies.map((item, i) => <p key={i}>{item.ruleId}{item.behaviorIds?.length ? ` → ${item.behaviorIds.join(', ')}` : ''}: {item.description}</p>)}</details>
       <details><summary className="cursor-pointer">Retrieved project evidence</summary><p className="text-sm text-muted-foreground">Documents retrieved for this run are retained in the evidence export. Retrieval does not establish that a requirement is correct.</p>{selected.retrieval?.documents.map((document) => <section key={document.file} className="my-3"><p>{document.file}</p><p className="text-xs break-all">SHA-256: {document.sha256}</p><pre className="whitespace-pre-wrap text-xs mt-2">{document.text}</pre></section>)}{!selected.retrieval?.documents.length && <p>No retrieved documents were recorded.</p>}</details>
       <details><summary className="cursor-pointer">Failure diagnoses and improvements</summary>{selected.diagnoses.map((decision, i) => <p key={i}>{decision.phase || 'execution'} · {decision.testId} · {decision.category}: {decision.reason}</p>)}{selected.improvements.map((improvement, i) => <p key={i}>{improvement.reason}</p>)}{!selected.diagnoses.length && <p>No failure diagnosis was recorded.</p>}</details>
-      <details><summary className="cursor-pointer">Mutation measurements</summary>{selected.mutations.map((mutation, i) => <div key={i}><p>Attempt {i + 1}: {mutation.mutants.filter((mutant) => mutant.status === 'killed').length} killed / {mutation.mutants.length} recorded; {mutation.mutants.filter((mutant) => mutant.status === 'survived').length} survived{mutation.timedOut ? ' · Time limit reached' : ''}. Raw counts, not a relevant non-equivalent mutation score.</p><pre className="whitespace-pre-wrap text-xs">{mutation.log}</pre></div>)}{selected.relevance.map((decision, i) => <p key={i}>{decision.mutantId} → {decision.behaviorId}: {decision.grounded === false ? 'Unsupported review — unresolved' : decision.relevant ? 'Relevant survivor' : 'Reviewed as irrelevant/equivalent'} · {decision.reason}</p>)}{!selected.mutations.length && <p>Not executed: requires passing tests and a mapped source file.</p>}</details>
+      <details><summary className="cursor-pointer">Mutation measurements</summary>{selected.mutations.map((mutation, i) => <div key={i}><p>Attempt {i + 1}: {mutation.mutants.filter((mutant) => mutant.status === 'killed').length} killed / {mutation.mutants.length} recorded; {mutation.mutants.filter((mutant) => mutant.status === 'survived').length} survived{mutation.timedOut ? ' · Time limit reached' : ''}{mutation.incomplete ? ' · Incomplete' : ' · Selected scope complete'}. Raw counts, not a relevant non-equivalent mutation score.</p>{mutation.scope && <p className="text-sm text-muted-foreground">Scope: {mutation.scope.file} · {mutation.scope.kind === 'functions' ? mutation.scope.functions.join(', ') : 'Full-file fallback; direct function calls could not be resolved'}. Suite: approved generated tests. Function selection does not establish whole-file coverage.</p>}{mutation.totalMutants !== undefined && mutation.totalMutants > mutation.mutants.length && <p>Showing {mutation.mutants.length} of {mutation.totalMutants} discovered mutants.</p>}{!!mutation.scope?.setupFiles?.length && <p className="text-sm text-muted-foreground">Representative original modules load directory setup; their test functions are deselected. Collection hooks and module import effects can influence raw outcomes: {mutation.scope.setupFiles.join(', ')}.</p>}<pre className="whitespace-pre-wrap text-xs">{mutation.log}</pre></div>)}<MutationReview report={selected} />{!selected.mutations.length && <p>Not executed: requires passing tests and a mapped source file.</p>}</details>
       <details><summary className="cursor-pointer">Generated tests and review</summary>{selected.tests.map((test) => <section key={test.id} className="my-4"><p>{test.id} → {test.behaviorId} · {test.approved ? 'Supported by review' : 'Blocked'} · {test.review}</p><pre className="whitespace-pre-wrap text-xs">{test.code}</pre></section>)}</details>
+      {!!latest?.runtimeArtifacts?.length && <details><summary>Runtime SQLite outputs</summary><p>New SQLite databases created in the disposable test copy are recorded separately. Original source and generated test files must remain unchanged. Database contents are not exported.</p>{latest.runtimeArtifacts.map(artifact => <p className="text-xs break-all" key={artifact.file}>{artifact.file} · SHA-256: {artifact.sha256}</p>)}</details>}
       <details><summary className="cursor-pointer">Logs, provenance and limits</summary><p>SHA-256: {selected.fingerprint}</p><p>Model: {selected.model}</p><p>Test collection</p><pre className="whitespace-pre-wrap text-xs">{selected.collection?.log || 'No collection log recorded.'}</pre><p>Existing-test baseline</p><pre className="whitespace-pre-wrap text-xs">{selected.baseline?.log || 'No baseline log recorded.'}</pre><p>Latest execution</p><pre className="whitespace-pre-wrap text-xs">{latest?.log || 'No execution log recorded.'}</pre><ul>{selected.limitations.map((limit) => <li key={limit}>{limit}</li>)}</ul></details>
       {!busy && <div className="flex gap-3"><Button variant="outline" onClick={() => download('verification.json', JSON.stringify(selected, null, 2))}>Download evidence</Button><Button variant="outline" disabled={!selected.tests.some((test) => test.approved)} onClick={downloadTests}>Download generated tests</Button></div>}
     </>}

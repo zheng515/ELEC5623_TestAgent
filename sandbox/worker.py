@@ -7,8 +7,10 @@ import json
 import os
 from pathlib import Path
 import shutil
+import shlex
 import sqlite3
 import subprocess
+import signal
 import sys
 import site
 site.addsitedir("/opt/reqtest-deps")
@@ -82,17 +84,23 @@ def preflight():
 
 
 def command(args, timeout=60):
+    process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
     try:
-        result = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
-        return result.returncode, (result.stdout + result.stderr)[-24000:], False
-    except subprocess.TimeoutExpired as error:
-        return -1, str(error.output or b"")[-24000:], True
+        output, _ = process.communicate(timeout=timeout)
+        return process.returncode, output[-24000:], False
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        output, _ = process.communicate()
+        return -1, output[-23000:] + f'\nCommand exceeded {timeout} seconds; its process group was stopped.', True
 
 
-def fingerprint():
+def fingerprint(excluded=()):
     digest = hashlib.sha256()
     for path in sorted(Path('.').rglob('*')):
-        if path.is_file() and '__pycache__' not in path.parts:
+        if path.is_file() and '__pycache__' not in path.parts and str(path) not in excluded:
             digest.update(str(path).encode())
             digest.update(path.read_bytes())
     return digest.hexdigest()
@@ -128,6 +136,7 @@ def measure(job):
     if not paths:
         return {'outcomes': [], 'exitCode': 5, 'log': 'No selected tests.', 'timedOut': False, 'integrity': True}
     execution_fingerprint = fingerprint()
+    original_files = {str(path) for path in Path('.').rglob('*') if path.is_file()}
     code, log, timed = command([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider', '-o', 'junit_family=legacy', '--junitxml=/tmp/results.xml', '--', *paths])
     outcomes = []
     if Path('/tmp/results.xml').exists():
@@ -144,15 +153,80 @@ def measure(job):
             matching = [node for node in candidates if len(node.split('::')) < 3 or node.split('::')[-2] == class_name]
             node_id = matching[0] if len(matching) == 1 else filename + '::' + name
             outcomes.append({'node': node_id, 'file': filename, 'name': name, 'status': status, 'message': message})
-    unchanged = execution_fingerprint == fingerprint()
+    runtime_artifacts = []
+    for path in sorted(Path('.').rglob('*')):
+        if path.is_file() and str(path) not in original_files and path.suffix in {'.db', '.sqlite', '.sqlite3'}:
+            with path.open('rb') as stream:
+                if stream.read(16) == b'SQLite format 3\x00':
+                    stream.seek(0)
+                    runtime_artifacts.append({'file': str(path), 'kind': 'sqlite', 'sha256': hashlib.file_digest(stream, 'sha256').hexdigest()})
+    outputs = {item['file'] for item in runtime_artifacts}
+    unchanged = execution_fingerprint == fingerprint(outputs)
     shutil.rmtree('/work/project/reqtest_generated', ignore_errors=True)
-    return {'outcomes': outcomes, 'exitCode': code, 'log': log, 'timedOut': timed, 'integrity': unchanged and before == fingerprint()}
+    return {'outcomes': outcomes, 'exitCode': code, 'log': log, 'timedOut': timed, 'integrity': unchanged and before == fingerprint(outputs), 'runtimeArtifacts': runtime_artifacts}
+
+
+def mutation_scope(job):
+    candidates = []
+    tests = [ast.parse(path.read_text()) for path in Path('reqtest_generated').glob('*.py')]
+    for filename in job.get('files') or [job['file']]:
+        path = Path(filename)
+        if path.is_absolute() or '..' in path.parts or path.suffix != '.py' or not path.is_file():
+            raise ValueError('Mutation targets must be saved Python source files.')
+        definitions = {node.name: node for node in ast.parse(path.read_text()).body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        module = filename.removesuffix('.py').replace('/', '.')
+        modules = {module, module.removeprefix('src.'), module.removesuffix('.__init__')}
+        called = set()
+        for tree in tests:
+            bindings = {}
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name in modules:
+                            bindings.update({(alias.asname or alias.name) + '.' + name: name for name in definitions})
+                elif isinstance(node, ast.ImportFrom):
+                    for alias in node.names:
+                        if not node.level and node.module in modules:
+                            bindings[alias.asname or alias.name] = alias.name
+                        elif not node.level and str(node.module) + '.' + alias.name in modules:
+                            bindings.update({(alias.asname or alias.name) + '.' + name: name for name in definitions})
+            called.update(bindings.get(ast.unparse(node.func)) for node in ast.walk(tree) if isinstance(node, ast.Call))
+        names = set(job['functions']) if job.get('functions') is not None else called
+        selected = [node for name, node in definitions.items() if name in names]
+        lines = sorted({line for node in selected for line in range(node.lineno, node.end_lineno + 1)})
+        candidates.append({'file': filename, 'functions': [node.name for node in selected], 'lines': lines, 'kind': 'functions' if selected else 'file', 'suite': 'approved_generated'})
+    return max(candidates, key=lambda scope: len(scope['functions']))
 
 
 def mutate(job):
     shutil.copytree('/generated', '/work/project/reqtest_generated', dirs_exist_ok=True)
+    scope = mutation_scope(job)
+    selection = []
+    if scope['lines']:
+        # A selection patch supplies line numbers to mutmut; it is never applied to source.
+        source = Path(scope['file']).read_text().splitlines()
+        patch = '--- ' + scope['file'] + '\n+++ ' + scope['file'] + '\n'
+        for line in scope['lines']:
+            patch += f'@@ -0,0 +{line},1 @@\n+' + source[line - 1] + '\n'
+        Path('/tmp/mutation-selection.patch').write_text(patch)
+        selection = ['--use-patch-file', '/tmp/mutation-selection.patch']
+    seconds = min(75, max(1, int(job.get('seconds', 75))))
+    nodes = list(dict.fromkeys(job.get('nodes') or []))
+    for node in nodes:
+        path = Path(node.split('::')[0])
+        if path.is_absolute() or '..' in path.parts or 'reqtest_generated' in path.parts or path.suffix != '.py' or not path.is_file():
+            raise ValueError('Mutation setup must use saved existing test nodes.')
+    setup = {}
+    for node in nodes:
+        path = Path(node.split('::')[0])
+        conftest = path.parent / 'conftest.py'
+        setup.setdefault(str(path.parent), str(conftest if conftest.is_file() else path))
+    scope['setupFiles'] = list(setup.values())
+    # Prefer each directory's conftest; otherwise collect a representative module.
+    # All original assertions are deselected; unrelated modules need not be loaded.
+    runner = shlex.join([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider', '-o', 'addopts=', *['--deselect=' + file for file in scope['setupFiles']], '--', *scope['setupFiles'], 'reqtest_generated'])
     # CLI values override any project-supplied mutmut hooks/configuration.
-    code, log, timed = command(['mutmut', 'run', '--paths-to-mutate', job['file'], '--tests-dir', 'reqtest_generated', '--runner', 'python -m pytest -q -p no:cacheprovider', '--pre-mutation', '', '--post-mutation', '', '--simple-output', '--no-progress', '--test-time-base', '1'], 75)
+    code, log, timed = command(['mutmut', 'run', '--paths-to-mutate', scope['file'], *selection, '--tests-dir', 'reqtest_generated', '--runner', runner, '--pre-mutation', '', '--post-mutation', '', '--simple-output', '--no-progress', '--test-time-base', '1'], seconds)
     _, xml, _ = command(['mutmut', 'junitxml'], 10)
     mutants, diffs = [], {}
     try:
@@ -160,7 +234,10 @@ def mutate(job):
             detail = case.find('failure')
             if detail is not None:
                 diffs[case.get('name', '')] = (detail.text or '')[:8000]
-        with sqlite3.connect('.mutmut-cache') as cache:
+    except ET.ParseError:
+        log += '\nMutant XML unavailable; inspecting cached outcomes instead.'
+    try:
+        with sqlite3.connect('.mutmut-cache', timeout=2) as cache:
             rows = cache.execute('SELECT m.id, s.filename, l.line_number, m.status FROM Mutant m JOIN Line l ON m.line=l.id JOIN SourceFile s ON l.sourcefile=s.id').fetchall()
         for ident, filename, line, status in rows:
             key = 'Mutant #' + str(ident)
@@ -171,9 +248,9 @@ def mutate(job):
                 except Exception:
                     log += f'\nMutation diff unavailable for {key}.'
             mutants.append({'id': key, 'file': filename, 'line': line + 1, 'status': {'ok_killed': 'killed', 'bad_survived': 'survived'}.get(status, 'unknown'), 'diff': diff})
-    except (ET.ParseError, sqlite3.Error):
+    except sqlite3.Error:
         log += '\nMutation evidence unavailable. No score can be established.'
-    return {'mutants': mutants[:200], 'log': log, 'timedOut': timed, 'incomplete': timed or bool(code & 1) or not mutants or len(mutants) > 200 or any(not mutant['diff'] for mutant in mutants)}
+    return {'mutants': mutants[:200], 'log': log, 'timedOut': timed, 'scope': scope, 'totalMutants': len(mutants), 'incomplete': timed or bool(code & 1) or not mutants or len(mutants) > 200 or any(not mutant['diff'] or mutant['status'] == 'unknown' for mutant in mutants)}
 
 
 

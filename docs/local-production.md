@@ -30,6 +30,17 @@ service exits, the launcher stops the other; it does not automatically restart i
 Shutdown is bounded to 20 seconds; remaining processes are then terminated. Saved
 worker checkpoints remain available for retry after restart.
 
+## Runtime troubleshooting
+
+The verification page includes a Runtime status panel. If it shows no recent
+worker heartbeat, start both services using the checked launcher. A normal queue
+can have pending work while workers are online and busy; a missing worker is shown
+separately. Use Refresh status after correcting a service problem. Offline workers
+do not delete queued work or turn saved test results into failures. A worker crash
+can take three missed five-second heartbeats plus the page polling delay to appear.
+If account storage is unavailable, the page shows a generic PostgreSQL/service
+message rather than exposing driver errors or credentials.
+
 ## Create and inspect a backup
 
 1. Finish or cancel queued/running verifications.

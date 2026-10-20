@@ -9,7 +9,14 @@ import { testFile, type ProjectRuntime } from "./runtime";
 import { testServices } from "./test-services";
 
 export type Inspection = { environment?: Record<string, string>; files: Record<string, string>; functions: { file: string; name: string; line: number; end: number }[]; nodes: string[]; collection: { exitCode: number; log: string; timedOut?: boolean }; errors: string[] };
-export async function importProject(root: string, archive: Buffer, requested: ProjectRuntime | "auto" = "auto") {
+const dependencyLockFile = (name: string) => /(?:^|\/)(?:uv\.lock|package-lock\.json)$/.test(name);
+export function projectDirectory(value = "") {
+  const path = value.trim().replace(/\/$/, '');
+  if (value.trim().startsWith('/') || path.length > 200 || path && path.split('/').some(part => !/^[\w-][\w.-]*$/.test(part))) throw new Error("Use a relative project directory such as backend or packages/service, without dot segments or backslashes.");
+  return path;
+}
+export async function importProject(root: string, archive: Buffer, requested: ProjectRuntime | "auto" = "auto", selectedDirectory = "") {
+  const directory = projectDirectory(selectedDirectory);
   if (archive.length > 10_000_000) throw new Error("ZIP must be smaller than 10 MB.");
   const zip = await JSZip.loadAsync(archive);
   const entries = Object.values(zip.files).filter((file) => !file.dir);
@@ -20,11 +27,14 @@ export async function importProject(root: string, archive: Buffer, requested: Pr
   for (const entry of entries) {
     const unsafe = (entry as unknown as { unsafeOriginalName?: string }).unsafeOriginalName || entry.name;
     if (unsafe.split(/[\\/]/).includes('..') || unsafe.startsWith('/') || unsafe.includes('\\')) throw new Error("Unsafe archive path.");
-    const name = entry.name.slice(prefix.length);
+    const relative = entry.name.slice(prefix.length);
+    if (directory && !relative.startsWith(directory + '/')) continue;
+    const name = directory ? relative.slice(directory.length + 1) : relative;
     if (!/^[\w./-]+$/.test(name) || name.split('/').some((part) => part.startsWith('.') || ['node_modules', '__pycache__', 'reqtest_generated'].includes(part))) continue;
     if (!/\.(py|[cm]?[jt]sx?|md|txt|toml|cfg|json|lock)$/.test(name)) continue;
     const declared = (entry as unknown as { _data: { uncompressedSize: number } })._data?.uncompressedSize;
-    if (!Number.isFinite(declared) || declared > 200_000 || size + declared > 3_000_000) throw new Error("Expanded project exceeds the 3 MB limit or a file exceeds 200 KB.");
+    const limit = dependencyLockFile(name) ? 1_000_000 : 200_000;
+    if (!Number.isFinite(declared) || declared > limit || size + declared > 3_000_000) throw new Error("Expanded project exceeds 3 MB, a source file exceeds 200 KB, or a supported dependency lockfile exceeds 1 MB. Select a smaller project directory.");
     const text = await entry.async('string'); size += Buffer.byteLength(text);
     if (size > 3_000_000) throw new Error("Expanded project is too large.");
     files[name] = text;
@@ -32,7 +42,7 @@ export async function importProject(root: string, archive: Buffer, requested: Pr
   const hasPython = Object.keys(files).some(name => name.endsWith(".py"));
   const hasNode = Object.keys(files).some(name => /\.[cm]?[jt]sx?$/.test(name));
   const runtime = requested === "auto" ? hasPython ? "python" : "node" : requested;
-  if (runtime === "python" ? !hasPython : !hasNode) throw new Error("No source files found for the selected Python or Node.js runtime.");
+  if (runtime === "python" ? !hasPython : !hasNode) throw new Error("No source files found for the selected Python or Node.js runtime in the project directory.");
   const snapshot = join(root, 'source');
   for (const [name, text] of Object.entries(files)) { await mkdir(join(snapshot, name, '..'), { recursive: true }); await writeFile(join(snapshot, name), text); }
   const fingerprint = createHash('sha256').update(JSON.stringify(Object.entries(files).sort())).digest('hex');
@@ -83,7 +93,7 @@ export async function dockerTool<T>(root: string, job: object, signal: AbortSign
   const config = await readFile(join(root, "runtime.json"), "utf8").then(text => JSON.parse(text)).catch(() => ({}));
   const service = !buildName && ["inspect", "measure", "mutate"].includes((job as {action?:string}).action || "") ? await testServices(config.services || [], signal, basename(root)) : await testServices([], signal);
   if (signal.aborted) { await service.cleanup(); signal.throwIfAborted(); }
-  const child = spawn('docker', ['run', ...(buildName ? [] : ['--rm']), '-i', '--name', name, '--label', 'reqtest.role=sandbox', '--label', 'reqtest.scope=' + basename(root), '--network', buildName ? 'bridge' : service.network, ...(buildName ? [] : ['--read-only']), '--cap-drop=ALL', '--security-opt=no-new-privileges', '--pids-limit', '128', '--cpus', '1', '--memory', '512m', ...service.env.flatMap(value => ['--env', value]), '--tmpfs', '/work:rw,exec,size=256m,mode=1777', '--tmpfs', '/tmp:rw,exec,size=32m,mode=1777', '--mount', `type=bind,src=${join(root, 'source')},dst=/project,readonly`, '--mount', `type=bind,src=${join(root, 'generated')},dst=/generated,readonly`, image], { stdio: ['pipe', 'pipe', 'pipe'] });
+  const child = spawn('docker', ['run', ...(buildName ? [] : ['--rm']), '-i', '--name', name, '--label', 'reqtest.role=sandbox', '--label', 'reqtest.scope=' + basename(root), '--network', buildName ? 'bridge' : service.network, ...(buildName ? [] : ['--read-only']), '--cap-drop=ALL', '--security-opt=no-new-privileges', '--pids-limit', '128', '--cpus', '1', '--memory', '512m', ...service.env.flatMap(value => ['--env', value]), '--tmpfs', '/work:rw,exec,size=256m,mode=1777', '--tmpfs', '/tmp:rw,exec,size=' + (buildName ? '256m' : '32m') + ',mode=1777', '--mount', `type=bind,src=${join(root, 'source')},dst=/project,readonly`, '--mount', `type=bind,src=${join(root, 'generated')},dst=/generated,readonly`, image], { stdio: ['pipe', 'pipe', 'pipe'] });
   let stdout = '', stderr = '', stopReason = '';
   let removal: Promise<unknown> | undefined;
   const stop = () => { removal ||= promisify(execFile)('docker', ['rm', '-f', name], { timeout: 10000 }).catch(() => {}); child.kill(); };
@@ -115,9 +125,14 @@ export async function writeTests(root: string, tests: PythonTest[]) {
   const runtime = await readRuntime(root);
   for (const test of tests.filter(test => test.approved)) await writeFile(join(root, "generated", testFile(test.id, runtime).split("/")[1]), test.code);
 }
-export const inspectProject = (root: string, signal: AbortSignal, image?: string) => dockerTool<Inspection>(root, { action: 'inspect' }, signal, image);
+export const inspectProject = async (root: string, signal: AbortSignal, image?: string) => {
+  const snapshot = await dockerTool<Inspection>(root, { action: 'inspect' }, signal, image);
+  // Lockfiles remain in the fingerprinted source; resolved versions are recorded by setup.
+  snapshot.files = Object.fromEntries(Object.entries(snapshot.files).filter(([name]) => !dependencyLockFile(name)));
+  return snapshot;
+};
 export const measureProject = (root: string, nodes: string[], generated: boolean, signal: AbortSignal, image?: string) => dockerTool<Measurement>(root, { action: 'measure', nodes, generated }, signal, image);
-export const mutateProject = (root: string, file: string, signal: AbortSignal, image?: string) => dockerTool<Mutation>(root, { action: 'mutate', file }, signal, image);
+export const mutateProject = (root: string, files: string | string[], signal: AbortSignal, image?: string, functions?: string[], nodes: string[] = []) => dockerTool<Mutation>(root, { action: 'mutate', file: typeof files === 'string' ? files : files[0], files: typeof files === 'string' ? [files] : files, functions, nodes }, signal, image);
 
 
 export async function readRuntime(root: string): Promise<ProjectRuntime> {

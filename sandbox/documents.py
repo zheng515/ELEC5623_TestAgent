@@ -158,9 +158,10 @@ def extract_document(job):
                 add(block.text, f"{prefix} {number} (paragraph)", paragraph=number, extraction="text")
             else:
                 for row_number, row in enumerate(block.rows, 1):
-                    for column, cell in enumerate(row.cells, 1):
-                        for paragraph, text in enumerate(cell.paragraphs, 1):
-                            add(text.text, f"{prefix} {number}, table row {row_number}, cell {column}, paragraph {paragraph}", paragraph=number, extraction="text")
+                    # Keep a requirement ID, its conditions and expected result together.
+                    cells = {cell._tc: cell for cell in row.cells}.values()
+                    text = "\n".join(paragraph.text for cell in cells for paragraph in cell.paragraphs if paragraph.text.strip())
+                    add(text, f"{prefix} {number}, table row {row_number}", paragraph=number, extraction="text")
         warnings.append("Word locations use body block numbers, not rendered page numbers. Headers, footers, drawings, tracked changes and nested tables are not fully extracted.")
     elif kind in ("txt", "md"):
         try:

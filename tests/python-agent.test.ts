@@ -4,9 +4,12 @@ import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import JSZip from 'jszip';
-import { validateAnalysis, updateStates, runPython } from '../lib/python-agent';
-import { importProject, measureProject, type Inspection } from '../lib/python-tools';
-import { analysisSchema, groundedAnalysisSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema, testsSchema, type PythonReport, type Measurement, type DiagnosisPhase } from '../lib/python-types';
+import { execFileSync } from 'node:child_process';
+import { asSchema } from 'ai';
+import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId } from '../lib/python-agent';
+import { survivorReviews } from '../lib/mutation-review';
+import { importProject, measureProject, mutateProject, dockerTool, type Inspection } from '../lib/python-tools';
+import { analysisSchema, groundedAnalysisSchema, groundedTestsSchema, groundedDiagnosisSchema, originalQuoteSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema, testsSchema, type PythonReport, type Measurement, type DiagnosisPhase } from '../lib/python-types';
 
 const rule = 'For integer amount >= 10000, shipping.fee(amount) returns integer 0.';
 const code = 'def fee(amount):\n    return 0 if amount >= 10000 else 1000\n';
@@ -14,6 +17,150 @@ function report(): PythonReport { return { id:'test', title:'Test', createdAt:ne
 function analysis() { return analysisSchema.parse({ behaviors:[{id:'B1',ruleId:'R1',quote:rule,text:'Exact threshold',category:'boundary',issue:'none',reason:'Explicit boundary',files:['shipping.py'],existingTests:[],evidence:[{file:'shipping.py',quote:'def fee(amount):'}],gaps:['No exact-threshold test']}],inconsistencies:[] }); }
 const snapshot: Inspection = {files:{'shipping.py':code},functions:[],nodes:[],collection:{exitCode:5,log:''},errors:[]};
 const artifact = {id:'T1',behaviorId:'B1',functionName:'test_threshold',gapIndexes:[0],quote:rule,purpose:'Exact threshold',code:'from shipping import fee\ndef test_threshold():\n    assert fee(10000) == 0\n',approved:true};
+
+test('diagnosis provider schema accepts only requested canonical IDs and original quotes', async () => {
+  const schema = groundedDiagnosisSchema(['T1', 'tests/test_original.py::test_fee', 'environment'], originalQuoteSchema(['', rule], ['', 'R1']));
+  const provider = asSchema(schema);
+  const decision = { testId: 'T1', category: 'generated_test_error', reason: 'Unsupported expected value.', quote: 'R1', executionQuote: 'assert 0 == 1', evidence: [] };
+  const result = await provider.validate!({ decisions: [decision] });
+  assert.equal(result.success, true);
+  if (result.success) assert.equal(result.value.decisions[0].quote, rule);
+  for (const testId of ['T999', 'test_threshold', 'reqtest_generated/test_reqtest_T1.py::test_threshold']) {
+    assert.equal((await provider.validate!({ decisions: [{ ...decision, testId }] })).success, false);
+  }
+  assert.equal((await provider.validate!({ decisions: [{ ...decision, testId: 'environment', quote: '' }] })).success, true);
+  assert.equal((await provider.validate!({ decisions: [{ ...decision, quote: 'Invented quote' }] })).success, false);
+});
+
+test('legacy diagnosis nodes map only through unique recorded generated failures', () => {
+  const r = report(); r.tests = [artifact];
+  const node = 'reqtest_generated/test_reqtest_T1.py::test_threshold[amount=10000]';
+  const measurement: Measurement = { outcomes: [{ node, file: 'reqtest_generated/test_reqtest_T1.py', name: 'test_threshold[amount=10000]', status: 'failed', message: 'assert 0 == 1' }], exitCode: 1, log: '', timedOut: false, integrity: true };
+  assert.equal(diagnosisTestId(node, ['T1'], r, measurement), 'T1');
+  assert.equal(diagnosisTestId('environment', ['environment'], r, measurement), 'environment');
+  assert.equal(diagnosisTestId('test_threshold', ['T1'], r, measurement), undefined);
+  assert.equal(diagnosisTestId('reqtest_generated/test_reqtest_T1.py::test_threshold', ['T1'], r, measurement), undefined);
+  measurement.outcomes[0].file = 'tests/test_original.py';
+  assert.equal(diagnosisTestId(node, ['T1'], r, measurement), undefined);
+  measurement.outcomes[0].file = 'reqtest_generated/test_reqtest_T1.py'; measurement.outcomes[0].status = 'passed';
+  assert.equal(diagnosisTestId(node, ['T1'], r, measurement), undefined);
+  measurement.outcomes[0].status = 'error';
+  r.tests.push({ ...artifact, id: 'T2' });
+  measurement.outcomes.push({ ...measurement.outcomes[0], file: 'reqtest_generated/test_reqtest_T2.py' });
+  assert.equal(diagnosisTestId(node, ['T1', 'T2'], r, measurement), undefined, 'An ambiguous recorded alias cannot authorize a repair');
+});
+
+function mutationReport(count = 1) {
+  const r = report(); r.analysis = analysis();
+  r.mutations = [{ incomplete: false, timedOut: false, log: '', mutants: Array.from({ length: count }, (_, index) => ({ id: `Mutant #${index + 1}`, file: 'shipping.py', line: 2, status: 'survived', diff: `- >= 10000\n+ >= ${10001 + index}` })) }];
+  return r;
+}
+const mutationDecision = (mutantId: string) => ({ mutantId, behaviorId: 'B1', relevant: true, quote: rule, reason: 'Changes the stated inclusive threshold.' });
+
+test('survivor review batches all retained mutants and reuses only exact diff-bound decisions', async () => {
+  const r = mutationReport(33), sizes: number[] = [];
+  const review = async (mutants: PythonReport['mutations'][number]['mutants']) => {
+    sizes.push(mutants.length); return { decisions: mutants.map(mutant => mutationDecision(mutant.id)) };
+  };
+  await reviewSurvivingMutations(r, review);
+  assert.deepEqual(sizes, [16, 16, 1]); assert.equal(survivorReviews(r).filter(row => row.category === 'test_gap').length, 33);
+  await reviewSurvivingMutations(r, review); assert.equal(sizes.length, 3);
+  r.mutations[0].mutants[0].diff = '- >= 10000\n+ > 10000';
+  r.mutations[0].mutants[1].status = 'killed';
+  await reviewSurvivingMutations(r, review); assert.deepEqual(sizes, [16, 16, 1, 1]);
+  assert.equal(survivorReviews(r).length, 32, 'Historical killed mutants must not appear in the current survivor summary');
+});
+
+test('missing, duplicate, unrelated-file and legacy mutation reviews stay unresolved', async () => {
+  const r = mutationReport(5);
+  r.analysis!.behaviors.push({ ...r.analysis!.behaviors[0], id: 'B2', files: ['other.py'] });
+  r.mutations[0].mutants[4].diff = '';
+  await reviewSurvivingMutations(r, async () => ({ decisions: [
+    mutationDecision('Mutant #1'), mutationDecision('Mutant #1'),
+    { ...mutationDecision('Mutant #2'), behaviorId: 'B2' },
+    { ...mutationDecision('Mutant #3'), quote: 'Invented contract' }, mutationDecision('Mutant #999'),
+  ] }));
+  assert.ok(survivorReviews(r).every(row => row.category === 'unreviewed'));
+  assert.ok(!r.relevance.some(decision => decision.mutantId === 'Mutant #999'));
+  r.relevance = [{ ...mutationDecision('Mutant #4'), relevant: false, grounded: true }];
+  assert.equal(survivorReviews(r)[3].category, 'unreviewed', 'Legacy decisions lack the exact mutation file and diff');
+});
+
+test('an irrelevant mutation decision cannot clear other behaviors in the same file', async () => {
+  const r = mutationReport();
+  r.analysis!.behaviors.push({ ...r.analysis!.behaviors[0], id: 'B2' });
+  r.tests = [artifact, { ...artifact, id: 'T2', behaviorId: 'B2' }];
+  r.measurements = [{ outcomes: r.tests.map(test => ({ node: `reqtest_generated/test_reqtest_${test.id}.py::test_threshold`, file: `reqtest_generated/test_reqtest_${test.id}.py`, name: test.functionName, status: 'passed', message: '' })), exitCode: 0, log: '', timedOut: false, integrity: true }];
+  await reviewSurvivingMutations(r, async () => ({ decisions: [{ ...mutationDecision('Mutant #1'), relevant: false, reason: 'Outside B1 only.' }] }));
+  updateStates(r);
+  assert.equal(r.states.find(state => state.id === 'B1')?.status, 'Verified');
+  assert.equal(r.states.find(state => state.id === 'B2')?.status, 'Partially Verified');
+  assert.equal(survivorReviews(r)[0].category, 'outside_behavior');
+  r.mutations[0].mutants[0].diff += '\nchanged'; updateStates(r);
+  assert.equal(r.states[0].status, 'Partially Verified', 'A changed diff invalidates the old exclusion');
+});
+
+test('ambiguous mutation behavior requests clarification without inventing a test oracle', async () => {
+  const r = mutationReport(); r.analysis!.behaviors[0].issue = 'ambiguous';
+  await reviewSurvivingMutations(r, async () => ({ decisions: [mutationDecision('Mutant #1')] }));
+  assert.equal(survivorReviews(r)[0].category, 'clarification');
+  r.relevance[0].relevant = false;
+  assert.equal(survivorReviews(r)[0].category, 'clarification', 'Ambiguous contracts cannot be treated as a resolved exclusion');
+  updateStates(r); assert.equal(r.states[0].status, 'Uncertain');
+});
+
+test('timed-out tool commands stop their process group and retain readable partial output', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 15000 }, () => {
+  const script = `import runpy,sys,time\nfrom pathlib import Path\ncommand=runpy.run_path('/tool/worker.py')['command']\nchild="import time;from pathlib import Path;time.sleep(0.8);Path('/tmp/leaked-child').write_text('leaked')"\nparent="import subprocess,sys,time;subprocess.Popen([sys.executable,'-c',"+repr(child)+"]);print('partial progress',flush=True);time.sleep(10)"\ncode,log,timed=command([sys.executable,'-c',parent],0.2)\nassert timed and code==-1 and 'partial progress' in log and 'process group was stopped' in log\ntime.sleep(1)\nassert not Path('/tmp/leaked-child').exists()\n`;
+  execFileSync('docker', ['run', '--rm', '-i', '--network', 'none', '--read-only', '--tmpfs', '/work:rw,exec,size=32m,mode=1777', '--tmpfs', '/tmp:rw,exec,size=32m,mode=1777', '--entrypoint', 'python', process.env.REQTEST_SANDBOX_IMAGE || 'reqtest-python:1', '-'], { input: script, timeout: 12000 });
+});
+
+test('mutation scope follows approved direct calls and runs generated tests despite project testpaths', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 45000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), 'reqtest-mutation-scope-'));
+  try {
+    await mkdir(join(root, 'source/tests'), { recursive: true }); await mkdir(join(root, 'generated'));
+    await writeFile(join(root, 'source/business.py'), code + '\ndef unrelated(value):\n    return value + 12345\n');
+    await writeFile(join(root, 'source/pyproject.toml'), '[tool.pytest.ini_options]\ntestpaths=["tests"]\n');
+    await writeFile(join(root, 'source/tests/test_other_suite.py'), 'def test_other_suite():\n    assert False, "Wrong mutation suite"\n');
+    await writeFile(join(root, 'generated/test_reqtest_T1.py'), 'from business import fee as shipping_fee\ndef test_above():\n    assert shipping_fee(20000) == 0\n');
+    const result = await mutateProject(root, 'business.py', AbortSignal.timeout(40000));
+    assert.equal(result.incomplete, false, result.log); assert.ok(result.mutants.length);
+    assert.deepEqual(result.scope?.functions, ['fee']); assert.equal(result.scope?.suite, 'approved_generated');
+    assert.ok(result.mutants.every(mutant => mutant.line <= 2 && mutant.diff.includes('business.py')));
+    assert.ok(result.mutants.some(mutant => mutant.status === 'survived'));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('mutation time limits retain completed and untested cached outcomes without claiming completeness', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 40000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), 'reqtest-mutation-budget-'));
+  try {
+    await mkdir(join(root, 'source')); await mkdir(join(root, 'generated'));
+    await writeFile(join(root, 'source/business.py'), 'def calculate(value):\n' + '    value += 1\n'.repeat(80) + '    return value\n');
+    await writeFile(join(root, 'generated/test_reqtest_T1.py'), 'import business as target\ndef test_total():\n    assert target.calculate(0) == 80\n');
+    const result = await dockerTool<import('../lib/python-types').Mutation>(root, { action: 'mutate', file: 'business.py', seconds: 10 }, AbortSignal.timeout(35000));
+    assert.equal(result.timedOut, true); assert.equal(result.incomplete, true);
+    assert.ok(result.mutants.some(mutant => mutant.status === 'killed'), result.log);
+    assert.ok(result.mutants.some(mutant => mutant.status === 'unknown'));
+    assert.ok(result.mutants.every(mutant => mutant.diff.trim()));
+    assert.match(result.log, /process group was stopped/);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('mutation collection retains existing conftest helper paths while deselecting existing assertions', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 45000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), 'reqtest-mutation-setup-'));
+  try {
+    await mkdir(join(root, 'source/tests'), { recursive: true }); await mkdir(join(root, 'generated'));
+    await writeFile(join(root, 'source/shipping.py'), code);
+    await writeFile(join(root, 'source/tests/conftest.py'), 'import sys\nfrom pathlib import Path\nsys.path.insert(0, str(Path(__file__).parent))\n');
+    await writeFile(join(root, 'source/tests/local_support.py'), 'AMOUNT = 20000\n');
+    await writeFile(join(root, 'source/tests/test_existing.py'), 'def test_existing():\n    assert False, "Existing assertions must be deselected"\n');
+    await writeFile(join(root, 'generated/test_reqtest_T1.py'), 'from local_support import AMOUNT\nfrom shipping import fee\ndef test_above():\n    assert fee(AMOUNT) == 0\n');
+    const result = await mutateProject(root, 'shipping.py', AbortSignal.timeout(40000), undefined, undefined, ['tests/test_existing.py::test_existing']);
+    assert.equal(result.incomplete, false, result.log);
+    assert.ok(result.mutants.some(mutant => mutant.status === 'killed'));
+    assert.ok(result.mutants.some(mutant => mutant.status === 'survived'));
+    assert.deepEqual(result.scope?.setupFiles, ['tests/conftest.py']);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
 
 test('rejects invented source quotes and unknown test links', () => {
   const invalid=analysis();invalid.behaviors[0].evidence[0].quote='invented';
@@ -25,13 +172,43 @@ test('generation schema keeps documentation evidence separate from implementatio
   const constrained=groundedAnalysisSchema({...snapshot.files,'README.md':'Shipping documentation'},['tests/test_shipping.py::test_standard'],[rule]);
   const a=analysis();a.behaviors[0].evidence.push({file:'README.md',quote:'Shipping documentation'});
   assert.equal(constrained.safeParse(a).success,true);
+  const unsupported = structuredClone(a); unsupported.behaviors[0].evidence = [];
+  assert.equal(constrained.safeParse(unsupported).success, false, 'Code links must include evidence at generation time');
+  unsupported.behaviors[0].files = []; unsupported.behaviors[0].existingTests = [];
+  assert.equal(constrained.safeParse(unsupported).success, true, 'Unlinked requirements may remain unresolved');
   a.behaviors[0].files=['README.md'];assert.equal(constrained.safeParse(a).success,false);
   a.behaviors[0].files=['shipping.py'];a.behaviors[0].existingTests=['tests/test_invented.py::test_x'];assert.equal(constrained.safeParse(a).success,false);
   a.behaviors[0].existingTests=[];a.behaviors[0].quote='A paraphrased rule';assert.equal(constrained.safeParse(a).success,false);
 });
+test('multiline document quotes produce compatible provider schemas while exact originals remain mandatory', async () => {
+  const original = 'FR-CAL-03\nThe supplied offset is discarded.\nUse Sydney daylight saving rules.';
+  const schema = groundedAnalysisSchema(snapshot.files, [], [original], ['R1']);
+  const provider = asSchema(schema);
+  const json = provider.jsonSchema;
+  assert.ok(!JSON.stringify(json).includes(original.replaceAll('\n', '\\n')), 'Original multiline text must not be embedded in provider enums');
+  const a = analysis(); a.behaviors[0].quote = 'R1';
+  const accepted = await provider.validate!(a);
+  assert.equal(accepted.success, true);
+  if (accepted.success) assert.equal(accepted.value.behaviors[0].quote, original);
+  a.behaviors[0].quote = original.replaceAll('\n', ' ');
+  assert.equal((await provider.validate!(a)).success, false, 'Whitespace rewriting does not preserve the original quote');
+  const quote = originalQuoteSchema(['', original], ['', 'R1']);
+  assert.equal(quote.safeParse('').success, true, 'Environment diagnosis may have no requirement quote');
+  assert.equal(quote.parse('R1'), original);
+  assert.equal(quote.safeParse('invented').success, false);
+});
 test('retains omitted requirements as explicit unresolved behaviors', () => {
   const omitted=analysisSchema.parse({behaviors:[],inconsistencies:[]});validateAnalysis(omitted,report(),snapshot);
   assert.equal(omitted.behaviors[0].issue,'not_testable');
+});
+test('generated gap indexes are bound to their own behavior rather than global numbering', async () => {
+  const schema = groundedTestsSchema([{ id: 'B3', gaps: ['[2] Check the week boundary.'] }, { id: 'B8', gaps: ['[7] Check the local date.', 'Check the offset.'] }], originalQuoteSchema([rule]));
+  const provider = asSchema(schema), test = { ...artifact, behaviorId: 'B3' };
+  assert.equal((await provider.validate!({ tests: [test] })).success, true);
+  assert.equal((await provider.validate!({ tests: [{ ...test, gapIndexes: [2] }] })).success, false);
+  assert.equal((await provider.validate!({ tests: [{ ...test, behaviorId: 'B8', gapIndexes: [1] }] })).success, true);
+  assert.equal((await provider.validate!({ tests: [{ ...test, behaviorId: 'B99' }] })).success, false);
+  assert.ok(provider.jsonSchema);
 });
 test('inconsistencies must name affected behaviors and do not taint unrelated behaviors', () => {
   const r=report(), a=analysis();
@@ -90,6 +267,39 @@ test('real Docker pytest keeps a genuine defect and never repairs it', {skip:pro
   } finally {await rm(root,{recursive:true,force:true});}
 });
 
+test('recorded diagnosis aliases enable one grounded repair but duplicates and unsupported evidence do not', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 60000 }, async () => {
+  for (const mode of ['valid', 'duplicate', 'unsupported'] as const) {
+    const root = await mkdtemp(join(tmpdir(), 'reqtest-diagnosis-id-'));
+    try {
+      await mkdir(join(root, 'source')); await mkdir(join(root, 'generated'));
+      await writeFile(join(root, 'source/shipping.py'), code);
+      const r = report(); let generation = 0;
+      const bad = { ...artifact, code: artifact.code.replace('== 0', '== 1') };
+      const ask: typeof import('../lib/python-agent').reason = async (schema, _task, context) => {
+        if (Object.is(schema, analysisSchema)) return schema.parse(analysis());
+        if (Object.is(schema, testsSchema)) return schema.parse({ tests: [generation++ ? artifact : bad] });
+        if (Object.is(schema, reviewTestsSchema)) return schema.parse({ decisions: [{ testId: 'T1', supported: true, reason: 'Replay a false initial approval, followed by grounded replacement review.', quote: rule }] });
+        if (Object.is(schema, diagnosisSchema)) {
+          const { measurement, failedTestIds } = context as { measurement: Measurement; failedTestIds: string[] };
+          assert.deepEqual(failedTestIds, ['T1']);
+          const node = measurement.outcomes.find(outcome => outcome.status === 'failed')!.node;
+          const decision = { testId: node, category: 'generated_test_error', reason: 'The generated test expects 1, while the original contract explicitly requires 0.', quote: rule, executionQuote: 'assert 0 == 1', evidence: [{ file: 'shipping.py', quote: 'return 0 if amount >= 10000 else 1000' }, { file: 'reqtest_generated/test_reqtest_T1.py', quote: mode === 'unsupported' ? 'invented assertion' : 'assert fee(10000) == 1' }] };
+          return schema.parse({ decisions: mode === 'duplicate' ? [decision, { ...decision, testId: 'T1' }] : [decision] });
+        }
+        throw new Error('Unexpected mutation or refinement stage');
+      };
+      await runPython(r, root, new AbortController().signal, () => {}, ask);
+      assert.equal(r.diagnoses[0].testId, 'T1');
+      assert.match(r.proposedDiagnoses![0].testId, /^reqtest_generated\//, 'Retain the original model ID for audit');
+      assert.equal(r.improvements.length, mode === 'valid' ? 1 : 0);
+      assert.equal(r.diagnoses[0].category, mode === 'valid' ? 'generated_test_error' : 'uncertain');
+      assert.equal(r.measurements.at(-1)!.outcomes[0].status, mode === 'valid' ? 'passed' : 'failed');
+      assert.ok(r.measurements.every(measurement => measurement.integrity));
+      assert.equal(await readFile(join(root, 'source/shipping.py'), 'utf8'), code);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  }
+});
+
 test('collection and baseline dependency errors are diagnosed even with no generated tests', {skip:process.env.REQTEST_DOCKER_TEST!=='1',timeout:60000}, async () => {
   const root=await mkdtemp(join(tmpdir(),'reqtest-missing-dependency-'));
   try {
@@ -118,6 +328,13 @@ test('collection and baseline dependency errors are diagnosed even with no gener
     assert.equal(r.diagnoses.length,2);assert.ok(r.diagnoses.every(item=>item.category==='environment_failure'&&item.executionQuote));
     assert.equal(r.tests.length,0);assert.equal(r.improvements.length,0);assert.equal(r.states[0].status,'Uncertain');
     assert.equal(await readFile(join(root,'source/shipping.py'),'utf8'),code);
+    await writeFile(join(root, 'generated/test_reqtest_T1.py'), 'import sqlite3\ndef test_runtime_database():\n    with sqlite3.connect("users.db") as connection:\n        connection.execute("CREATE TABLE users (id INTEGER)")\n');
+    const runtime = await measureProject(root, [], true, new AbortController().signal);
+    assert.equal(runtime.integrity, true); assert.equal(runtime.outcomes[0].status, 'passed');
+    assert.equal(runtime.runtimeArtifacts?.[0].file, 'users.db'); assert.match(runtime.runtimeArtifacts![0].sha256, /^[a-f0-9]{64}$/);
+    await writeFile(join(root, 'generated/test_reqtest_T1.py'), 'from pathlib import Path\ndef test_unexpected_output():\n    Path("fake.db").write_text("not a SQLite database")\n');
+    const unexpected = await measureProject(root, [], true, new AbortController().signal);
+    assert.equal(unexpected.integrity, false); assert.deepEqual(unexpected.runtimeArtifacts, []);
   } finally {await rm(root,{recursive:true,force:true});}
 });
 
@@ -160,14 +377,17 @@ test('real mutmut survivors trigger one targeted improvement and re-measurement'
         return schema.parse({tests:generation===1 ? [{...artifact,gapIndexes:[],functionName:'test_above',code:'from shipping import fee\ndef test_above():\n    assert fee(20000) == 0\n'}] : [{...artifact,id:'T2'}]});
       }
       if(Object.is(schema,reviewTestsSchema)) return schema.parse({decisions:(context as {tests:{id:string}[]}).tests.map(test=>({testId:test.id,supported:true,reason:'Exact contract',quote:rule}))});
-      if(Object.is(schema,relevanceSchema)) return schema.parse({decisions:(context as {mutants:{id:string}[]}).mutants.map(mutant=>({mutantId:mutant.id,behaviorId:'B1',relevant:true,reason:'Threshold is explicitly inclusive.',quote:rule}))});
+      if(Object.is(schema,relevanceSchema)) return schema.parse({decisions:(context as {mutants:{id:string;diff:string}[]}).mutants.map(mutant=>({mutantId:mutant.id,behaviorId:'B1',relevant:/\+.*(?:amount > 10000|amount >= 10001)/.test(mutant.diff),reason:'Boundary mutations can violate the inclusive threshold; changing the below-threshold fee does not change the stated >=10000 contract.',quote:rule}))});
       throw new Error('Unexpected diagnosis for a passing fixture');
     };
     await runPython(r,root,new AbortController().signal,()=>{},ask);
     assert.ok(r.mutations[0].mutants.some(mutant=>mutant.status==='survived'));
     assert.ok(r.mutations.every(attempt=>attempt.mutants.every(mutant=>mutant.diff.trim())), 'Killed and surviving mutants must both retain reviewable differences');
     assert.equal(r.improvements.length,1);assert.equal(r.measurements.length,2);assert.equal(r.mutations.length,2);
-    assert.equal(r.mutations[1].mutants.filter(mutant=>mutant.status==='survived').length,0);
+    const boundaries = r.mutations[0].mutants.filter(mutant => mutant.status === 'survived' && /\+.*(?:amount > 10000|amount >= 10001)/.test(mutant.diff));
+    assert.ok(boundaries.length);
+    assert.ok(boundaries.every(before => r.mutations[1].mutants.some(after => after.id === before.id && after.status === 'killed')));
+    assert.deepEqual(r.mutations[0].scope, r.mutations[1].scope, 'Re-measurement preserves the selected file and functions');
     assert.equal(r.tests.length,2);assert.equal(r.states[0].status,'Verified');
     assert.equal(r.initialStates?.[0].status,'Partially Verified');
     assert.equal(r.retrieval?.documents[0].file,'README.md');

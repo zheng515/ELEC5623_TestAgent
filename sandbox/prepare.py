@@ -49,7 +49,7 @@ def prepare_project(runtime):
         command = ['python', '-m', 'pip', 'install', '--disable-pip-version-check', '--no-cache-dir', '--only-binary=:all:', '--index-url', 'https://pypi.org/simple', '--target', '/opt/reqtest-deps', *requirements]
     result = subprocess.run(command, text=True, capture_output=True, timeout=180)
     if result.returncode:
-        raise ValueError('Dependency installation failed. A compatible wheel/lockfile may be unavailable; native install scripts are not executed. ' + (result.stderr + result.stdout)[-2000:])
+        raise ValueError('Dependency installation failed; inspect the installer error below. Native install scripts are not executed.\n' + result.stderr[-2000:] + '\n' + result.stdout[-500:])
     if runtime == 'node':
         installed = []
         for name in lock.get('packages', {}):

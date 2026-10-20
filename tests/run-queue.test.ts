@@ -33,6 +33,7 @@ test('durable queue executes, survives a killed worker, reuses checkpoints and r
     await database.end(); await rm(dataDir, { recursive: true, force: true });
   });
   const boss = await pendingQueue;
+  const { runtimeHealth } = await import('../lib/runtime-health');
   const base = 'http://127.0.0.1:3001', auth = await getAuth();
   async function account() {
     const response = await auth.handler(new Request(base + '/api/auth/sign-up/email', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base, 'X-Forwarded-For': '127.0.0.1' }, body: JSON.stringify({ name: 'Queue test', email: randomUUID() + '@example.test', password: 'Abcd1234' }) }));
@@ -84,10 +85,12 @@ test('durable queue executes, survives a killed worker, reuses checkpoints and r
   assert.equal((await database.query('SELECT 1 FROM runs WHERE id=$1', [duplicate.id])).rowCount, 0);
   assert.equal((await refreshQueuedRun(run)).status, 'running');
   const first = worker(true); await first.wait('ready'); await first.wait('blocked');
+  await until(async () => (await runtimeHealth(owner.id, async () => true)).worker === 'online' ? true : undefined);
   assert.ok((await database.query('SELECT key FROM run_checkpoints WHERE run_id=$1', [run.id])).rows.length >= 4);
   const beforeCrash = await saved(run.id);
   assert.equal(beforeCrash.execution?.attempt, 1);
   await stop(first.child, 'SIGKILL');
+  await until(async () => (await runtimeHealth(owner.id, async () => true)).worker === 'offline' ? true : undefined, 25000);
   assert.equal((await refreshQueuedRun(await saved(run.id))).status, 'running', 'Worker loss must remain recoverable');
   const second = worker(false); await second.wait('ready');
   const complete = await until(async () => { const report = await saved(run.id); return report.status !== 'running' ? report : undefined; }, 90000);

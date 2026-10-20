@@ -3,11 +3,11 @@ import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { z } from "zod";
 import { dataDir } from "./auth";
-import { githubArchive, importProject, dockerTool, sandboxImage, retainSandboxImage } from "./python-tools";
+import { githubArchive, importProject, projectDirectory, dockerTool, sandboxImage, retainSandboxImage } from "./python-tools";
 import { prepareEnvironment } from "./environments";
 
 export const setupSchema = z.object({
-  id: z.string().uuid(), source: z.string(), fingerprint: z.string(), sandboxImage: z.string(),
+  id: z.string().uuid(), source: z.string(), fingerprint: z.string(), sandboxImage: z.string(), projectDirectory: z.string().default(""),
   runtime: z.enum(["python", "node"]).default("python"), baseImage: z.string().optional(), automaticSetup: z.boolean().default(false), services: z.array(z.enum(["postgres", "redis"])).default([]),
   installed: z.array(z.string()).default([]),
   setup: z.object({ status: z.enum(["ready", "limited", "needs_setup"]), python: z.string(), checks: z.array(z.object({ label: z.string(), status: z.enum(["passed", "failed", "unknown"]), detail: z.string() })), limitations: z.array(z.string()) }),
@@ -19,6 +19,7 @@ function directory(userId: string, id: string) {
 }
 export async function prepareProject(userId: string, form: FormData, signal: AbortSignal, connectedToken = "") {
   const repository = String(form.get("repository") || "").trim();
+  const selectedDirectory = projectDirectory(String(form.get("projectDirectory") || ""));
   const file = form.get("project");
   if (repository && file instanceof File && file.size) throw new Error("Choose a repository or a ZIP, not both.");
   const downloaded = repository ? await githubArchive(repository, String(form.get("ref") || "HEAD").trim(), connectedToken || String(form.get("githubToken") || "").trim()) : null;
@@ -27,14 +28,15 @@ export async function prepareProject(userId: string, form: FormData, signal: Abo
   try {
   await mkdir(join(root, "generated"), { recursive: true });
   const requested = z.enum(["auto", "python", "node"]).parse(String(form.get("runtime") || "auto"));
-  const snapshot = await importProject(root, downloaded?.archive || Buffer.from(await (file as File).arrayBuffer()), requested);
+  const snapshot = await importProject(root, downloaded?.archive || Buffer.from(await (file as File).arrayBuffer()), requested, selectedDirectory);
   const baseImage = await sandboxImage(), automaticSetup = form.get("automaticSetup") === "true";
   const services = z.array(z.enum(["postgres", "redis"])).max(2).parse([...new Set(form.getAll("service").map(String))]);
   const environment = automaticSetup ? await prepareEnvironment(root, baseImage, signal) : { image: baseImage, installed: [] };
   const image = environment.image;
   await writeFile(join(root, "runtime.json"), JSON.stringify({ runtime: snapshot.runtime, services }));
   const setup = await dockerTool<ProjectSetup["setup"]>(root, { action: "preflight" }, signal, image);
-  const result = setupSchema.parse({ id, source: downloaded?.source || (file as File).name, fingerprint: snapshot.fingerprint, sandboxImage: image, baseImage, automaticSetup, runtime: snapshot.runtime, services, installed: environment.installed, setup });
+  const source = (downloaded?.source || (file as File).name) + (selectedDirectory ? '/' + selectedDirectory : '');
+  const result = setupSchema.parse({ id, source, projectDirectory: selectedDirectory, fingerprint: snapshot.fingerprint, sandboxImage: image, baseImage, automaticSetup, runtime: snapshot.runtime, services, installed: environment.installed, setup });
   await writeFile(join(root, "setup.json"), JSON.stringify(result), { mode: 0o600 });
   return result;
   } catch (error) { await rm(root, { recursive: true, force: true }); throw error; }

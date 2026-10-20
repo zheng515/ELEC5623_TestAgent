@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import JSZip from "jszip";
 import { z } from "zod";
 import { importProject, sandboxImage } from "../lib/python-tools";
-import { testFile } from "../lib/runtime";
+import { testArchive } from "../lib/test-export";
 import { runPython } from "../lib/python-agent";
 import type { PythonReport } from "../lib/python-types";
 async function main() {
@@ -35,8 +35,7 @@ async function main() {
   try { await runPython(report, root, AbortSignal.any([controller.signal, AbortSignal.timeout(600000)]), async stage => { console.log(stage); await save(); }); }
   catch (error) { report.status = controller.signal.aborted ? "cancelled" : "failed"; report.error = (error instanceof Error ? error.message : "Failed").replaceAll(process.env.OPENAI_API_KEY, "[redacted]"); report.states = report.states.map(state => ({ ...state, status: "Uncertain" })); }
   await save();
-  const artifacts = new JSZip(); for (const test of report.tests.filter(test => test.approved)) artifacts.file(testFile(test.id, report.runtime), test.code);
-  artifacts.file("report.json", JSON.stringify(report, null, 2)); await writeFile(join(root, "tests.zip"), await artifacts.generateAsync({ type: "nodebuffer" }));
+  await writeFile(join(root, "tests.zip"), await testArchive(report, "report.json").generateAsync({ type: "nodebuffer" }));
   const measured = report.measurements.at(-1);
   const passed = report.status === "completed" && !!measured?.integrity && !measured.timedOut && measured.exitCode === 0 && measured.outcomes.length > 0 && measured.outcomes.every(outcome => outcome.status === "passed") && report.states.length > 0 && report.states.every(state => config.requireVerified ? state.status === "Verified" : !["Uncertain", "Unverified"].includes(state.status));
   await writeFile(join(root, "summary.md"), ["# Requirement verification", "", "Gate: " + (passed ? "passed" : "failed / incomplete"), "Workflow: " + report.status, "Source SHA-256: " + report.fingerprint, "", ...report.states.map(state => "- " + state.id + ": " + state.status + " — " + state.reason), "", "Passing checks describe recorded cases only. Review report.json and tests.zip."].join("\n"));
