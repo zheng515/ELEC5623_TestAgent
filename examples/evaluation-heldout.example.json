@@ -1,0 +1,13 @@
+{
+  "purpose": "held-out",
+  "repeat": 3,
+  "variants": ["B0", "B1", "B2", "B3"],
+  "cases": [
+    {
+      "id": "unseen-project",
+      "project": "path/to/unseen-project",
+      "requirements": "path/to/requirements.txt",
+      "gold": "path/to/independent-reference.gold.json"
+    }
+  ]
+}

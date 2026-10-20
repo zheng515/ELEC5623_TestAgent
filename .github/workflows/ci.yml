@@ -3,6 +3,8 @@ on: [push, pull_request]
 jobs:
   app:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://reqtest:reqtest@127.0.0.1:5433/reqtest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -10,5 +12,15 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run check:english
+      - run: npm run db:up
+      - run: npm run db:migrate
+      - run: npm run typecheck
+      - run: npm run sandbox:build
+      - run: npm test
+        env:
+          REQTEST_DOCKER_TEST: "1"
       - run: npm run lint
       - run: npm run build
+      - if: always()
+        run: docker compose down --volumes

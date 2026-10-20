@@ -1,0 +1,6 @@
+{
+  "project": "examples/shipping",
+  "requirements": "examples/shipping/SRS.md",
+  "output": ".evidence/verification",
+  "requireVerified": true
+}

@@ -10,3 +10,11 @@ next-env.d.ts
 .evidence/
 *.log
 .vercel/
+
+.data/
+.backups/
+.restore-*/
+.tools/
+/backend/
+/frontend/
+/tmp/

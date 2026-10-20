@@ -1,3 +1,4 @@
+import { session } from "@/lib/auth";
 import { APICallError } from "ai";
 import { generateCases, reviewCases } from "@/lib/model";
 import { executeCases } from "@/lib/execute";
@@ -6,14 +7,16 @@ import { requestSchema } from "@/lib/verification";
 
 export const runtime = "nodejs";
 
-export function GET() {
+export async function GET(request: Request) {
+  if (!await session(request)) return Response.json({ error: "Sign in required." }, { status: 401 });
   return Response.json({
     configured: Boolean(process.env.OPENAI_API_KEY),
-    model: process.env.REQTEST_LLM_MODEL || "gpt-5.6-luna",
+    model: process.env.REQTEST_LLM_MODEL || "gpt-6-luna",
   });
 }
 
 export async function POST(request: Request) {
+  if (!await session(request)) return Response.json({ error: "Sign in required." }, { status: 401 });
   const origin = request.headers.get("origin");
   if (origin && (!URL.canParse(origin) ||
       new URL(origin).host !== (request.headers.get("host") || new URL(request.url).host)))

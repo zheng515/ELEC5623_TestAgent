@@ -1,0 +1,43 @@
+# Copy into an approved target repository's .github/workflows/ directory.
+# Replace REQTEST_COMMIT with a reviewed immutable ReqTest commit SHA.
+name: Requirement verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: target
+      - uses: actions/checkout@v4
+        with:
+          repository: REQTEST_REPOSITORY
+          ref: REQTEST_COMMIT
+          path: reqtest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+        working-directory: reqtest
+      - run: npm run sandbox:build
+        working-directory: reqtest
+      - name: Configure approved project scope
+        run: |
+          node -e 'require("fs").writeFileSync("reqtest/ci.json",JSON.stringify({project:"../target",requirements:"../target/SRS.md",output:".evidence/verification",requireVerified:true}))'
+      - run: npm run verify -- ci.json
+        working-directory: reqtest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REQTEST_LLM_MODEL: ${{ vars.REQTEST_LLM_MODEL }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: requirement-verification
+          path: |
+            reqtest/.evidence/verification/**/report.json
+            reqtest/.evidence/verification/**/summary.md
+            reqtest/.evidence/verification/**/tests.zip

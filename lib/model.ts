@@ -11,7 +11,7 @@ const policy = [
   "Do not request other endpoints. Do not use code, templates, network tools or actual responses as oracles.",
 ].join("\n");
 
-function options(input: VerificationInput, signal: AbortSignal) {
+export function options(input: Pick<VerificationInput, "model">, signal: AbortSignal) {
   if (!process.env.OPENAI_API_KEY) throw new Error("Fill OPENAI_API_KEY in the root .env or this app's .env.local.");
   return {
     model: createOpenAI({ apiKey: process.env.OPENAI_API_KEY }).responses(input.model),

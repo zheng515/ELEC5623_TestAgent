@@ -1,0 +1,46 @@
+import { loadEnvConfig } from "@next/env";
+/** Explicit model-backed CI check. Run only with approved project data. */
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { join, resolve, relative } from "node:path";
+import { randomUUID } from "node:crypto";
+import JSZip from "jszip";
+import { z } from "zod";
+import { importProject, sandboxImage } from "../lib/python-tools";
+import { testFile } from "../lib/runtime";
+import { runPython } from "../lib/python-agent";
+import type { PythonReport } from "../lib/python-types";
+async function main() {
+  loadEnvConfig(process.cwd(), true);
+  if (!process.env.OPENAI_API_KEY) throw new Error("Configure OPENAI_API_KEY. This command makes paid model requests.");
+  const config = z.object({ project: z.string(), requirements: z.string(), output: z.string().default(".evidence/verification"), requireVerified: z.boolean().default(true) }).parse(JSON.parse(await readFile(process.argv[2] || "examples/verification.json", "utf8")));
+  const directory = resolve(config.project), zip = new JSZip();
+  async function visit(path: string) {
+    for (const entry of await readdir(path, { withFileTypes: true })) {
+      if (entry.name.startsWith(".") || ["node_modules", "__pycache__", "reqtest_generated"].includes(entry.name)) continue;
+      const file = join(path, entry.name);
+      if (entry.isDirectory()) await visit(file);
+      else if (entry.isFile() && /\.(py|[cm]?[jt]sx?|md|txt|cfg|toml|json|lock)$/.test(file)) zip.file(relative(directory, file), await readFile(file));
+    }
+  }
+  await visit(directory);
+  const rules = (await readFile(config.requirements, "utf8")).split(/\r?\n/).filter(line => line.trim()).map((text, index) => ({ id: "R" + (index + 1), text }));
+  if (!rules.length || rules.length > 12 || rules.map(rule => rule.text).join("\n").length > 12000) throw new Error("Use 1–12 requirement lines and at most 12,000 characters.");
+  const id = randomUUID(), root = resolve(config.output, id);
+  await mkdir(join(root, "generated"), { recursive: true });
+  const snapshot = await importProject(root, await zip.generateAsync({ type: "nodebuffer" }));
+  process.env.REQTEST_SANDBOX_IMAGE = await sandboxImage();
+  const report: PythonReport = { runtime: snapshot.runtime, id, title: "CI verification", createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || "gpt-6-luna", source: config.project, fingerprint: snapshot.fingerprint, status: "running", stage: "", rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: ["Model-generated assessments require review. CI completion is not exhaustive correctness."] };
+  const controller = new AbortController(); process.once("SIGINT", () => controller.abort());
+  const save = () => writeFile(join(root, "report.json"), JSON.stringify(report, null, 2));
+  try { await runPython(report, root, AbortSignal.any([controller.signal, AbortSignal.timeout(600000)]), async stage => { console.log(stage); await save(); }); }
+  catch (error) { report.status = controller.signal.aborted ? "cancelled" : "failed"; report.error = (error instanceof Error ? error.message : "Failed").replaceAll(process.env.OPENAI_API_KEY, "[redacted]"); report.states = report.states.map(state => ({ ...state, status: "Uncertain" })); }
+  await save();
+  const artifacts = new JSZip(); for (const test of report.tests.filter(test => test.approved)) artifacts.file(testFile(test.id, report.runtime), test.code);
+  artifacts.file("report.json", JSON.stringify(report, null, 2)); await writeFile(join(root, "tests.zip"), await artifacts.generateAsync({ type: "nodebuffer" }));
+  const measured = report.measurements.at(-1);
+  const passed = report.status === "completed" && !!measured?.integrity && !measured.timedOut && measured.exitCode === 0 && measured.outcomes.length > 0 && measured.outcomes.every(outcome => outcome.status === "passed") && report.states.length > 0 && report.states.every(state => config.requireVerified ? state.status === "Verified" : !["Uncertain", "Unverified"].includes(state.status));
+  await writeFile(join(root, "summary.md"), ["# Requirement verification", "", "Gate: " + (passed ? "passed" : "failed / incomplete"), "Workflow: " + report.status, "Source SHA-256: " + report.fingerprint, "", ...report.states.map(state => "- " + state.id + ": " + state.status + " — " + state.reason), "", "Passing checks describe recorded cases only. Review report.json and tests.zip."].join("\n"));
+  console.log("Evidence: " + root);
+  process.exitCode = passed ? 0 : 1;
+}
+main().catch(error => { console.error((error instanceof Error ? error.message : "Verification failed.").replaceAll(process.env.OPENAI_API_KEY || "\0", "[redacted]")); process.exitCode = 1; });

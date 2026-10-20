@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { EventSourceParserStream } from "eventsource-parser/stream";
 import { startFixture } from "./api-fixture.mjs";
@@ -19,11 +20,18 @@ test("real evidence, missing rule and reusable exported HTTP tests", {
     code = await readFile(".evidence/test_api.mjs", "utf8");
   } else {
     const api = (process.env.APP_URL || "http://127.0.0.1:3001") + "/api/agent/stream";
-    const config = await fetch(api).then((response) => response.json());
+    const base = new URL(api).origin;
+    const signup = await fetch(base + "/api/auth/sign-up/email", {
+      method: "POST", headers: { "Content-Type": "application/json", Origin: base },
+      body: JSON.stringify({ name: "Integration test", email: randomUUID() + "@example.test", password: "Aa1" + randomUUID() }),
+    });
+    assert.equal(signup.status, 200, "Create a real local test account");
+    const cookie = signup.headers.getSetCookie().map((item) => item.split(";")[0]).join("; ");
+    const config = await fetch(api, { headers: { Cookie: cookie } }).then((response) => response.json());
     assert.equal(config.configured, true);
     const response = await fetch(api, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Origin: new URL(api).origin },
+      headers: { "Content-Type": "application/json", Origin: new URL(api).origin, Cookie: cookie },
       body: JSON.stringify({
         title: "Real HTTP verification integration",
         endpoint: fixture.url + "/shipping",

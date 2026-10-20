@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ReqTest · HTTP functional tests",
-  description: "Generate reviewed HTTP test cases and inspect real execution evidence.",
+  title: "ReqTest · Requirement-aware verification",
+  description: "Analyze Python requirements, inspect test gaps and improve tests using recorded evidence.",
 };
 
 export default function RootLayout({

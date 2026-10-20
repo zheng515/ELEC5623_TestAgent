@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Account } from "@/components/shell/account";
+import { PythonWorkspace } from "@/components/shell/python-workspace";
+import { EvaluationWorkspace } from "@/components/shell/evaluation-workspace";
+import { TeamWorkspace } from "@/components/shell/team-workspace";
 import { get, set } from "idb-keyval";
 import { EventSourceParserStream } from "eventsource-parser/stream";
 import { Button } from "@/components/ui/button";
@@ -14,8 +18,8 @@ import { AGENT_PRESETS } from "@/lib/presets";
 import type { AgentRun, AgentStep, AgentArtifact, AgentPreset, TaskDraft } from "@/lib/types";
 import type { VerificationInput, VerificationReport } from "@/lib/verification";
 
-const storageKey = "reqtest_http_runs_v1";
-const draftKey = "reqtest_http_draft_v1";
+
+
 const initialSteps: AgentStep[] = [
   { id: "step-1", title: "Generate test cases", status: "pending", logs: [] },
   { id: "step-2", title: "Review expected values", status: "pending", logs: [] },
@@ -23,7 +27,14 @@ const initialSteps: AgentStep[] = [
 ];
 
 export default function DashboardPage() {
-  const [model, setModel] = useState("gpt-5.6-luna");
+  return <Account>{(userId) => <Dashboard key={userId} userId={userId} />}</Account>;
+}
+
+function Dashboard({ userId }: { userId: string }) {
+  const storageKey = `reqtest_http_runs_v1:${userId}`;
+  const draftKey = `reqtest_http_draft_v1:${userId}`;
+  const [mode, setMode] = useState("python");
+  const [model, setModel] = useState("gpt-6-luna");
   const [configured, setConfigured] = useState(false);
   const [ready, setReady] = useState(false);
   const [runs, setRuns] = useState<AgentRun[]>([]);
@@ -74,11 +85,11 @@ export default function DashboardPage() {
     });
     try { localStorage.removeItem("apex_agent_key"); } catch { /* Legacy storage may be disabled. */ }
     return () => { active = false; execution.current?.abort(); };
-  }, []);
+  }, [storageKey, draftKey]);
 
   useEffect(() => {
     if (ready) set(draftKey, { ...draft, model }).catch(() => setMessage("Draft could not be saved in this browser."));
-  }, [draft, model, ready]);
+  }, [draft, model, ready, draftKey]);
 
   function selectRun(run?: AgentRun) {
     if (isRunning) return;
@@ -203,6 +214,9 @@ export default function DashboardPage() {
     <div className="min-h-screen">
       <Topbar currentModel={model} onSelectModel={setModel} isRunning={isRunning} configured={configured} />
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+        <nav className="flex gap-3"><Button variant={mode === "python" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("python")}>Project verification</Button><Button variant={mode === "http" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("http")}>HTTP checks</Button><Button variant={mode === "evaluation" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("evaluation")}>Evaluation</Button></nav>
+        {!isRunning && <TeamWorkspace userId={userId} />}
+        {mode === "evaluation" ? <EvaluationWorkspace /> : mode === "python" ? <PythonWorkspace model={model} configured={configured} onRunningChange={setIsRunning} /> : <>
         <RunHistory runs={runs} selectedRunId={selected?.id || null} isRunning={isRunning || !ready} historyBusy={historyBusy}
           onSelectRun={(id) => selectRun(runs.find((run) => run.id === id))} onRemoveRuns={removeRuns}
           onNewTask={() => { selectRun(); if (!isRunning) setDraft({ title: "HTTP functional test", prompt: "", endpoint: "", method: "GET" }); }}
@@ -228,6 +242,7 @@ export default function DashboardPage() {
             <summary className="cursor-pointer">Execution details</summary>
             <ExecutionConsole steps={steps} isRunning={false} latencyMs={selected?.latencyMs} tokensUsed={selected?.tokensUsed} />
           </details> : <ExecutionConsole steps={steps} isRunning={isRunning} />)}
+          </>}
       </main>
     </div>
   );
