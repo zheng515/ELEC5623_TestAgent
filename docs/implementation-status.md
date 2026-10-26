@@ -422,6 +422,35 @@ lint, types, English checks and production build passed. The post-run API-key
 non-null type assertion emits identical JavaScript, verified against the frozen
 runner and recorded in its source-equivalence artifact.
 
+## Code-side corrections: 2026-10-27
+
+The bounded improvement action now also corrects explicitly review-rejected tests
+for unambiguous behaviors. Same IDs/behavior links and all original approval gates
+still apply. Existing approved tests, valid failures and source files are preserved.
+Correction prompts now receive the same value/semantic-type policy as generation
+and review. Reviewed improvement proposals, including rejections, remain auditable.
+
+Three controlled replays used the published shipping fixture and six real
+gpt-5.6-luna requests in total. The first two attempts made no accepted improvement;
+the second trace exposed value-only replacements missing the promised integer type.
+After passing the shared assertion policy into correction, the third attempt
+corrected both blocked tests in one action: four generated tests were approved,
+all five existing/generated cases passed, and complete same-scope raw mutant kills
+changed from 1/9 to 7/9. Integrity checks passed. These are reused development inputs,
+not fresh extraction, held-out accuracy or independent semantic review. The original
+2026-10-26 experiment remains unchanged. All attempt summaries and recorded
+candidate reviews are in `experiments/results/2026-10-27-review-recovery/summary.json`.
+
+Startup now reports the failing phase/service, checks the configured port before
+launching, and routes start:all through the checked launcher. Test commands load
+both local environment files; shared account/project fixtures reduce duplication.
+Core Docker regressions retain genuine failures and block ambiguous, duplicate,
+uncited and twice-rejected proposals. Complete regression: 78 passed, three optional
+tests skipped, zero failures. The final six correction regressions and real queue
+crash/recovery/cancellation scenario passed again after proposal-audit changes.
+Lint, TypeScript, English-source checks and production build passed.
+No new runtime dependency or service was added.
+
 ## Recommended order
 
 1. Independently review the revised development labels and run a held-out B0–B3 evaluation; monitor type, oracle and diagnosis boundaries on new inputs.

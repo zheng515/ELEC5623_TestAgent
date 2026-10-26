@@ -92,6 +92,7 @@ export type PythonReport = {
   diagnoses: Diagnosis[];
   proposedDiagnoses?: Diagnosis[];
   relevance: (z.infer<typeof relevanceSchema>["decisions"][number] & { grounded?: boolean; file?: string; diff?: string })[];
+  improvementProposal?: PythonTest[];
   improvements: { reason: string; before: PythonTest[]; after: PythonTest[] }[];
   states: { id: string; status: "Verified" | "Partially Verified" | "Unverified" | "Uncertain"; reason: string; nodes: string[] }[];
   limitations: string[];

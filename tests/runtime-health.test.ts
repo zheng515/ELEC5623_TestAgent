@@ -1,31 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
+import { authFixture } from "./fixtures/auth";
 
 test("runtime health distinguishes queue clients from workers and keeps task counts private", async context => {
-  if (!process.env.DATABASE_URL && existsSync(".env.local")) process.loadEnvFile(".env.local");
-  process.env.REQTEST_DATA_NAMESPACE = "health_" + randomUUID().replaceAll("-", "");
-  process.env.REQTEST_LOCAL_MAIL = "false"; process.env.SMTP_HOST = "";
   process.env.OPENAI_API_KEY = "health-fixture-secret-never-return";
-  const authModule = await import("../lib/auth"), auth = await authModule.getAuth(), db = authModule.database;
+  let boss: Awaited<ReturnType<typeof import('../lib/run-queue').getQueue>> | undefined = undefined;
+  const { database: db, base, account } = await authFixture(context, 'health', async () => {
+    await boss?.stop({ graceful: false });
+    await db.query('DROP SCHEMA IF EXISTS "' + queueSchema + '" CASCADE');
+  });
   const { runtimeHealth } = await import("../lib/runtime-health");
   const { GET } = await import("../app/api/system/health/route");
   const { getQueue, queueName, queueSchema } = await import("../lib/run-queue");
-  let boss: Awaited<ReturnType<typeof getQueue>> | undefined = undefined;
-  context.after(async () => {
-    await boss?.stop({ graceful: false });
-    await db.query('DROP SCHEMA IF EXISTS "' + queueSchema + '" CASCADE');
-    await db.query('DROP SCHEMA IF EXISTS "' + process.env.REQTEST_DATA_NAMESPACE + '" CASCADE');
-    await db.end(); await rm(authModule.dataDir, { recursive: true, force: true });
-  });
-  const base = "http://127.0.0.1:3001";
-  async function account() {
-    const response = await auth.handler(new Request(base + "/api/auth/sign-up/email", { method: "POST", headers: { Origin: base, "Content-Type": "application/json", "X-Forwarded-For": "127.0.0.1" }, body: JSON.stringify({ name: "Health fixture", email: randomUUID() + "@example.test", password: "Abcd1234" }) }));
-    assert.equal(response.status, 200);
-    return { user: (await response.json()).user, cookie: response.headers.getSetCookie().map(value => value.split(";")[0]).join("; ") };
-  }
   const owner = await account(), other = await account();
   const request = new Request(base + "/api/system/health", { headers: { Cookie: owner.cookie } });
   assert.equal((await GET(new Request(base + "/api/system/health"))).status, 401);

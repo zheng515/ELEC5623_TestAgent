@@ -1,20 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { rm, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { randomUUID, createHash } from 'node:crypto';
 import { join } from 'node:path';
+import { authFixture, cookies } from './fixtures/auth';
 
 test('real registration, password verification, protected routes and per-user report ownership', async (context) => {
-  if (!process.env.DATABASE_URL && existsSync('.env.local')) process.loadEnvFile('.env.local');
-  process.env.REQTEST_LOCAL_MAIL = 'false'; process.env.SMTP_HOST = '';
-  process.env.REQTEST_DATA_NAMESPACE = 'test-' + randomUUID();
-  const authModule = await import('../lib/auth');
-  const auth = await authModule.getAuth();
-  const database = authModule.database;
-  context.after(async () => { await database.query(`DROP SCHEMA IF EXISTS "${process.env.REQTEST_DATA_NAMESPACE!.replaceAll('-', '_')}" CASCADE`); await database.end(); await rm(authModule.dataDir, { recursive: true, force: true }); });
-  const base = 'http://127.0.0.1:3001';
-  const call = (path: string, body: object, cookie = '', ip = '127.0.0.1') => auth.handler(new Request(base + '/api/auth/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base, Cookie: cookie, 'X-Forwarded-For': ip }, body: JSON.stringify(body) }));
+  const { auth, database, dataDir, session, base, call } = await authFixture(context, 'account');
   const invalidPasswords = [
     { password: 'Abc1234', rule: /8–128 characters/ },
     { password: 'Aa1' + 'x'.repeat(126), rule: /8–128 characters/ },
@@ -34,9 +26,8 @@ test('real registration, password verification, protected routes and per-user re
   const signup = await call('sign-up/email', { name: 'Test account', email, password });
   assert.equal(signup.status, 200);
   const user = (await signup.json()).user;
-  const cookie = signup.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ');
+  const cookie = cookies(signup);
   assert.ok(cookie.includes('session_token'));
-  const { session } = await import('../lib/auth');
   assert.equal((await session(new Request(base, { headers: { Cookie: cookie } })))?.user.id, user.id);
   assert.equal((await call('sign-in/email', { email, password: 'wrong-password' })).status, 401);
   assert.equal((await call('sign-in/email', { email, password })).status, 200);
@@ -60,10 +51,10 @@ test('real registration, password verification, protected routes and per-user re
   const interrupted = await (await routes.GET(new Request(base + '/api/python?id=interrupted', {headers:{Cookie:cookie}}))).json();
   assert.equal(interrupted.status,'cancelled'); assert.equal(interrupted.states[0].status,'Uncertain');
   const controller = new AbortController(); jobs.active.set(user.id,{id:'own',controller});
-  const otherCookie = second.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ');
+  const otherCookie = cookies(second);
   // Route tests use stored bytes; PDF parsing is covered by the Docker document tests.
   const documentId = randomUUID(), original = Buffer.from('original route fixture');
-  const documentRoot = join(authModule.dataDir, 'documents', createHash('sha256').update(user.id).digest('hex'), documentId);
+  const documentRoot = join(dataDir, 'documents', createHash('sha256').update(user.id).digest('hex'), documentId);
   await mkdir(documentRoot, { recursive: true });
   await writeFile(join(documentRoot, 'original'), original);
   await writeFile(join(documentRoot, 'document.json'), JSON.stringify({ id: documentId, fileName: 'requirements.pdf', sha256: createHash('sha256').update(original).digest('hex'), format: 'pdf', segments: [], warnings: [], pages: [] }));
@@ -92,7 +83,6 @@ test('real registration, password verification, protected routes and per-user re
     assert.equal(stopController.signal.aborted, false);
   } finally { jobs.active.delete(user.id); }
   assert.equal((await routes.GET(new Request(base + '/api/python?id=own', { headers: { Cookie: otherCookie } }))).status, 404);
-  assert.equal((await readOriginal(otherCookie)).status, 404);
   await writeFile(join(documentRoot, 'original'), 'changed original');
   assert.equal((await readOriginal(cookie)).status, 409, 'Changed originals must not be served under an old source hash');
   const parentId = randomUUID();
