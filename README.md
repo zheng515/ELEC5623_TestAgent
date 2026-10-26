@@ -3,8 +3,7 @@
 ReqTest is a local verification workspace that turns natural-language requirements
 and focused Python or JavaScript/TypeScript projects into traceable executable checks. It compares requirements,
 implementation code and existing tests, records execution evidence, diagnoses
-failures and attempts one bounded test improvement. An optional HTTP mode checks
-the observed responses of an authorized API endpoint.
+failures and attempts one bounded test improvement.
 
 ## Features
 
@@ -67,8 +66,8 @@ same policy. Existing accounts can still sign in with their current passwords.
 ### Model settings
 
 Open **Settings** in the workspace header to select the OpenAI model or check its
-connection. Save settings to apply the model to future project verification and
-HTTP checks in this browser. Cancel discards model edits. Model changes and connection
+connection. Save settings to apply the model to future project verification in
+this browser. Cancel discards model edits. Model changes and connection
 checks are disabled while a run is active on the page. The API key stays on the server;
 this dialog does not accept or display credentials. Connection checks make a real
 model request and may incur API usage charges. Existing reports retain their model.
@@ -474,26 +473,6 @@ uploads are cleaned up. Protected, damaged and unsupported files include an acti
 to export an unlocked copy or paste the text. Runtime compatibility is limited
 to the explicitly supported toolchains and tested dependency/service cases above.
 
-## HTTP checks
-
-Select **HTTP checks**. Supply a fixed endpoint/method and one requirement per line.
-Generation and a separate model review precede real HTTP execution. Supported checks
-are HTTP status and strict JSON-value equality. Model review is not a proof of adequacy.
-Only the reviewed cases are exported as `test_api.mjs`.
-
-```sh
-npm run example
-# Use http://127.0.0.1:4100/shipping in the UI.
-node --test test_api.mjs
-```
-
-TEST_ENDPOINT overrides the exported endpoint; TEST_HEADERS supplies a JSON object
-of request headers. Headers remain in memory and are excluded from saved/exported
-artifacts. History and drafts are namespaced by user in this browser's IndexedDB;
-Project reports use authenticated server-side storage. HTTP writes can change target
-data; use only authorized test endpoints. Limits remain 12 lines, 16 cases, a 10-second
-HTTP timeout, a 64 KiB response limit and no redirects.
-
 ## Checks and evaluation
 
 Project source, comments, documentation and interface labels must be in English.
@@ -525,11 +504,10 @@ execution. It forcibly kills a worker during a task, starts a replacement, check
 that saved analysis is reused, preserves a genuine failing assertion and verifies
 owner-only cancellation of queued and active work. No model API calls are made.
 
-The explicit HTTP real-model integration requires a running app and creates a temporary
+The explicit real-model project integration requires a running app and creates a temporary
 local test account:
 
 ```sh
-REQTEST_LIVE_TEST=1 npm test
 REQTEST_PYTHON_LIVE_TEST=1 npm test
 ```
 

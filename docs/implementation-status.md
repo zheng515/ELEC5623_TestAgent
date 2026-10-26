@@ -48,14 +48,13 @@ that all model-generated analyses or test oracles are correct.
   live requirement indicators and server-side enforcement.
 - PostgreSQL account/session storage and per-user Python verification reports.
 - Cancelled/failed run evidence, recent history, document retrieval and artifact exports.
-- Optional HTTP black-box checks with reviewed status/JSON assertions and exported tests.
 - B0–B3 benchmark runner, isolated reference fault probes, review templates and scoring.
 - English-only source check in local tooling and CI.
 - Dependency preflight against an immutable sandbox image, without importing project code.
 - Clarification and re-run against an owned saved source snapshot, with linked report comparisons.
 - Browser reconnection and PostgreSQL-backed worker recovery with saved checkpoints.
 - Private accounts, reports and original requirement documents with owner-only access.
-- Workspace model selection and connection checks live in a Settings dialog; HTTP checks remain available.
+- Workspace model selection and connection checks live in a Settings dialog. HTTP checks were removed; project verification is the only workflow.
 - Runtime, dependency installation and disposable test services live in collapsed Advanced settings. Project inputs share setup invalidation and are locked during preflight.
 - SMTP verification/reset flows and a loopback-only local Mailpit development mailbox.
 - Project-run evaluation dashboard with requirement/outcome charts, evidence checks and traceability; a target-project CI command/template.

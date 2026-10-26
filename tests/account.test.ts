@@ -106,8 +106,8 @@ test('real registration, password verification, protected routes and per-user re
   assert.equal((await routes.POST(new Request(base + '/api/python', { method: 'POST', headers: { Cookie: cookie, Origin: 'https://other.example' } }))).status, 403);
   const internalUrl = new Request('http://localhost:3001/api/python', { method: 'POST', headers: { Cookie: cookie, Origin: base, Host: '127.0.0.1:3001' } });
   assert.notEqual((await routes.POST(internalUrl)).status, 403, 'Next internal hostname must not reject the matching browser Host');
-  const http = await import('../app/api/agent/stream/route');
-  assert.equal((await http.GET(new Request(base))).status, 401);
+  const modelConfig = await import('../app/api/model/route');
+  assert.equal((await modelConfig.GET(new Request(base))).status, 401);
   assert.equal((await routes.POST(new Request(base + '/api/python', { method: 'POST' }))).status, 401);
   assert.equal((await call('sign-out', {}, cookie)).status, 200);
   assert.equal(await session(new Request(base, { headers: { Cookie: cookie } })), null);

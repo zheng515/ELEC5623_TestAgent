@@ -37,7 +37,7 @@ export function Topbar({ currentModel, onSelectModel, isRunning, configured }: {
                   <Dialog.Title className="text-2xl font-bold">Settings</Dialog.Title>
                   <Dialog.Close asChild><Button variant="ghost" size="icon" aria-label="Close settings"><X aria-hidden="true" /></Button></Dialog.Close>
                 </div>
-                <Dialog.Description className="mt-2 text-sm text-muted-foreground">Choose the model for future project verification and HTTP checks. Existing reports keep their recorded model.</Dialog.Description>
+                <Dialog.Description className="mt-2 text-sm text-muted-foreground">Choose the model for future project verification. Existing reports keep their recorded model.</Dialog.Description>
                 <form className="mt-6 space-y-4" onSubmit={event => { event.preventDefault(); if (isRunning || checking || !model) return; onSelectModel(model); setOpen(false); }}>
                   <label className="block space-y-2" htmlFor="agent-model"><span>OpenAI model</span><Input id="agent-model" value={draftModel} maxLength={100} required disabled={isRunning || checking} onChange={event => setDraftModel(event.target.value)} /></label>
                   <p className="text-sm text-muted-foreground">{configured ? 'Server API key present. Check the connection to confirm model access.' : 'Server API key missing. Configure OPENAI_API_KEY in .env.local, then restart.'}</p>
