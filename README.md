@@ -304,6 +304,9 @@ document coverage.
   uncertain just because another behavior in the same requirement has a conflict.
   Structured analysis limits implementation links to retained source files and
   existing-test links to discovered test IDs; documentation remains evidence.
+  Every evidence quote must appear verbatim in its file. A rejected analysis is sent
+  back once with the exact failure and invalid evidence; a second rejection fails the
+  run. The report retains the original analysis and its error.
 - **Measure:** execute existing tests, generate targeted runtime-specific artifacts, independently
   review their original requirement evidence, execute supported artifacts and map
   exact files/functions back to behaviors. Unmapped outcomes never earn verification.

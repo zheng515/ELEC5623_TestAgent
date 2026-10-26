@@ -185,6 +185,12 @@ test('mutation collection retains existing conftest helper paths while deselecti
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+test('gap text drops only a prefix that repeats its own list position', () => {
+  const a = analysis(); a.behaviors[0].gaps = ['0: Check zero.', '[1] Check one.', 'Gap 2) Check two.', '7: Check a mismatched label.', '4:'];
+  validateAnalysis(a, report(), snapshot);
+  assert.deepEqual(a.behaviors[0].gaps, ['Check zero.', 'Check one.', 'Check two.', '7: Check a mismatched label.', '4:']);
+});
+
 test('rejects invented source quotes and unknown test links', () => {
   const invalid=analysis();invalid.behaviors[0].evidence[0].quote='invented';
   assert.throws(()=>validateAnalysis(invalid,report(),snapshot),/unsupported/);
