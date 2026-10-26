@@ -38,7 +38,7 @@ that all model-generated analyses or test oracles are correct.
 | FR11 | Controlled execution and recorded outcomes | Implemented within scope | Docker, pytest, read-only inputs and resource/time limits. Project dependencies need a prepared sandbox image. |
 | FR12 | Evidence-based diagnosis before refinement | Implemented for recorded failures; accuracy pending evaluation | Collection, baseline, execution and re-measurement diagnoses retain phase-specific evidence. |
 | FR13 | Selected mutation testing | Implemented within scope | Real mutmut execution on one selected file. Relevant non-equivalent scores require independent review. |
-| FR14 | Feedback-driven improvement and re-measurement | Implemented within scope | One bounded improvement action, followed by execution and applicable mutation re-measurement. |
+| FR14 | Feedback-driven improvement and re-measurement | Implemented within scope | One bounded improvement action, followed by execution and applicable mutation re-measurement. A repaired suite that passes is mutation-tested before it can earn Verified. |
 | FR15 | Final traceable verification report | Implemented as a prototype | UI evidence panels, JSON report and generated-test ZIP; report usefulness still needs user evaluation. |
 
 ## Additional product capabilities
@@ -48,14 +48,13 @@ that all model-generated analyses or test oracles are correct.
   live requirement indicators and server-side enforcement.
 - PostgreSQL account/session storage and per-user Python verification reports.
 - Cancelled/failed run evidence, recent history, document retrieval and artifact exports.
-- Optional HTTP black-box checks with reviewed status/JSON assertions and exported tests.
 - B0–B3 benchmark runner, isolated reference fault probes, review templates and scoring.
 - English-only source check in local tooling and CI.
 - Dependency preflight against an immutable sandbox image, without importing project code.
 - Clarification and re-run against an owned saved source snapshot, with linked report comparisons.
 - Browser reconnection and PostgreSQL-backed worker recovery with saved checkpoints.
 - Private accounts, reports and original requirement documents with owner-only access.
-- Workspace model selection and connection checks live in a Settings dialog; HTTP checks remain available.
+- Workspace model selection and connection checks live in a Settings dialog. HTTP checks were removed; project verification is the only workflow.
 - Runtime, dependency installation and disposable test services live in collapsed Advanced settings. Project inputs share setup invalidation and are locked during preflight.
 - SMTP verification/reset flows and a loopback-only local Mailpit development mailbox.
 - Project-run evaluation dashboard with requirement/outcome charts, evidence checks and traceability; a target-project CI command/template.
@@ -264,7 +263,17 @@ Survivor relevance review now processes all retained usable diffs in bounded bat
 of 16, including newly surviving mutants after re-measurement. A decision binds the
 mutant ID, file, exact diff, original requirement quote and mapped behavior. Duplicate,
 missing, mismatched or older unbound decisions cannot exclude a survivor. A negative
-decision for one behavior cannot clear other behaviors in the same source file.
+decision for one behavior cannot clear other behaviors in the same source file, so
+each survivor is reviewed separately for every behavior mapped to its file.
+
+An earlier version requested one decision per survivor while state calculation
+required one per mapped behavior. When several behaviors shared a source file, any
+survivor, even a message-only change, therefore blocked Verified for the others. On
+`examples/shipping` all four behaviors stayed Partially Verified and the CI gate
+failed. With per-behavior requests, the same run reviewed both message-only
+survivors for all four behaviors, every behavior was Verified and the gate passed.
+Repaired suites previously skipped mutation testing because only the initially
+passing path measured mutations; a repaired suite that passes is now measured too.
 The UI summarizes only the latest recorded survivors, separating test gaps,
 clarification, changes outside the cited behavior and unreviewed evidence. Incomplete
 measurements with no survivor outcomes do not resolve earlier gaps.

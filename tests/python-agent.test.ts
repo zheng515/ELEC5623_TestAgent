@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import JSZip from 'jszip';
 import { execFileSync } from 'node:child_process';
 import { asSchema } from 'ai';
-import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId } from '../lib/python-agent';
+import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId, type MutationReviewRequest } from '../lib/python-agent';
 import { survivorReviews } from '../lib/mutation-review';
 import { importProject, measureProject, mutateProject, dockerTool, type Inspection } from '../lib/python-tools';
 import { analysisSchema, groundedAnalysisSchema, groundedTestsSchema, groundedDiagnosisSchema, originalQuoteSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema, testsSchema, type PythonReport, type Measurement, type DiagnosisPhase } from '../lib/python-types';
@@ -95,9 +95,32 @@ test('an irrelevant mutation decision cannot clear other behaviors in the same f
   updateStates(r);
   assert.equal(r.states.find(state => state.id === 'B1')?.status, 'Verified');
   assert.equal(r.states.find(state => state.id === 'B2')?.status, 'Partially Verified');
-  assert.equal(survivorReviews(r)[0].category, 'outside_behavior');
+  assert.equal(survivorReviews(r)[0].category, 'unreviewed', 'B2 still lacks its own review');
+  const retried: MutationReviewRequest[][] = [];
+  await reviewSurvivingMutations(r, async (_mutants, _batch, requests) => { retried.push(requests); return { decisions: [] }; });
+  assert.deepEqual(retried, [[{ mutantId: 'Mutant #1', behaviorId: 'B2' }]], 'Only the missing behavior is reviewed again');
   r.mutations[0].mutants[0].diff += '\nchanged'; updateStates(r);
   assert.equal(r.states[0].status, 'Partially Verified', 'A changed diff invalidates the old exclusion');
+});
+
+test('each behavior sharing a mutated file receives its own survivor review', async () => {
+  const r = mutationReport();
+  r.analysis!.behaviors.push({ ...r.analysis!.behaviors[0], id: 'B2' });
+  r.tests = [artifact, { ...artifact, id: 'T2', behaviorId: 'B2' }];
+  r.measurements = [{ outcomes: r.tests.map(test => ({ node: `reqtest_generated/test_reqtest_${test.id}.py::test_threshold`, file: `reqtest_generated/test_reqtest_${test.id}.py`, name: test.functionName, status: 'passed', message: '' })), exitCode: 0, log: '', timedOut: false, integrity: true }];
+  const requests: MutationReviewRequest[][] = [];
+  await reviewSurvivingMutations(r, async (_mutants, _batch, batch) => {
+    requests.push(batch);
+    return { decisions: batch.map(request => ({ ...mutationDecision(request.mutantId), behaviorId: request.behaviorId, relevant: false, reason: `Outside ${request.behaviorId}.` })) };
+  });
+  assert.deepEqual(requests, [[{ mutantId: 'Mutant #1', behaviorId: 'B1' }, { mutantId: 'Mutant #1', behaviorId: 'B2' }]]);
+  updateStates(r);
+  assert.deepEqual(r.states.map(state => state.status), ['Verified', 'Verified']);
+  assert.equal(survivorReviews(r)[0].category, 'outside_behavior');
+  await reviewSurvivingMutations(r, async () => { throw new Error('Resolved pairs must not be reviewed again'); });
+  r.relevance.find(decision => decision.behaviorId === 'B2')!.relevant = true; updateStates(r);
+  assert.deepEqual(r.states.map(state => state.status), ['Verified', 'Partially Verified'], 'A relevant survivor blocks only its own behavior');
+  assert.equal(survivorReviews(r)[0].category, 'test_gap');
 });
 
 test('ambiguous mutation behavior requests clarification without inventing a test oracle', async () => {
@@ -160,6 +183,12 @@ test('mutation collection retains existing conftest helper paths while deselecti
     assert.ok(result.mutants.some(mutant => mutant.status === 'survived'));
     assert.deepEqual(result.scope?.setupFiles, ['tests/conftest.py']);
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('gap text drops only a prefix that repeats its own list position', () => {
+  const a = analysis(); a.behaviors[0].gaps = ['0: Check zero.', '[1] Check one.', 'Gap 2) Check two.', '7: Check a mismatched label.', '4:'];
+  validateAnalysis(a, report(), snapshot);
+  assert.deepEqual(a.behaviors[0].gaps, ['Check zero.', 'Check one.', 'Check two.', '7: Check a mismatched label.', '4:']);
 });
 
 test('rejects invented source quotes and unknown test links', () => {
@@ -267,7 +296,7 @@ test('real Docker pytest keeps a genuine defect and never repairs it', {skip:pro
   } finally {await rm(root,{recursive:true,force:true});}
 });
 
-test('recorded diagnosis aliases enable one grounded repair but duplicates and unsupported evidence do not', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 60000 }, async () => {
+test('recorded diagnosis aliases enable one grounded repair but duplicates and unsupported evidence do not', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 180000 }, async () => {
   for (const mode of ['valid', 'duplicate', 'unsupported'] as const) {
     const root = await mkdtemp(join(tmpdir(), 'reqtest-diagnosis-id-'));
     try {
@@ -286,6 +315,7 @@ test('recorded diagnosis aliases enable one grounded repair but duplicates and u
           const decision = { testId: node, category: 'generated_test_error', reason: 'The generated test expects 1, while the original contract explicitly requires 0.', quote: rule, executionQuote: 'assert 0 == 1', evidence: [{ file: 'shipping.py', quote: 'return 0 if amount >= 10000 else 1000' }, { file: 'reqtest_generated/test_reqtest_T1.py', quote: mode === 'unsupported' ? 'invented assertion' : 'assert fee(10000) == 1' }] };
           return schema.parse({ decisions: mode === 'duplicate' ? [decision, { ...decision, testId: 'T1' }] : [decision] });
         }
+        if (Object.is(schema, relevanceSchema)) return schema.parse({ decisions: (context as { requests: MutationReviewRequest[] }).requests.map(request => ({ ...request, relevant: false, reason: 'The fixture only checks that repaired tests are mutation-tested.', quote: rule })) });
         throw new Error('Unexpected mutation or refinement stage');
       };
       await runPython(r, root, new AbortController().signal, () => {}, ask);
@@ -294,6 +324,7 @@ test('recorded diagnosis aliases enable one grounded repair but duplicates and u
       assert.equal(r.improvements.length, mode === 'valid' ? 1 : 0);
       assert.equal(r.diagnoses[0].category, mode === 'valid' ? 'generated_test_error' : 'uncertain');
       assert.equal(r.measurements.at(-1)!.outcomes[0].status, mode === 'valid' ? 'passed' : 'failed');
+      assert.equal(r.mutations.length, mode === 'valid' ? 1 : 0, 'A repaired passing suite is mutation-tested before it can earn Verified');
       assert.ok(r.measurements.every(measurement => measurement.integrity));
       assert.equal(await readFile(join(root, 'source/shipping.py'), 'utf8'), code);
     } finally { await rm(root, { recursive: true, force: true }); }

@@ -31,10 +31,12 @@ function MutationReview({ report }: { report: PythonReport }) {
   if (!rows.length) return report.mutations.at(-1)?.incomplete ? <p>No surviving outcomes were recorded in the incomplete latest attempt. Missing outcomes do not resolve earlier survivors or gaps.</p> : null;
   return <section className="my-3 space-y-2">
     <p>Current surviving mutants: {rows.length}. {Object.entries(survivorLabels).map(([category, label]) => `${label}: ${rows.filter(row => row.category === category).length}`).join(' · ')}.</p>
-    <p className="text-sm text-muted-foreground">Model judgments apply only to the cited behavior and exact saved diff. Other behavior links remain unresolved. Unspecified details are not equivalent code; independent review is still required.</p>
-    {rows.map(({ mutant, decision, category }) => <details key={mutant.id}><summary className="cursor-pointer">{mutant.id} · {survivorLabels[category]}{decision ? ` → ${decision.behaviorId}` : ''}</summary>
-      <p>{decision?.reason || 'No unique grounded review matches this file and diff. No exclusion or verification credit is granted.'}</p>
-      {decision && <blockquote className="whitespace-pre-wrap text-sm text-muted-foreground">{decision.quote}</blockquote>}
+    <p className="text-sm text-muted-foreground">Each mapped behavior needs its own judgment for the exact saved diff; a judgment for one behavior never clears another. Unspecified details are not equivalent code; independent review is still required.</p>
+    {rows.map(({ mutant, reviews, category }) => <details key={mutant.id}><summary className="cursor-pointer">{mutant.id} · {survivorLabels[category]}</summary>
+      {reviews.length ? reviews.map(({ behavior, decision }) => <div key={behavior.id}>
+        <p>{behavior.id}: {decision ? `${decision.relevant ? 'relevant' : 'not relevant'}. ${decision.reason}` : 'No unique grounded review matches this behavior, file and diff. No exclusion or verification credit is granted.'}</p>
+        {decision && <blockquote className="whitespace-pre-wrap text-sm text-muted-foreground">{decision.quote}</blockquote>}
+      </div>) : <p>No behavior is mapped to this file. No exclusion or verification credit is granted.</p>}
       <pre className="whitespace-pre-wrap text-xs">{mutant.diff || 'Mutation diff unavailable.'}</pre>
     </details>)}
   </section>;
