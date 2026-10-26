@@ -1,16 +1,5 @@
 import type { RequirementDocument, RequirementSource } from '@/lib/requirements';
-import { numberedDocumentBlocks, uncertainOcr } from '@/lib/document-selection';
-import { Button } from '@/components/ui/button';
-
-export function NumberedRequirementSelection({ document, onSelect }: { document: RequirementDocument; onSelect: (ids: string[]) => void }) {
-  const numbered = numberedDocumentBlocks(document);
-  if (!numbered.count) return null;
-  return <div className="space-y-2 text-sm">
-    <p>{numbered.count} readable numbered requirement candidates found.</p>
-    <Button type="button" variant="outline" disabled={!numbered.ids.length} onClick={() => onSelect(numbered.ids)}>Select numbered requirements</Button>
-    <p className="text-muted-foreground">{numbered.ids.length ? 'Matches explicit IDs such as R1 or FR-001. Other text may contain additional rules; check the selected scope.' : 'The numbered requirements exceed the 12-block or 12,000-character limit. Select a smaller section; nothing is truncated automatically.'}</p>
-  </div>;
-}
+import { uncertainOcr } from '@/lib/document-selection';
 
 export function OriginalPageLink({ documentId, page }: { documentId: string; page?: number }) {
   return page ? <a className="inline-block ml-2 underline text-xs" href={'/api/requirements?id=' + encodeURIComponent(documentId) + '&view=inline#page=' + page} target="_blank" rel="noreferrer">View original page {page}</a> : null;

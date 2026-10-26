@@ -1,0 +1,32 @@
+[
+  {
+    "taskHash": "cebabcb2d3647896d0fb3235a28a00b49c7c9c1bc75481822f434b07f453ea3e",
+    "elapsedMs": 5633,
+    "usage": {
+      "inputTokens": 1989,
+      "inputTokenDetails": {
+        "noCacheTokens": 3,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 1986
+      },
+      "outputTokens": 473,
+      "outputTokenDetails": {
+        "textTokens": 473,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 2462,
+      "raw": {
+        "input_tokens": 1989,
+        "input_tokens_details": {
+          "cache_write_tokens": 1986,
+          "cached_tokens": 0
+        },
+        "output_tokens": 473,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2462
+      }
+    }
+  }
+]

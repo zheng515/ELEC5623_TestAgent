@@ -1,0 +1,26 @@
+{
+  "tests": {
+    "passed": 83,
+    "skipped": 3,
+    "failed": 0,
+    "dockerEnabled": true,
+    "realModelOptInTestsSkipped": true
+  },
+  "checks": {
+    "lint": "passed",
+    "typecheck": "passed",
+    "englishOnly": "passed",
+    "productionBuild": "passed",
+    "portableRescore": "passed"
+  },
+  "knownDependencyVulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "scope": "Software regressions and tool integration, separate from independent model accuracy. Real model observations are in metrics.json.",
+  "logs": "validation/"
+}

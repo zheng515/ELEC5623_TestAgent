@@ -73,7 +73,7 @@ export function Account({ children, settings = false }: { children?: (userId: st
       <section className="border rounded-lg p-5 space-y-4">
         <h2 className="text-lg font-semibold">Profile</h2>
         <dl className="space-y-3"><div><dt className="text-sm text-muted-foreground">Name</dt><dd>{data.user.name}</dd></div><div><dt className="text-sm text-muted-foreground">Email</dt><dd>{data.user.email}</dd></div><div><dt className="text-sm text-muted-foreground">Email status</dt><dd>{data.user.emailVerified ? "Verified" : "Not verified"}</dd></div></dl>
-        {!data.user.emailVerified && <><p className="text-sm text-muted-foreground">Verify your email before accepting workspace invitations.</p><Button disabled={!emailEnabled || busy} onClick={verifyEmail}>{busy ? "Sending…" : "Verify email"}</Button></>}
+        {!data.user.emailVerified && <><p className="text-sm text-muted-foreground">Verify your email address to confirm account ownership.</p><Button disabled={!emailEnabled || busy} onClick={verifyEmail}>{busy ? "Sending…" : "Verify email"}</Button></>}
         {!emailEnabled && <p className="text-sm text-muted-foreground">Email delivery is disabled. Ask the administrator to configure verification and recovery.</p>}
         {message && <p role="status">{message}</p>}
       </section>

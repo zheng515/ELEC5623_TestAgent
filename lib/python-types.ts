@@ -70,6 +70,7 @@ export type Mutation = { incomplete: boolean; mutants: { id: string; file: strin
 export type DiagnosisPhase = 'collection' | 'baseline' | 'execution' | 'remeasurement';
 export type Diagnosis = z.infer<typeof diagnosisSchema>["decisions"][number] & { phase?: DiagnosisPhase };
 export type PythonReport = {
+  analysisCorrection?: { original: Analysis; error: string };
   runtime?: ProjectRuntime;
   execution?: { queueId: string; image: string; attempt: number; recovered: boolean };
   variant?: "B0" | "B1" | "B2" | "B3";
@@ -81,13 +82,11 @@ export type PythonReport = {
   initialStates?: PythonReport["states"];
   id: string; title: string; createdAt: string; model: string; source: string; fingerprint: string;
   status: "running" | "completed" | "failed" | "cancelled"; stage: string; error?: string;
-  rules: { id: string; text: string; source?: RequirementSource }[]; analysis?: Analysis; tests: PythonTest[];
-  requirementDocument?: { id: string; fileName: string; sha256: string; warnings: string[]; selectedBlocks: number; totalBlocks: number; format?: RequirementDocument['format']; pages?: DocumentPage[] };
+  rules: { id: string; text: string; source?: RequirementSource; sources?: RequirementSource[] }[]; analysis?: Analysis; tests: PythonTest[];
+  requirementDocument?: { id: string; fileName: string; sha256: string; warnings: string[]; selectedBlocks: number; totalBlocks: number; textEdited?: boolean; format?: RequirementDocument['format']; pages?: DocumentPage[] };
   parentRunId?: string;
   clarification?: string;
   workerId?: string;
-  access?: "owner" | "team";
-  sharedWith?: string | null;
   projectSetup?: ProjectSetup;
   baseline?: Measurement; measurements: Measurement[]; mutations: Mutation[];
   diagnoses: Diagnosis[];

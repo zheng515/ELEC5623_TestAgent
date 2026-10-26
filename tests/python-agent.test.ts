@@ -409,3 +409,34 @@ test('sandbox evidence detects generated-code tampering and preserves original m
     assert.equal(await readFile(join(root,'source/shipping.py'),'utf8'),code);
   }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('one analysis correction preserves the rejected response and cannot bypass evidence validation', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 30000 }, async () => {
+  for (const corrected of [true, false]) {
+    const root = await mkdtemp(join(tmpdir(), 'reqtest-analysis-correction-'));
+    let calls = 0;
+    try {
+      await mkdir(join(root, 'generated'));
+      const zip = new JSZip(); zip.file('shipping.py', code);
+      await importProject(root, await zip.generateAsync({ type: 'nodebuffer' }));
+      const r = report();
+      const ask = (async (schema) => {
+        if (Object.is(schema, analysisSchema)) {
+          const next = analysis(); calls++;
+          if (calls === 1 || !corrected) next.behaviors[0].evidence[0].quote = code.replaceAll('\n', '\\n');
+          return schema.parse(next);
+        }
+        if (Object.is(schema, testsSchema)) return schema.parse({ tests: [] });
+        throw new Error('Unexpected reasoning stage.');
+      }) as typeof import('../lib/python-agent').reason;
+      const run = () => runPython(r, root, AbortSignal.timeout(12000), () => {}, ask);
+      if (corrected) {
+        await run(); assert.equal(r.status, 'completed');
+        assert.equal(r.analysis!.behaviors[0].evidence[0].quote, 'def fee(amount):');
+      } else await assert.rejects(run, /unsupported/);
+      assert.equal(calls, 2, 'Only one correction request is allowed');
+      assert.match(r.analysisCorrection!.error, /unsupported/);
+      assert.equal(r.analysisCorrection!.original.behaviors[0].evidence[0].quote, code.replaceAll('\n', '\\n'));
+      assert.equal(await readFile(join(root, 'source/shipping.py'), 'utf8'), code);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  }
+});

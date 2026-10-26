@@ -1,0 +1,312 @@
+{
+  "id": "0e1e5fb4-723c-4cf8-8afa-95c10e6630a9",
+  "variant": "B1",
+  "title": "shipping",
+  "createdAt": "2026-10-26T03:57:42.566Z",
+  "model": "gpt-6-luna",
+  "source": "examples/shipping",
+  "fingerprint": "1cb700c032c7fef64e8fc6bb618b829a8c61237d0de721c52fa71291c58569fe",
+  "status": "completed",
+  "stage": "Complete",
+  "rules": [
+    {
+      "id": "R1",
+      "text": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents."
+    },
+    {
+      "id": "R2",
+      "text": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000."
+    },
+    {
+      "id": "R3",
+      "text": "For negative built-in int amount_cents, shipping.fee raises ValueError."
+    },
+    {
+      "id": "R4",
+      "text": "For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError."
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_fee_below_threshold_returns_integer_1000",
+      "gapIndexes": [
+        0
+      ],
+      "code": "from shipping import fee\n\n\ndef test_fee_below_threshold_returns_integer_1000():\n    for amount_cents in (0, 500, 9999):\n        result = fee(amount_cents)\n        assert isinstance(result, int)\n        assert result == 1000",
+      "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.",
+      "purpose": "Checks the lower and upper bounds and a representative value in the specified range, including the returned value and its integer type.",
+      "approved": true,
+      "review": "Evaluation baseline: no independent test review."
+    },
+    {
+      "id": "T2",
+      "behaviorId": "B2",
+      "functionName": "test_fee_at_or_above_threshold_returns_integer_zero",
+      "gapIndexes": [
+        0
+      ],
+      "code": "from shipping import fee\n\n\ndef test_fee_at_or_above_threshold_returns_integer_zero():\n    for amount_cents in (10000, 10001, 20000):\n        result = fee(amount_cents)\n        assert isinstance(result, int)\n        assert result == 0",
+      "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+      "purpose": "Checks the inclusive threshold and representative larger amounts, including the returned value and its integer type.",
+      "approved": true,
+      "review": "Evaluation baseline: no independent test review."
+    },
+    {
+      "id": "T3",
+      "behaviorId": "B3",
+      "functionName": "test_fee_rejects_negative_builtin_integers",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import pytest\nfrom shipping import fee\n\n\ndef test_fee_rejects_negative_builtin_integers():\n    for amount_cents in (-1, -10000):\n        with pytest.raises(ValueError):\n            fee(amount_cents)",
+      "quote": "For negative built-in int amount_cents, shipping.fee raises ValueError.",
+      "purpose": "Checks that negative built-in integer inputs raise ValueError.",
+      "approved": true,
+      "review": "Evaluation baseline: no independent test review."
+    },
+    {
+      "id": "T4",
+      "behaviorId": "B4",
+      "functionName": "test_fee_rejects_non_builtin_integer_argument_types",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import pytest\nfrom shipping import fee\n\n\ndef test_fee_rejects_non_builtin_integer_argument_types():\n    class IntSubclass(int):\n        pass\n\n    for amount_cents in (True, 1.0, \"1\", None, IntSubclass(1)):\n        with pytest.raises(TypeError):\n            fee(amount_cents)",
+      "quote": "For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.",
+      "purpose": "Checks TypeError for bool and representative arguments whose types are not the built-in int, including an int subclass.",
+      "approved": true,
+      "review": "Evaluation baseline: no independent test review."
+    }
+  ],
+  "measurements": [
+    {
+      "outcomes": [
+        {
+          "node": "tests/test_shipping.py::test_standard_shipping",
+          "file": "tests/test_shipping.py",
+          "name": "test_standard_shipping",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_fee_below_threshold_returns_integer_1000",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_fee_below_threshold_returns_integer_1000",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T2.py::test_fee_at_or_above_threshold_returns_integer_zero",
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "name": "test_fee_at_or_above_threshold_returns_integer_zero",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T3.py::test_fee_rejects_negative_builtin_integers",
+          "file": "reqtest_generated/test_reqtest_T3.py",
+          "name": "test_fee_rejects_negative_builtin_integers",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T4.py::test_fee_rejects_non_builtin_integer_argument_types",
+          "file": "reqtest_generated/test_reqtest_T4.py",
+          "name": "test_fee_rejects_non_builtin_integer_argument_types",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 0,
+      "log": ".....                                                                    [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n5 passed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  ],
+  "mutations": [],
+  "diagnoses": [],
+  "relevance": [],
+  "improvements": [],
+  "states": [
+    {
+      "id": "B1",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T1.py::test_fee_below_threshold_returns_integer_1000"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_fee_at_or_above_threshold_returns_integer_zero"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_fee_rejects_negative_builtin_integers"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_fee_rejects_non_builtin_integer_argument_types"
+      ]
+    }
+  ],
+  "limitations": [
+    "Dataset purpose: pilot. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis."
+  ],
+  "configuration": {
+    "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+    "improvementLimit": 1,
+    "mutationSeconds": 75
+  },
+  "environment": {
+    "python": "3.11.17",
+    "pytest": "8.4.2",
+    "mutmut": "2.5.1"
+  },
+  "collection": {
+    "exitCode": 0,
+    "log": "tests/test_shipping.py::test_standard_shipping\n\n1 test collected in 0.00s\n",
+    "timedOut": false
+  },
+  "retrieval": {
+    "query": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents. For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000. For negative built-in int amount_cents, shipping.fee raises ValueError. For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.",
+    "documents": [
+      {
+        "file": "SRS.md",
+        "text": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.\nFor a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.\nFor negative built-in int amount_cents, shipping.fee raises ValueError.\nFor any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.\n",
+        "score": 1520.0050280801433,
+        "sha256": "506b8b10994178ff15b208fc85ed891cd2212c2fdd0ef3992659fc54da291f65"
+      }
+    ]
+  },
+  "analysis": {
+    "behaviors": [
+      {
+        "id": "B1",
+        "ruleId": "R1",
+        "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.",
+        "text": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "Baseline ID scaffolding; no semantic decomposition.",
+        "files": [],
+        "existingTests": [],
+        "evidence": [],
+        "gaps": [
+          "Requirement not yet checked."
+        ]
+      },
+      {
+        "id": "B2",
+        "ruleId": "R2",
+        "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+        "text": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "Baseline ID scaffolding; no semantic decomposition.",
+        "files": [],
+        "existingTests": [],
+        "evidence": [],
+        "gaps": [
+          "Requirement not yet checked."
+        ]
+      },
+      {
+        "id": "B3",
+        "ruleId": "R3",
+        "quote": "For negative built-in int amount_cents, shipping.fee raises ValueError.",
+        "text": "For negative built-in int amount_cents, shipping.fee raises ValueError.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "Baseline ID scaffolding; no semantic decomposition.",
+        "files": [],
+        "existingTests": [],
+        "evidence": [],
+        "gaps": [
+          "Requirement not yet checked."
+        ]
+      },
+      {
+        "id": "B4",
+        "ruleId": "R4",
+        "quote": "For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.",
+        "text": "For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "Baseline ID scaffolding; no semantic decomposition.",
+        "files": [],
+        "existingTests": [],
+        "evidence": [],
+        "gaps": [
+          "Requirement not yet checked."
+        ]
+      }
+    ],
+    "inconsistencies": []
+  },
+  "baseline": {
+    "outcomes": [
+      {
+        "node": "tests/test_shipping.py::test_standard_shipping",
+        "file": "tests/test_shipping.py",
+        "name": "test_standard_shipping",
+        "status": "passed",
+        "message": ""
+      }
+    ],
+    "exitCode": 0,
+    "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+    "timedOut": false,
+    "integrity": true,
+    "runtimeArtifacts": []
+  },
+  "initialStates": [
+    {
+      "id": "B1",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T1.py::test_fee_below_threshold_returns_integer_1000"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_fee_at_or_above_threshold_returns_integer_zero"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_fee_rejects_negative_builtin_integers"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_fee_rejects_non_builtin_integer_argument_types"
+      ]
+    }
+  ],
+  "elapsedMs": 9189
+}

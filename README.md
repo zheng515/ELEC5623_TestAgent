@@ -19,10 +19,9 @@ the observed responses of an authorized API endpoint.
 - Measure selected mutations and re-run supported test improvements.
 - Inspect verification states, source quotes, logs and retrieved documentation.
 - Save private verification reports, download evidence and export executable tests.
-- Review benchmark outputs in the Evaluation workspace and run controlled variants with independently reviewed scoring.
+- Inspect project requirement states, recorded test outcomes and evidence in Evaluation. Run benchmarks separately with the CLI.
 - Clarify requirements, re-run a frozen code snapshot and compare reports.
 - Reconnect after a browser refresh and recover interrupted worker jobs from PostgreSQL checkpoints.
-- Create team workspaces, manage roles and explicitly share private reports.
 
 The application uses Next.js, React, TypeScript, Tailwind and shadcn/ui. Better Auth
 and PostgreSQL provide accounts and report storage; the Vercel AI SDK connects to
@@ -42,7 +41,7 @@ npm run sandbox:build
 npm run dev:all
 ```
 
-Open **http://127.0.0.1:3001**, create an account, and sign in. Select **Check model connection** to verify a real request; a present key alone does not establish validity. Use the same hostname
+Open **http://127.0.0.1:3001**, create an account, and sign in. Open **Settings → Check model connection** to verify a real request; a present key alone does not establish validity. Use the same hostname
 as BETTER_AUTH_URL. Better Auth provides email/password registration, password
 hashing, persistent cookie sessions and rate limiting. PostgreSQL stores accounts,
 sessions and verification reports; project snapshots and the local signing secret remain in
@@ -54,8 +53,7 @@ For local testing, set REQTEST_LOCAL_MAIL=true in .env.local and run
 are captured locally and never delivered to real recipients. Disable local mail
 for deployment and configure SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER,
 SMTP_PASSWORD and SMTP_FROM. AUTH_REQUIRE_EMAIL_VERIFICATION=true optionally
-requires verification before sign-in; workspace invitation acceptance always
-requires a verified email. A reset invalidates existing sessions. Keep the local
+requires verification before sign-in. A reset invalidates existing sessions. Keep the local
 mailbox bound to loopback and use it only for development.
 Click your name in the workspace header to open **Account**, view your profile, verify your email or
 open the local development mailbox. Verification and mailbox actions are kept
@@ -65,6 +63,15 @@ New passwords must contain 8–128 characters, including at least one uppercase
 letter, one lowercase letter and one number. Registration shows unmet rules in red
 and restores the normal text color as each rule is met. The server enforces the
 same policy. Existing accounts can still sign in with their current passwords.
+
+### Model settings
+
+Open **Settings** in the workspace header to select the OpenAI model or check its
+connection. Save settings to apply the model to future project verification and
+HTTP checks in this browser. Cancel discards model edits. Model changes and connection
+checks are disabled while a run is active on the page. The API key stays on the server;
+this dialog does not accept or display credentials. Connection checks make a real
+model request and may incur API usage charges. Existing reports retain their model.
 
 ### GitHub connection
 
@@ -148,7 +155,7 @@ submissions without clearing inputs or changing saved evidence. Existing tasks
 can reconnect or recover when services return. The status endpoint does not start
 a queue or worker, expose another user's task data, or treat a missing heartbeat
 as a test failure. Check model access and project dependencies separately with
-**Check model connection** and **Check project setup**. Heartbeats and image
+**Settings → Check model connection** and **Check project setup**. Heartbeats and image
 availability alone do not establish that a verification can succeed.
 
 ### Offline backups
@@ -235,18 +242,25 @@ only their own schema. PostgreSQL must be available before running account tests
    only and are not sent to the model; temporary tokens are not retained.
    Downloads are pinned to the resolved commit. Select **Check project setup** to
    check runtime and dependency declarations without importing the project. Select
-   automatic dependency setup when needed; Node.js requires package-lock.json.
+   **Advanced settings** for runtime overrides, automatic dependency installation
+   and disposable PostgreSQL/Redis test services; Node.js requires package-lock.json.
    For a monorepo, set **Project directory** to a relative path such as `backend`.
    It becomes the project root for runtime detection, dependencies, imports and
    tests. Sibling directories are outside the analyzed scope; keep required shared
    code inside the selected project or select a broader root.
-2. Paste up to 12 requirement lines, or upload a PDF, DOC, DOCX, UTF-8 TXT or Markdown
-   file. Review extracted text and select up to 12 blocks / 12,000 characters. Only
-   selected blocks are analyzed. State intended behavior, units, boundaries,
-   response values and exception rules. Files must be approved for model processing.
-   **Select numbered requirements** selects readable blocks beginning with explicit
-   IDs such as R1, FR-001 or FR-CAL-03 when they fit the limits. Check other text for additional
-   rules; this shortcut does not establish complete extraction.
+   Advanced settings are collapsed by default. Defaults detect the runtime and use
+   the server sandbox without installing dependencies or starting test services.
+   Collapsing the panel retains selections; changing project or environment inputs
+   clears a previous setup result. Project inputs are locked during a setup check. Test
+   services are separate from the PostgreSQL database that stores ReqTest accounts.
+2. Paste requirements, or upload PDF, DOC, DOCX, UTF-8 TXT or Markdown.
+   All extracted text automatically fills the editable **Requirements** field;
+   no line or paragraph selection is required. The limit is 12,000 characters,
+   independent of line count. Oversized text remains visible and must be shortened
+   before running; it is never silently truncated. Original document hashes,
+   page/paragraph locations and extraction warnings remain available under source
+   details. Exact unchanged excerpts retain citations; edits are treated as
+   user-provided text. Long text remains intact for behavior decomposition.
 3. Select **Run verification**. Inspect behavior states, source quotes, mapped tests,
    recorded test outcomes, diagnoses, mutation results and improvements.
 4. Download the evidence JSON and generated-test ZIP. Extract the ZIP in the original
@@ -397,12 +411,10 @@ mutation outcomes**, not a relevant non-equivalent Mutation Score. Model reasoni
 semantic mappings, diagnoses and relevance/equivalence reviews remain fallible.
 
 Project reports belong to the signed-in account and are saved server-side.
-Reports are private by default. Their owner can choose a team workspace under
-**Report visibility**. Current members can read the shared report, its code/test
-quotes and linked original requirement document. Only the owner can change
-sharing, stop the run or re-run its source snapshot. Owners/admins manage team
-roles and invitations through Better Auth; membership removal removes report
-access on subsequent requests. Source
+Reports and linked original requirement documents are accessible only to their owner.
+Only the owner can stop a run or re-run its source snapshot. Team workspaces,
+invitations, roles and report sharing are not supported. Existing accounts and
+reports are retained; legacy collaboration tables are unused. Source
 snapshots stay on this local machine. The most recent 20 reports are listed. Stop
 cancels remaining work and preserves partial evidence. Browser disconnection
 detaches the progress stream while the local server continues working. Refresh
@@ -546,23 +558,76 @@ commands. The initial reference labels are drafts requiring teammate review; thi
 pilot is not a completed independent evaluation or a real-world effectiveness claim.
 
 
-## Evaluation review workspace
+### Controlled project experiments
 
-Open **Evaluation** after signing in. Load a run's report.json and its copied
-.gold.json file from the benchmark output directory. Review the reference against
-the original project and requirements, record the reviewer and download the checked
-reference. Then annotate each finding, executed-node coverage link, phase-specific
-diagnosis and mutant relevance/equivalence. Existing review.json files can be
-loaded to continue work. The page validates annotations before downloading a
-completed review and previews single-run metrics. Inputs stay in the browser.
-Copy downloads back to their matching benchmark paths, then run the aggregate
-score command. Loading or changing a reference resets output annotations.
+The standalone experiment configuration runs three development projects across
+B0–B3 with three repetitions each (36 runs). External executable contract witnesses
+validate original/corrected reference copies without entering model context.
+The runner preserves frozen inputs, image/source/dependency fingerprints, request
+usage, errors and timing. Objective measurements export to CSV/JSON and standalone
+PNG/SVG figures. Independent semantic metrics remain unavailable without human
+review. See [the experiment protocol](examples/experiments/README.md) for commands,
+denominators and limitations. This workflow is separate from the website.
 
-The tool cannot supply independent human judgment. Pending reviews remain pending.
+### Repeated decision consistency
+
+Run `npm run evaluate:decisions -- 3` for eleven focused test-review and diagnosis
+cases repeated three times (33 paid model requests). Production tasks and the same
+reasoning function are reused. Frozen inputs, raw decisions, errors and fingerprints
+are saved under `.evidence/decision-evaluation/`. This checks raw classification
+consistency; it does not replace whole-agent evaluation or independent review.
+The small synthetic development set is not held out.
+
+Test generation and review distinguish value checks from explicitly claimed return
+types. Every extra assertion needs its own requirement support; a timestamp offset
+does not require a named timezone object. Missing implementation dependencies are
+classified as execution blockers without asserting why the dependency is absent.
+Invalid analysis evidence receives at most one model correction request. The rejected
+analysis and validation error remain in the report; exact source checks are repeated
+and a second invalid response stops the run.
+
+Re-score saved outputs without model calls using
+`npm run evaluate:decisions -- score <output-directory>`. Missing/invalid repeats
+remain visible. Agreement can be consistently wrong; accuracy and false-support
+metrics stay unavailable until every copied reference label has been independently
+reviewed and all repetitions are valid. See the benchmark README for review steps.
+
+## Project evaluation dashboard
+
+Open **Evaluation** after signing in and choose one of your latest 20 project
+verification runs. Refresh reloads saved results without making a model request;
+a selected running job updates every four seconds.
+
+Project verification contains inputs, progress, a short summary and next actions.
+Use **View results in Evaluation** to open that run's charts and detailed results.
+The requirement traceability table and technical report are not repeated on the
+task page. Original text and excerpts are collapsed with bounded scroll areas.
+
+- Summary cards separate selected requirements, analyzed behaviors, approved
+  generated test artifacts and recorded test outcomes.
+- Charts show requirement states and the latest test outcomes, including errors
+  and skipped cases. A missing execution is unavailable, not a zero-percent pass.
+- A requirement is Verified only when all its mapped behavior assessments are
+  Verified with passing recorded nodes and intact execution evidence. Running
+  reports are Pending; failed, cancelled or conflicting evidence is Uncertain.
+  Unmapped requirements stay visible. These states concern recorded cases and do
+  not establish exhaustive specification coverage or independent agent accuracy.
+- Evidence checks show saved code fingerprints, document citations, selected
+  extraction scope and execution integrity. Pasted requirements do not require
+  document citations. Fingerprints are not rechecked by viewing the dashboard.
+- Expand requirements to inspect original quotes, PDF page links, OCR confidence
+  and mapped test nodes. Filter by state to find unresolved requirements.
+- Failure diagnoses, blocked tests, execution logs and limitations remain available
+  in expandable sections. Retrieval and mutation records are under Technical
+  details. Download run evidence or the approved generated tests from this page.
+
+Benchmarks, reference labels, human annotations and aggregate scoring stay outside
+the website. Edit the reference and per-run review JSON files independently, then
+use the commands in [the benchmark guide](examples/benchmark/README.md).
 Use examples/evaluation-heldout.example.json as a manifest template for projects
 not used in development. Keep reference labels outside model-visible project
-folders. Use repeated runs, preserve the frozen inputs and review every variant.
-A dataset label alone does not establish independence or a representative sample.
+folders. Use repeated runs, preserve frozen inputs and review every variant.
+A dataset label alone does not establish independence or representative sampling.
 
 ## Target-project CI
 

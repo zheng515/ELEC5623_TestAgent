@@ -1,0 +1,79 @@
+/** Export objective experiment measurements; unreviewed semantic metrics stay unavailable. */
+import { readFile, mkdir, writeFile, copyFile } from 'node:fs/promises';
+import { dirname, resolve, relative, isAbsolute, join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { summarizeExperiment, type ExperimentEntry, type ExperimentItem, type ReferenceCheck, type RequestRecord } from '../lib/experiment-metrics';
+import { goldSchema } from '../lib/evaluation';
+import type { PythonReport } from '../lib/python-types';
+
+async function main() {
+  if (!process.argv[2]) throw new Error('Usage: npm run experiment:analyze -- <index.json> [output-directory]');
+  const indexPath = resolve(process.argv[2]), root = dirname(indexPath);
+  const output = resolve(process.argv[3] || join(root, 'analysis'));
+  const load = async <T>(file: string): Promise<T> => {
+    const path = resolve(root, file), child = relative(root, path);
+    if (isAbsolute(child) || child.startsWith('..')) throw new Error('Evidence paths must stay within the experiment directory.');
+    return JSON.parse(await readFile(path, 'utf8')) as T;
+  };
+  const index = await load<{ model: string; sandboxImage: string; agentFingerprint: string; manifestHash: string; expectedRuns?: number; runs: ExperimentEntry[] }>('index.json');
+  const manifestText = await readFile(join(root, 'manifest.json'), 'utf8');
+  if (createHash('sha256').update(manifestText).digest('hex') !== index.manifestHash) throw new Error('Frozen manifest changed.');
+  const manifest = JSON.parse(manifestText) as { purpose?: string; variants: string[]; repeat: number; cases: { id: string; oracle?: string }[] };
+  if (index.expectedRuns !== manifest.cases.length * manifest.variants.length * manifest.repeat) throw new Error('Planned run count does not match the frozen manifest.');
+  const items: ExperimentItem[] = [];
+  for (const item of manifest.cases) for (const variant of manifest.variants) for (let repeat = 1; repeat <= manifest.repeat; repeat++) {
+    const entry = index.runs.find(entry => entry.caseId === item.id && entry.variant === variant && entry.repeat === repeat) || { caseId: item.id, variant, repeat, report: '', gold: `${item.id}.gold.json`, review: '' };
+    const gold = goldSchema.parse(await load(entry.gold));
+    let report: PythonReport | undefined, requests: RequestRecord[] | undefined, reference: ReferenceCheck | undefined;
+    if (entry.report) report = await load(entry.report);
+    if (entry.requests) requests = await load(entry.requests);
+    if (entry.reference) {
+      reference = await load(entry.reference);
+      if (createHash('sha256').update(await readFile(join(root, `${item.id}.oracle.py`))).digest('hex') !== reference!.oracleHash) throw new Error('Frozen contract witnesses changed.');
+    }
+    items.push({ entry, report, gold, requests, reference });
+  }
+  if (index.runs.length !== new Set(index.runs.map(entry => `${entry.caseId}:${entry.variant}:${entry.repeat}`)).size || index.runs.some(entry => !items.some(item => item.entry === entry))) throw new Error('Unexpected or duplicate experiment entry.');
+  const metrics = summarizeExperiment(items);
+  const csv = (rows: object[]) => {
+    const columns = Object.keys(rows[0] || {});
+    const cell = (value: unknown) => value === null || value === undefined ? '' : '"' + String(value).replaceAll('"', '""') + '"';
+    return [columns.map(cell).join(','), ...rows.map(row => columns.map(key => cell((row as Record<string, unknown>)[key])).join(','))].join('\n') + '\n';
+  };
+  await mkdir(output, { recursive: true });
+  await writeFile(join(output, 'metrics.json'), JSON.stringify({
+    scope: 'Controlled synthetic development cases; repeated runs, not held-out product accuracy.',
+    protocol: { purpose: manifest.purpose || 'pilot', plannedRuns: index.expectedRuns, cases: manifest.cases.map(item => item.id), repeat: manifest.repeat, variants: manifest.variants, model: index.model, sandboxImage: index.sandboxImage, agentFingerprint: index.agentFingerprint, manifestHash: index.manifestHash },
+    definitions: {
+      correctedCopyDetectionRate: 'A generated assertion fails on original code and passes on a separately corrected copy. References are checked by fixed external contract witnesses. This is specific seeded-fault evidence, not independent semantic accuracy.',
+      preservedDetectionRate: 'Final detection among runs with an initial detection; requires a usable final probe. No initial detections means unavailable.',
+      latency: 'Wall time for the complete agent run, including failed runs; excludes external corrected-copy probes. Grouped by repeated run, not by project-independent samples.',
+      mutation: 'Paired raw killed counts require complete measurements, identical scope, mutant IDs and diffs. They are not a relevance/equivalence-reviewed mutation score.',
+      tokens: 'Provider-reported tokens; failed requests without usage make totals unavailable. No currency cost is inferred.',
+      missing: 'Every planned run stays in completion denominators. Missing observations remain unavailable rather than zero.',
+      semanticMetrics: 'Independent semantic accuracy, diagnosis F1, finding precision/recall and reviewed mutation scores remain unavailable without human-reviewed references and outputs.',
+    }, ...metrics,
+  }, null, 2));
+  await writeFile(join(output, 'runs.csv'), csv(metrics.rows));
+  await writeFile(join(output, 'variants.csv'), csv(metrics.summary));
+  const evidenceFiles = new Set(['index.json', 'manifest.json', 'agent-snapshot.json', ...manifest.cases.flatMap(item => [`${item.id}.zip`, `${item.id}.gold.json`, ...(item.oracle ? [`${item.id}.oracle.py`] : [])]), ...index.runs.flatMap(entry => [entry.report, entry.review, ...(entry.reference ? [entry.reference] : []), ...(entry.requests ? [entry.requests] : [])])]);
+  for (const file of evidenceFiles) {
+    const path = resolve(root, file), child = relative(root, path);
+    if (isAbsolute(child) || child.startsWith('..')) throw new Error('Evidence export paths must remain within the experiment.');
+    const destination = join(output, 'evidence', child);
+    await mkdir(dirname(destination), { recursive: true });
+    await copyFile(path, destination);
+  }
+  await copyFile(join(root, 'source-equivalence.json'), join(output, 'evidence/source-equivalence.json')).catch(error => { if (error.code !== 'ENOENT') throw error; });
+  const failures = items.flatMap(({ entry, report }) => report ? [{
+    caseId: entry.caseId, variant: entry.variant, repeat: entry.repeat, status: report.status, stage: report.stage, error: report.error,
+    initialFailedNodes: report.measurements[0]?.outcomes.filter(outcome => ['failed', 'error'].includes(outcome.status)).map(outcome => outcome.node) || [],
+    finalFailedNodes: report.measurements.at(-1)?.outcomes.filter(outcome => ['failed', 'error'].includes(outcome.status)).map(outcome => outcome.node) || [],
+    diagnoses: report.diagnoses, improvements: report.improvements.length,
+    blocked: report.tests.filter(test => !test.approved).map(test => ({ id: test.id, reason: test.review })),
+    evidence: 'evidence/' + entry.report,
+  }] : []);
+  await writeFile(join(output, 'failure-cases.json'), JSON.stringify(failures.filter(item => item.status !== 'completed' || item.finalFailedNodes.length || item.blocked.length || item.improvements), null, 2));
+  console.log(JSON.stringify({ output, plannedRuns: items.length, variants: metrics.summary }, null, 2));
+}
+main().catch(error => { console.error(error instanceof Error ? error.message : 'Experiment analysis failed.'); process.exitCode = 1; });

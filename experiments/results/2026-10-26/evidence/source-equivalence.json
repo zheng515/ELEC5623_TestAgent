@@ -1,0 +1,6 @@
+{
+  "file": "scripts/evaluate.ts",
+  "change": "Post-run TypeScript non-null assertion for the guarded API key; emitted JavaScript is byte-identical.",
+  "emittedJavaScriptSha256": "782d19591da149e79dd37534a999f888cede5b333a09fa2b8ccf447a727755ba",
+  "identical": true
+}

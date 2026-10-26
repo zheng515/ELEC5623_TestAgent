@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Account } from "@/components/shell/account";
 import { PythonWorkspace } from "@/components/shell/python-workspace";
 import { EvaluationWorkspace } from "@/components/shell/evaluation-workspace";
-import { TeamWorkspace } from "@/components/shell/team-workspace";
 import { get, set } from "idb-keyval";
 import { EventSourceParserStream } from "eventsource-parser/stream";
 import { Button } from "@/components/ui/button";
@@ -34,6 +33,7 @@ function Dashboard({ userId }: { userId: string }) {
   const storageKey = `reqtest_http_runs_v1:${userId}`;
   const draftKey = `reqtest_http_draft_v1:${userId}`;
   const [mode, setMode] = useState("python");
+  const [evaluationRunId, setEvaluationRunId] = useState("");
   const [model, setModel] = useState("gpt-6-luna");
   const [configured, setConfigured] = useState(false);
   const [ready, setReady] = useState(false);
@@ -215,8 +215,7 @@ function Dashboard({ userId }: { userId: string }) {
       <Topbar currentModel={model} onSelectModel={setModel} isRunning={isRunning} configured={configured} />
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
         <nav className="flex gap-3"><Button variant={mode === "python" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("python")}>Project verification</Button><Button variant={mode === "http" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("http")}>HTTP checks</Button><Button variant={mode === "evaluation" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("evaluation")}>Evaluation</Button></nav>
-        {!isRunning && <TeamWorkspace userId={userId} />}
-        {mode === "evaluation" ? <EvaluationWorkspace /> : mode === "python" ? <PythonWorkspace model={model} configured={configured} onRunningChange={setIsRunning} /> : <>
+        {mode === "evaluation" ? <EvaluationWorkspace initialRunId={evaluationRunId} /> : mode === "python" ? <PythonWorkspace model={model} configured={configured} onRunningChange={setIsRunning} onOpenEvaluation={(runId) => { setEvaluationRunId(runId); setMode("evaluation"); }} /> : <>
         <RunHistory runs={runs} selectedRunId={selected?.id || null} isRunning={isRunning || !ready} historyBusy={historyBusy}
           onSelectRun={(id) => selectRun(runs.find((run) => run.id === id))} onRemoveRuns={removeRuns}
           onNewTask={() => { selectRun(); if (!isRunning) setDraft({ title: "HTTP functional test", prompt: "", endpoint: "", method: "GET" }); }}

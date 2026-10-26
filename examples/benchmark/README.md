@@ -50,7 +50,11 @@ reviewer's name and set `reviewed: true` only when finished. Do not use model
 outputs as the source of reference labels. Corrections to patches or source require
 a new benchmark run; do not relabel an old fault probe as a different fault.
 
-For every run, edit its `review.json`:
+Benchmarks and independent annotations are an offline CLI/file workflow. The
+website Evaluation page only summarizes individual project verification runs; it
+does not upload reference labels, annotate benchmark outputs or run benchmarks.
+
+For every run, edit its `review.json` in a JSON editor:
 
 - `issues`, `gaps`, `inconsistencies`: match each actual finding to a reference ID,
   or leave `match: null` for a false positive. Set `evidenceSupported` independently.
@@ -110,3 +114,46 @@ for killed as well as surviving mutants.
 
 Zero or missing denominators produce `null`. This pilot does not yet cover all
 failure classes, medium-sized projects, cost/latency distributions or user studies.
+
+## Repeated review and diagnosis decisions
+
+```sh
+npm run evaluate:decisions -- 3
+npm run evaluate:decisions -- score .evidence/decision-evaluation/<directory>
+```
+
+The first command makes 33 paid model calls: eleven small development cases, three
+identical-input repetitions each, without retries. It uses the production review
+and diagnosis tasks and reasoning function. The second command only re-scores saved
+evidence and needs no API key. It does not execute the complete verification agent.
+
+Inputs contain requirements, source, proposed tests and synthetic trace summaries.
+Docker regression verifies the snippets reproduce their stated pass/fail/import-error
+scenarios. Cases use neutral IDs. Draft reference labels are stored separately and
+never sent to the model. Frozen inputs, task text, raw responses/errors, latency,
+agent/dependency fingerprint and per-input hashes are retained in each output directory.
+Failures and missing repetitions remain in consistency denominators; invalid IDs,
+quotes or response shapes are not silently counted as blocked tests.
+
+Unanimity measures classification agreement, not correctness or equivalence of
+explanations. A model can consistently support an invalid test. Accuracy, diagnosis
+accuracy and false-support rate remain null while copied reference.json is unreviewed
+or any repeat is missing/invalid. Independently check every draft label, enter the
+reviewer name and set reviewed=true before re-scoring. More than one diagnosis label
+may be defensible when the source contract is ambiguous; record the accepted set
+rather than inventing a unique cause. Predictions must not become their own labels.
+
+This is a focused component check of raw model classification, not a measurement of
+the complete Agent's admission gates, repair safety or held-out accuracy. Use new
+independently authored cases and freeze them before tuning for a held-out study.
+
+The original C01 and C03 value-only tests do not establish their assigned return-type
+claims; current draft labels mark these proposals blocked. C10 and C11 are positive
+controls with separate semantic-type and value assertions. Docker tests show that
+wrong-type outputs can pass the older equality-only tests and fail the positive
+controls. C08 now uses the documented precedence: an invented exact expectation in
+a generated test is a test-generation error, while the vague requirement remains
+context requiring clarification. These are revised development labels, not independent
+review. Earlier evidence retains its copied input cases, task text and draft labels.
+Compare unchanged overlapping input hashes when dataset versions differ; do not
+compare the eleven-case aggregate directly with the older nine-case aggregate.

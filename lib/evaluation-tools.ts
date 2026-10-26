@@ -1,9 +1,32 @@
 import { testFile } from "./runtime";
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { importProject, measureProject, writeTests } from './python-tools';
 import type { Gold, FaultProbe } from './evaluation';
 import type { Measurement, PythonReport } from './python-types';
+
+/** Independently execute fixed contract witnesses; never expose them to the agent. */
+export async function validateReference(root: string, archive: Buffer, gold: Gold, oracle: string, signal: AbortSignal) {
+  let sourceFingerprint = '';
+  const check = async (name: string, corrected: boolean) => {
+    const directory = join(root, name);
+    const snapshot = await importProject(directory, archive);
+    if (!corrected) sourceFingerprint = snapshot.fingerprint;
+    if (corrected && gold.fault) {
+      const { file, before, after } = gold.fault;
+      if (snapshot.files[file]?.split(before).length !== 2) throw new Error('Reference patch must match exactly once.');
+      await writeFile(join(directory, 'source', file), snapshot.files[file].replace(before, after));
+    }
+    await writeTests(directory, [{ id: 'T1', behaviorId: 'oracle', functionName: 'test_contract', gapIndexes: [], code: oracle, quote: 'External fixed contract witnesses.', purpose: 'Validate the reference fixture outside model context.', approved: true }]);
+    return measureProject(directory, [], true, signal);
+  };
+  const original = await check('original', false);
+  const corrected = gold.fault ? await check('corrected', true) : undefined;
+  const usable = (measurement: Measurement) => measurement.integrity && !measurement.timedOut && measurement.outcomes.length > 0 && !measurement.outcomes.some(outcome => ['error', 'skipped'].includes(outcome.status));
+  const valid = usable(original) && original.exitCode === (gold.fault ? 1 : 0) && (!corrected || usable(corrected) && corrected.exitCode === 0 && corrected.outcomes.every(outcome => outcome.status === 'passed'));
+  return { valid: !!valid, sourceFingerprint, faultHash: createHash('sha256').update(JSON.stringify(gold.fault || null)).digest('hex'), oracleHash: createHash('sha256').update(oracle).digest('hex'), original, corrected, scope: 'Fixed executable contract witnesses only; not independent semantic review or complete specification coverage.' };
+}
 
 /** Check generated failures on a separate corrected copy; never change agent inputs. */
 export async function probeFault(root: string, archive: Buffer, gold: Gold, report: PythonReport, signal: AbortSignal): Promise<FaultProbe | undefined> {

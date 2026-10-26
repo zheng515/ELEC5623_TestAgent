@@ -1,0 +1,411 @@
+{
+  "id": "b523cbf1-5242-4ee3-a918-5180c98ada99",
+  "variant": "B2",
+  "title": "booking",
+  "createdAt": "2026-10-26T04:02:26.161Z",
+  "model": "gpt-6-luna",
+  "source": "examples/benchmark/booking/project",
+  "fingerprint": "0f46fe3838df7af05e25238d85e735b9e592cbbceb481f423eaeb311ee38dd13",
+  "status": "completed",
+  "stage": "Complete",
+  "rules": [
+    {
+      "id": "R1",
+      "text": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+    },
+    {
+      "id": "R2",
+      "text": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+    },
+    {
+      "id": "R3",
+      "text": "For negative built-in int hours, booking.cancellation_fee raises ValueError."
+    },
+    {
+      "id": "R4",
+      "text": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_cancellation_fee_at_and_above_24_hours",
+      "gapIndexes": [
+        0,
+        1
+      ],
+      "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_and_above_24_hours():\n    for hours in (24, 25, 48, 100):\n        result = cancellation_fee(hours)\n        assert isinstance(result, int) and not isinstance(result, bool)\n        assert result == 0",
+      "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+      "purpose": "Checks the inclusive 24-hour boundary and additional values in the required range, including the existing test's 48-hour input.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T1",
+        "supported": true,
+        "reason": "Checks exactly 24 and additional built-in integer values at least 24, covering both assigned gaps. The assertions verify an integer result without accepting bool, and the required value of 0.",
+        "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+      },
+      "review": "Checks exactly 24 and additional built-in integer values at least 24, covering both assigned gaps. The assertions verify an integer result without accepting bool, and the required value of 0."
+    },
+    {
+      "id": "T2",
+      "behaviorId": "B2",
+      "functionName": "test_cancellation_fee_from_zero_through_23_hours",
+      "gapIndexes": [
+        0,
+        1
+      ],
+      "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_from_zero_through_23_hours():\n    for hours in (0, 12, 23):\n        result = cancellation_fee(hours)\n        assert isinstance(result, int) and not isinstance(result, bool)\n        assert result == 2500",
+      "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+      "purpose": "Checks both endpoints of the specified range and an interior value, including the promised integer return type.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T2",
+        "supported": true,
+        "reason": "Checks both range endpoints and an interior built-in integer, covering both assigned gaps. It separately verifies the integer return type and required value of 2500.",
+        "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+      },
+      "review": "Checks both range endpoints and an interior built-in integer, covering both assigned gaps. It separately verifies the integer return type and required value of 2500."
+    },
+    {
+      "id": "T3",
+      "behaviorId": "B3",
+      "functionName": "test_cancellation_fee_rejects_negative_hours",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import pytest\nfrom booking import cancellation_fee\n\n\ndef test_cancellation_fee_rejects_negative_hours():\n    with pytest.raises(ValueError):\n        cancellation_fee(-1)",
+      "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+      "purpose": "Checks that a negative built-in integer raises the required exception.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T3",
+        "supported": true,
+        "reason": "Checks that a negative built-in integer raises the required ValueError, covering the assigned gap.",
+        "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError."
+      },
+      "review": "Checks that a negative built-in integer raises the required ValueError, covering the assigned gap."
+    },
+    {
+      "id": "T4",
+      "behaviorId": "B4",
+      "functionName": "test_cancellation_fee_rejects_bool_and_string",
+      "gapIndexes": [
+        0,
+        1
+      ],
+      "code": "import pytest\nfrom booking import cancellation_fee\n\n\ndef test_cancellation_fee_rejects_bool_and_string():\n    for hours in (True, \"1\"):\n        with pytest.raises(TypeError):\n            cancellation_fee(hours)",
+      "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+      "purpose": "Checks the explicitly included bool case and a string argument whose type is not built-in int.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T4",
+        "supported": true,
+        "reason": "Checks TypeError for bool and a string, covering both assigned gaps and the specified non-built-in-int cases.",
+        "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+      },
+      "review": "Checks TypeError for bool and a string, covering both assigned gaps and the specified non-built-in-int cases."
+    }
+  ],
+  "measurements": [
+    {
+      "outcomes": [
+        {
+          "node": "tests/test_booking.py::test_early_cancellation",
+          "file": "tests/test_booking.py",
+          "name": "test_early_cancellation",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_cancellation_fee_at_and_above_24_hours",
+          "status": "failed",
+          "message": "def test_cancellation_fee_at_and_above_24_hours():\n        for hours in (24, 25, 48, 100):\n            result = cancellation_fee(hours)\n            assert isinstance(result, int) and not isinstance(result, bool)\n>           assert result == 0\nE           assert 2500 == 0\n\nreqtest_generated/test_reqtest_T1.py:8: AssertionError"
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T2.py::test_cancellation_fee_from_zero_through_23_hours",
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "name": "test_cancellation_fee_from_zero_through_23_hours",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T3.py::test_cancellation_fee_rejects_negative_hours",
+          "file": "reqtest_generated/test_reqtest_T3.py",
+          "name": "test_cancellation_fee_rejects_negative_hours",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T4.py::test_cancellation_fee_rejects_bool_and_string",
+          "file": "reqtest_generated/test_reqtest_T4.py",
+          "name": "test_cancellation_fee_rejects_bool_and_string",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 1,
+      "log": ".F...                                                                    [100%]\n=================================== FAILURES ===================================\n_________________ test_cancellation_fee_at_and_above_24_hours __________________\n\n    def test_cancellation_fee_at_and_above_24_hours():\n        for hours in (24, 25, 48, 100):\n            result = cancellation_fee(hours)\n            assert isinstance(result, int) and not isinstance(result, bool)\n>           assert result == 0\nE           assert 2500 == 0\n\nreqtest_generated/test_reqtest_T1.py:8: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours\n1 failed, 4 passed in 0.02s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  ],
+  "mutations": [],
+  "diagnoses": [
+    {
+      "testId": "T1",
+      "category": "generated_test_error",
+      "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+      "quote": "",
+      "executionQuote": "",
+      "evidence": [],
+      "phase": "execution"
+    }
+  ],
+  "relevance": [],
+  "improvements": [],
+  "states": [
+    {
+      "id": "B1",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "tests/test_booking.py::test_early_cancellation",
+        "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_cancellation_fee_from_zero_through_23_hours"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_cancellation_fee_rejects_negative_hours"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_cancellation_fee_rejects_bool_and_string"
+      ]
+    }
+  ],
+  "limitations": [
+    "Dataset purpose: pilot. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis."
+  ],
+  "configuration": {
+    "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+    "improvementLimit": 1,
+    "mutationSeconds": 75
+  },
+  "environment": {
+    "python": "3.11.17",
+    "pytest": "8.4.2",
+    "mutmut": "2.5.1"
+  },
+  "collection": {
+    "exitCode": 0,
+    "log": "tests/test_booking.py::test_early_cancellation\n\n1 test collected in 0.00s\n",
+    "timedOut": false
+  },
+  "retrieval": {
+    "query": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24. For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents. For negative built-in int hours, booking.cancellation_fee raises ValueError. For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+    "documents": [
+      {
+        "file": "README.md",
+        "text": "# Booking API\n\nImport `cancellation_fee` from `booking`. The input is the number of full hours\nbefore a booking. The returned fee is in integer cents. No external services or\nthird-party dependencies are needed beyond pytest.\n",
+        "score": 131.32248122586918,
+        "sha256": "25de849024521b944e1245f38425a94cde960b8e78b7300cd65bf0c6b601134e"
+      }
+    ]
+  },
+  "analysis": {
+    "behaviors": [
+      {
+        "id": "B1",
+        "ruleId": "R1",
+        "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+        "text": "For built-in int hours >= 24, the function must return the built-in integer 0, including at 24.",
+        "category": "boundary",
+        "issue": "none",
+        "reason": "The requirement specifies both the result and the inclusive boundary.",
+        "files": [
+          "booking.py",
+          "tests/test_booking.py"
+        ],
+        "existingTests": [
+          "tests/test_booking.py::test_early_cancellation"
+        ],
+        "evidence": [
+          {
+            "file": "booking.py",
+            "quote": "    return 0 if hours > 24 else 2500"
+          },
+          {
+            "file": "tests/test_booking.py",
+            "quote": "    assert cancellation_fee(48) == 0"
+          }
+        ],
+        "gaps": [
+          "0: Add a check at exactly 24 hours; the existing test only checks 48.",
+          "1: Add checks at additional values >= 24 to cover the stated range."
+        ]
+      },
+      {
+        "id": "B2",
+        "ruleId": "R2",
+        "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+        "text": "For built-in integer hours from 0 through 23, the function must return the built-in integer 2500.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "The requirement specifies the accepted input range and exact return value.",
+        "files": [
+          "booking.py",
+          "tests/test_booking.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "booking.py",
+            "quote": "    return 0 if hours > 24 else 2500"
+          }
+        ],
+        "gaps": [
+          "0: Add checks for 0 and 23, the endpoints of the required range.",
+          "1: Add a check for a value within 1 through 22."
+        ]
+      },
+      {
+        "id": "B3",
+        "ruleId": "R3",
+        "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+        "text": "For negative built-in integer hours, the function must raise ValueError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The required exception and triggering condition are specified.",
+        "files": [
+          "booking.py",
+          "tests/test_booking.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "booking.py",
+            "quote": "        raise ValueError(\"hours must be nonnegative\")"
+          }
+        ],
+        "gaps": [
+          "0: Add a test asserting ValueError for a negative built-in integer."
+        ]
+      },
+      {
+        "id": "B4",
+        "ruleId": "R4",
+        "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+        "text": "For every argument whose exact type is not built-in int, including bool, the function must raise TypeError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The requirement defines the type condition and explicitly includes bool.",
+        "files": [
+          "booking.py",
+          "tests/test_booking.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "booking.py",
+            "quote": "    if type(hours) is not int:"
+          },
+          {
+            "file": "booking.py",
+            "quote": "        raise TypeError(\"hours must be an integer\")"
+          }
+        ],
+        "gaps": [
+          "0: Add a test asserting TypeError for bool.",
+          "1: Add a test asserting TypeError for a non-int argument such as a string."
+        ]
+      }
+    ],
+    "inconsistencies": [
+      {
+        "ruleId": "R1",
+        "behaviorIds": [
+          "B1"
+        ],
+        "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+        "description": "The implementation returns 2500 at exactly 24 because its condition is strictly greater than 24, conflicting with the requirement that 24 returns 0.",
+        "evidence": [
+          {
+            "file": "booking.py",
+            "quote": "    return 0 if hours > 24 else 2500"
+          }
+        ]
+      }
+    ]
+  },
+  "baseline": {
+    "outcomes": [
+      {
+        "node": "tests/test_booking.py::test_early_cancellation",
+        "file": "tests/test_booking.py",
+        "name": "test_early_cancellation",
+        "status": "passed",
+        "message": ""
+      }
+    ],
+    "exitCode": 0,
+    "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+    "timedOut": false,
+    "integrity": true,
+    "runtimeArtifacts": []
+  },
+  "initialStates": [
+    {
+      "id": "B1",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "tests/test_booking.py::test_early_cancellation",
+        "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_cancellation_fee_from_zero_through_23_hours"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_cancellation_fee_rejects_negative_hours"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_cancellation_fee_rejects_bool_and_string"
+      ]
+    }
+  ],
+  "elapsedMs": 28583
+}

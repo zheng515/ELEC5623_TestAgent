@@ -1,0 +1,84 @@
+{
+  "datasetHash": "4802e2a635c32f7ccaeb5eb7228ab3e6df1f4580fa67b249fe2f9725b2db8338",
+  "reviewed": false,
+  "reviewer": "",
+  "labels": [
+    {
+      "id": "C01",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The assigned behavior claims integer 0, but equality alone also accepts False and 0.0. Value and type need distinct assertions. This corrected development label remains pending independent review."
+    },
+    {
+      "id": "C02",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The expected 1000 contradicts the stated zero fee."
+    },
+    {
+      "id": "C03",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The assigned behavior promises datetime results. Equality with an expected datetime does not explicitly check the actual result type; the type and instant claims need distinct assertions. This corrected development label remains pending independent review."
+    },
+    {
+      "id": "C04",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "Concrete timezone-object identity is not required."
+    },
+    {
+      "id": "C05",
+      "allowed": [
+        "generated_test_error"
+      ],
+      "rationale": "Expected 1 contradicts the original zero-fee contract."
+    },
+    {
+      "id": "C06",
+      "allowed": [
+        "potential_implementation_defect"
+      ],
+      "rationale": "The valid inclusive-boundary test fails on the exclusive implementation."
+    },
+    {
+      "id": "C07",
+      "allowed": [
+        "generated_test_error"
+      ],
+      "rationale": "The only failing extra assertion requires an unspecified concrete timezone class."
+    },
+    {
+      "id": "C08",
+      "allowed": [
+        "generated_test_error"
+      ],
+      "rationale": "The generated artifact invents an exact zero-fee expectation absent from the vague contract. The unsupported assertion is a generated-test error; requirement ambiguity is additional context, not evidence of an implementation defect. Pending independent review."
+    },
+    {
+      "id": "C09",
+      "allowed": [
+        "environment_failure"
+      ],
+      "rationale": "A missing imported dependency prevents test collection."
+    },
+    {
+      "id": "C10",
+      "allowed": [
+        "supported"
+      ],
+      "rationale": "The threshold value and semantic integer type are checked independently; bool is not accepted as an integer fee. Pending independent review."
+    },
+    {
+      "id": "C11",
+      "allowed": [
+        "supported"
+      ],
+      "rationale": "Both datetime result types and their stated instants are checked without requiring a concrete timezone representation. Pending independent review."
+    }
+  ]
+}

@@ -1,36 +1,47 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initialDocumentBlocks, numberedDocumentBlocks } from '../lib/document-selection';
+import { uncertainOcr } from '../lib/document-selection';
+import { documentText, textRequirements, ruleSources } from '../lib/requirement-input';
 import type { RequirementDocument } from '../lib/requirements';
 
-test('default selection excludes uncertain OCR and respects the run input limits', () => {
-  const document: RequirementDocument = { id: 'fixture', fileName: 'requirements.pdf', sha256: 'fixture', format: 'pdf', pages: [], warnings: [], segments: [
-    { id: 'S1', text: 'Native requirement', location: 'Page 1', page: 1, extraction: 'text' },
-    { id: 'S2', text: 'Uncertain transcription', location: 'Page 2', page: 2, extraction: 'ocr', confidence: 42 },
-    { id: 'S3', text: 'Clear scanned requirement', location: 'Page 3', page: 3, extraction: 'ocr', confidence: 90 },
-    { id: 'S4', text: 'Missing confidence', location: 'Page 4', page: 4, extraction: 'ocr' },
+function fixture(): RequirementDocument {
+  return { id: 'document', fileName: 'SRS.pdf', sha256: 'original-hash', format: 'pdf', warnings: [], pages: [], segments: [
+    { id: 'S1', text: 'R1: Return integer zero at the threshold.', location: 'Page 1, paragraph 1', page: 1, extraction: 'text' },
+    { id: 'S2', text: 'R2: Reject invalid inputs.\nKeep the original multiline statement.', location: 'Page 2, paragraph 1', page: 2, extraction: 'ocr', confidence: 42 },
   ] };
-  assert.deepEqual(initialDocumentBlocks(document), ['S1', 'S3']);
-  document.segments[0].text = 'x'.repeat(12001);
-  assert.deepEqual(initialDocumentBlocks(document), []);
-  document.segments = Array.from({ length: 13 }, (_, index) => ({ id: 'S' + index, text: 'Requirement', location: 'Line ' + index }));
-  assert.deepEqual(initialDocumentBlocks(document), []);
+}
+test('upload text includes every extracted block and preserves multiline text and OCR provenance', () => {
+  const document = fixture(), text = documentText(document), rules = textRequirements(text, document);
+  assert.equal(text, document.segments.map(segment => segment.text).join('\n\n'));
+  assert.equal(rules.length, 2);
+  assert.deepEqual(rules.flatMap(rule => ruleSources(rule).map(source => source.segmentId)), ['S1', 'S2']);
+  assert.equal(rules[1].source?.confidence, 42); assert.equal(rules[1].source?.page, 2);
+  assert.equal(uncertainOcr(rules[1].source!), true);
 });
-
-test('numbered selection preserves original blocks, excludes low-confidence OCR and never truncates', () => {
-  const document: RequirementDocument = { id: 'fixture', fileName: 'SRS.md', sha256: 'fixture', format: 'md', pages: [], warnings: [], segments: [
-    { id: 'S1', text: '# Functional requirements', location: 'Line 1' },
-    { id: 'S2', text: 'R1: The fee must be zero.', location: 'Line 3' },
-    { id: 'S3', text: 'FR-CAL-002\nInvalid inputs raise TypeError.', location: 'Body block 2, table row 1' },
-    { id: 'S4', text: 'R3: Uncertain scan.', location: 'Page 2', extraction: 'ocr', confidence: 40 },
-    { id: 'S5', text: '| R1 | 10000 | 0 |', location: 'Line 9' },
-    { id: 'S6', text: 'Additional unnumbered rules must remain visible.', location: 'Line 11' },
-  ] };
-  const original = JSON.stringify(document);
-  assert.deepEqual(numberedDocumentBlocks(document), { count: 2, ids: ['S2', 'S3'] });
-  assert.equal(JSON.stringify(document), original, 'Selection must not rewrite requirement text or provenance');
-  document.segments = Array.from({ length: 13 }, (_, index) => ({ id: 'S' + index, text: 'REQ-' + (index + 1) + ': A requirement.', location: 'Line ' + index }));
-  assert.deepEqual(numberedDocumentBlocks(document), { count: 13, ids: [] });
-  document.segments = [{ id: 'S1', text: 'R1: ' + 'x'.repeat(12000), location: 'Line 1' }];
-  assert.deepEqual(numberedDocumentBlocks(document), { count: 1, ids: [] });
+test('35-block documents require no selection and retain all text and source locations', () => {
+  const document = fixture(); document.segments = Array.from({ length: 35 }, (_, i) => ({ id: 'S' + i, text: 'Document paragraph ' + i, location: 'Paragraph ' + i }));
+  const text = documentText(document), rules = textRequirements(text, document);
+  assert.equal(rules.length, 1); assert.equal(rules[0].text, text);
+  assert.equal(ruleSources(rules[0]).length, 35);
+});
+test('one multiline document paragraph stays intact and retains its citation', () => {
+  const document = fixture(); document.segments = [document.segments[1]];
+  const rules = textRequirements(documentText(document), document);
+  assert.equal(rules.length, 1); assert.equal(rules[0].text, document.segments[0].text);
+  assert.equal(rules[0].source?.segmentId, 'S2');
+});
+test('edited text loses its citation while unchanged paragraphs keep exact original links', () => {
+  const document = fixture(), text = documentText(document).replace('Return integer zero', 'Return integer one');
+  const rules = textRequirements(text, document);
+  assert.equal(ruleSources(rules[0]).length, 0);
+  assert.equal(ruleSources(rules[1])[0].quote, document.segments[1].text);
+  assert.equal(ruleSources(rules[1])[0].sha256, document.sha256);
+});
+test('plain text is not limited by line count, and excessive text is rejected without truncation', () => {
+  const text = Array.from({ length: 35 }, (_, i) => 'Requirement ' + i).join('\n');
+  assert.equal(textRequirements(text)[0].text, text);
+  assert.equal(textRequirements('A requirement.\nAnother requirement.').length, 2);
+  assert.equal(textRequirements('x'.repeat(12000))[0].text.length, 12000);
+  assert.throws(() => textRequirements('x'.repeat(12001)), /nothing is truncated/);
+  assert.throws(() => textRequirements(' \n '), /Enter requirements/);
 });

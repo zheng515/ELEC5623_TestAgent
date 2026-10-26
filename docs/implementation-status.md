@@ -1,6 +1,6 @@
 # Implementation status
 
-Audit date: 2026-10-20. Scope: the current Version 2 working tree, including
+Audit date: 2026-10-22. Scope: the current Version 2 working tree, including
 uncommitted implementation files. This is a capability audit, not an independent
 measurement of model accuracy or a production-readiness certification.
 
@@ -54,9 +54,11 @@ that all model-generated analyses or test oracles are correct.
 - Dependency preflight against an immutable sandbox image, without importing project code.
 - Clarification and re-run against an owned saved source snapshot, with linked report comparisons.
 - Browser reconnection and PostgreSQL-backed worker recovery with saved checkpoints.
-- Better Auth team roles, verified-email invitations and opt-in read-only report sharing.
+- Private accounts, reports and original requirement documents with owner-only access.
+- Workspace model selection and connection checks live in a Settings dialog; HTTP checks remain available.
+- Runtime, dependency installation and disposable test services live in collapsed Advanced settings. Project inputs share setup invalidation and are locked during preflight.
 - SMTP verification/reset flows and a loopback-only local Mailpit development mailbox.
-- Web evaluation annotation workspace and a target-project CI command/template.
+- Project-run evaluation dashboard with requirement/outcome charts, evidence checks and traceability; a target-project CI command/template.
 
 ## Resolved issues
 
@@ -107,13 +109,16 @@ reviewed mutation score; the updated sandbox retains these differences for new r
 ### Document and project limits
 
 PDF/DOC/DOCX/TXT/Markdown ingestion is connected. Extraction retains original bytes,
-SHA-256 and page/body-block locations. Only explicitly selected blocks enter a run.
+SHA-256 and page/body-block locations. All extracted text now fills the editable
+Requirements field automatically. Line/block selection has been removed. Exact
+unchanged excerpts retain original citations; edited text is user-provided. The
+12,000-character limit is enforced without truncation or a line-count limit.
 English OCR and LibreOffice DOC conversion pass Docker regression cases, including
 PDF pages containing native text and scanned images together. Each PDF page has an
 explicit extraction outcome. Low-confidence OCR is retained but not selected by
 default; confidence is not an accuracy score. OCR page/time budgets, partial
 failures, conversion timeout/errors, encrypted/damaged documents and source
-integrity failures are covered by controlled tests. Originals support owner/team
+integrity failures are covered by controlled tests. Originals support owner-only
 permissions and authenticated PDF page viewing. DOC locations explicitly refer to
 converted body blocks. Complex layout accuracy, handwriting, additional OCR
 languages and representative real-world scan quality remain outside this evidence.
@@ -139,10 +144,18 @@ Node suites, browser automation and general external services are unsupported.
 
 ### Evaluation and deployment limits
 
-The Evaluation UI collects independent human annotations and validates downloaded
-reviews; it does not complete human assessment automatically. A held-out manifest
-supports explicit dataset purpose and repeated runs. Existing development cases are
-not relabeled as held-out evidence.
+The Evaluation UI summarizes the signed-in user's project verification runs with
+requirement-state and test-outcome charts, source citations, integrity checks,
+phase-specific diagnoses and downloadable evidence. It does not measure independent
+accuracy or complete specification coverage. Benchmark execution, reference-label
+review and scoring are separate CLI/file workflows. A held-out manifest supports
+explicit dataset purpose and repeated runs. Existing development cases are not
+relabeled as held-out evidence.
+
+Project verification now shows task inputs, progress, a short summary and next
+actions. Its results link opens the same run in Evaluation, which owns detailed
+traceability and downloads. Original text is collapsed; retrieval and mutation
+records are grouped under Technical details.
 
 The target-project CI runner and manually triggered workflow template are implemented.
 Installing the workflow, selecting an immutable tool commit and configuring secrets
@@ -159,8 +172,9 @@ are fenced to the active worker attempt. Legacy in-memory runs remain explicitly
 interrupted after a restart. Use npm run dev:all or npm run start:all to start
 both processes; multi-host storage and hosted service supervision remain pending.
 
-Team membership and roles are provided by Better Auth. Reports are private by default
-and owners may share them for read-only team access. SMTP verification and recovery
+Team workspaces, invitations, roles and report sharing have been removed to keep
+the product focused on individual requirement verification. Accounts and reports
+are retained; legacy collaboration tables are unused. SMTP verification and recovery
 are connected, with local Mailpit for development. Real recipients require a real
 SMTP provider. Local production configuration checks and a paired web/worker
 launcher are implemented. Offline local-Compose backups include PostgreSQL, .data,
@@ -191,9 +205,9 @@ read-only Docker execution. Original document bytes, citations, pinned source,
 preflight, worker execution and private report access were checked. Only four of
 35 document blocks were selected; this is synthetic demonstration evidence.
 
-Readable explicitly numbered requirement blocks can now be selected with one
-action, within the existing limits and without silent truncation. Other document
-text still requires scope review. Test exports include runtime/run instructions,
+The document input now copies all extracted text into Requirements automatically.
+Source/extraction details are collapsed and no block-selection step is required.
+Oversized text remains visible for editing and cannot be submitted until shortened. Test exports include runtime/run instructions,
 source provenance and recorded outcomes alongside the approved artifacts.
 
 ### Real project compatibility
@@ -312,9 +326,105 @@ source/test integrity retained. Both attempts are preserved locally; this is rec
 evidence, not an independent diagnosis-accuracy estimate. Regression: 61 tests,
 58 passed, three optional tests skipped, zero failures.
 
+### Repeated component classification
+
+`npm run evaluate:decisions -- 3` evaluates nine small development cases three times
+with the production test-review and diagnosis tasks and reasoning function. Reference
+labels remain outside every model request. Frozen input/task snapshots, raw outputs,
+request errors, elapsed time and source/dependency fingerprints are retained. Re-scoring
+needs no API key. Duplicate attempts, changed inputs or agent versions are rejected;
+missing/invalid repeats remain in denominators. Accuracy and false-support metrics
+remain null until reference review is complete and every attempt is valid.
+
+The first real-model run returned 27 valid classifications, with six of nine cases
+unanimous. C01 varied over whether value equality sufficiently checks an integer-return
+contract; C04 once supported an extra timezone-object assertion and twice blocked it;
+C09 alternated between environment_failure and uncertain for a missing import.
+These are classification-consistency observations, not independently established error
+rates. The raw traces and draft reference labels remain available for review. Docker
+checks reproduce each snippet's pass/fail/import-error scenario. The fixtures use
+synthetic trace summaries and measure raw model decisions, not full Agent admission
+gates, repair safety or held-out accuracy. Regression: 67 tests, 64 passed, three
+optional tests skipped, zero failures; build, types, lint and language checks passed.
+
+### Decision boundaries and invalid analysis evidence
+
+Generation and review share an assertion policy: explicit return-type claims need
+separate semantic-type and value checks; every additional assertion needs original
+contract support. A timezone offset does not entail a named timezone identity.
+Failure diagnosis distinguishes an unavailable implementation dependency from an
+invented generated import, and an unsupported exact expectation from competing
+supported requirement interpretations. Source/log citation fields remain separate.
+
+Development references for C01/C03 were corrected: equality-only tests do not
+establish their assigned integer/datetime type claims. C08 uses the explicit
+classification precedence for invented expectations in generated tests. References
+remain unreviewed. New C10/C11 controls check type and value independently. Real
+Docker probes demonstrate wrong-type values passing the older checks and failing
+the stronger controls; correct values pass both. Historical copied labels are retained.
+
+The final component experiment returned 33 valid decisions. All eleven cases were
+unanimous across three repetitions, including the two supported positive controls.
+The original nine input hashes are unchanged: identical-label agreement increased
+from 6/9 to 9/9 on shared cases. This is development consistency, not held-out accuracy;
+accuracy and false-support metrics remain null pending independent review. A prior
+intermediate experiment remains available and exposed additional type/ambiguity
+boundaries before the final policy. The later analysis-correction change leaves the
+component review/diagnosis tasks unchanged; these component results are not a test
+of whole-agent recovery.
+
+A fixed production demo then exposed invalid analysis citations: escaped newlines
+and a paraphrased document sentence. The workflow now requests at most one correction,
+retains the original response/error in analysisCorrection, and applies the same exact
+validation again. A second unsupported analysis stops the run. No source text is
+normalized or accepted by fuzzy matching. Docker regression exercises both successful
+correction and refusal of a second invalid response without changing implementation.
+
+The final fixed GitHub/SRS acceptance used commit
+`e5e22a108ede7d1ca0288de0139d27b996c6291b` and the unchanged original SRS, selecting
+four functional blocks. Four generated artifacts were approved: three passed and
+one exposed the seeded exact-threshold defect, with zero execution errors. The
+product-generated test ZIP reproduced the same result in a separate read-only,
+network-isolated Docker run. Source integrity was retained, the defect was diagnosed
+and no improvement action modified a valid failing assertion. The final analysis
+was valid on its first response; the correction path is exercised by controlled
+Docker regression. The earlier real-model citation failure remains saved separately.
+Regression: 69 tests, 66 passed, three optional tests skipped, zero failures; types,
+lint, English check and production build passed. Independent review remains pending.
+
+## Controlled automated experiments: 2026-10-26
+
+Three synthetic development projects ran across B0–B3, three repetitions each:
+36 completed runs and 96 real model requests. Model, source, requirements and Docker
+image were fixed within the experiment. External contract witnesses validated the
+original/corrected reference copies without entering model context. Per-request
+latency, usage, input archives, source snapshots and failure traces are retained.
+
+All configurations completed 9/9 runs. On six seeded-fault runs per configuration,
+B0, B1 and B3 detected 6/6; B2 detected 5/6. All initially detected faults remained
+detected. B2 inventory repetition 1 blocked the equality test's exact return-class
+assertion, leaving the explicit boundary defect unexecuted. B3 shipping repetition
+3 retained a weak suite with only 1/9 raw mutants killed, compared with 7/9 in the
+other shipping measurements. These are failure observations, not independently
+reviewed error classifications. No run produced two comparable complete mutation
+measurements, so no mutation-improvement delta is claimed.
+
+Standalone CSV/JSON results, PNG/SVG figures and a portable evidence subset are in
+`experiments/results/2026-10-26`. Re-scoring the exported evidence reproduces the
+same metrics without model calls. Independent semantic/diagnosis/mutation-quality
+metrics remain unavailable as requested; this is not held-out evidence or proof that
+B3 outperforms direct generation. No final academic report was authored.
+
+Next.js and matching tooling were updated to 16.4.3, Zod to 4.6.7, and vulnerable
+transitive dependencies patched. The current npm audit reports zero known
+vulnerabilities. Regression: 83 passed, three optional tests skipped, zero failed;
+lint, types, English checks and production build passed. The post-run API-key
+non-null type assertion emits identical JavaScript, verified against the frozen
+runner and recorded in its source-equivalence artifact.
+
 ## Recommended order
 
-1. Independently review the pilot labels and run a held-out B0–B3 evaluation.
+1. Independently review the revised development labels and run a held-out B0–B3 evaluation; monitor type, oracle and diagnosis boundaries on new inputs.
 2. Review the supported document/layout and dependency scope on target demo projects.
 3. Configure real SMTP, encrypted off-machine backups and target-repository CI for any hosted deployment.
 

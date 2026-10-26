@@ -53,7 +53,7 @@ test('real registration, password verification, protected routes and per-user re
   const longest = await call('sign-up/email', { name: 'Maximum password length', email: randomUUID() + '@example.test', password: 'Aa1' + 'x'.repeat(125) });
   assert.equal(longest.status, 200, '128-character passwords must be accepted');
   await database.query('INSERT INTO runs(id,user_id,report) VALUES($1,$2,$3),($4,$5,$6)', ['own', user.id, JSON.stringify({ id: 'own' }), 'other', otherUser.id, JSON.stringify({ id: 'other' })]);
-  assert.deepEqual(await (await routes.GET(new Request(base + '/api/python', { headers: { Cookie: cookie } }))).json(), [{ id: 'own', access: 'owner', sharedWith: null }]);
+  assert.deepEqual(await (await routes.GET(new Request(base + '/api/python', { headers: { Cookie: cookie } }))).json(), [{ id: 'own' }]);
   assert.equal((await routes.GET(new Request(base + '/api/python?id=other', { headers: { Cookie: cookie } }))).status, 404);
   const { jobs } = await import('../lib/python-jobs');
   await database.query('INSERT INTO runs(id,user_id,report) VALUES($1,$2,$3)', ['interrupted', user.id, JSON.stringify({id:'interrupted',status:'running',states:[{id:'B1',status:'Verified',reason:'Old',nodes:[]}]} )]);
@@ -82,22 +82,17 @@ test('real registration, password verification, protected routes and per-user re
   assert.equal(controller.signal.aborted,false);
   assert.equal((await routes.PATCH(new Request(base+'/api/python',{method:'PATCH',headers:{Cookie:cookie,'Content-Type':'application/json'},body:JSON.stringify({id:'own'})}))).status,200);
   assert.equal(controller.signal.aborted,true); jobs.active.delete(user.id);
-  await database.query('UPDATE "user" SET "emailVerified"=true WHERE id=$1', [otherUser.id]);
-  const createdTeam = await call('organization/create',{name:'Test workspace',slug:'test-'+randomUUID()},cookie);
-  assert.equal(createdTeam.status,200); const team = await createdTeam.json();
-  const invitation = await call('organization/invite-member',{email:otherUser.email,role:'member',organizationId:team.id},cookie);
-  assert.equal(invitation.status,200); const invite = await invitation.json();
-  assert.equal((await call('organization/accept-invitation',{invitationId:invite.id},otherCookie)).status,200);
-  const share = (value: string | null, cookieValue: string) => routes.PATCH(new Request(base+'/api/python',{method:'PATCH',headers:{Cookie:cookieValue,'Content-Type':'application/json'},body:JSON.stringify({id:'own',organizationId:value})}));
-  assert.equal((await share(team.id,cookie)).status,200);
-  assert.equal((await readOriginal(otherCookie)).status, 200, 'Shared readers can view the original PDF');
-  const sharedReport = await (await routes.GET(new Request(base+'/api/python?id=own',{headers:{Cookie:otherCookie}}))).json();
-  assert.equal(sharedReport.access,'team'); assert.equal(sharedReport.sharedWith,team.id);
-  assert.equal((await share(null,otherCookie)).status,404,'A reader cannot change sharing');
-  assert.equal((await call('organization/invite-member',{email:'nobody@example.test',role:'admin',organizationId:team.id},otherCookie)).status,403,'Members cannot invite administrators');
-  assert.equal((await call('organization/remove-member',{memberIdOrEmail:otherUser.email,organizationId:team.id},cookie)).status,200);
-  assert.equal((await routes.GET(new Request(base+'/api/python?id=own',{headers:{Cookie:otherCookie}}))).status,404,'Removed members lose report access');
-  assert.equal((await readOriginal(otherCookie)).status, 404, 'Removed members lose original document access');
+  for (const path of ['organization/create', 'organization/invite-member', 'organization/accept-invitation']) {
+    assert.equal((await call(path, {}, cookie)).status, 404, 'Removed collaboration endpoints must be unavailable');
+  }
+  const stopController = new AbortController(); jobs.active.set(user.id, { id: 'own', controller: stopController });
+  try {
+    const retiredShare = await routes.PATCH(new Request(base + '/api/python', { method: 'PATCH', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 'own', organizationId: null }) }));
+    assert.equal(retiredShare.status, 400, 'A retired sharing request must not become a stop request');
+    assert.equal(stopController.signal.aborted, false);
+  } finally { jobs.active.delete(user.id); }
+  assert.equal((await routes.GET(new Request(base + '/api/python?id=own', { headers: { Cookie: otherCookie } }))).status, 404);
+  assert.equal((await readOriginal(otherCookie)).status, 404);
   await writeFile(join(documentRoot, 'original'), 'changed original');
   assert.equal((await readOriginal(cookie)).status, 409, 'Changed originals must not be served under an old source hash');
   const parentId = randomUUID();

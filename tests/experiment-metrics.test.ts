@@ -1,0 +1,68 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { pairedMutationCounts, summarizeExperiment, experimentRow, type ExperimentItem } from '../lib/experiment-metrics';
+import type { PythonReport, Mutation } from '../lib/python-types';
+
+function fixture(): ExperimentItem {
+  const fault = { id: 'boundary', file: 'fee.py', before: '> 10', after: '>= 10' };
+  const report: PythonReport = { id: 'run', title: 'case', variant: 'B3', model: 'fixture', source: 'fixture', fingerprint: 'source', createdAt: '2026-10-26', status: 'completed', stage: 'Complete', rules: [{ id: 'R1', text: 'At 10 the fee is zero.' }], tests: [{ id: 'T1', behaviorId: 'B1', functionName: 'test_fee', gapIndexes: [], code: '', quote: 'At 10 the fee is zero.', purpose: 'Threshold', approved: true }], measurements: [{ outcomes: [{ node: 'reqtest_generated/test_reqtest_T1.py::test_fee', file: 'reqtest_generated/test_reqtest_T1.py', name: 'test_fee', status: 'failed', message: 'boundary' }], exitCode: 1, integrity: true, timedOut: false, log: '' }], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: [] };
+  const corrected = structuredClone(report.measurements[0]); corrected.outcomes[0].status = 'passed'; corrected.exitCode = 0;
+  return { entry: { caseId: 'case', variant: 'B3', repeat: 1, report: 'report.json', gold: 'gold.json', review: 'review.json', elapsedMs: 2000, fault: { id: 'boundary', beforeDetected: true, afterDetected: true, corrected: [corrected, corrected] } }, report, gold: { reviewed: false, reviewer: '', issues: [], inconsistencies: [], behaviors: [{ id: 'threshold', ruleId: 'R1', description: 'Threshold', initialGap: true }], fault }, reference: { valid: true, sourceFingerprint: 'source', oracleHash: 'oracle', faultHash: createHash('sha256').update(JSON.stringify(fault)).digest('hex') }, requests: [{ elapsedMs: 100, usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 } }] };
+}
+test('a failing contract check can be a successful detection without claiming semantic accuracy', () => {
+  const result = summarizeExperiment([fixture()]);
+  assert.equal(result.summary[0].completedWithExecutionRate, 1);
+  assert.equal(result.summary[0].correctedCopyDetectionRate, 1);
+  assert.equal(result.summary[0].independentSemanticAccuracy, null);
+  assert.equal(result.rows[0].failed, 1);
+});
+test('every missing planned run remains in denominators and prevents complete detection and token totals', () => {
+  const item = fixture(), missing = fixture(); missing.entry.repeat = 2; delete missing.report; delete missing.requests;
+  const result = summarizeExperiment([item, missing]).summary[0];
+  assert.equal(result.plannedRuns, 2); assert.equal(result.completionRate, .5);
+  assert.equal(result.missing, 1); assert.equal(result.unresolvedFaultRuns, 1);
+  assert.equal(result.correctedCopyDetectionRate, null); assert.equal(result.totalTokens, null);
+});
+test('changed references or source cannot earn automated fault-detection credit', () => {
+  for (const field of ['sourceFingerprint', 'faultHash'] as const) {
+    const item = fixture(); item.reference![field] = 'changed';
+    assert.equal(experimentRow(item).faultAfter, null);
+  }
+  const item = fixture(); item.report!.status = 'failed';
+  assert.equal(experimentRow(item).faultAfter, null);
+});
+test('a saved detection flag without the matching corrected execution is not evidence', () => {
+  const item = fixture(); item.entry.fault!.corrected = [];
+  assert.equal(experimentRow(item).faultAfter, null);
+  item.entry.fault!.corrected = [structuredClone(item.report!.measurements[0]), structuredClone(item.report!.measurements[0])];
+  assert.equal(experimentRow(item).faultAfter, false);
+});
+test('preservation excludes cases that never initially detected a fault', () => {
+  const item = fixture(); item.entry.fault!.beforeDetected = false; item.report!.measurements[0].outcomes[0].status = 'passed';
+  const result = summarizeExperiment([item]).summary[0];
+  assert.equal(result.initialDetections, 0); assert.equal(result.preservedDetectionRate, null);
+});
+test('unknown request usage stays unavailable rather than being billed as zero tokens', () => {
+  const item = fixture(); item.requests!.push({ elapsedMs: 200, error: 'Request failed.' });
+  const result = experimentRow(item);
+  assert.equal(result.modelRequests, 2); assert.equal(result.requestErrors, 1); assert.equal(result.totalTokens, null);
+});
+test('duplicate runs, mixed source and mixed requirements are rejected', () => {
+  assert.throws(() => summarizeExperiment([fixture(), fixture()]), /Duplicate/);
+  for (const change of [(report: PythonReport) => { report.fingerprint = 'other'; }, (report: PythonReport) => { report.rules[0].text = 'Other requirement'; }]) {
+    const a = fixture(), b = fixture(); b.entry.repeat = 2; change(b.report!);
+    assert.throws(() => summarizeExperiment([a, b]), /identical source/);
+  }
+});
+test('mutation deltas require two actual complete measurements with identical scope and diffs', () => {
+  const before: Mutation = { incomplete: false, timedOut: false, log: '', mutants: [{ id: 'Mutant #1', file: 'fee.py', line: 1, diff: 'threshold', status: 'survived' }] };
+  const after = structuredClone(before); after.mutants[0].status = 'killed';
+  assert.deepEqual(pairedMutationCounts(before, after), { total: 1, beforeKilled: 0, afterKilled: 1 });
+  const item = fixture(); item.report!.mutations = [before];
+  assert.equal(experimentRow(item).mutationTotal, null);
+  item.report!.mutations.push(after); assert.equal(experimentRow(item).mutationAfterKilled, 1);
+  after.mutants[0].diff = 'changed'; assert.equal(pairedMutationCounts(before, after), null);
+  after.mutants[0].diff = 'threshold'; after.incomplete = true;
+  assert.equal(pairedMutationCounts(before, after), null);
+});

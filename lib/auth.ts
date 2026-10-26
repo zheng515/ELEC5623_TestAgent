@@ -6,7 +6,6 @@ import { getMigrations } from "better-auth/db/migration";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
-import { organization } from "better-auth/plugins";
 import { mailConfigured, sendAccountMail } from "./mail";
 import { githubConfigured } from "./github-config";
 import { registerRuntime } from "./operations";
@@ -51,10 +50,6 @@ async function initialize() {
         ...(mailConfigured() ? { sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => { await sendAccountMail(user.email, "Reset your ReqTest password", "Use this link to reset your password:\n" + url + "\nIf you did not request this, ignore this email."); } } : {}),
       },
       ...(mailConfigured() ? { emailVerification: { sendOnSignUp: true, sendVerificationEmail: async ({ user, url }: { user: { email: string }; url: string }) => { await sendAccountMail(user.email, "Verify your ReqTest email", "Confirm your email address:\n" + url); } } } : {}),
-      plugins: [organization({
-        requireEmailVerificationOnInvitation: true,
-        ...(mailConfigured() ? { sendInvitationEmail: async (invitation) => { await sendAccountMail(invitation.email, "ReqTest workspace invitation", "You were invited to " + invitation.organization.name + ". Sign in with this email, verify it, then accept the invitation in the Team workspace panel."); } } : {}),
-      })],
       hooks: {
         before: createAuthMiddleware(async (ctx) => {
           let password: unknown;
@@ -78,8 +73,6 @@ async function initialize() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`);
       await database.query('CREATE INDEX IF NOT EXISTS runs_user_created ON runs (user_id, created_at DESC)');
-      await database.query('ALTER TABLE runs ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organization(id) ON DELETE SET NULL');
-      await database.query('CREATE INDEX IF NOT EXISTS runs_organization ON runs (organization_id)');
       await database.query('ALTER TABLE runs ADD COLUMN IF NOT EXISTS cancel_requested BOOLEAN NOT NULL DEFAULT false');
       await database.query('CREATE TABLE IF NOT EXISTS run_checkpoints (run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE, key TEXT NOT NULL, value JSONB NOT NULL, PRIMARY KEY(run_id,key))');
   } catch (error) { await database?.end(); throw error; }

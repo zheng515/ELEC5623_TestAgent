@@ -52,7 +52,7 @@ message rather than exposing driver errors or credentials.
    File permissions restrict local access; the archive itself is not encrypted.
    Configure encryption and retention before using external storage.
 
-The tool backs up the whole local database and .data, not a selected team or user.
+The tool backs up the whole local database and .data, not a selected user.
 Restore only backups you created or trust: hashes detect corruption, not malicious rewrites.
 It excludes stale runtime leases. It does not copy .env files, installed npm
 packages, OpenAI/SMTP secrets, Mailpit messages, or Docker images. Keep external
