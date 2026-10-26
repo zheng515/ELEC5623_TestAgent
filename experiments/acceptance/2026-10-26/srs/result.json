@@ -1,0 +1,23 @@
+{
+  "root": "/tmp/reqtest-rubric-acceptance-1793000703465",
+  "requests": 4,
+  "inputItems": 4,
+  "originalIds": [
+    "R1",
+    "R2",
+    "R3",
+    "R4"
+  ],
+  "contextRetained": true,
+  "behaviors": 7,
+  "approved": 7,
+  "passed": 6,
+  "failed": 1,
+  "errors": 0,
+  "unmapped": 0,
+  "preservedPotentialDefectFailures": 1,
+  "integrity": true,
+  "exportedPassed": 6,
+  "exportedFailed": 1,
+  "exportedIntegrity": true
+}

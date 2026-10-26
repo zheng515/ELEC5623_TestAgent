@@ -1,8 +1,12 @@
 # Implementation status
 
-Audit date: 2026-10-22. Scope: the current Version 2 working tree, including
+Audit date: 2026-10-26. Scope: the current Version 2 working tree, including
 uncommitted implementation files. This is a capability audit, not an independent
 measurement of model accuracy or a production-readiness certification.
+
+Historical trials below describe earlier runs. Ignored local scratch evidence may
+have been cleared; retained portable experiments are under experiments/results,
+and current full-SRS acceptance evidence is under experiments/acceptance.
 
 ## Source language
 
@@ -25,7 +29,7 @@ that all model-generated analyses or test oracles are correct.
 
 | ID | Capability | Status | Evidence and limits |
 | --- | --- | --- | --- |
-| FR1 | Requirements, Python repository and existing pytest inputs | Implemented within scope | Text entry, PDF/DOCX/TXT/Markdown extraction, ZIP and pinned GitHub snapshots. Selected blocks retain locations and original hashes. Private access uses a connected GitHub account or transient token. |
+| FR1 | Requirements, Python repository and existing pytest inputs | Implemented within scope | Editable text, document extraction, automatic numbered-item grouping, ZIP and pinned GitHub snapshots. Exact excerpts retain locations, offsets and original hashes. Private access uses a connected GitHub account or transient token. |
 | FR2 | Behavior/rule/condition/boundary/exception decomposition | Implemented; accuracy pending evaluation | Structured model output, stable behavior IDs and original requirement quotes. |
 | FR3 | Requirement-quality analysis | Implemented; accuracy pending evaluation | Ambiguous, incomplete and insufficiently testable categories with evidence. |
 | FR4 | Relevant implementation and existing-test inspection | Implemented within scope | Python AST inspection, pytest collection and validated file/node references. |
@@ -114,8 +118,8 @@ unchanged excerpts retain original citations; edited text is user-provided. The
 12,000-character limit is enforced without truncation or a line-count limit.
 English OCR and LibreOffice DOC conversion pass Docker regression cases, including
 PDF pages containing native text and scanned images together. Each PDF page has an
-explicit extraction outcome. Low-confidence OCR is retained but not selected by
-default; confidence is not an accuracy score. OCR page/time budgets, partial
+explicit extraction outcome. Low-confidence OCR is retained in editable input and flagged for
+review; confidence is not an accuracy score. OCR page/time budgets, partial
 failures, conversion timeout/errors, encrypted/damaged documents and source
 integrity failures are covered by controlled tests. Originals support owner-only
 permissions and authenticated PDF page viewing. DOC locations explicitly refer to
@@ -150,6 +154,25 @@ accuracy or complete specification coverage. Benchmark execution, reference-labe
 review and scoring are separate CLI/file workflows. A held-out manifest supports
 explicit dataset purpose and repeated runs. Existing development cases are not
 relabeled as held-out evidence.
+
+Numbered SRS items retain their original identifiers independently of internal rule
+IDs. Supporting text is retained as context, with no separate verification claim.
+Single-paragraph documents with multiple identifiers retain exact excerpt offsets.
+The UI shows input scope, omitted behavior extraction, pass/fail/error/skip counts
+and a shared next action while preserving the existing charts. A blocked unexecuted
+proposal can use the single improvement budget; replacement still requires review.
+
+The current synthetic full-SRS acceptance made four model requests, extracted four
+numbered items and seven behaviors, and executed seven approved tests: six passes,
+one seeded threshold failure, zero execution errors. The failing assertion was
+retained. Exported tests reproduced the same outcomes in a separate read-only Docker
+execution. This single development run does not establish general reliability.
+The complete Docker regression passed 93 checks with three optional checks skipped.
+
+Product positioning cites TestGen-LLM, CoverUp and Meta ACH, acknowledges overlap,
+and maps the narrower contribution to inspectable implementation records.
+Offline experiment exports now include workflow-evidence.json. Earlier B0-B3
+results are historical and have not been relabeled as results of these changes.
 
 Project verification now shows task inputs, progress, a short summary and next
 actions. Its results link opens the same run in Evaluation, which owns detailed

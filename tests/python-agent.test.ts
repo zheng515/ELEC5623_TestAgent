@@ -296,6 +296,35 @@ test('real Docker pytest keeps a genuine defect and never repairs it', {skip:pro
   } finally {await rm(root,{recursive:true,force:true});}
 });
 
+test('one bounded retry can replace a blocked unexecuted proposal without bypassing its second review', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 60000 }, async () => {
+  for (const accepted of [true, false]) {
+    const root = await mkdtemp(join(tmpdir(), 'reqtest-blocked-gap-'));
+    try {
+      await mkdir(join(root, 'source')); await mkdir(join(root, 'generated'));
+      await writeFile(join(root, 'source/shipping.py'), code);
+      const r = report(); let generation = 0, reviews = 0;
+      r.requirementInput = { mode: 'numbered', text: rule, context: 'Supporting environment: Python 3.11.' };
+      const ask: typeof import('../lib/python-agent').reason = async (schema, _task, context) => {
+        assert.equal((context as { requirementContext: string }).requirementContext, r.requirementInput!.context);
+        if (Object.is(schema, analysisSchema)) return schema.parse(analysis());
+        if (Object.is(schema, testsSchema)) return schema.parse({ tests: [{ ...artifact, code: generation++ ? artifact.code : artifact.code.replace('== 0', '== 1') }] });
+        if (Object.is(schema, reviewTestsSchema)) return schema.parse({ decisions: [{ testId: 'T1', supported: reviews++ > 0 && accepted, quote: rule, reason: 'Check only the explicitly required expected value.' }] });
+        throw new Error('Unexpected extra action');
+      };
+      await runPython(r, root, AbortSignal.timeout(30000), () => {}, ask);
+      assert.equal(generation, 2); assert.equal(reviews, 2);
+      assert.equal(r.measurements[0].outcomes.length, 0, 'The rejected assertion must never execute.');
+      assert.equal(r.improvements.length, accepted ? 1 : 0);
+      assert.equal(r.tests[0].approved, accepted);
+      if (accepted) {
+        assert.equal(r.measurements.at(-1)!.outcomes[0].status, 'passed');
+        assert.ok(r.improvements[0].before[0].code.includes('== 1'));
+        assert.ok(r.tests[0].code.includes('== 0'));
+      } else assert.equal(r.measurements.length, 1, 'No third proposal or unreviewed execution.');
+    } finally { await rm(root, { recursive: true, force: true }); }
+  }
+});
+
 test('recorded diagnosis aliases enable one grounded repair but duplicates and unsupported evidence do not', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 180000 }, async () => {
   for (const mode of ['valid', 'duplicate', 'unsupported'] as const) {
     const root = await mkdtemp(join(tmpdir(), 'reqtest-diagnosis-id-'));

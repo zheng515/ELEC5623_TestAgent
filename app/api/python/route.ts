@@ -7,7 +7,7 @@ import { sandboxImage } from "@/lib/python-tools";
 import { prepareProject, copyPreparedProject } from "@/lib/project-setup";
 import { repositoryToken } from "@/lib/github";
 import { documentRules, loadRequirements } from "@/lib/requirements";
-import { documentText, textRequirements, ruleSources } from "@/lib/requirement-input";
+import { documentText, parseRequirementInput, ruleSources, sourceMatches } from "@/lib/requirement-input";
 import { jobs, interruptedReport } from "@/lib/python-jobs";
 import { sameOrigin } from "@/lib/request";
 import type { PythonReport } from "@/lib/python-types";
@@ -67,28 +67,35 @@ export async function POST(request: Request) {
     }
     const documentId = String(form.get('documentId') || '');
     let rules: PythonReport['rules'];
+    let requirementInput: PythonReport['requirementInput'];
     let requirementDocument: PythonReport['requirementDocument'];
     if (parent && form.get('reuseRequirements') === 'true') {
       rules = parent.rules.map(rule => ({ ...rule }));
+      requirementInput = parent.requirementInput;
       requirementDocument = parent.requirementDocument;
     } else if (documentId) {
       const document = await loadRequirements(account.user.id, documentId);
       const text = form.get('requirements');
-      rules = typeof text === 'string' ? textRequirements(text, document) : documentRules(document, form.getAll('segmentId').map(String));
+      if (typeof text === 'string') {
+        const parsed = parseRequirementInput(text, document);
+        rules = parsed.rules; requirementInput = { mode: parsed.mode, text: parsed.text, context: parsed.context };
+      } else rules = documentRules(document, form.getAll('segmentId').map(String));
       const included = new Set(rules.flatMap(rule => ruleSources(rule).map(source => source.segmentId)));
       requirementDocument = { id: document.id, fileName: document.fileName, sha256: document.sha256, warnings: document.warnings, selectedBlocks: included.size, totalBlocks: document.segments.length, textEdited: typeof text === 'string' && text !== documentText(document), format: document.format, pages: document.pages };
     } else {
-      rules = textRequirements(String(form.get('requirements') || ''));
+      const parsed = parseRequirementInput(String(form.get('requirements') || ''));
+      rules = parsed.rules; requirementInput = { mode: parsed.mode, text: parsed.text, context: parsed.context };
       // Preserve a document citation only when the exact original block is unchanged.
-      if (parent) rules = rules.map(rule => ({ ...rule, source: parent.rules.find(old => old.text === rule.text)?.source }));
+      if (parent) rules = rules.map(rule => { const old = parent.rules.find(old => old.text === rule.text); return { ...rule, source: old?.source, sources: old?.sources }; });
     }
     if (parent) {
       const documents = new Set(rules.flatMap(rule => ruleSources(rule).map(source => source.documentId)));
       for (const documentId of documents) {
         const original = await loadRequirements(account.user.id, documentId);
-        if (rules.some(rule => ruleSources(rule).some(source => source.documentId === documentId && (source.sha256 !== original.sha256 || !original.segments.some(segment => segment.id === source.segmentId && segment.text === (source.quote || rule.text) && rule.text.includes(segment.text)))))) throw new Error('A saved requirement citation changed. Upload the original document again.');
+        if (rules.some(rule => ruleSources(rule).some(source => source.documentId === documentId && !sourceMatches(rule, source, original)))) throw new Error('A saved requirement citation changed. Upload the original document again.');
       }
     }
+    if (rules.length > 24) throw new Error('This run supports up to 24 requirement items. Split the specification into smaller runs; no text is truncated automatically.');
     if (!title || title.length > 120 || model.length > 100) throw new Error('Use a title up to 120 characters and a valid model.');
     const clarification = String(form.get('clarification') || '').trim();
     if (clarification.length > 4000) throw new Error('Clarification exceeds 4000 characters.');
@@ -96,8 +103,10 @@ export async function POST(request: Request) {
     // Clarifications are explicitly new user requirements, never retroactive edits to prior evidence.
     if (clarification) {
       const additions = clarification.split(/\r?\n/).filter(line => line.trim());
-      if (rules.length + additions.length > 12 || [...rules.map(rule => rule.text), ...additions].join('\n').length > 12000) throw new Error('Requirements plus clarification must fit 12 lines and 12,000 characters.');
+      if (rules.length + additions.length > 24) throw new Error('Requirements plus clarification must fit 24 requirement items.');
+      if ([(requirementInput?.text || rules.map(rule => rule.text).join('\n')), ...additions].join('\n').length > 12000) throw new Error('Requirements plus clarification must fit 12,000 characters.');
       rules.push(...additions.map((text, index) => ({ id: 'R' + (rules.length + index + 1), text })));
+      if (requirementInput) requirementInput = { ...requirementInput, text: requirementInput.text + '\n' + additions.join('\n') };
     }
     await mkdir(join(root, 'generated'), { recursive: true });
     let source: string, fingerprint: string, projectSetup: PythonReport['projectSetup'];
@@ -111,7 +120,7 @@ export async function POST(request: Request) {
       if (setup.setup.status === 'needs_setup' && form.get('allowEnvironmentFailure') !== 'true') throw new Error('Project dependencies do not match the sandbox. Check project setup first, prepare the image, or explicitly run to diagnose environment failures.');
       source = setup.source; fingerprint = setup.fingerprint; projectSetup = setup;
     }
-    report = { runtime: parent?.runtime || projectSetup?.runtime || 'python', execution: {queueId: id, image: projectSetup?.sandboxImage || await sandboxImage(), attempt: 0, recovered: false}, id, title, model, createdAt: new Date().toISOString(), source, fingerprint, workerId: jobs.workerId, parentRunId: parent?.id, clarification: clarification || undefined, projectSetup, requirementDocument, status: 'running', stage: 'Queued — waiting for verification worker', rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: [
+    report = { runtime: parent?.runtime || projectSetup?.runtime || 'python', execution: {queueId: id, image: projectSetup?.sandboxImage || await sandboxImage(), attempt: 0, recovered: false}, id, title, model, createdAt: new Date().toISOString(), source, fingerprint, workerId: jobs.workerId, parentRunId: parent?.id, clarification: clarification || undefined, projectSetup, requirementDocument, requirementInput, status: 'running', stage: 'Queued — waiting for verification worker', rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: [
       'Verified describes mapped, reviewed cases and recorded execution; exhaustive correctness is not established.',
       'Model analysis, mappings, diagnoses and equivalence decisions require independent evaluation.',
       'Python/pytest/mutmut or Node.js/node:test/Stryker run in disposable containers. Selected test services use a private internal network; public network access is unavailable during tests.',

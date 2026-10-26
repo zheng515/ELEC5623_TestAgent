@@ -7,6 +7,10 @@ failures and attempts one bounded test improvement.
 
 ## Features
 
+ReqTest emphasizes original requirement contracts, traceable behavior checks and
+diagnosis before test replacement. See [product positioning and primary related
+work](docs/product-positioning.md) for overlap, differences and evidence limits.
+
 - Import a Python or Node.js project from a GitHub repository or ZIP archive; choose a branch, tag or commit and use a connected GitHub account or temporary read-only token for private repositories.
 - Upload PDF, DOC, DOCX, TXT or Markdown requirements with retained source locations; use English OCR for image-only PDF pages.
 - Check project dependencies before model calls and reuse the checked code snapshot.
@@ -259,7 +263,12 @@ only their own schema. PostgreSQL must be available before running account tests
    before running; it is never silently truncated. Original document hashes,
    page/paragraph locations and extraction warnings remain available under source
    details. Exact unchanged excerpts retain citations; edits are treated as
-   user-provided text. Long text remains intact for behavior decomposition.
+   user-provided text. Explicit IDs such as R1 and FR-CAL-02 are grouped
+   automatically; repeated IDs share an input item. Other text is retained as
+   supporting context and is not independently verified. Unnumbered text remains
+   available for behavior decomposition. A run supports at most 24 input items
+   and 24 analyzed behaviors; larger specifications need separate runs. All input
+   remains visible and no excess content is silently dropped.
 3. Select **Run verification**. Inspect behavior states, source quotes, mapped tests,
    recorded test outcomes, diagnoses, mutation results and improvements.
 4. Download the evidence JSON and generated-test ZIP. Extract the ZIP in the original
@@ -320,8 +329,11 @@ document coverage.
   execution node maps to a generated artifact only through a unique recorded failed
   node and matching file. Original model IDs remain in the audit trail. Duplicate
   aliases, unknown nodes and unsupported evidence cannot authorize repair.
-- **Improve:** at most one improvement action. Only diagnosed generated-test errors
-  are eligible for replacement. Otherwise passing tests trigger selected-file mutmut
+- **Improve:** at most one improvement action. Approved tests can be replaced only
+  after a generated-test-error diagnosis. A supported behavior with no approved
+  generated check can instead use this budget to replace blocked, unexecuted
+  proposals, followed by the same review gates and actual execution. Further
+  proposals stop when the budget is used. Otherwise passing tests trigger selected-file mutmut
   measurement, relevance review and targeted additions for supported surviving mutants.
   Python mutation checks explicitly run approved generated tests. Static imports and
   calls select top-level functions in one mapped source file; unresolved calls fall
@@ -453,7 +465,7 @@ Pages containing both native text and images also receive OCR; supplementary
 image text is kept alongside native text with its original page reference.
 The upload and report views show per-page extraction outcomes, with detailed
 warnings collapsed by default. Low-confidence OCR blocks (below 70, or with no
-confidence available) are retained but not selected automatically. This threshold
+confidence available) are retained in the editable text and flagged for review. This threshold
 is a transcription warning, not a calibrated accuracy or verification score.
 At most 20 pages are attempted within a bounded processing budget; unreadable,
 failed or unprocessed pages are listed in extraction warnings. OCR is not exact
@@ -465,7 +477,7 @@ with LibreOffice; its block locations refer to the converted document, not origi
 rendered page numbers. The original file and SHA-256 are retained in both cases.
 Word headers, footers, drawings, tracked changes and nested tables are not fully
 extracted. Limits: 10 MB upload, 100 PDF pages, 1000 blocks and 100 KB extracted
-text. Unselected content is never claimed verified. Use **View original page** to
+text. Supporting context and unmapped items are never claimed verified. Use **View original page** to
 open the authenticated PDF viewer at the cited page, or download the original
 Word document and locate its body block/table row. Downloads and saved-document
 re-runs validate the original file hash. Changed originals are rejected; failed
@@ -587,8 +599,9 @@ Use **View results in Evaluation** to open that run's charts and detailed result
 The requirement traceability table and technical report are not repeated on the
 task page. Original text and excerpts are collapsed with bounded scroll areas.
 
-- Summary cards separate selected requirements, analyzed behaviors, approved
-  generated test artifacts and recorded test outcomes.
+- Summary cards show passed, failed/error and skipped outcomes separately from
+  approved test files. A shared next-action summary distinguishes workflow
+  completion, test outcomes and requirement verification. Existing charts remain.
 - Charts show requirement states and the latest test outcomes, including errors
   and skipped cases. A missing execution is unavailable, not a zero-percent pass.
 - A requirement is Verified only when all its mapped behavior assessments are
@@ -604,6 +617,11 @@ task page. Original text and excerpts are collapsed with bounded scroll areas.
 - Failure diagnoses, blocked tests, execution logs and limitations remain available
   in expandable sections. Retrieval and mutation records are under Technical
   details. Download run evidence or the approved generated tests from this page.
+
+Original numbered IDs, supporting context and complete submitted text remain
+available in the scope panel. Missing behavior extraction is visible as unresolved.
+Potential-defect failures retained without changing their assertions are identified
+as investigation evidence, not confirmed defects or an independent accuracy score.
 
 Benchmarks, reference labels, human annotations and aggregate scoring stay outside
 the website. Edit the reference and per-run review JSON files independently, then

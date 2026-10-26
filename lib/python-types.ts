@@ -82,7 +82,8 @@ export type PythonReport = {
   initialStates?: PythonReport["states"];
   id: string; title: string; createdAt: string; model: string; source: string; fingerprint: string;
   status: "running" | "completed" | "failed" | "cancelled"; stage: string; error?: string;
-  rules: { id: string; text: string; source?: RequirementSource; sources?: RequirementSource[] }[]; analysis?: Analysis; tests: PythonTest[];
+  rules: { id: string; text: string; originalId?: string; source?: RequirementSource; sources?: RequirementSource[] }[]; analysis?: Analysis; tests: PythonTest[];
+  requirementInput?: { mode: 'numbered' | 'text'; text: string; context: string };
   requirementDocument?: { id: string; fileName: string; sha256: string; warnings: string[]; selectedBlocks: number; totalBlocks: number; textEdited?: boolean; format?: RequirementDocument['format']; pages?: DocumentPage[] };
   parentRunId?: string;
   clarification?: string;

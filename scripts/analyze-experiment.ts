@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { summarizeExperiment, type ExperimentEntry, type ExperimentItem, type ReferenceCheck, type RequestRecord } from '../lib/experiment-metrics';
 import { goldSchema } from '../lib/evaluation';
 import type { PythonReport } from '../lib/python-types';
+import { verificationSummary } from '../lib/run-evaluation';
 
 async function main() {
   if (!process.argv[2]) throw new Error('Usage: npm run experiment:analyze -- <index.json> [output-directory]');
@@ -56,6 +57,23 @@ async function main() {
   }, null, 2));
   await writeFile(join(output, 'runs.csv'), csv(metrics.rows));
   await writeFile(join(output, 'variants.csv'), csv(metrics.summary));
+  await writeFile(join(output, 'workflow-evidence.json'), JSON.stringify({
+    scope: 'Observed workflow records on identical case inputs. Counts do not establish semantic correctness or superiority over external products.',
+    baseline: 'B0 is this repository\'s direct-generation configuration, not a measurement of Codex, Claude, CoverUp or TestGen-LLM.',
+    rows: items.map(({ entry, report }) => {
+      const summary = report && verificationSummary(report);
+      return { caseId: entry.caseId, variant: entry.variant, repeat: entry.repeat,
+        inputItems: report?.rules.length ?? null,
+        behaviorsWithArtifactQuotes: report?.analysis?.behaviors.filter(behavior => behavior.evidence.length > 0).length ?? null,
+        recordedDiagnoses: report?.diagnoses.length ?? null,
+        retainedPotentialDefectFailures: summary?.preserved.length ?? null,
+        acceptedImprovementActions: report?.improvements.length ?? null,
+        evidence: entry.report ? 'evidence/' + entry.report : null };
+    }),
+    tradeoffs: metrics.summary.map(summary => ({ variant: summary.variant, completed: summary.completed,
+      planned: summary.plannedRuns, seededFaultDetection: summary.correctedCopyDetectionRate,
+      medianSeconds: summary.medianSeconds, totalTokens: summary.totalTokens })),
+  }, null, 2));
   const evidenceFiles = new Set(['index.json', 'manifest.json', 'agent-snapshot.json', ...manifest.cases.flatMap(item => [`${item.id}.zip`, `${item.id}.gold.json`, ...(item.oracle ? [`${item.id}.oracle.py`] : [])]), ...index.runs.flatMap(entry => [entry.report, entry.review, ...(entry.reference ? [entry.reference] : []), ...(entry.requests ? [entry.requests] : [])])]);
   for (const file of evidenceFiles) {
     const path = resolve(root, file), child = relative(root, path);

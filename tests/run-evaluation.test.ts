@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runEvaluation } from '../lib/run-evaluation';
+import { runEvaluation, verificationSummary } from '../lib/run-evaluation';
 import type { PythonReport } from '../lib/python-types';
 
 function fixture(): PythonReport {
@@ -19,6 +19,38 @@ test('requirements aggregate behaviors without counting behaviors as requirement
   assert.deepEqual(result.requirements.map(item => item.status), ['Partially Verified', 'Uncertain', 'Unverified']);
   assert.equal(result.distribution.reduce((sum, item) => sum + item.value, 0), 3);
   assert.deepEqual(result.outcomes.map(item => item.value), [1, 1, 0, 1]);
+});
+
+test('workflow completion, passing checks and verification remain separate in user summaries', () => {
+  const report = fixture();
+  assert.equal(verificationSummary(report).failedCount, 1);
+  assert.match(verificationSummary(report).title, /investigation/);
+  report.measurements = [];
+  assert.equal(verificationSummary(report).title, 'No tests executed');
+  report.status = 'failed';
+  assert.equal(verificationSummary(report).title, 'Run incomplete');
+  report.status = 'running';
+  assert.equal(verificationSummary(report).title, 'Verification in progress');
+  report.status = 'completed'; report.measurements = fixture().measurements;
+  report.measurements[0].outcomes.forEach(outcome => { outcome.status = 'passed'; });
+  report.collection = { exitCode: 2, log: 'Import failed.' };
+  assert.equal(verificationSummary(report).title, 'Existing-test checks need attention');
+});
+
+test('retained-failure summaries exclude changed assertions, stale phases and untrusted execution', () => {
+  const report = fixture();
+  const code = 'assert fee(10) == 0';
+  report.tests = [{ id: 'T1', behaviorId: 'B3', functionName: 'test_fee', purpose: '', quote: '', gapIndexes: [], code, approved: true }];
+  report.measurements[0].outcomes[2].file = 'reqtest_generated/test_reqtest_T1.py';
+  report.measurements[0].outcomes[2].name = 'test_fee';
+  report.diagnoses = [{ testId: 'T1', phase: 'execution', category: 'potential_implementation_defect', reason: '', quote: '', executionQuote: '', evidence: [] }];
+  assert.equal(verificationSummary(report).preserved.length, 1);
+  report.improvements = [{ reason: '', before: [{ ...report.tests[0], code: 'assert fee(10) == 1' }], after: report.tests }];
+  assert.equal(verificationSummary(report).preserved.length, 0);
+  report.improvements = []; report.measurements.push(structuredClone(report.measurements[0]));
+  assert.equal(verificationSummary(report).preserved.length, 0);
+  report.diagnoses[0].phase = 'remeasurement'; report.measurements[1].integrity = false;
+  assert.equal(verificationSummary(report).preserved.length, 0);
 });
 test('all mapped behaviors must pass before a requirement is verified; unrelated failures stay visible', () => {
   const report = fixture(); report.measurements[0].outcomes[1].status = 'passed'; report.states[1].status = 'Verified';
