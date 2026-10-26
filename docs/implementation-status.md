@@ -38,7 +38,7 @@ that all model-generated analyses or test oracles are correct.
 | FR11 | Controlled execution and recorded outcomes | Implemented within scope | Docker, pytest, read-only inputs and resource/time limits. Project dependencies need a prepared sandbox image. |
 | FR12 | Evidence-based diagnosis before refinement | Implemented for recorded failures; accuracy pending evaluation | Collection, baseline, execution and re-measurement diagnoses retain phase-specific evidence. |
 | FR13 | Selected mutation testing | Implemented within scope | Real mutmut execution on one selected file. Relevant non-equivalent scores require independent review. |
-| FR14 | Feedback-driven improvement and re-measurement | Implemented within scope | One bounded improvement action, followed by execution and applicable mutation re-measurement. |
+| FR14 | Feedback-driven improvement and re-measurement | Implemented within scope | One bounded improvement action, followed by execution and applicable mutation re-measurement. A repaired suite that passes is mutation-tested before it can earn Verified. |
 | FR15 | Final traceable verification report | Implemented as a prototype | UI evidence panels, JSON report and generated-test ZIP; report usefulness still needs user evaluation. |
 
 ## Additional product capabilities
@@ -264,7 +264,17 @@ Survivor relevance review now processes all retained usable diffs in bounded bat
 of 16, including newly surviving mutants after re-measurement. A decision binds the
 mutant ID, file, exact diff, original requirement quote and mapped behavior. Duplicate,
 missing, mismatched or older unbound decisions cannot exclude a survivor. A negative
-decision for one behavior cannot clear other behaviors in the same source file.
+decision for one behavior cannot clear other behaviors in the same source file, so
+each survivor is reviewed separately for every behavior mapped to its file.
+
+An earlier version requested one decision per survivor while state calculation
+required one per mapped behavior. When several behaviors shared a source file, any
+survivor, even a message-only change, therefore blocked Verified for the others. On
+`examples/shipping` all four behaviors stayed Partially Verified and the CI gate
+failed. With per-behavior requests, the same run reviewed both message-only
+survivors for all four behaviors, every behavior was Verified and the gate passed.
+Repaired suites previously skipped mutation testing because only the initially
+passing path measured mutations; a repaired suite that passes is now measured too.
 The UI summarizes only the latest recorded survivors, separating test gaps,
 clarification, changes outside the cited behavior and unreviewed evidence. Incomplete
 measurements with no survivor outcomes do not resolve earlier gaps.

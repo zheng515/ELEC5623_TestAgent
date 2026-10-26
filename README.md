@@ -327,11 +327,12 @@ document coverage.
   functions and line scope are retained, and re-measurement keeps that scope.
   Timeouts stop the command process group and retain available cached outcomes as
   incomplete evidence. Counts from older implicit-suite runs are not comparable.
-  All retained survivors with usable diffs are reviewed in batches of at most 16,
-  including newly surviving mutations after re-measurement. Decisions bind the exact
-  mutant ID, file, diff and cited behavior; an exclusion cannot clear other behaviors
-  in the same file. Missing, duplicate, unsupported and older unbound decisions stay
-  unresolved. The current-survivor summary separates test gaps, requirement
+  Each retained survivor with a usable diff is reviewed separately for every behavior
+  mapped to its file, in batches of at most 16 mutant-behavior pairs, including newly
+  surviving mutations after re-measurement. Decisions bind the exact mutant ID, file,
+  diff and cited behavior; an exclusion cannot clear other behaviors in the same file,
+  so only missing pairs are reviewed again. Missing, duplicate, unsupported and older
+  unbound decisions stay unresolved. The current-survivor summary separates test gaps, requirement
   clarification, changes outside the cited behavior and unreviewed evidence.
   These model judgments do not establish an independently reviewed mutation score.
   Each test directory's conftest (or a representative module when absent) retains
@@ -340,7 +341,9 @@ document coverage.
   other modules' side effects and module-local fixtures are not reproduced.
   The report records these setup files; exported instructions retain the same setup.
 - **Re-measure:** execute the changed suite and, where applicable, selected mutations
-  again. Preserve original tests, measurements, diagnoses and before/after artifacts.
+  again. A repaired suite that now passes receives its first selected mutation
+  measurement and survivor review before it can earn Verified. Preserve original
+  tests, measurements, diagnoses and before/after artifacts.
 
 Behavior states are **Verified**, **Partially Verified**, **Unverified**, **Uncertain**.
 They describe the mapped, reviewed cases; they do not prove exhaustive correctness.
