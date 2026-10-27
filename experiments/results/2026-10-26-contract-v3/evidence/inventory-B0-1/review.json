@@ -1,0 +1,58 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "reportId": "87309b70-c756-43bf-b27e-db2503457094",
+  "sourceFingerprint": "3fe290f5cc55b6a0ef7e81791cb91312ec91e9e2fc715f18fafd8a1730028115",
+  "requirementTexts": [
+    "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+    "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError.",
+    "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+    "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+    "The system shall quickly notify users when stock is low."
+  ],
+  "validOutcome": null,
+  "issues": [],
+  "gaps": [],
+  "inconsistencies": [],
+  "coverage": [
+    {
+      "id": "partial",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "equal",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "zero",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "excess",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "negative",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "types",
+      "beforeNodes": [],
+      "afterNodes": []
+    }
+  ],
+  "diagnoses": [
+    {
+      "testId": "T1",
+      "phase": "execution",
+      "expected": null,
+      "evidenceSupported": null
+    }
+  ],
+  "mutants": []
+}

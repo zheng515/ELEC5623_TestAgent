@@ -1,0 +1,39 @@
+{
+  "valid": true,
+  "sourceFingerprint": "3fe290f5cc55b6a0ef7e81791cb91312ec91e9e2fc715f18fafd8a1730028115",
+  "faultHash": "f074964111cdddf73e3ea84b8bc3e31470127c4ba99c2d1af99f646cbd6aff41",
+  "oracleHash": "7c2f2ef2271af8e1b58443faaa9554c308af110d9efea44b266b4b43c51cbc34",
+  "original": {
+    "outcomes": [
+      {
+        "node": "reqtest_generated/test_reqtest_T1.py::test_contract",
+        "file": "reqtest_generated/test_reqtest_T1.py",
+        "name": "test_contract",
+        "status": "failed",
+        "message": "def test_contract():\n        for stock, requested, expected in [(10, 3, 7), (10, 10, 0), (0, 0, 0), (10, 0, 10)]:\n>           actual = remaining(stock, requested)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nreqtest_generated/test_reqtest_T1.py:7: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nstock = 10, requested = 10\n\n    def remaining(stock, requested):\n        if type(stock) is not int or type(requested) is not int:\n            raise TypeError(\"stock and requested must be integers\")\n        if stock < 0 or requested < 0 or requested >= stock:\n>           raise ValueError(\"invalid stock or request\")\nE           ValueError: invalid stock or request\n\ninventory.py:5: ValueError"
+      }
+    ],
+    "exitCode": 1,
+    "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n________________________________ test_contract _________________________________\n\n    def test_contract():\n        for stock, requested, expected in [(10, 3, 7), (10, 10, 0), (0, 0, 0), (10, 0, 10)]:\n>           actual = remaining(stock, requested)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nreqtest_generated/test_reqtest_T1.py:7: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nstock = 10, requested = 10\n\n    def remaining(stock, requested):\n        if type(stock) is not int or type(requested) is not int:\n            raise TypeError(\"stock and requested must be integers\")\n        if stock < 0 or requested < 0 or requested >= stock:\n>           raise ValueError(\"invalid stock or request\")\nE           ValueError: invalid stock or request\n\ninventory.py:5: ValueError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_contract - ValueError: inva...\n1 failed in 0.01s\n",
+    "timedOut": false,
+    "integrity": true,
+    "runtimeArtifacts": []
+  },
+  "corrected": {
+    "outcomes": [
+      {
+        "node": "reqtest_generated/test_reqtest_T1.py::test_contract",
+        "file": "reqtest_generated/test_reqtest_T1.py",
+        "name": "test_contract",
+        "status": "passed",
+        "message": ""
+      }
+    ],
+    "exitCode": 0,
+    "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+    "timedOut": false,
+    "integrity": true,
+    "runtimeArtifacts": []
+  },
+  "scope": "Fixed executable contract witnesses only; not independent semantic review or complete specification coverage."
+}

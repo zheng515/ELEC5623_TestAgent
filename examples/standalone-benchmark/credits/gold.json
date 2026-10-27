@@ -1,0 +1,26 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "rule-1",
+      "ruleId": "R1",
+      "description": "For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0.",
+      "initialGap": true
+    },
+    {
+      "id": "rule-2",
+      "ruleId": "R2",
+      "description": "Negative built-in int units raise ValueError; non-built-in-int units, including bool, raise TypeError.",
+      "initialGap": true
+    }
+  ],
+  "fault": {
+    "id": "credits-seeded-fault",
+    "file": "credits.py",
+    "before": "return False if units == 0",
+    "after": "return 0 if units == 0"
+  }
+}

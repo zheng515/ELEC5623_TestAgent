@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { uncertainOcr } from '../lib/document-selection';
-import { documentText, textRequirements, ruleSources } from '../lib/requirement-input';
+import { documentText, textRequirements, ruleSources, parseRequirementInput, sourceMatches } from '../lib/requirement-input';
 import type { RequirementDocument } from '../lib/requirements';
 
 function fixture(): RequirementDocument {
@@ -44,4 +44,42 @@ test('plain text is not limited by line count, and excessive text is rejected wi
   assert.equal(textRequirements('x'.repeat(12000))[0].text.length, 12000);
   assert.throws(() => textRequirements('x'.repeat(12001)), /nothing is truncated/);
   assert.throws(() => textRequirements(' \n '), /Enter requirements/);
+});
+
+test('a complete SRS separates numbered requirements from supporting context without selecting lines', () => {
+  const text = '# Shipping SRS\n\nPurpose and scope.\n\n## Functional requirements\n\nR1: Return zero at the threshold.\n\nR2: Reject negative amounts.\n\n## Execution environment\n\nPython 3.11.';
+  const input = parseRequirementInput(text);
+  assert.deepEqual(input.rules.map(rule => rule.originalId), ['R1', 'R2']);
+  assert.equal(input.rules[1].text, 'R2: Reject negative amounts.');
+  assert.ok(input.context.includes('Purpose and scope.'));
+  assert.ok(input.context.includes('Python 3.11.'));
+  assert.equal(input.text, text);
+  assert.equal(input.mode, 'numbered');
+});
+
+test('Word/table identifiers and repeated acceptance examples keep one original requirement identity', () => {
+  const input = parseRequirementInput('| FR-CAL-02 | Return today. |\n| FR-003 | Reject invalid input. |\n\n## Examples\n| FR-CAL-02 | An example date. |');
+  assert.deepEqual(input.rules.map(rule => rule.originalId), ['FR-CAL-02', 'FR-003']);
+  assert.ok(input.rules[0].text.includes('An example date.'));
+  assert.ok(input.context.includes('## Examples'));
+  assert.equal(parseRequirementInput('There is an R1 token inside prose.').mode, 'text');
+});
+
+test('multiple requirements in one original paragraph retain exact offset-bound citations', () => {
+  const document = fixture();
+  document.segments = [{ id: 'S1', text: 'R1: Return zero.\nR2: Reject negatives.', location: 'Page 1', page: 1 }];
+  const input = parseRequirementInput(documentText(document), document);
+  assert.equal(input.rules.length, 2);
+  for (const rule of input.rules) assert.ok(sourceMatches(rule, ruleSources(rule)[0], document));
+  const second = ruleSources(input.rules[1])[0];
+  assert.ok(second.start! > 0);
+  assert.equal(second.page, 1);
+  assert.equal(sourceMatches(input.rules[1], { ...second, start: second.start! + 1 }, document), false);
+  assert.equal(sourceMatches(input.rules[1], { ...second, quote: 'Invented quote' }, document), false);
+});
+
+test('numbered requirements are not silently merged or dropped at the former twelve-section limit', () => {
+  const input = parseRequirementInput(Array.from({ length: 20 }, (_, i) => `FR-${i + 1}: The system shall return ${i}.`).join('\n\n'));
+  assert.equal(input.rules.length, 20);
+  assert.equal(input.rules[19].originalId, 'FR-20');
 });

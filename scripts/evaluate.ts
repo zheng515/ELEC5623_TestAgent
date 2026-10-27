@@ -11,6 +11,7 @@ import { importProject } from '../lib/python-tools';
 import { goldSchema, reviewTemplate, type FaultProbe } from '../lib/evaluation';
 import { probeFault, validateReference } from '../lib/evaluation-tools';
 import type { PythonReport } from '../lib/python-types';
+import { parseRequirementInput } from '../lib/requirement-input';
 
 const manifestSchema = z.object({
   purpose: z.enum(['pilot', 'held-out']).default('pilot'),
@@ -27,7 +28,7 @@ async function main() {
   if (new Set(manifest.variants).size !== manifest.variants.length || new Set(manifest.cases.map((item) => item.id)).size !== manifest.cases.length) throw new Error('Benchmark variants and case IDs must be unique.');
   const sandboxImage = execFileSync('docker', ['image', 'inspect', '--format', '{{.Id}}', process.env.REQTEST_SANDBOX_IMAGE || 'reqtest-python:1'], { encoding: 'utf8' }).trim();
   process.env.REQTEST_SANDBOX_IMAGE = sandboxImage;
-  const agentPaths = ['lib/python-agent.ts', 'lib/python-types.ts', 'lib/python-tools.ts', 'lib/model.ts', 'lib/runtime.ts', 'lib/mutation-review.ts', 'lib/test-services.ts', 'lib/evaluation-tools.ts', 'scripts/evaluate.ts', 'sandbox/worker.py', 'sandbox/node-worker.cjs', 'package-lock.json'];
+  const agentPaths = ['lib/python-agent.ts', 'lib/python-types.ts', 'lib/python-tools.ts', 'lib/model.ts', 'lib/runtime.ts', 'lib/mutation-review.ts', 'lib/test-services.ts', 'lib/evaluation-tools.ts', 'lib/requirement-input.ts', 'scripts/evaluate.ts', 'sandbox/worker.py', 'sandbox/node-worker.cjs', 'package-lock.json'];
   const agentFiles = await Promise.all(agentPaths.map(async file => [file, await readFile(file, 'utf8')]));
   const agentFingerprint = createHash('sha256').update(JSON.stringify(agentFiles)).digest('hex');
   const output = resolve('.evidence/evaluation', new Date().toISOString().replaceAll(/[:.]/g, '-') + '-' + randomUUID().slice(0, 8));
@@ -60,8 +61,9 @@ async function main() {
     await visit(directory);
     const archive = await zip.generateAsync({ type: 'nodebuffer' });
     await writeFile(join(output, `${item.id}.zip`), archive);
-    const rules = (await readFile(item.requirements, 'utf8')).split(/\r?\n/).filter((line) => line.trim()).map((text, position) => ({ id: 'R' + (position + 1), text }));
-    if (!rules.length || rules.length > 12 || JSON.stringify(rules).length > 13000) throw new Error('Benchmark requirements must fit the supported input limits.');
+    const parsed = parseRequirementInput(await readFile(item.requirements, 'utf8'));
+    const { rules, ...requirementInput } = parsed;
+    if (rules.length > 24) throw new Error('Benchmark requirements must fit the supported input limits.');
     await writeFile(join(output, `${item.id}.gold.json`), JSON.stringify(gold, null, 2));
     let reference: string | undefined;
     if (item.oracle) {
@@ -73,14 +75,15 @@ async function main() {
       if (!validation.valid) throw new Error(`Contract witnesses failed for ${item.id}; no model calls for this case.`);
     }
     if (validateOnly) continue;
-    for (const variant of manifest.variants) for (let repeat = 1; repeat <= manifest.repeat; repeat++) {
+    const attempts = Array.from({ length: manifest.repeat }, (_, i) => manifest.variants.map((_, offset) => ({ repeat: i + 1, variant: manifest.variants[(i + offset) % manifest.variants.length] }))).flat();
+    for (const { variant, repeat } of attempts) {
       if (interrupted.signal.aborted) { index.status = 'cancelled'; await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2)); return; }
       const currentAgent = await Promise.all(agentPaths.map(async file => [file, await readFile(file, 'utf8')]));
       if (createHash('sha256').update(JSON.stringify(currentAgent)).digest('hex') !== agentFingerprint) throw new Error('Agent inputs changed during the experiment. Start a new frozen experiment.');
       const name = `${item.id}-${variant}-${repeat}`, root = join(output, name);
       await mkdir(join(root, 'generated'), { recursive: true });
       const snapshot = await importProject(root, archive);
-      const report: PythonReport = { id: randomUUID(), variant, title: item.id, createdAt: new Date().toISOString(), model: index.model, source: item.project, fingerprint: snapshot.fingerprint, status: 'running', stage: '', rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: ['Dataset purpose: ' + manifest.purpose + '. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis.'] };
+      const report: PythonReport = { id: randomUUID(), variant, title: item.id, createdAt: new Date().toISOString(), model: index.model, source: item.project, fingerprint: snapshot.fingerprint, requirementInput, status: 'running', stage: '', rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: ['Dataset purpose: ' + manifest.purpose + '. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis.'] };
       const entry: typeof index.runs[number] = { caseId: item.id, variant, repeat, report: `${name}/report.json`, gold: `${item.id}.gold.json`, review: `${name}/review.json`, reference, requests: `${name}/requests.json` };
       if (gold.fault) entry.fault = { id: gold.fault.id, beforeDetected: null, afterDetected: null, corrected: [] };
       index.runs.push(entry);

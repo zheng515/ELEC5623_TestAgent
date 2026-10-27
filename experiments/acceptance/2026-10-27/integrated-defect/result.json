@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-27",
+  "kind": "single-project known-defect development acceptance; not a benchmark",
+  "command": "npm run verify -- experiments/acceptance/2026-10-27/integrated-defect/verification.json",
+  "expectedExitCode": 1,
+  "actualExitCode": 1,
+  "status": "completed",
+  "gatePassed": false,
+  "requirements": 4,
+  "behaviors": 5,
+  "generated": 5,
+  "approved": 5,
+  "passed": 4,
+  "failed": 1,
+  "errors": 0,
+  "preservedPotentialDefectFailures": 1,
+  "improvements": 0,
+  "assertionUnchanged": true,
+  "implementationUnchanged": true,
+  "sourceFingerprint": "f06c7fedcfc228ac1a3df1d98c35a51526a75c02f93a8efd77462bc6bad8f365",
+  "policyVersion": "contract-witness-v5-decision-history",
+  "elapsedMs": 26977,
+  "stopReasonRecorded": true,
+  "exportReplay": {
+    "passed": 4,
+    "failed": 1,
+    "integrity": true,
+    "modelCalls": 0
+  },
+  "independentSemanticAccuracy": null
+}

@@ -1,0 +1,621 @@
+{
+  "runtime": "python",
+  "id": "cf134aab-72b9-44c0-9869-ea3292f58ef3",
+  "title": "CI verification",
+  "createdAt": "2026-10-27T00:27:37.331Z",
+  "model": "gpt-6-luna",
+  "source": "/Users/jingxiao/Documents/26s2/5623/ELEC5623_TestAgent/examples/experiments/full-srs/project",
+  "fingerprint": "f06c7fedcfc228ac1a3df1d98c35a51526a75c02f93a8efd77462bc6bad8f365",
+  "requirementInput": {
+    "mode": "numbered",
+    "text": "# Shipping SRS\n\nA small integer-cent shipping calculator.\n\n## Functional requirements\n\nR1: For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.\n\nR2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.\n\nR3: For negative built-in int amount_cents, shipping.fee raises ValueError.\n\nR4: For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.\n\n## Environment\n\nPython 3.11. No external services.",
+    "context": "# Shipping SRS\n\nA small integer-cent shipping calculator.\n\n\n\n## Functional requirements\n\n\n\n## Environment\n\nPython 3.11. No external services."
+  },
+  "status": "completed",
+  "stage": "Complete",
+  "rules": [
+    {
+      "id": "R1",
+      "text": "R1: For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.",
+      "originalId": "R1"
+    },
+    {
+      "id": "R2",
+      "text": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+      "originalId": "R2"
+    },
+    {
+      "id": "R3",
+      "text": "R3: For negative built-in int amount_cents, shipping.fee raises ValueError.",
+      "originalId": "R3"
+    },
+    {
+      "id": "R4",
+      "text": "R4: For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.",
+      "originalId": "R4"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_fee_returns_1000_for_amounts_0_through_9999",
+      "gapIndexes": [
+        0,
+        1,
+        2
+      ],
+      "code": "import shipping\n\n\ndef test_fee_returns_1000_for_amounts_0_through_9999():\n    for amount_cents in (0, 5000, 9999):\n        result = shipping.fee(amount_cents)\n        assert isinstance(result, int)\n        assert not isinstance(result, bool)\n        assert result == 1000\n",
+      "quote": "R1: For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.",
+      "purpose": "Check the lower endpoint, an interior value, and the upper endpoint of the specified input range, including the promised integer result.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T1",
+        "supported": true,
+        "reason": "The test checks the lower endpoint, an interior value, and the upper endpoint of the specified range, and verifies an integer result that is not bool with the required value.",
+        "quote": "R1: For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents."
+      },
+      "review": "The test checks the lower endpoint, an interior value, and the upper endpoint of the specified range, and verifies an integer result that is not bool with the required value."
+    },
+    {
+      "id": "T2",
+      "behaviorId": "B2",
+      "functionName": "test_fee_returns_zero_at_10000",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import shipping\n\n\ndef test_fee_returns_zero_at_10000():\n    result = shipping.fee(10000)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+      "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+      "purpose": "Check the explicitly specified threshold input of 10000 and its promised integer result.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T2",
+        "supported": true,
+        "reason": "The test checks the explicitly required input 10000 and verifies the promised integer result is not bool and equals 0.",
+        "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000."
+      },
+      "review": "The test checks the explicitly required input 10000 and verifies the promised integer result is not bool and equals 0."
+    },
+    {
+      "id": "T3",
+      "behaviorId": "B3",
+      "functionName": "test_fee_returns_zero_above_10000",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import shipping\n\n\ndef test_fee_returns_zero_above_10000():\n    result = shipping.fee(10001)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+      "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+      "purpose": "Check a representative built-in integer above the threshold and the promised integer result.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T3",
+        "supported": true,
+        "reason": "The test checks a built-in int above 10000 and verifies the promised integer result is not bool and equals 0.",
+        "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000."
+      },
+      "review": "The test checks a built-in int above 10000 and verifies the promised integer result is not bool and equals 0."
+    },
+    {
+      "id": "T4",
+      "behaviorId": "B4",
+      "functionName": "test_fee_raises_value_error_for_negative_integer",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import pytest\nimport shipping\n\n\ndef test_fee_raises_value_error_for_negative_integer():\n    with pytest.raises(ValueError):\n        shipping.fee(-1)\n",
+      "quote": "R3: For negative built-in int amount_cents, shipping.fee raises ValueError.",
+      "purpose": "Check that a negative built-in integer raises the required exception.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T4",
+        "supported": true,
+        "reason": "The test checks a negative built-in integer input and asserts the required ValueError.",
+        "quote": "R3: For negative built-in int amount_cents, shipping.fee raises ValueError."
+      },
+      "review": "The test checks a negative built-in integer input and asserts the required ValueError."
+    },
+    {
+      "id": "T5",
+      "behaviorId": "B5",
+      "functionName": "test_fee_raises_type_error_for_non_builtin_int",
+      "gapIndexes": [
+        0,
+        1
+      ],
+      "code": "import pytest\nimport shipping\n\n\ndef test_fee_raises_type_error_for_non_builtin_int():\n    for amount_cents in (True, 1.5):\n        with pytest.raises(TypeError):\n            shipping.fee(amount_cents)\n",
+      "quote": "R4: For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.",
+      "purpose": "Check the required TypeError for bool and for a non-int, non-bool argument.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T5",
+        "supported": true,
+        "reason": "The test checks both bool and a non-int, non-bool input, asserting the required TypeError for each.",
+        "quote": "R4: For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError."
+      },
+      "review": "The test checks both bool and a non-int, non-bool input, asserting the required TypeError for each."
+    }
+  ],
+  "measurements": [
+    {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_fee_returns_1000_for_amounts_0_through_9999",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_fee_returns_1000_for_amounts_0_through_9999",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T2.py::test_fee_returns_zero_at_10000",
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "name": "test_fee_returns_zero_at_10000",
+          "status": "failed",
+          "message": "def test_fee_returns_zero_at_10000():\n        result = shipping.fee(10000)\n        assert isinstance(result, int)\n        assert not isinstance(result, bool)\n>       assert result == 0\nE       assert 1000 == 0\n\nreqtest_generated/test_reqtest_T2.py:8: AssertionError"
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T3.py::test_fee_returns_zero_above_10000",
+          "file": "reqtest_generated/test_reqtest_T3.py",
+          "name": "test_fee_returns_zero_above_10000",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T4.py::test_fee_raises_value_error_for_negative_integer",
+          "file": "reqtest_generated/test_reqtest_T4.py",
+          "name": "test_fee_raises_value_error_for_negative_integer",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T5.py::test_fee_raises_type_error_for_non_builtin_int",
+          "file": "reqtest_generated/test_reqtest_T5.py",
+          "name": "test_fee_raises_type_error_for_non_builtin_int",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 1,
+      "log": ".F...                                                                    [100%]\n=================================== FAILURES ===================================\n________________________ test_fee_returns_zero_at_10000 ________________________\n\n    def test_fee_returns_zero_at_10000():\n        result = shipping.fee(10000)\n        assert isinstance(result, int)\n        assert not isinstance(result, bool)\n>       assert result == 0\nE       assert 1000 == 0\n\nreqtest_generated/test_reqtest_T2.py:8: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T2.py::test_fee_returns_zero_at_10000\n1 failed, 4 passed in 0.02s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  ],
+  "mutations": [],
+  "diagnoses": [
+    {
+      "testId": "T2",
+      "category": "potential_implementation_defect",
+      "reason": "The failing assertion checks the explicitly required result for built-in int input 10000. The recorded traceback shows the implementation returned 1000 rather than 0, violating R2.",
+      "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+      "executionQuote": "E       assert 1000 == 0",
+      "evidence": [
+        {
+          "file": "shipping.py",
+          "quote": "    return 0 if amount_cents > 10000 else 1000"
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "quote": "    assert result == 0"
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "relevance": [],
+  "improvements": [],
+  "states": [
+    {
+      "id": "B1",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T1.py::test_fee_returns_1000_for_amounts_0_through_9999"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_fee_returns_zero_at_10000"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_fee_returns_zero_above_10000"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_fee_raises_value_error_for_negative_integer"
+      ]
+    },
+    {
+      "id": "B5",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T5.py::test_fee_raises_type_error_for_non_builtin_int"
+      ]
+    }
+  ],
+  "limitations": [
+    "Model-generated assessments require review. CI completion is not exhaustive correctness."
+  ],
+  "variant": "B3",
+  "configuration": {
+    "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+    "improvementLimit": 1,
+    "mutationSeconds": 75,
+    "policyVersion": "contract-witness-v5-decision-history",
+    "mode": "regenerate"
+  },
+  "environment": {
+    "python": "3.11.17",
+    "pytest": "8.4.2",
+    "mutmut": "2.5.1"
+  },
+  "collection": {
+    "exitCode": 5,
+    "log": "\nno tests collected in 0.00s\n",
+    "timedOut": false
+  },
+  "retrieval": {
+    "query": "R1: For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents. R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000. R3: For negative built-in int amount_cents, shipping.fee raises ValueError. R4: For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.",
+    "documents": []
+  },
+  "analysis": {
+    "behaviors": [
+      {
+        "id": "B1",
+        "ruleId": "R1",
+        "quote": "R1: For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.",
+        "text": "For built-in int inputs from 0 through 9999, fee returns the promised 1000-cent value.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "The range and return value are clearly specified. The implementation returns 1000 for values in this range.",
+        "files": [
+          "shipping.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents > 10000 else 1000"
+          }
+        ],
+        "gaps": [
+          "Check the lower endpoint, 0.",
+          "Check an interior value in the range.",
+          "Check the upper endpoint, 9999."
+        ]
+      },
+      {
+        "id": "B2",
+        "ruleId": "R2",
+        "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+        "text": "At exactly 10000 cents, fee returns 0 cents.",
+        "category": "boundary",
+        "issue": "none",
+        "reason": "The requirement explicitly specifies the threshold value. The implementation returns 1000 at 10000 because its condition is strictly greater than 10000.",
+        "files": [
+          "shipping.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents > 10000 else 1000"
+          }
+        ],
+        "gaps": [
+          "Check the exact threshold value, 10000."
+        ]
+      },
+      {
+        "id": "B3",
+        "ruleId": "R2",
+        "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+        "text": "For built-in int inputs greater than 10000, fee returns 0 cents.",
+        "category": "condition",
+        "issue": "none",
+        "reason": "The requirement clearly specifies the at-least-10000 range. The implementation returns 0 for values greater than 10000.",
+        "files": [
+          "shipping.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents > 10000 else 1000"
+          }
+        ],
+        "gaps": [
+          "Check a representative built-in int value greater than 10000."
+        ]
+      },
+      {
+        "id": "B4",
+        "ruleId": "R3",
+        "quote": "R3: For negative built-in int amount_cents, shipping.fee raises ValueError.",
+        "text": "A negative built-in int input raises ValueError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The exception contract is clear. The implementation raises ValueError for negative built-in ints.",
+        "files": [
+          "shipping.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "        raise ValueError(\"amount_cents must be nonnegative\")"
+          }
+        ],
+        "gaps": [
+          "Check a negative built-in int input and assert ValueError."
+        ]
+      },
+      {
+        "id": "B5",
+        "ruleId": "R4",
+        "quote": "R4: For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.",
+        "text": "An argument whose type is not the built-in int, including bool, raises TypeError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The input-type and exception contract is clear. The implementation rejects inputs whose concrete type is not int.",
+        "files": [
+          "shipping.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "    if type(amount_cents) is not int:"
+          },
+          {
+            "file": "shipping.py",
+            "quote": "        raise TypeError(\"amount_cents must be an integer\")"
+          }
+        ],
+        "gaps": [
+          "Check bool input and assert TypeError.",
+          "Check a non-int, non-bool input and assert TypeError."
+        ]
+      }
+    ],
+    "inconsistencies": [
+      {
+        "ruleId": "R2",
+        "behaviorIds": [
+          "B2"
+        ],
+        "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+        "description": "The implementation's strict greater-than threshold conflicts with the requirement's explicit result at exactly 10000.",
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents > 10000 else 1000"
+          }
+        ]
+      }
+    ]
+  },
+  "baseline": {
+    "outcomes": [],
+    "exitCode": 5,
+    "log": "No selected tests.",
+    "timedOut": false,
+    "integrity": true
+  },
+  "testAttempts": [
+    {
+      "phase": "generation",
+      "reason": "Generate checks from the original requirements and identified gaps.",
+      "status": "applied",
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_fee_returns_1000_for_amounts_0_through_9999",
+          "gapIndexes": [
+            0,
+            1,
+            2
+          ],
+          "code": "import shipping\n\n\ndef test_fee_returns_1000_for_amounts_0_through_9999():\n    for amount_cents in (0, 5000, 9999):\n        result = shipping.fee(amount_cents)\n        assert isinstance(result, int)\n        assert not isinstance(result, bool)\n        assert result == 1000\n",
+          "quote": "R1: For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.",
+          "purpose": "Check the lower endpoint, an interior value, and the upper endpoint of the specified input range, including the promised integer result.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test checks the lower endpoint, an interior value, and the upper endpoint of the specified range, and verifies an integer result that is not bool with the required value.",
+            "quote": "R1: For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents."
+          },
+          "review": "The test checks the lower endpoint, an interior value, and the upper endpoint of the specified range, and verifies an integer result that is not bool with the required value."
+        },
+        {
+          "id": "T2",
+          "behaviorId": "B2",
+          "functionName": "test_fee_returns_zero_at_10000",
+          "gapIndexes": [
+            0
+          ],
+          "code": "import shipping\n\n\ndef test_fee_returns_zero_at_10000():\n    result = shipping.fee(10000)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+          "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+          "purpose": "Check the explicitly specified threshold input of 10000 and its promised integer result.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T2",
+            "supported": true,
+            "reason": "The test checks the explicitly required input 10000 and verifies the promised integer result is not bool and equals 0.",
+            "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000."
+          },
+          "review": "The test checks the explicitly required input 10000 and verifies the promised integer result is not bool and equals 0."
+        },
+        {
+          "id": "T3",
+          "behaviorId": "B3",
+          "functionName": "test_fee_returns_zero_above_10000",
+          "gapIndexes": [
+            0
+          ],
+          "code": "import shipping\n\n\ndef test_fee_returns_zero_above_10000():\n    result = shipping.fee(10001)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+          "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+          "purpose": "Check a representative built-in integer above the threshold and the promised integer result.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T3",
+            "supported": true,
+            "reason": "The test checks a built-in int above 10000 and verifies the promised integer result is not bool and equals 0.",
+            "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000."
+          },
+          "review": "The test checks a built-in int above 10000 and verifies the promised integer result is not bool and equals 0."
+        },
+        {
+          "id": "T4",
+          "behaviorId": "B4",
+          "functionName": "test_fee_raises_value_error_for_negative_integer",
+          "gapIndexes": [
+            0
+          ],
+          "code": "import pytest\nimport shipping\n\n\ndef test_fee_raises_value_error_for_negative_integer():\n    with pytest.raises(ValueError):\n        shipping.fee(-1)\n",
+          "quote": "R3: For negative built-in int amount_cents, shipping.fee raises ValueError.",
+          "purpose": "Check that a negative built-in integer raises the required exception.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T4",
+            "supported": true,
+            "reason": "The test checks a negative built-in integer input and asserts the required ValueError.",
+            "quote": "R3: For negative built-in int amount_cents, shipping.fee raises ValueError."
+          },
+          "review": "The test checks a negative built-in integer input and asserts the required ValueError."
+        },
+        {
+          "id": "T5",
+          "behaviorId": "B5",
+          "functionName": "test_fee_raises_type_error_for_non_builtin_int",
+          "gapIndexes": [
+            0,
+            1
+          ],
+          "code": "import pytest\nimport shipping\n\n\ndef test_fee_raises_type_error_for_non_builtin_int():\n    for amount_cents in (True, 1.5):\n        with pytest.raises(TypeError):\n            shipping.fee(amount_cents)\n",
+          "quote": "R4: For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError.",
+          "purpose": "Check the required TypeError for bool and for a non-int, non-bool argument.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T5",
+            "supported": true,
+            "reason": "The test checks both bool and a non-int, non-bool input, asserting the required TypeError for each.",
+            "quote": "R4: For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError."
+          },
+          "review": "The test checks both bool and a non-int, non-bool input, asserting the required TypeError for each."
+        }
+      ],
+      "decisions": [
+        {
+          "testId": "T1",
+          "supported": true,
+          "reason": "The test checks the lower endpoint, an interior value, and the upper endpoint of the specified range, and verifies an integer result that is not bool with the required value.",
+          "quote": "R1: For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents."
+        },
+        {
+          "testId": "T2",
+          "supported": true,
+          "reason": "The test checks the explicitly required input 10000 and verifies the promised integer result is not bool and equals 0.",
+          "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000."
+        },
+        {
+          "testId": "T3",
+          "supported": true,
+          "reason": "The test checks a built-in int above 10000 and verifies the promised integer result is not bool and equals 0.",
+          "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000."
+        },
+        {
+          "testId": "T4",
+          "supported": true,
+          "reason": "The test checks a negative built-in integer input and asserts the required ValueError.",
+          "quote": "R3: For negative built-in int amount_cents, shipping.fee raises ValueError."
+        },
+        {
+          "testId": "T5",
+          "supported": true,
+          "reason": "The test checks both bool and a non-int, non-bool input, asserting the required TypeError for each.",
+          "quote": "R4: For any argument whose type is not the built-in int, including bool, shipping.fee raises TypeError."
+        }
+      ]
+    }
+  ],
+  "initialStates": [
+    {
+      "id": "B1",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T1.py::test_fee_returns_1000_for_amounts_0_through_9999"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_fee_returns_zero_at_10000"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_fee_returns_zero_above_10000"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_fee_raises_value_error_for_negative_integer"
+      ]
+    },
+    {
+      "id": "B5",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T5.py::test_fee_raises_type_error_for_non_builtin_int"
+      ]
+    }
+  ],
+  "proposedDiagnoses": [
+    {
+      "testId": "T2",
+      "category": "potential_implementation_defect",
+      "reason": "The failing assertion checks the explicitly required result for built-in int input 10000. The recorded traceback shows the implementation returned 1000 rather than 0, violating R2.",
+      "quote": "R2: For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+      "executionQuote": "E       assert 1000 == 0",
+      "evidence": [
+        {
+          "file": "shipping.py",
+          "quote": "    return 0 if amount_cents > 10000 else 1000"
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "quote": "    assert result == 0"
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+  "elapsedMs": 26977
+}

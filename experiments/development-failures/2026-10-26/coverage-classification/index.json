@@ -1,0 +1,89 @@
+{
+  "purpose": "pilot",
+  "createdAt": "2026-10-26T11:34:03.017Z",
+  "model": "gpt-6-luna",
+  "manifestHash": "5da5377931d3bdc1f5804d0a77aa54e59d14999b849169dce1cfca34c5dd5e02",
+  "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+  "agentFingerprint": "53d0400b61a97987eecbea585fbc7d72a56d8fada228a6b8a3aa6c8bcd8f458e",
+  "expectedRuns": 36,
+  "status": "cancelled",
+  "runs": [
+    {
+      "caseId": "shipping",
+      "variant": "B0",
+      "repeat": 1,
+      "report": "shipping-B0-1/report.json",
+      "gold": "shipping.gold.json",
+      "review": "shipping-B0-1/review.json",
+      "reference": "shipping.reference.json",
+      "requests": "shipping-B0-1/requests.json",
+      "elapsedMs": 7878
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B1",
+      "repeat": 1,
+      "report": "shipping-B1-1/report.json",
+      "gold": "shipping.gold.json",
+      "review": "shipping-B1-1/review.json",
+      "reference": "shipping.reference.json",
+      "requests": "shipping-B1-1/requests.json",
+      "elapsedMs": 6411
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B2",
+      "repeat": 1,
+      "report": "shipping-B2-1/report.json",
+      "gold": "shipping.gold.json",
+      "review": "shipping-B2-1/review.json",
+      "reference": "shipping.reference.json",
+      "requests": "shipping-B2-1/requests.json",
+      "elapsedMs": 33735
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B3",
+      "repeat": 1,
+      "report": "shipping-B3-1/report.json",
+      "gold": "shipping.gold.json",
+      "review": "shipping-B3-1/review.json",
+      "reference": "shipping.reference.json",
+      "requests": "shipping-B3-1/requests.json",
+      "elapsedMs": 29028
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B1",
+      "repeat": 2,
+      "report": "shipping-B1-2/report.json",
+      "gold": "shipping.gold.json",
+      "review": "shipping-B1-2/review.json",
+      "reference": "shipping.reference.json",
+      "requests": "shipping-B1-2/requests.json",
+      "elapsedMs": 6723
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B2",
+      "repeat": 2,
+      "report": "shipping-B2-2/report.json",
+      "gold": "shipping.gold.json",
+      "review": "shipping-B2-2/review.json",
+      "reference": "shipping.reference.json",
+      "requests": "shipping-B2-2/requests.json",
+      "elapsedMs": 35224
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B3",
+      "repeat": 2,
+      "report": "shipping-B3-2/report.json",
+      "gold": "shipping.gold.json",
+      "review": "shipping-B3-2/review.json",
+      "reference": "shipping.reference.json",
+      "requests": "shipping-B3-2/requests.json",
+      "elapsedMs": 2462
+    }
+  ]
+}

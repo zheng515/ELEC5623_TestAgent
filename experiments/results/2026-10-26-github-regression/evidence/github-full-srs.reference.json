@@ -1,0 +1,39 @@
+{
+  "valid": true,
+  "sourceFingerprint": "5721f21c6f78655415c0b29e1ad76d2981c14c68d65ff23e7ef0172759432a24",
+  "faultHash": "81d7b2d0666fcfaedecf529e4479cf80975dd9a3dc71a1ce261659710ca62370",
+  "oracleHash": "aa4eb7954bd3befa2407f36e86d0894ffd2360e30b7113f2a045779e491f7961",
+  "original": {
+    "outcomes": [
+      {
+        "node": "reqtest_generated/test_reqtest_T1.py::test_contract",
+        "file": "reqtest_generated/test_reqtest_T1.py",
+        "name": "test_contract",
+        "status": "failed",
+        "message": "def test_contract():\n        for value, expected in [(0, 1000), (500, 1000), (9999, 1000), (10000, 0), (20000, 0)]:\n            actual = fee(value)\n            assert type(actual) is int\n>           assert actual == expected\nE           assert 1000 == 0\n\nreqtest_generated/test_reqtest_T1.py:9: AssertionError"
+      }
+    ],
+    "exitCode": 1,
+    "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n________________________________ test_contract _________________________________\n\n    def test_contract():\n        for value, expected in [(0, 1000), (500, 1000), (9999, 1000), (10000, 0), (20000, 0)]:\n            actual = fee(value)\n            assert type(actual) is int\n>           assert actual == expected\nE           assert 1000 == 0\n\nreqtest_generated/test_reqtest_T1.py:9: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_contract - assert 1000 == 0\n1 failed in 0.01s\n",
+    "timedOut": false,
+    "integrity": true,
+    "runtimeArtifacts": []
+  },
+  "corrected": {
+    "outcomes": [
+      {
+        "node": "reqtest_generated/test_reqtest_T1.py::test_contract",
+        "file": "reqtest_generated/test_reqtest_T1.py",
+        "name": "test_contract",
+        "status": "passed",
+        "message": ""
+      }
+    ],
+    "exitCode": 0,
+    "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+    "timedOut": false,
+    "integrity": true,
+    "runtimeArtifacts": []
+  },
+  "scope": "Fixed executable contract witnesses only; not independent semantic review or complete specification coverage."
+}

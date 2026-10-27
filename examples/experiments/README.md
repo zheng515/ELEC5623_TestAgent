@@ -27,6 +27,7 @@ copies, outside model context. Their hashes, source fingerprints and patch hashe
 are retained. They validate only their explicitly listed checks. They do not prove
 that the full requirement document was extracted or interpreted correctly.
 
+The current runner uses the same SRS parser and supporting context as the website.
 The runner saves the original manifest, input archives, production agent/dependency
 source snapshot, image ID, per-stage reports, request errors, provider token usage,
 wall time, corrected-copy probes and independent-review templates. Requests have no
@@ -87,7 +88,7 @@ README; no human reviewer or review flag is manufactured by this experiment.
 
 ## Limits to state alongside figures
 
-The execution order is fixed by project, configuration and repetition. API cache,
+Historical runs used a fixed configuration order. New runs rotate configurations within each case/repetition; project order remains fixed. API cache,
 model-service variability and time drift are not controlled. Do not interpret
 latency differences as a randomized causal result. Repetitions within a project
 are correlated; three projects do not support general effectiveness claims or

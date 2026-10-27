@@ -1,0 +1,41 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "reportId": "cc854c1e-f96d-4e23-b313-f5375371de64",
+  "sourceFingerprint": "3fb508a5fef4d22b622fe68a160e5ea417f34c021cfac11cb92d49e2d5fcfd8e",
+  "requirementTexts": [
+    "R1: For built-in int years from 0 through 4, membership.annual_fee(years) returns integer 12000.",
+    "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.",
+    "R3: Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError."
+  ],
+  "validOutcome": null,
+  "issues": [],
+  "gaps": [],
+  "inconsistencies": [],
+  "coverage": [
+    {
+      "id": "rule-1",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "rule-2",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "rule-3",
+      "beforeNodes": [],
+      "afterNodes": []
+    }
+  ],
+  "diagnoses": [
+    {
+      "testId": "T2",
+      "phase": "execution",
+      "expected": null,
+      "evidenceSupported": null
+    }
+  ],
+  "mutants": []
+}

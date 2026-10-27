@@ -1,0 +1,16 @@
+{
+  "purpose": "pilot",
+  "repeat": 3,
+  "variants": [
+    "B3"
+  ],
+  "cases": [
+    {
+      "id": "github-full-srs",
+      "project": "examples/experiments/github-demo/project",
+      "requirements": "examples/experiments/github-demo/project/docs/SRS.md",
+      "gold": "examples/experiments/github-demo/gold.json",
+      "oracle": "examples/experiments/oracles/shipping.py"
+    }
+  ]
+}

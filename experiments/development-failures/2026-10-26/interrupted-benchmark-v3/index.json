@@ -1,0 +1,1303 @@
+{
+  "purpose": "pilot",
+  "createdAt": "2026-10-26T11:52:46.703Z",
+  "model": "gpt-6-luna",
+  "manifestHash": "13d0b09d74d6cc8976e069f20c0493ba16e63920a173cbfb5b6c2ab1a8e4a33c",
+  "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+  "agentFingerprint": "c94d897e7c062cfc68884dab9c2228e6fa4ffb9cc578a5877cb9a66da129c17b",
+  "expectedRuns": 30,
+  "status": "cancelled",
+  "runs": [
+    {
+      "caseId": "membership",
+      "variant": "B0",
+      "repeat": 1,
+      "report": "membership-B0-1/report.json",
+      "gold": "membership.gold.json",
+      "review": "membership-B0-1/review.json",
+      "reference": "membership.reference.json",
+      "requests": "membership-B0-1/requests.json",
+      "fault": {
+        "id": "membership-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_for_four_years",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_for_four_years",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_for_exactly_five_years",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_for_exactly_five_years",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_rejects_negative_and_non_builtin_int_inputs",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_rejects_negative_and_non_builtin_int_inputs",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "...                                                                      [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n3 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_for_four_years",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_for_four_years",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_for_exactly_five_years",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_for_exactly_five_years",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_rejects_negative_and_non_builtin_int_inputs",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_rejects_negative_and_non_builtin_int_inputs",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "...                                                                      [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n3 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 8747
+    },
+    {
+      "caseId": "membership",
+      "variant": "B3",
+      "repeat": 1,
+      "report": "membership-B3-1/report.json",
+      "gold": "membership.gold.json",
+      "review": "membership-B3-1/review.json",
+      "reference": "membership.reference.json",
+      "requests": "membership-B3-1/requests.json",
+      "fault": {
+        "id": "membership-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_integer_12000_for_years_zero_through_four",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_returns_integer_12000_for_years_zero_through_four",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_integer_zero_above_five",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_returns_integer_zero_above_five",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_returns_integer_zero_at_five",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_returns_integer_zero_at_five",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_annual_fee_rejects_negative_builtin_int",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_annual_fee_rejects_negative_builtin_int",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T5.py::test_annual_fee_rejects_non_builtin_int",
+                "file": "reqtest_generated/test_reqtest_T5.py",
+                "name": "test_annual_fee_rejects_non_builtin_int",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T6.py::test_annual_fee_rejects_bool",
+                "file": "reqtest_generated/test_reqtest_T6.py",
+                "name": "test_annual_fee_rejects_bool",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "......                                                                   [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n6 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_integer_12000_for_years_zero_through_four",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_returns_integer_12000_for_years_zero_through_four",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_integer_zero_above_five",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_returns_integer_zero_above_five",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_returns_integer_zero_at_five",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_returns_integer_zero_at_five",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_annual_fee_rejects_negative_builtin_int",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_annual_fee_rejects_negative_builtin_int",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T5.py::test_annual_fee_rejects_non_builtin_int",
+                "file": "reqtest_generated/test_reqtest_T5.py",
+                "name": "test_annual_fee_rejects_non_builtin_int",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T6.py::test_annual_fee_rejects_bool",
+                "file": "reqtest_generated/test_reqtest_T6.py",
+                "name": "test_annual_fee_rejects_bool",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "......                                                                   [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n6 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 33836
+    },
+    {
+      "caseId": "membership",
+      "variant": "B3",
+      "repeat": 2,
+      "report": "membership-B3-2/report.json",
+      "gold": "membership.gold.json",
+      "review": "membership-B3-2/review.json",
+      "reference": "membership.reference.json",
+      "requests": "membership-B3-2/requests.json",
+      "fault": {
+        "id": "membership-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_integer_12000_for_years_0_through_4_witnesses",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_returns_integer_12000_for_years_0_through_4_witnesses",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_integer_zero_at_years_5",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_returns_integer_zero_at_years_5",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_returns_integer_zero_above_years_5",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_returns_integer_zero_above_years_5",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_annual_fee_rejects_negative_builtin_int",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_annual_fee_rejects_negative_builtin_int",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T5.py::test_annual_fee_rejects_non_builtin_int_inputs",
+                "file": "reqtest_generated/test_reqtest_T5.py",
+                "name": "test_annual_fee_rejects_non_builtin_int_inputs",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": ".....                                                                    [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n5 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_integer_12000_for_years_0_through_4_witnesses",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_returns_integer_12000_for_years_0_through_4_witnesses",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_integer_zero_at_years_5",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_returns_integer_zero_at_years_5",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_returns_integer_zero_above_years_5",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_returns_integer_zero_above_years_5",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_annual_fee_rejects_negative_builtin_int",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_annual_fee_rejects_negative_builtin_int",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T5.py::test_annual_fee_rejects_non_builtin_int_inputs",
+                "file": "reqtest_generated/test_reqtest_T5.py",
+                "name": "test_annual_fee_rejects_non_builtin_int_inputs",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": ".....                                                                    [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n5 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 33133
+    },
+    {
+      "caseId": "membership",
+      "variant": "B0",
+      "repeat": 2,
+      "report": "membership-B0-2/report.json",
+      "gold": "membership.gold.json",
+      "review": "membership-B0-2/review.json",
+      "reference": "membership.reference.json",
+      "requests": "membership-B0-2/requests.json",
+      "fault": {
+        "id": "membership-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_integer_fee_for_year_zero",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_returns_integer_fee_for_year_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_zero_at_exactly_five_years",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_returns_zero_at_exactly_five_years",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_rejects_negative_years_and_non_int_inputs",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_rejects_negative_years_and_non_int_inputs",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "...                                                                      [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n3 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_integer_fee_for_year_zero",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_returns_integer_fee_for_year_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_zero_at_exactly_five_years",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_returns_zero_at_exactly_five_years",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_rejects_negative_years_and_non_int_inputs",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_rejects_negative_years_and_non_int_inputs",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "...                                                                      [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n3 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 9965
+    },
+    {
+      "caseId": "membership",
+      "variant": "B0",
+      "repeat": 3,
+      "report": "membership-B0-3/report.json",
+      "gold": "membership.gold.json",
+      "review": "membership-B0-3/review.json",
+      "reference": "membership.reference.json",
+      "requests": "membership-B0-3/requests.json",
+      "fault": {
+        "id": "membership-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_12000_for_years_four",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_returns_12000_for_years_four",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_zero_at_five",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_returns_zero_at_five",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_rejects_negative_and_non_builtin_int_inputs",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_rejects_negative_and_non_builtin_int_inputs",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "...                                                                      [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n3 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_12000_for_years_four",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_returns_12000_for_years_four",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_zero_at_five",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_returns_zero_at_five",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_rejects_negative_and_non_builtin_int_inputs",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_rejects_negative_and_non_builtin_int_inputs",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "...                                                                      [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n3 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 8589
+    },
+    {
+      "caseId": "membership",
+      "variant": "B3",
+      "repeat": 3,
+      "report": "membership-B3-3/report.json",
+      "gold": "membership.gold.json",
+      "review": "membership-B3-3/review.json",
+      "reference": "membership.reference.json",
+      "requests": "membership-B3-3/requests.json",
+      "fault": {
+        "id": "membership-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_years_zero_through_four",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_years_zero_through_four",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_at_years_five",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_at_years_five",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_above_five_years",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_above_five_years",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_annual_fee_negative_years",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_annual_fee_negative_years",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T5.py::test_annual_fee_non_integer_input",
+                "file": "reqtest_generated/test_reqtest_T5.py",
+                "name": "test_annual_fee_non_integer_input",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T6.py::test_annual_fee_bool_input",
+                "file": "reqtest_generated/test_reqtest_T6.py",
+                "name": "test_annual_fee_bool_input",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "......                                                                   [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n6 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_years_zero_through_four",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_annual_fee_years_zero_through_four",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_at_years_five",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_annual_fee_at_years_five",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_above_five_years",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_annual_fee_above_five_years",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_annual_fee_negative_years",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_annual_fee_negative_years",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T5.py::test_annual_fee_non_integer_input",
+                "file": "reqtest_generated/test_reqtest_T5.py",
+                "name": "test_annual_fee_non_integer_input",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T6.py::test_annual_fee_bool_input",
+                "file": "reqtest_generated/test_reqtest_T6.py",
+                "name": "test_annual_fee_bool_input",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "......                                                                   [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n6 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 30786
+    },
+    {
+      "caseId": "credits",
+      "variant": "B0",
+      "repeat": 1,
+      "report": "credits-B0-1/report.json",
+      "gold": "credits.gold.json",
+      "review": "credits-B0-1/review.json",
+      "reference": "credits.reference.json",
+      "requests": "credits-B0-1/requests.json",
+      "fault": {
+        "id": "credits-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_charge_zero_returns_integer_zero",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_charge_zero_returns_integer_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_charge_rejects_negative_and_non_builtin_int_inputs",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_charge_rejects_negative_and_non_builtin_int_inputs",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "..                                                                       [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n2 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_charge_zero_returns_integer_zero",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_charge_zero_returns_integer_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_charge_rejects_negative_and_non_builtin_int_inputs",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_charge_rejects_negative_and_non_builtin_int_inputs",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "..                                                                       [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n2 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 6887
+    },
+    {
+      "caseId": "credits",
+      "variant": "B3",
+      "repeat": 1,
+      "report": "credits-B3-1/report.json",
+      "gold": "credits.gold.json",
+      "review": "credits-B3-1/review.json",
+      "reference": "credits.reference.json",
+      "requests": "credits-B3-1/requests.json",
+      "fault": {
+        "id": "credits-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_positive_units_return_tripled_integer",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_positive_units_return_tripled_integer",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_zero_units_return_integer_zero",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_zero_units_return_integer_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_negative_units_raise_value_error",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_negative_units_raise_value_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_non_builtin_int_inputs_raise_type_error",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_non_builtin_int_inputs_raise_type_error",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "....                                                                     [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n4 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_positive_units_return_tripled_integer",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_positive_units_return_tripled_integer",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_zero_units_return_integer_zero",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_zero_units_return_integer_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_negative_units_raise_value_error",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_negative_units_raise_value_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_non_builtin_int_inputs_raise_type_error",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_non_builtin_int_inputs_raise_type_error",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "....                                                                     [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n4 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 28233
+    },
+    {
+      "caseId": "credits",
+      "variant": "B3",
+      "repeat": 2,
+      "report": "credits-B3-2/report.json",
+      "gold": "credits.gold.json",
+      "review": "credits-B3-2/review.json",
+      "reference": "credits.reference.json",
+      "requests": "credits-B3-2/requests.json",
+      "fault": {
+        "id": "credits-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_positive_units_are_multiplied_by_three",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_positive_units_are_multiplied_by_three",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_nonnegative_input_returns_int_not_bool",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_nonnegative_input_returns_int_not_bool",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_zero_returns_integer_zero",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_zero_returns_integer_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_negative_builtin_int_raises_value_error",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_negative_builtin_int_raises_value_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T5.py::test_non_builtin_int_and_bool_raise_type_error",
+                "file": "reqtest_generated/test_reqtest_T5.py",
+                "name": "test_non_builtin_int_and_bool_raise_type_error",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": ".....                                                                    [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n5 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_positive_units_are_multiplied_by_three",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_positive_units_are_multiplied_by_three",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_nonnegative_input_returns_int_not_bool",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_nonnegative_input_returns_int_not_bool",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_zero_returns_integer_zero",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_zero_returns_integer_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_negative_builtin_int_raises_value_error",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_negative_builtin_int_raises_value_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T5.py::test_non_builtin_int_and_bool_raise_type_error",
+                "file": "reqtest_generated/test_reqtest_T5.py",
+                "name": "test_non_builtin_int_and_bool_raise_type_error",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": ".....                                                                    [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n5 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 30807
+    },
+    {
+      "caseId": "credits",
+      "variant": "B0",
+      "repeat": 2,
+      "report": "credits-B0-2/report.json",
+      "gold": "credits.gold.json",
+      "review": "credits-B0-2/review.json",
+      "reference": "credits.reference.json",
+      "requests": "credits-B0-2/requests.json",
+      "fault": {
+        "id": "credits-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_charge_returns_integer_triple_and_zero",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_charge_returns_integer_triple_and_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_charge_rejects_negative_and_non_builtin_int_units",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_charge_rejects_negative_and_non_builtin_int_units",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "..                                                                       [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n2 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_charge_returns_integer_triple_and_zero",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_charge_returns_integer_triple_and_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_charge_rejects_negative_and_non_builtin_int_units",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_charge_rejects_negative_and_non_builtin_int_units",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "..                                                                       [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n2 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 8093
+    },
+    {
+      "caseId": "credits",
+      "variant": "B0",
+      "repeat": 3,
+      "report": "credits-B0-3/report.json",
+      "gold": "credits.gold.json",
+      "review": "credits-B0-3/review.json",
+      "reference": "credits.reference.json",
+      "requests": "credits-B0-3/requests.json",
+      "fault": {
+        "id": "credits-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_charge_zero_returns_integer_zero",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_charge_zero_returns_integer_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_charge_rejects_negative_and_bool_units",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_charge_rejects_negative_and_bool_units",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "..                                                                       [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n2 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_charge_zero_returns_integer_zero",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_charge_zero_returns_integer_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_charge_rejects_negative_and_bool_units",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_charge_rejects_negative_and_bool_units",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "..                                                                       [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n2 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 10125
+    },
+    {
+      "caseId": "credits",
+      "variant": "B3",
+      "repeat": 3,
+      "report": "credits-B3-3/report.json",
+      "gold": "credits.gold.json",
+      "review": "credits-B3-3/review.json",
+      "reference": "credits.reference.json",
+      "requests": "credits-B3-3/requests.json",
+      "fault": {
+        "id": "credits-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_positive_units_are_multiplied_by_three",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_positive_units_are_multiplied_by_three",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_nonnegative_units_return_an_integer_not_bool",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_nonnegative_units_return_an_integer_not_bool",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_zero_units_return_integer_zero",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_zero_units_return_integer_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_negative_builtin_int_raises_value_error",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_negative_builtin_int_raises_value_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T5.py::test_non_bool_non_builtin_int_raises_type_error",
+                "file": "reqtest_generated/test_reqtest_T5.py",
+                "name": "test_non_bool_non_builtin_int_raises_type_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T6.py::test_bool_input_raises_type_error",
+                "file": "reqtest_generated/test_reqtest_T6.py",
+                "name": "test_bool_input_raises_type_error",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "......                                                                   [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n6 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_positive_units_are_multiplied_by_three",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_positive_units_are_multiplied_by_three",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_nonnegative_units_return_an_integer_not_bool",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_nonnegative_units_return_an_integer_not_bool",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_zero_units_return_integer_zero",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_zero_units_return_integer_zero",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_negative_builtin_int_raises_value_error",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_negative_builtin_int_raises_value_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T5.py::test_non_bool_non_builtin_int_raises_type_error",
+                "file": "reqtest_generated/test_reqtest_T5.py",
+                "name": "test_non_bool_non_builtin_int_raises_type_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T6.py::test_bool_input_raises_type_error",
+                "file": "reqtest_generated/test_reqtest_T6.py",
+                "name": "test_bool_input_raises_type_error",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "......                                                                   [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n6 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 31350
+    },
+    {
+      "caseId": "refund",
+      "variant": "B0",
+      "repeat": 1,
+      "report": "refund-B0-1/report.json",
+      "gold": "refund.gold.json",
+      "review": "refund-B0-1/review.json",
+      "reference": "refund.reference.json",
+      "requests": "refund-B0-1/requests.json",
+      "fault": {
+        "id": "refund-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_nonnegative_builtin_int_returns_equal_integer",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_nonnegative_builtin_int_returns_equal_integer",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_negative_builtin_int_raises_value_error",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_negative_builtin_int_raises_value_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_bool_amount_raises_type_error",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_bool_amount_raises_type_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_float_amount_raises_type_error",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_float_amount_raises_type_error",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "....                                                                     [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n4 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_nonnegative_builtin_int_returns_equal_integer",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_nonnegative_builtin_int_returns_equal_integer",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_negative_builtin_int_raises_value_error",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_negative_builtin_int_raises_value_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_bool_amount_raises_type_error",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_bool_amount_raises_type_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_float_amount_raises_type_error",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_float_amount_raises_type_error",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "....                                                                     [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n4 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 8531
+    },
+    {
+      "caseId": "refund",
+      "variant": "B3",
+      "repeat": 1,
+      "report": "refund-B3-1/report.json",
+      "gold": "refund.gold.json",
+      "review": "refund-B3-1/review.json",
+      "reference": "refund.reference.json",
+      "requests": "refund-B3-1/requests.json",
+      "fault": {
+        "id": "refund-seeded-fault",
+        "beforeDetected": true,
+        "afterDetected": true,
+        "corrected": [
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_refund_returns_integer_for_zero_and_positive_amounts",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_refund_returns_integer_for_zero_and_positive_amounts",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_refund_returns_zero_and_positive_amount_unchanged",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_refund_returns_zero_and_positive_amount_unchanged",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_refund_negative_builtin_int_raises_value_error",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_refund_negative_builtin_int_raises_value_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_refund_non_builtin_int_amounts_raise_type_error",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_refund_non_builtin_int_amounts_raise_type_error",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "....                                                                     [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n4 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          },
+          {
+            "outcomes": [
+              {
+                "node": "reqtest_generated/test_reqtest_T1.py::test_refund_returns_integer_for_zero_and_positive_amounts",
+                "file": "reqtest_generated/test_reqtest_T1.py",
+                "name": "test_refund_returns_integer_for_zero_and_positive_amounts",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T2.py::test_refund_returns_zero_and_positive_amount_unchanged",
+                "file": "reqtest_generated/test_reqtest_T2.py",
+                "name": "test_refund_returns_zero_and_positive_amount_unchanged",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T3.py::test_refund_negative_builtin_int_raises_value_error",
+                "file": "reqtest_generated/test_reqtest_T3.py",
+                "name": "test_refund_negative_builtin_int_raises_value_error",
+                "status": "passed",
+                "message": ""
+              },
+              {
+                "node": "reqtest_generated/test_reqtest_T4.py::test_refund_non_builtin_int_amounts_raise_type_error",
+                "file": "reqtest_generated/test_reqtest_T4.py",
+                "name": "test_refund_non_builtin_int_amounts_raise_type_error",
+                "status": "passed",
+                "message": ""
+              }
+            ],
+            "exitCode": 0,
+            "log": "....                                                                     [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n4 passed in 0.01s\n",
+            "timedOut": false,
+            "integrity": true,
+            "runtimeArtifacts": []
+          }
+        ]
+      },
+      "elapsedMs": 28611
+    },
+    {
+      "caseId": "refund",
+      "variant": "B3",
+      "repeat": 2,
+      "report": "refund-B3-2/report.json",
+      "gold": "refund.gold.json",
+      "review": "refund-B3-2/review.json",
+      "reference": "refund.reference.json",
+      "requests": "refund-B3-2/requests.json",
+      "fault": {
+        "id": "refund-seeded-fault",
+        "beforeDetected": null,
+        "afterDetected": null,
+        "corrected": []
+      },
+      "elapsedMs": 6832
+    }
+  ]
+}

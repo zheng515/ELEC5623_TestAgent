@@ -9,6 +9,19 @@ import { testFile, type ProjectRuntime } from "./runtime";
 import { testServices } from "./test-services";
 
 export type Inspection = { environment?: Record<string, string>; files: Record<string, string>; functions: { file: string; name: string; line: number; end: number }[]; nodes: string[]; collection: { exitCode: number; log: string; timedOut?: boolean }; errors: string[] };
+export async function verifySavedSource(root: string, expected: string) {
+  const files: [string, string][] = [];
+  async function visit(directory: string, prefix = '') {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (entry.isSymbolicLink()) throw new Error('Saved source contains a symbolic link. Import the project again.');
+      const name = prefix + entry.name, path = join(directory, entry.name);
+      if (entry.isDirectory()) await visit(path, name + '/');
+      else files.push([name, await readFile(path, 'utf8')]);
+    }
+  }
+  await visit(join(root, 'source'));
+  if (createHash('sha256').update(JSON.stringify(files.sort())).digest('hex') !== expected) throw new Error('The saved source fingerprint changed. Import the original project again.');
+}
 const dependencyLockFile = (name: string) => /(?:^|\/)(?:uv\.lock|package-lock\.json)$/.test(name);
 export function projectDirectory(value = "") {
   const path = value.trim().replace(/\/$/, '');

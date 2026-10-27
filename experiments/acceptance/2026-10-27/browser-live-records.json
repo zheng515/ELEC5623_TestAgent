@@ -1,0 +1,31 @@
+{
+  "mockedTransport": true,
+  "source": "Fresh real-model acceptance reports rendered without changing their contents",
+  "modelCalls": 0,
+  "databaseWrites": 0,
+  "independentUsers": false,
+  "checks": [
+    {
+      "case": "integrated-shipping",
+      "realSavedReport": "14e3ede3-c278-4034-b1b7-6ffccee92cb2",
+      "heading": "9 tests passed",
+      "approvedCandidates": 8,
+      "stopReasonVisible": true,
+      "mobileWidth": 390,
+      "waitedForResponsiveLayout": true,
+      "overflow": false,
+      "pageErrors": []
+    },
+    {
+      "case": "integrated-defect",
+      "realSavedReport": "cf134aab-72b9-44c0-9869-ea3292f58ef3",
+      "heading": "1 check needs investigation",
+      "approvedCandidates": 5,
+      "stopReasonVisible": true,
+      "mobileWidth": 390,
+      "waitedForResponsiveLayout": true,
+      "overflow": false,
+      "pageErrors": []
+    }
+  ]
+}

@@ -7,6 +7,10 @@ failures and attempts one bounded test improvement.
 
 ## Features
 
+ReqTest emphasizes original requirement contracts, traceable behavior checks and
+diagnosis before test replacement. See [product positioning and primary related
+work](docs/product-positioning.md) for overlap, differences and evidence limits.
+
 - Import a Python or Node.js project from a GitHub repository or ZIP archive; choose a branch, tag or commit and use a connected GitHub account or temporary read-only token for private repositories.
 - Upload PDF, DOC, DOCX, TXT or Markdown requirements with retained source locations; use English OCR for image-only PDF pages.
 - Check project dependencies before model calls and reuse the checked code snapshot.
@@ -32,6 +36,7 @@ Requires Node.js 22.22.2+ and Docker.
 
 ```sh
 npm ci
+# New checkout only: preserve an existing .env.local and signing secret.
 cp .env.example .env.local
 # Set OPENAI_API_KEY and DATABASE_URL in .env.local.
 npm run db:up
@@ -120,10 +125,15 @@ To run a checked local production build, stop the development website and worker
 then run:
 
 ```sh
+# A production-only first install needs npm run db:migrate:production once.
 npm run production:check
 npm run build
 npm run production:start
 ```
+
+After a successful build, subsequent starts only need `npm run production:start`.
+Run `npm run production:check` to diagnose configuration without starting services
+or calling a model. Rebuild after changing application code.
 
 The production worker reads production-mode environment files, including
 `.env.local`. Keep the full repository, installed dependencies and persistent
@@ -133,7 +143,11 @@ initializes database tables and starts both services. If either service exits, t
 other is stopped. Ctrl+C stops both. It binds only to 127.0.0.1; use the hostname and
 port configured in BETTER_AUTH_URL. Optional GitHub/SMTP settings produce clear
 warnings when disabled; incomplete settings block startup. Key presence is not an
-API-access check. The lower-level npm run start:all command remains available.
+API-access check. `npm run start:all` uses the same checked launcher and configured
+port. Startup also checks that the application port is free before initializing
+tables or launching the worker; stop an existing instance before starting another.
+Failures identify the startup stage or the service that stopped, with sensitive
+configuration values redacted from the launcher's error message.
 
 This is a single-machine deployment. Hosted TLS/reverse proxies, automatic restart
 after machine reboot and external backup storage are not configured. See
@@ -232,6 +246,8 @@ instead of replacing PostgreSQL records. Transient rate-limit buckets keep exist
 destination entries. Preserve `.data/auth-secret` so imported
 session cookies remain valid. Tests use isolated PostgreSQL schemas and clean up
 only their own schema. PostgreSQL must be available before running account tests.
+The test commands load `.env` and then `.env.local`; explicit process variables
+take precedence over both files.
 
 ## Project verification
 
@@ -259,7 +275,12 @@ only their own schema. PostgreSQL must be available before running account tests
    before running; it is never silently truncated. Original document hashes,
    page/paragraph locations and extraction warnings remain available under source
    details. Exact unchanged excerpts retain citations; edits are treated as
-   user-provided text. Long text remains intact for behavior decomposition.
+   user-provided text. Explicit IDs such as R1 and FR-CAL-02 are grouped
+   automatically; repeated IDs share an input item. Other text is retained as
+   supporting context and is not independently verified. Unnumbered text remains
+   available for behavior decomposition. A run supports at most 24 input items
+   and 24 analyzed behaviors; larger specifications need separate runs. All input
+   remains visible and no excess content is silently dropped.
 3. Select **Run verification**. Inspect behavior states, source quotes, mapped tests,
    recorded test outcomes, diagnoses, mutation results and improvements.
 4. Download the evidence JSON and generated-test ZIP. Extract the ZIP in the original
@@ -320,9 +341,16 @@ document coverage.
   execution node maps to a generated artifact only through a unique recorded failed
   node and matching file. Original model IDs remain in the audit trail. Duplicate
   aliases, unknown nodes and unsupported evidence cannot authorize repair.
-- **Improve:** at most one improvement action. Only diagnosed generated-test errors
-  are eligible for replacement. Otherwise passing tests trigger selected-file mutmut
-  measurement, relevance review and targeted additions for supported surviving mutants.
+- **Improve:** at most one improvement action. Diagnosed generated-test errors can
+  be replaced. Otherwise an unambiguous artifact with a unique, explicitly negative,
+  verbatim-cited review can be corrected under the same ID and behavior link. Every
+  replacement must pass the original review gates again, including promised value
+  and semantic type checks. Approved tests and justified failing assertions remain
+  unchanged. A clear behavior with no proposal can also use the single budget to
+  add a new reviewed check. Review-rejected replacements remain blocked and their proposals/reasons
+  are retained in the evidence export and Evaluation technical details.
+  Otherwise passing tests trigger selected-file mutmut measurement, relevance review
+  and targeted additions for supported surviving mutants.
   Python mutation checks explicitly run approved generated tests. Static imports and
   calls select top-level functions in one mapped source file; unresolved calls fall
   back to the selected full file. This selection is not dynamic coverage. File,
@@ -429,9 +457,24 @@ be resumed and are marked interrupted with uncertain states after a server resta
 The website and worker must share the same local snapshot storage. Multi-host and
 serverless deployment are not configured.
 
-Use **Clarify and re-run** to add explicit requirement statements against the same
-source snapshot. The original report stays unchanged and is linked from the new
+Use **Regenerate / clarify** to make a fresh model analysis and optionally add
+explicit requirement statements against the same source snapshot. The original report stays unchanged and is linked from the new
 report. Changed requirements mean this comparison is not a controlled quality score.
+
+Surviving mutations are reviewed per `(mutantId, behaviorId)` pair for every
+behavior mapped to the mutated file. Batches contain at most 16 pairs. Complete
+exact-diff pair judgments are cached individually; missing/duplicate pairs remain
+unresolved. An exclusion for one behavior never clears another. The Evaluation
+panel shows reviewed/required pair counts. Strict CI uses the same conservative
+requirement aggregation as the dashboard.
+
+Use **Re-run saved tests** to execute approved saved artifacts on the same checked
+source snapshot and pinned image, without model requests or an API key. Blocked
+proposals remain blocked. The original report stays unchanged. Source and suite
+hashes are checked; changed evidence is refused. Original analysis/reviews are
+reused, and diagnoses/mutation results are not refreshed. Previously unresolved
+adequacy cannot become Verified solely because the same checks pass again.
+Time-dependent target code can still produce different execution outcomes.
 
 For multiline document requirements, model outputs reference stable requirement
 IDs; the SDK resolves these to unchanged original quotes before evidence validation.
@@ -453,7 +496,7 @@ Pages containing both native text and images also receive OCR; supplementary
 image text is kept alongside native text with its original page reference.
 The upload and report views show per-page extraction outcomes, with detailed
 warnings collapsed by default. Low-confidence OCR blocks (below 70, or with no
-confidence available) are retained but not selected automatically. This threshold
+confidence available) are retained in the editable text and flagged for review. This threshold
 is a transcription warning, not a calibrated accuracy or verification score.
 At most 20 pages are attempted within a bounded processing budget; unreadable,
 failed or unprocessed pages are listed in extraction warnings. OCR is not exact
@@ -465,7 +508,7 @@ with LibreOffice; its block locations refer to the converted document, not origi
 rendered page numbers. The original file and SHA-256 are retained in both cases.
 Word headers, footers, drawings, tracked changes and nested tables are not fully
 extracted. Limits: 10 MB upload, 100 PDF pages, 1000 blocks and 100 KB extracted
-text. Unselected content is never claimed verified. Use **View original page** to
+text. Supporting context and unmapped items are never claimed verified. Use **View original page** to
 open the authenticated PDF viewer at the cited page, or download the original
 Word document and locate its body block/table row. Downloads and saved-document
 re-runs validate the original file hash. Changed originals are rejected; failed
@@ -553,6 +596,11 @@ PNG/SVG figures. Independent semantic metrics remain unavailable without human
 review. See [the experiment protocol](examples/experiments/README.md) for commands,
 denominators and limitations. This workflow is separate from the website.
 
+The five-project standalone comparison is configured separately in
+[the standalone benchmark protocol](examples/standalone-benchmark/README.md).
+It compares B0 and B3 on newly authored synthetic fixtures; it is not a named
+commercial-product comparison or independent semantic accuracy assessment.
+
 ### Repeated decision consistency
 
 Run `npm run evaluate:decisions -- 3` for eleven focused test-review and diagnosis
@@ -587,8 +635,9 @@ Use **View results in Evaluation** to open that run's charts and detailed result
 The requirement traceability table and technical report are not repeated on the
 task page. Original text and excerpts are collapsed with bounded scroll areas.
 
-- Summary cards separate selected requirements, analyzed behaviors, approved
-  generated test artifacts and recorded test outcomes.
+- Summary cards show passed, failed/error and skipped outcomes separately from
+  approved test files. A shared next-action summary distinguishes workflow
+  completion, test outcomes and requirement verification. Existing charts remain.
 - Charts show requirement states and the latest test outcomes, including errors
   and skipped cases. A missing execution is unavailable, not a zero-percent pass.
 - A requirement is Verified only when all its mapped behavior assessments are
@@ -601,9 +650,25 @@ task page. Original text and excerpts are collapsed with bounded scroll areas.
   document citations. Fingerprints are not rechecked by viewing the dashboard.
 - Expand requirements to inspect original quotes, PDF page links, OCR confidence
   and mapped test nodes. Filter by state to find unresolved requirements.
+- Summary shortcuts open the matching failures or blocked-test panel. Unresolved
+  requirement counts remain visible even when every executed test passes.
+- Quick start explains supported projects/documents and how to interpret results.
+  Expanded evidence wraps long text on narrow screens; code and logs remain scrollable.
+- Agent decisions shows each recorded generation/improvement round, proposed code,
+  model review responses, admission results and the saved stopping reason. Applied
+  means admitted into the active suite, not passed. Earlier reports without this
+  metadata are identified explicitly. Evidence JSON and test exports retain it.
+- The [integrated local acceptance](experiments/acceptance/2026-10-27/README.md)
+  records fresh correct/defective Shipping checks, export replay and saved-suite
+  execution. These are development checks, not a benchmark or accuracy score.
 - Failure diagnoses, blocked tests, execution logs and limitations remain available
   in expandable sections. Retrieval and mutation records are under Technical
   details. Download run evidence or the approved generated tests from this page.
+
+Original numbered IDs, supporting context and complete submitted text remain
+available in the scope panel. Missing behavior extraction is visible as unresolved.
+Potential-defect failures retained without changing their assertions are identified
+as investigation evidence, not confirmed defects or an independent accuracy score.
 
 Benchmarks, reference labels, human annotations and aggregate scoring stay outside
 the website. Edit the reference and per-run review JSON files independently, then

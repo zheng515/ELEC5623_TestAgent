@@ -1,0 +1,65 @@
+{
+  "id": "38d20644-8e34-4788-b2ab-5725adb8abde",
+  "variant": "B3",
+  "title": "refund",
+  "createdAt": "2026-10-26T11:57:42.372Z",
+  "model": "gpt-6-luna",
+  "source": "examples/standalone-benchmark/refund/project",
+  "fingerprint": "f5a1f4a2bd3d002ee729d673016d16060f2a97844896dd70d0a767fff73dccb3",
+  "requirementInput": {
+    "mode": "numbered",
+    "text": "# Refund SRS\n\nAmounts use integer cents where specified.\n\n## Functional requirements\n\nR1: For nonnegative built-in int amount, refund.refund(amount) returns an integer equal to amount.\n\nR2: For negative built-in int amount, refund.refund(amount) raises ValueError.\n\nR3: For non-built-in-int amount, including bool, refund.refund(amount) raises TypeError.\n\n## Environment\n\nPython 3.11, no network or external services.",
+    "context": "# Refund SRS\n\nAmounts use integer cents where specified.\n\n\n\n## Functional requirements\n\n\n\n## Environment\n\nPython 3.11, no network or external services."
+  },
+  "status": "cancelled",
+  "stage": "Analyze requirements and consistency",
+  "rules": [
+    {
+      "id": "R1",
+      "text": "R1: For nonnegative built-in int amount, refund.refund(amount) returns an integer equal to amount.",
+      "originalId": "R1"
+    },
+    {
+      "id": "R2",
+      "text": "R2: For negative built-in int amount, refund.refund(amount) raises ValueError.",
+      "originalId": "R2"
+    },
+    {
+      "id": "R3",
+      "text": "R3: For non-built-in-int amount, including bool, refund.refund(amount) raises TypeError.",
+      "originalId": "R3"
+    }
+  ],
+  "tests": [],
+  "measurements": [],
+  "mutations": [],
+  "diagnoses": [],
+  "relevance": [],
+  "improvements": [],
+  "states": [],
+  "limitations": [
+    "Dataset purpose: pilot. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis."
+  ],
+  "configuration": {
+    "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+    "improvementLimit": 1,
+    "mutationSeconds": 75,
+    "policyVersion": "contract-witness-v3",
+    "mode": "regenerate"
+  },
+  "environment": {
+    "python": "3.11.17",
+    "pytest": "8.4.2",
+    "mutmut": "2.5.1"
+  },
+  "collection": {
+    "exitCode": 5,
+    "log": "\nno tests collected in 0.00s\n",
+    "timedOut": false
+  },
+  "retrieval": {
+    "query": "R1: For nonnegative built-in int amount, refund.refund(amount) returns an integer equal to amount. R2: For negative built-in int amount, refund.refund(amount) raises ValueError. R3: For non-built-in-int amount, including bool, refund.refund(amount) raises TypeError.",
+    "documents": []
+  },
+  "error": "This operation was aborted"
+}

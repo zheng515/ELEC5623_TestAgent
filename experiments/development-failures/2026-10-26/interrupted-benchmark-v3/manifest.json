@@ -1,0 +1,45 @@
+{
+  "purpose": "pilot",
+  "repeat": 3,
+  "variants": [
+    "B0",
+    "B3"
+  ],
+  "cases": [
+    {
+      "id": "membership",
+      "project": "examples/standalone-benchmark/membership/project",
+      "requirements": "examples/standalone-benchmark/membership/SRS.md",
+      "gold": "examples/standalone-benchmark/membership/gold.json",
+      "oracle": "examples/standalone-benchmark/membership/oracle.py"
+    },
+    {
+      "id": "credits",
+      "project": "examples/standalone-benchmark/credits/project",
+      "requirements": "examples/standalone-benchmark/credits/SRS.md",
+      "gold": "examples/standalone-benchmark/credits/gold.json",
+      "oracle": "examples/standalone-benchmark/credits/oracle.py"
+    },
+    {
+      "id": "refund",
+      "project": "examples/standalone-benchmark/refund/project",
+      "requirements": "examples/standalone-benchmark/refund/SRS.md",
+      "gold": "examples/standalone-benchmark/refund/gold.json",
+      "oracle": "examples/standalone-benchmark/refund/oracle.py"
+    },
+    {
+      "id": "capacity",
+      "project": "examples/standalone-benchmark/capacity/project",
+      "requirements": "examples/standalone-benchmark/capacity/SRS.md",
+      "gold": "examples/standalone-benchmark/capacity/gold.json",
+      "oracle": "examples/standalone-benchmark/capacity/oracle.py"
+    },
+    {
+      "id": "discount",
+      "project": "examples/standalone-benchmark/discount/project",
+      "requirements": "examples/standalone-benchmark/discount/SRS.md",
+      "gold": "examples/standalone-benchmark/discount/gold.json",
+      "oracle": "examples/standalone-benchmark/discount/oracle.py"
+    }
+  ]
+}

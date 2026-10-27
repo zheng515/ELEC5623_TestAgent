@@ -1,27 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
+import { authFixture, cookies } from "./fixtures/auth";
 
 test("GitHub OAuth linking protects state, encrypts credentials and isolates repository access", async context => {
-  if (!process.env.DATABASE_URL && existsSync(".env.local")) process.loadEnvFile(".env.local");
-  process.env.REQTEST_DATA_NAMESPACE = "test-github-" + randomUUID();
-  process.env.REQTEST_LOCAL_MAIL = "false"; process.env.SMTP_HOST = "";
   process.env.GITHUB_CLIENT_ID = "fixture-client"; process.env.GITHUB_CLIENT_SECRET = "fixture-secret";
-  const { getAuth, database, dataDir } = await import("../lib/auth");
-  const auth = await getAuth();
-  // The exported pool is assigned during initialization.
-  const pool = database || (await import("../lib/auth")).database;
   const originalFetch = globalThis.fetch;
-  context.after(async () => {
-    globalThis.fetch = originalFetch;
-    await pool.query(`DROP SCHEMA IF EXISTS "${process.env.REQTEST_DATA_NAMESPACE!.replaceAll("-", "_")}" CASCADE`);
-    await pool.end(); await rm(dataDir, { recursive: true, force: true });
-  });
-  const base = process.env.BETTER_AUTH_URL || "http://127.0.0.1:3001";
-  const call = (path: string, body: object, cookie = "") => auth.handler(new Request(base + "/api/auth/" + path, { method: "POST", headers: { "Content-Type": "application/json", Origin: base, Cookie: cookie }, body: JSON.stringify(body) }));
-  const cookies = (response: Response) => response.headers.getSetCookie().map(value => value.split(";")[0]).join("; ");
+  const { auth, database: pool, base, call } = await authFixture(context, 'github', () => { globalThis.fetch = originalFetch; });
   const email = randomUUID() + "@example.test";
   const signup = await call("sign-up/email", { name: "GitHub fixture", email, password: "Abcd1234" });
   assert.equal(signup.status, 200);
@@ -88,11 +73,16 @@ test("GitHub OAuth linking protects state, encrypts credentials and isolates rep
   assert.ok(!JSON.stringify(status).includes(token)); assert.ok(!JSON.stringify(status).includes("fixture-secret"));
   assert.equal(await repositoryToken(request, form), token);
   const { githubArchive } = await import("../lib/python-tools");
-  const snapshot = await githubArchive("https://github.com/fixture/private", "main", await repositoryToken(request, form));
+  const snapshot = await githubArchive("https://github.com/fixture/private", "feature/example", await repositoryToken(request, form));
   assert.equal(snapshot.source, "https://github.com/fixture/private/tree/" + sha);
   assert.ok(!JSON.stringify(snapshot).includes(token));
+  assert.ok(requests.find(call => call.url.includes("/commits/"))?.url.endsWith("feature%2Fexample"));
   assert.equal(requests.find(call => call.url.includes("/commits/"))?.authorization, "Bearer " + token);
+  assert.equal(requests.find(call => call.url.includes("/zipball/"))?.authorization, "Bearer " + token);
   assert.equal(requests.find(call => call.url.startsWith("https://codeload.github.com/"))?.authorization, null);
+  globalThis.fetch = async input => String(input).includes("/commits/") ? Response.json({ sha }) : new Response(null, { status: 302, headers: { Location: "https://untrusted.example/archive" } });
+  await assert.rejects(githubArchive("https://github.com/fixture/private", "main", token), /authorize/);
+  globalThis.fetch = originalFetch;
   for (const path of ["get-access-token", "refresh-token"]) assert.equal((await call(path, { accountId: saved.id }, cookie)).status, 404, "HTTP token endpoints must be disabled");
   const listed = await auth.handler(new Request(base + "/api/auth/list-accounts", { headers }));
   assert.ok(!(await listed.text()).includes(token));

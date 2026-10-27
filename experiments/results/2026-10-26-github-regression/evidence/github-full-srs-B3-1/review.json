@@ -1,0 +1,139 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "reportId": "61167612-bc60-4c2a-a427-4e84ccc0f1c4",
+  "sourceFingerprint": "5721f21c6f78655415c0b29e1ad76d2981c14c68d65ff23e7ef0172759432a24",
+  "requirementTexts": [
+    "R1: For an integer order amount from 0 through 9999 cents inclusive, shipping.fee must return the integer 1000.\n\n| R1 | 0 | Integer 1000 |\n\n| R1 | 9999 | Integer 1000 |",
+    "R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\n| R2 | 10000 | Integer 0 |\n\n| R2 | 10001 | Integer 0 |",
+    "R3: For a negative integer order amount, shipping.fee must raise the built-in ValueError exception.\n\n| R3 | -1 | Raise ValueError |",
+    "R4: For any input whose type is not the built-in int type, shipping.fee must raise the built-in TypeError exception. This includes bool, float, str, and None. A boolean must not be accepted as an integer order amount.\n\nNo exact exception message is required.\n\n| R4 | True | Raise TypeError |\n\n| R4 | False | Raise TypeError |\n\n| R4 | 1.5 | Raise TypeError |\n\n| R4 | \"10000\" | Raise TypeError |\n\n| R4 | None | Raise TypeError |"
+  ],
+  "validOutcome": null,
+  "issues": [],
+  "gaps": [
+    {
+      "id": "B1:0",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B1:1",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B1:2",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B1:3",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B2:0",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B2:1",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B2:2",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B3:0",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B4:0",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B4:1",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B4:2",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B4:3",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B4:4",
+      "match": null,
+      "evidenceSupported": null
+    }
+  ],
+  "inconsistencies": [
+    {
+      "id": "C1",
+      "match": null,
+      "evidenceSupported": null
+    }
+  ],
+  "coverage": [
+    {
+      "id": "standard",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "zero",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "below-threshold",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "threshold",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "above-threshold",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "negative",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "boolean",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "other-types",
+      "beforeNodes": [],
+      "afterNodes": []
+    }
+  ],
+  "diagnoses": [
+    {
+      "testId": "T4",
+      "phase": "execution",
+      "expected": null,
+      "evidenceSupported": null
+    }
+  ],
+  "mutants": []
+}

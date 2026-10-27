@@ -1,13 +1,51 @@
 import type { Measurement, PythonReport } from './python-types';
 import { ruleSources } from './requirement-input';
+import { testFile } from './runtime';
 
 export const requirementStates = ['Verified', 'Partially Verified', 'Unverified', 'Uncertain', 'Pending'] as const;
 export type RequirementState = typeof requirementStates[number];
+export function agentStopReason(report: PythonReport) {
+  if (report.status === 'running') return 'In progress: ' + report.stage;
+  if (report.status !== 'completed') return report.error || report.testAttempts?.at(-1)?.error || 'The run ended before completion. Inspect the saved execution records.';
+  return report.stopReason || 'No stopping decision was recorded for this older run. Inspect the saved tests and execution evidence.';
+}
+export function verificationGate(report: PythonReport, requireVerified = true) {
+  const measured = report.measurements.at(-1), requirements = runEvaluation(report).requirements;
+  return report.status === 'completed' && measured?.integrity === true && !measured.timedOut && measured.exitCode === 0 &&
+    measured.outcomes.length > 0 && measured.outcomes.every(outcome => outcome.status === 'passed') && requirements.length > 0 &&
+    requirements.every(rule => requireVerified ? rule.status === 'Verified' : !['Uncertain', 'Unverified', 'Pending'].includes(rule.status));
+}
 export function outcomeCounts(measurement?: Measurement) {
   return (['passed', 'failed', 'error', 'skipped'] as const).map(status => ({
     name: status === 'error' ? 'Errors' : status[0].toUpperCase() + status.slice(1),
     value: measurement?.outcomes.filter(outcome => outcome.status === status).length || 0,
   }));
+}
+
+export function verificationSummary(report: PythonReport) {
+  const evaluation = runEvaluation(report), latest = evaluation.latest;
+  const [passed, failed, errors, skipped] = evaluation.outcomes.map(item => item.value);
+  const unmapped = evaluation.requirements.filter(rule => !rule.behaviors.length || rule.behaviors.every(behavior =>
+    behavior.issue === 'not_testable' && behavior.gaps.includes('Behavior extraction incomplete.')));
+  const unresolved = evaluation.requirements.filter(rule => rule.status !== 'Verified');
+  const phase = report.measurements.length > 1 ? 'remeasurement' : 'execution';
+  const initialFailure = report.collection && (report.collection.timedOut || ![0, 5].includes(report.collection.exitCode)) ||
+    report.baseline && (report.baseline.timedOut || report.baseline.integrity !== true || ![0, 5].includes(report.baseline.exitCode) || report.baseline.outcomes.some(outcome => ['failed', 'error'].includes(outcome.status)));
+  const preserved = (report.status === 'completed' && latest?.integrity && !latest.timedOut ? latest.outcomes : []).filter(outcome => outcome.status === 'failed' && report.tests.some(test =>
+    test.approved && outcome.file === testFile(test.id, report.runtime) && outcome.name.split('[')[0] === test.functionName && report.diagnoses.some(diagnosis =>
+      (diagnosis.phase || 'execution') === phase && diagnosis.category === 'potential_implementation_defect' && diagnosis.testId === test.id) &&
+    report.improvements.every(action => !action.before.some(before => before.id === test.id && before.code !== test.code))));
+  let title = '', next = '';
+  if (report.status === 'running') { title = 'Verification in progress'; next = 'Wait for the saved run to finish. Recorded results are provisional.'; }
+  else if (report.status !== 'completed') { title = 'Run incomplete'; next = 'Inspect the saved error and execution records, correct the input or setup, then re-run.'; }
+  else if (!latest?.outcomes.length) { title = 'No tests executed'; next = 'Inspect blocked tests and collection/setup errors. No passing result is available.'; }
+  else if (latest.timedOut || latest.integrity !== true || ![0, 1].includes(latest.exitCode)) { title = 'Execution evidence incomplete'; next = 'Inspect time limits, integrity and execution errors before relying on the recorded outcomes.'; }
+  else if (failed || errors) { title = `${failed + errors} ${failed + errors === 1 ? 'check needs' : 'checks need'} investigation`; next = 'Compare failing assertions and Agent diagnoses with the original requirements. A failure is not automatically a software defect.'; }
+  else if (initialFailure) { title = 'Existing-test checks need attention'; next = 'Inspect collection and baseline diagnoses and logs. Later passing checks do not resolve earlier setup or existing-test failures.'; }
+  else { title = `${passed} ${passed === 1 ? 'test' : 'tests'} passed${skipped ? `; ${skipped} skipped` : ''}`; next = 'Review unresolved behavior states and blocked tests. Passing cases do not establish complete specification coverage.'; }
+  if (report.status === 'completed' && evaluation.blocked) next = `${evaluation.blocked} blocked test proposals need attention. Inspect their review reasons and uncovered requirements before regenerating. ` + next;
+  if (report.replay) next += ' Saved-test execution does not regenerate analysis or diagnoses.';
+  return { ...evaluation, passed, failedCount: failed, errors, skipped, unmapped, unresolved, preserved, title, next };
 }
 
 // Summarize saved assessments conservatively; this does not independently grade the agent.

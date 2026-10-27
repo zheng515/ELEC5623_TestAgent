@@ -1,0 +1,443 @@
+{
+  "kind": "controlled-replay",
+  "date": "2026-10-27",
+  "model": "gpt-5.6-luna",
+  "inputArchive": "../2026-10-26/evidence/shipping.zip",
+  "initialEvidence": "../2026-10-26/evidence/shipping-B3-3/report.json",
+  "scope": "Saved analysis, initial generation/review and exact-diff-bound mutation relevance. Only replacement generation and review use live model calls. Execution and mutation measurements use real Docker tools.",
+  "limitations": [
+    "Development fixture reused during correction; not held-out or fresh full-pipeline evaluation.",
+    "Raw selected-scope mutant counts, not independently reviewed semantic mutation scores.",
+    "All three attempts are retained, including both unsuccessful improvement attempts. First-attempt replacement outputs were not retained before the audit-field fix."
+  ],
+  "attempts": [
+    {
+      "attempt": 1,
+      "pipelineStatus": "completed",
+      "modelRequests": 2,
+      "usage": [
+        {
+          "task": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again. Return only replacement artifacts with the SAME IDs for eligible test errors, or NEW T IDs for additional mutation checks. Never alter correct failing assertions. Every change will be independently reviewed again.",
+          "usage": {
+            "inputTokens": 7756,
+            "inputTokenDetails": {
+              "noCacheTokens": 3,
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 7753
+            },
+            "outputTokens": 329,
+            "outputTokenDetails": {
+              "textTokens": 281,
+              "reasoningTokens": 48
+            },
+            "totalTokens": 8085,
+            "raw": {
+              "input_tokens": 7756,
+              "input_tokens_details": {
+                "cache_write_tokens": 7753,
+                "cached_tokens": 0
+              },
+              "output_tokens": 329,
+              "output_tokens_details": {
+                "reasoning_tokens": 48
+              },
+              "total_tokens": 8085
+            }
+          }
+        },
+        {
+          "task": "Independently audit each proposed test against its ORIGINAL requirement and assigned behavior/gapIndexes. Exactly one decision per test. Copy the quote field of that test EXACTLY into your quote field; do not add formatting/backticks or paraphrase it. supported requires both contract-grounded assertions and coverage of the assigned behavior and all claimed gaps. Check these separately. Reject the whole proposal if ANY assertion introduces an unsupported obligation, even if other assertions are valid. Missing checks of a claimed type/behavior are insufficient coverage; missing unrelated behaviors alone do not invalidate a focused test. Assert the assigned atomic behavior and every claimed gap, not unrelated clauses of the entire requirement. Value equality and semantic type are separate checks. When the assigned behavior explicitly promises a return type, require a type predicate as well as value assertions; comparing with a typed literal or standard-library value alone does not check the actual type. This applies to numbers, datetimes and other promised types. Use semantic isinstance-style checks where appropriate without inventing a stricter concrete class. A concrete input-type requirement does not automatically constrain the concrete return class. Check every assertion against the original contract: a matching timestamp offset or instant does not imply a named timezone object, representation identity or a particular concrete class. Implementation details and passing execution cannot justify extra expectations. Inputs, API, expected values/types, exceptions and gapIndexes must be justified. An import/status-only/assert-true/self-comparison test cannot establish business behavior. A quote must contain the actual contract checked. Reject implicit preconditions, skips/xfails, monkeypatching or mocking the target. Never repair a proposal.",
+          "usage": {
+            "inputTokens": 2648,
+            "inputTokenDetails": {
+              "noCacheTokens": 3,
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 2645
+            },
+            "outputTokens": 291,
+            "outputTokenDetails": {
+              "textTokens": 232,
+              "reasoningTokens": 59
+            },
+            "totalTokens": 2939,
+            "raw": {
+              "input_tokens": 2648,
+              "input_tokens_details": {
+                "cache_write_tokens": 2645,
+                "cached_tokens": 0
+              },
+              "output_tokens": 291,
+              "output_tokens_details": {
+                "reasoning_tokens": 59
+              },
+              "total_tokens": 2939
+            }
+          }
+        }
+      ],
+      "acceptedImprovements": 0,
+      "approvedTests": [
+        "T3",
+        "T4"
+      ],
+      "measurements": [
+        {
+          "passed": 3,
+          "failed": 0,
+          "integrity": true
+        }
+      ],
+      "mutations": [
+        {
+          "scope": {
+            "file": "shipping.py",
+            "functions": [
+              "fee"
+            ],
+            "lines": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "kind": "functions",
+            "suite": "approved_generated",
+            "setupFiles": [
+              "tests/test_shipping.py"
+            ]
+          },
+          "killed": 1,
+          "total": 9,
+          "incomplete": false
+        }
+      ],
+      "reviewedCandidates": null,
+      "fingerprint": "1cb700c032c7fef64e8fc6bb618b829a8c61237d0de721c52fa71291c58569fe"
+    },
+    {
+      "attempt": 2,
+      "pipelineStatus": "completed",
+      "modelRequests": 2,
+      "usage": [
+        {
+          "task": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again. Return only replacement artifacts with the SAME IDs for eligible test errors, or NEW T IDs for additional mutation checks. Never alter correct failing assertions. Every change will be independently reviewed again.",
+          "usage": {
+            "inputTokens": 7756,
+            "inputTokenDetails": {
+              "noCacheTokens": 3,
+              "cacheReadTokens": 1037,
+              "cacheWriteTokens": 6716
+            },
+            "outputTokens": 331,
+            "outputTokenDetails": {
+              "textTokens": 288,
+              "reasoningTokens": 43
+            },
+            "totalTokens": 8087,
+            "raw": {
+              "input_tokens": 7756,
+              "input_tokens_details": {
+                "cache_write_tokens": 6716,
+                "cached_tokens": 1037
+              },
+              "output_tokens": 331,
+              "output_tokens_details": {
+                "reasoning_tokens": 43
+              },
+              "total_tokens": 8087
+            }
+          }
+        },
+        {
+          "task": "Independently audit each proposed test against its ORIGINAL requirement and assigned behavior/gapIndexes. Exactly one decision per test. Copy the quote field of that test EXACTLY into your quote field; do not add formatting/backticks or paraphrase it. supported requires both contract-grounded assertions and coverage of the assigned behavior and all claimed gaps. Check these separately. Reject the whole proposal if ANY assertion introduces an unsupported obligation, even if other assertions are valid. Missing checks of a claimed type/behavior are insufficient coverage; missing unrelated behaviors alone do not invalidate a focused test. Assert the assigned atomic behavior and every claimed gap, not unrelated clauses of the entire requirement. Value equality and semantic type are separate checks. When the assigned behavior explicitly promises a return type, require a type predicate as well as value assertions; comparing with a typed literal or standard-library value alone does not check the actual type. This applies to numbers, datetimes and other promised types. Use semantic isinstance-style checks where appropriate without inventing a stricter concrete class. A concrete input-type requirement does not automatically constrain the concrete return class. Check every assertion against the original contract: a matching timestamp offset or instant does not imply a named timezone object, representation identity or a particular concrete class. Implementation details and passing execution cannot justify extra expectations. Inputs, API, expected values/types, exceptions and gapIndexes must be justified. An import/status-only/assert-true/self-comparison test cannot establish business behavior. A quote must contain the actual contract checked. Reject implicit preconditions, skips/xfails, monkeypatching or mocking the target. Never repair a proposal.",
+          "usage": {
+            "inputTokens": 2655,
+            "inputTokenDetails": {
+              "noCacheTokens": 3,
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 2652
+            },
+            "outputTokens": 368,
+            "outputTokenDetails": {
+              "textTokens": 289,
+              "reasoningTokens": 79
+            },
+            "totalTokens": 3023,
+            "raw": {
+              "input_tokens": 2655,
+              "input_tokens_details": {
+                "cache_write_tokens": 2652,
+                "cached_tokens": 0
+              },
+              "output_tokens": 368,
+              "output_tokens_details": {
+                "reasoning_tokens": 79
+              },
+              "total_tokens": 3023
+            }
+          }
+        }
+      ],
+      "acceptedImprovements": 0,
+      "approvedTests": [
+        "T3",
+        "T4"
+      ],
+      "measurements": [
+        {
+          "passed": 3,
+          "failed": 0,
+          "integrity": true
+        }
+      ],
+      "mutations": [
+        {
+          "scope": {
+            "file": "shipping.py",
+            "functions": [
+              "fee"
+            ],
+            "lines": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "kind": "functions",
+            "suite": "approved_generated",
+            "setupFiles": [
+              "tests/test_shipping.py"
+            ]
+          },
+          "killed": 1,
+          "total": 9,
+          "incomplete": false
+        }
+      ],
+      "reviewedCandidates": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_fee_free_shipping_range_endpoints",
+          "gapIndexes": [
+            0,
+            1
+          ],
+          "code": "from shipping import fee\n\n\ndef test_fee_free_shipping_range_endpoints():\n    for amount_cents in (0, 9999):\n        assert fee(amount_cents) == 1000\n",
+          "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.",
+          "purpose": "Checks both listed endpoints of the 0\u20139999 range and verifies that each returns 1000 cents.",
+          "approved": false,
+          "reviewDecision": {
+            "testId": "T1",
+            "supported": false,
+            "reason": "The test covers the assigned endpoint gaps with built-in int inputs 0 and 9999 and checks the value 1000, matching the exact implementation quote `return 0 if amount_cents >= 10000 else 1000`. However, the requirement promises that the result is an integer, and `assert fee(amount_cents) == 1000` does not independently verify the return type. A semantic integer type assertion is required.",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents."
+          },
+          "review": "No unique supported model review. The test covers the assigned endpoint gaps with built-in int inputs 0 and 9999 and checks the value 1000, matching the exact implementation quote `return 0 if amount_cents >= 10000 else 1000`. However, the requirement promises that the result is an integer, and `assert fee(amount_cents) == 1000` does not independently verify the return type. A semantic integer type assertion is required."
+        },
+        {
+          "id": "T2",
+          "behaviorId": "B2",
+          "functionName": "test_fee_at_and_above_free_shipping_threshold",
+          "gapIndexes": [
+            0,
+            1
+          ],
+          "code": "from shipping import fee\n\n\ndef test_fee_at_and_above_free_shipping_threshold():\n    for amount_cents in (10000, 10001):\n        assert fee(amount_cents) == 0\n",
+          "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+          "purpose": "Checks the inclusive threshold and a value above it, verifying that each returns 0 cents.",
+          "approved": false,
+          "reviewDecision": {
+            "testId": "T2",
+            "supported": false,
+            "reason": "The test covers both assigned gaps\u2014exactly 10000 and above it\u2014with built-in int inputs and checks the value 0, matching the exact implementation quote `return 0 if amount_cents >= 10000 else 1000`. However, the requirement promises that the result is an integer, and `assert fee(amount_cents) == 0` does not independently verify the return type. A semantic integer type assertion is required.",
+            "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000."
+          },
+          "review": "No unique supported model review. The test covers both assigned gaps\u2014exactly 10000 and above it\u2014with built-in int inputs and checks the value 0, matching the exact implementation quote `return 0 if amount_cents >= 10000 else 1000`. However, the requirement promises that the result is an integer, and `assert fee(amount_cents) == 0` does not independently verify the return type. A semantic integer type assertion is required."
+        }
+      ],
+      "fingerprint": "1cb700c032c7fef64e8fc6bb618b829a8c61237d0de721c52fa71291c58569fe"
+    },
+    {
+      "attempt": 3,
+      "pipelineStatus": "completed",
+      "modelRequests": 2,
+      "usage": [
+        {
+          "task": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again. Return only replacement artifacts with the SAME IDs for eligible test errors, or NEW T IDs for additional mutation checks. Never alter correct failing assertions. Every change will be independently reviewed again. Assert the assigned atomic behavior and every claimed gap, not unrelated clauses of the entire requirement. Value equality and semantic type are separate checks. When the assigned behavior explicitly promises a return type, require a type predicate as well as value assertions; comparing with a typed literal or standard-library value alone does not check the actual type. This applies to numbers, datetimes and other promised types. Use semantic isinstance-style checks where appropriate without inventing a stricter concrete class. A concrete input-type requirement does not automatically constrain the concrete return class. Check every assertion against the original contract: a matching timestamp offset or instant does not imply a named timezone object, representation identity or a particular concrete class. Implementation details and passing execution cannot justify extra expectations.",
+          "usage": {
+            "inputTokens": 7902,
+            "inputTokenDetails": {
+              "noCacheTokens": 3,
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 7899
+            },
+            "outputTokens": 448,
+            "outputTokenDetails": {
+              "textTokens": 322,
+              "reasoningTokens": 126
+            },
+            "totalTokens": 8350,
+            "raw": {
+              "input_tokens": 7902,
+              "input_tokens_details": {
+                "cache_write_tokens": 7899,
+                "cached_tokens": 0
+              },
+              "output_tokens": 448,
+              "output_tokens_details": {
+                "reasoning_tokens": 126
+              },
+              "total_tokens": 8350
+            }
+          }
+        },
+        {
+          "task": "Independently audit each proposed test against its ORIGINAL requirement and assigned behavior/gapIndexes. Exactly one decision per test. Copy the quote field of that test EXACTLY into your quote field; do not add formatting/backticks or paraphrase it. supported requires both contract-grounded assertions and coverage of the assigned behavior and all claimed gaps. Check these separately. Reject the whole proposal if ANY assertion introduces an unsupported obligation, even if other assertions are valid. Missing checks of a claimed type/behavior are insufficient coverage; missing unrelated behaviors alone do not invalidate a focused test. Assert the assigned atomic behavior and every claimed gap, not unrelated clauses of the entire requirement. Value equality and semantic type are separate checks. When the assigned behavior explicitly promises a return type, require a type predicate as well as value assertions; comparing with a typed literal or standard-library value alone does not check the actual type. This applies to numbers, datetimes and other promised types. Use semantic isinstance-style checks where appropriate without inventing a stricter concrete class. A concrete input-type requirement does not automatically constrain the concrete return class. Check every assertion against the original contract: a matching timestamp offset or instant does not imply a named timezone object, representation identity or a particular concrete class. Implementation details and passing execution cannot justify extra expectations. Inputs, API, expected values/types, exceptions and gapIndexes must be justified. An import/status-only/assert-true/self-comparison test cannot establish business behavior. A quote must contain the actual contract checked. Reject implicit preconditions, skips/xfails, monkeypatching or mocking the target. Never repair a proposal.",
+          "usage": {
+            "inputTokens": 2689,
+            "inputTokenDetails": {
+              "noCacheTokens": 3,
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 2686
+            },
+            "outputTokens": 376,
+            "outputTokenDetails": {
+              "textTokens": 213,
+              "reasoningTokens": 163
+            },
+            "totalTokens": 3065,
+            "raw": {
+              "input_tokens": 2689,
+              "input_tokens_details": {
+                "cache_write_tokens": 2686,
+                "cached_tokens": 0
+              },
+              "output_tokens": 376,
+              "output_tokens_details": {
+                "reasoning_tokens": 163
+              },
+              "total_tokens": 3065
+            }
+          }
+        }
+      ],
+      "acceptedImprovements": 1,
+      "approvedTests": [
+        "T3",
+        "T4",
+        "T1",
+        "T2"
+      ],
+      "measurements": [
+        {
+          "passed": 3,
+          "failed": 0,
+          "integrity": true
+        },
+        {
+          "passed": 5,
+          "failed": 0,
+          "integrity": true
+        }
+      ],
+      "mutations": [
+        {
+          "scope": {
+            "file": "shipping.py",
+            "functions": [
+              "fee"
+            ],
+            "lines": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "kind": "functions",
+            "suite": "approved_generated",
+            "setupFiles": [
+              "tests/test_shipping.py"
+            ]
+          },
+          "killed": 1,
+          "total": 9,
+          "incomplete": false
+        },
+        {
+          "scope": {
+            "file": "shipping.py",
+            "functions": [
+              "fee"
+            ],
+            "lines": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "kind": "functions",
+            "suite": "approved_generated",
+            "setupFiles": [
+              "tests/test_shipping.py"
+            ]
+          },
+          "killed": 7,
+          "total": 9,
+          "incomplete": false
+        }
+      ],
+      "reviewedCandidates": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_fee_free_shipping_range_endpoints",
+          "gapIndexes": [
+            0,
+            1
+          ],
+          "code": "from shipping import fee\n\n\ndef test_fee_free_shipping_range_endpoints():\n    for amount_cents in (0, 9999):\n        result = fee(amount_cents)\n        assert isinstance(result, int)\n        assert result == 1000\n",
+          "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents.",
+          "purpose": "Checks both listed endpoints of the 0\u20139999 range, including that each result is an integer equal to 1000.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test uses built-in int inputs 0 and 9999, covering both assigned endpoint gaps for B1. It asserts both the integer result type and the required value 1000 for each input, with no unsupported obligations.",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents."
+          },
+          "review": "The test uses built-in int inputs 0 and 9999, covering both assigned endpoint gaps for B1. It asserts both the integer result type and the required value 1000 for each input, with no unsupported obligations."
+        },
+        {
+          "id": "T2",
+          "behaviorId": "B2",
+          "functionName": "test_fee_at_and_above_free_shipping_threshold",
+          "gapIndexes": [
+            0,
+            1
+          ],
+          "code": "from shipping import fee\n\n\ndef test_fee_at_and_above_free_shipping_threshold():\n    for amount_cents in (10000, 10001):\n        result = fee(amount_cents)\n        assert isinstance(result, int)\n        assert result == 0\n",
+          "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+          "purpose": "Checks the inclusive threshold and a value above it, including that each result is an integer equal to 0.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T2",
+            "supported": true,
+            "reason": "The test uses built-in int inputs 10000 and 10001, covering both assigned gaps for B2, including the exact inclusive threshold and a value above it. It asserts both the integer result type and the required value 0 for each input, with no unsupported obligations.",
+            "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000."
+          },
+          "review": "The test uses built-in int inputs 10000 and 10001, covering both assigned gaps for B2, including the exact inclusive threshold and a value above it. It asserts both the integer result type and the required value 0 for each input, with no unsupported obligations."
+        }
+      ],
+      "fingerprint": "1cb700c032c7fef64e8fc6bb618b829a8c61237d0de721c52fa71291c58569fe"
+    }
+  ]
+}

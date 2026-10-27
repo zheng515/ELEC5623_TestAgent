@@ -1,0 +1,32 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "rule-1",
+      "ruleId": "R1",
+      "description": "For built-in int years from 0 through 4, membership.annual_fee(years) returns integer 12000.",
+      "initialGap": true
+    },
+    {
+      "id": "rule-2",
+      "ruleId": "R2",
+      "description": "For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.",
+      "initialGap": true
+    },
+    {
+      "id": "rule-3",
+      "ruleId": "R3",
+      "description": "Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError.",
+      "initialGap": true
+    }
+  ],
+  "fault": {
+    "id": "membership-seeded-fault",
+    "file": "membership.py",
+    "before": "years > 5",
+    "after": "years >= 5"
+  }
+}
