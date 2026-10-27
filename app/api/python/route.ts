@@ -91,12 +91,10 @@ export async function POST(request: Request) {
     }
     if (!title || title.length > 120 || model.length > 100) throw new Error('Use a title up to 120 characters and a valid model.');
     const clarification = String(form.get('clarification') || '').trim();
-    if (clarification.length > 4000) throw new Error('Clarification exceeds 4000 characters.');
     if (clarification && !parent) throw new Error('Clarifications must reference a previous run.');
     // Clarifications are explicitly new user requirements, never retroactive edits to prior evidence.
     if (clarification) {
       const additions = clarification.split(/\r?\n/).filter(line => line.trim());
-      if (rules.length + additions.length > 12 || [...rules.map(rule => rule.text), ...additions].join('\n').length > 12000) throw new Error('Requirements plus clarification must fit 12 lines and 12,000 characters.');
       rules.push(...additions.map((text, index) => ({ id: 'R' + (rules.length + index + 1), text })));
     }
     await mkdir(join(root, 'generated'), { recursive: true });

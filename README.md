@@ -198,8 +198,8 @@ have one queued or active task; the worker runs at most two tasks concurrently.
 Closing a browser tab detaches progress without cancelling the task. A worker
 interruption permits up to two retries after heartbeat expiry. Saved analysis,
 model responses and completed tool results are reused; a model request interrupted
-before its checkpoint was saved may be sent again. Each attempt has a ten-minute
-time limit. Recovery requires the same database, source files, runtime settings,
+before its checkpoint was saved may be sent again. Attempts have no run time limit
+beyond pg-boss's 24-hour job expiry. Recovery requires the same database, source files, runtime settings,
 agent code and sandbox image. Changed inputs fail explicitly instead of mixing
 old execution evidence with new code. Stopping a task cancels its queue job and
 retains partial evidence; a cancelled task is not automatically resumed.
@@ -254,9 +254,9 @@ only their own schema. PostgreSQL must be available before running account tests
    services are separate from the PostgreSQL database that stores ReqTest accounts.
 2. Paste requirements, or upload PDF, DOC, DOCX, UTF-8 TXT or Markdown.
    All extracted text automatically fills the editable **Requirements** field;
-   no line or paragraph selection is required. The limit is 12,000 characters,
-   independent of line count. Oversized text remains visible and must be shortened
-   before running; it is never silently truncated. Original document hashes,
+   no line or paragraph selection is required. Requirement text has no length or
+   line-count limit and is never truncated; each paragraph becomes one requirement.
+   Original document hashes,
    page/paragraph locations and extraction warnings remain available under source
    details. Exact unchanged excerpts retain citations; edits are treated as
    user-provided text. Long text remains intact for behavior decomposition.
@@ -455,8 +455,8 @@ The upload and report views show per-page extraction outcomes, with detailed
 warnings collapsed by default. Low-confidence OCR blocks (below 70, or with no
 confidence available) are retained but not selected automatically. This threshold
 is a transcription warning, not a calibrated accuracy or verification score.
-At most 20 pages are attempted within a bounded processing budget; unreadable,
-failed or unprocessed pages are listed in extraction warnings. OCR is not exact
+Every page is attempted, with no page-count, text-size or total OCR time limit;
+unreadable or failed pages are listed in extraction warnings. OCR is not exact
 transcription. PDF reading order and complex tables need visual review.
 DOCX citations retain body-block and table-row locations. Each table row stays
 together so requirement IDs, conditions and expected results are not separated.

@@ -97,7 +97,8 @@ export async function dockerTool<T>(root: string, job: object, signal: AbortSign
   let stdout = '', stderr = '', stopReason = '';
   let removal: Promise<unknown> | undefined;
   const stop = () => { removal ||= promisify(execFile)('docker', ['rm', '-f', name], { timeout: 10000 }).catch(() => {}); child.kill(); };
-  const timeout = setTimeout(() => { stopReason = 'Sandbox execution exceeded its time limit.'; stop(); }, buildName ? 240000 : 110000);
+  // Requirement extraction runs until the request ends; project commands keep their time limits.
+  const timeout = (job as {action?:string}).action === 'document' ? undefined : setTimeout(() => { stopReason = 'Sandbox execution exceeded its time limit.'; stop(); }, buildName ? 240000 : 110000);
   signal.addEventListener('abort', stop, { once: true });
   child.stdin.on('error', () => {}); child.stdin.end(JSON.stringify({ ...job, runtime }));
   try {

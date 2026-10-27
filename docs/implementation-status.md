@@ -110,12 +110,12 @@ reviewed mutation score; the updated sandbox retains these differences for new r
 PDF/DOC/DOCX/TXT/Markdown ingestion is connected. Extraction retains original bytes,
 SHA-256 and page/body-block locations. All extracted text now fills the editable
 Requirements field automatically. Line/block selection has been removed. Exact
-unchanged excerpts retain original citations; edited text is user-provided. The
-12,000-character limit is enforced without truncation or a line-count limit.
+unchanged excerpts retain original citations; edited text is user-provided.
+Requirement text has no character or line-count limit and is never truncated.
 English OCR and LibreOffice DOC conversion pass Docker regression cases, including
 PDF pages containing native text and scanned images together. Each PDF page has an
 explicit extraction outcome. Low-confidence OCR is retained but not selected by
-default; confidence is not an accuracy score. OCR page/time budgets, partial
+default; confidence is not an accuracy score. Unbudgeted OCR of every page, partial
 failures, conversion timeout/errors, encrypted/damaged documents and source
 integrity failures are covered by controlled tests. Originals support owner-only
 permissions and authenticated PDF page viewing. DOC locations explicitly refer to

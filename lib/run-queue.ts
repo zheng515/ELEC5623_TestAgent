@@ -19,7 +19,9 @@ export function getQueue() {
     boss.on("error", () => console.error("Queue connection error. Check PostgreSQL."));
     try {
       await boss.start();
-      await boss.createQueue(queueName, { policy: "exclusive", retryLimit: 2, retryDelay: 2, expireInSeconds: 900, heartbeatSeconds: 10, retentionSeconds: 604800 });
+      // pg-boss caps job expiry at 24 hours; runs have no shorter time limit.
+      await boss.createQueue(queueName, { policy: "exclusive", retryLimit: 2, retryDelay: 2, expireInSeconds: 86400, heartbeatSeconds: 10, retentionSeconds: 604800 });
+      await boss.updateQueue(queueName, { expireInSeconds: 86400 });
     } catch (error) { await boss.stop({ graceful: false }); queue = undefined; throw error; }
     return boss;
   })();
@@ -92,7 +94,7 @@ export async function executeRun(job: RunJob, ask: Reason = reason) {
   const original: PythonReport = row.report;
   const report: PythonReport = { ...original, status: "running", stage: "Resuming", error: undefined, tests: [], measurements: [], mutations: [], diagnoses: [], proposedDiagnoses: undefined, relevance: [], improvements: [], states: [], initialStates: undefined, analysis: undefined, analysisCorrection: undefined };
   report.execution = { ...original.execution!, attempt: job.retryCount + 1, recovered: job.retryCount > 0 };
-  const cancelled = new AbortController(), signal = AbortSignal.any([job.signal, cancelled.signal, AbortSignal.timeout(600000)]);
+  const cancelled = new AbortController(), signal = AbortSignal.any([job.signal, cancelled.signal]);
   const timer = setInterval(async () => {
     try { if ((await database.query("SELECT cancel_requested FROM runs WHERE id=$1", [runId])).rows[0]?.cancel_requested) cancelled.abort(); }
     catch { /* A transient database error is not an owner cancellation. */ }

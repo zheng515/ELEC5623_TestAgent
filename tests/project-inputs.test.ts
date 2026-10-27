@@ -123,7 +123,8 @@ test("real PDF and Word extraction retains locations, original bytes and account
       ['damaged.docx', Buffer.from('not a ZIP'), /Cannot read this Word document/],
       ['damaged.pdf', Buffer.from('not a PDF'), /Cannot read this PDF/],
       ['locked.pdf', Buffer.from(files.locked, 'base64'), /Encrypted.*unlocked/],
-      ['large.pdf', Buffer.from(files.large, 'base64'), /at most 100 pages/],
+      // 101 blank pages pass the former page limit and are all attempted.
+      ['large.pdf', Buffer.from(files.large, 'base64'), /No readable requirement text/],
       ['invalid.txt', Buffer.from([255]), /UTF-8/],
     ] as const) await assert.rejects(extractRequirements(user, new File([new Uint8Array(bytes)], name), new AbortController().signal), error);
     assert.equal((await readdir(folder)).length, count, 'Failed uploads must not leave document directories behind');

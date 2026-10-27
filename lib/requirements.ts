@@ -8,7 +8,7 @@ import { dockerTool } from "./python-tools";
 export const segmentSchema = z.object({ id: z.string(), text: z.string(), location: z.string(), page: z.number().int().positive().optional(), paragraph: z.number().int().positive().optional(), line: z.number().int().positive().optional(), extraction: z.enum(["ocr", "text"]).optional(), confidence: z.number().min(0).max(100).optional() });
 export const pageSchema = z.object({ page: z.number().int().positive(), status: z.enum(["text", "ocr", "mixed", "partial", "unreadable", "failed", "skipped"]), detail: z.string(), confidence: z.number().min(0).max(100).optional() });
 export type DocumentPage = z.infer<typeof pageSchema>;
-export const documentSchema = z.object({ id: z.string().uuid(), fileName: z.string(), sha256: z.string(), format: z.enum(["pdf", "doc", "docx", "txt", "md"]), segments: z.array(segmentSchema), warnings: z.array(z.string()), pages: z.array(pageSchema).max(100).default([]) });
+export const documentSchema = z.object({ id: z.string().uuid(), fileName: z.string(), sha256: z.string(), format: z.enum(["pdf", "doc", "docx", "txt", "md"]), segments: z.array(segmentSchema), warnings: z.array(z.string()), pages: z.array(pageSchema).default([]) });
 export type RequirementDocument = z.infer<typeof documentSchema>;
 export type RequirementSource = { documentId: string; segmentId: string; fileName: string; sha256: string; location: string; page?: number; paragraph?: number; line?: number; extraction?: "ocr" | "text"; confidence?: number; quote?: string };
 export class DocumentIntegrityError extends Error {}
@@ -42,8 +42,7 @@ export async function originalRequirements(userId: string, id: string) {
   return { document, bytes };
 }
 export function documentRules(document: RequirementDocument, ids: string[]) {
-  if (!ids.length || ids.length > 12 || new Set(ids).size !== ids.length) throw new Error("Select 1–12 unique requirement blocks.");
+  if (!ids.length || new Set(ids).size !== ids.length) throw new Error("Select unique requirement blocks.");
   const selected = ids.map(id => { const segment = document.segments.find(item => item.id === id); if (!segment) throw new Error("Unknown requirement block."); return segment; });
-  if (selected.reduce((sum, item) => sum + item.text.length, 0) > 12000) throw new Error("Selected requirements exceed 12,000 characters. Select a smaller section.");
   return selected.map((segment, index) => ({ id: "R" + (index + 1), text: segment.text, source: { documentId: document.id, segmentId: segment.id, fileName: document.fileName, sha256: document.sha256, location: segment.location, page: segment.page, paragraph: segment.paragraph, line: segment.line, extraction: segment.extraction, confidence: segment.confidence } as RequirementSource }));
 }

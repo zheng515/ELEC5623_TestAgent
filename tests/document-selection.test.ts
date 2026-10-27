@@ -21,8 +21,8 @@ test('upload text includes every extracted block and preserves multiline text an
 test('35-block documents require no selection and retain all text and source locations', () => {
   const document = fixture(); document.segments = Array.from({ length: 35 }, (_, i) => ({ id: 'S' + i, text: 'Document paragraph ' + i, location: 'Paragraph ' + i }));
   const text = documentText(document), rules = textRequirements(text, document);
-  assert.equal(rules.length, 1); assert.equal(rules[0].text, text);
-  assert.equal(ruleSources(rules[0]).length, 35);
+  assert.equal(rules.length, 35); assert.equal(rules.map(rule => rule.text).join('\n\n'), text);
+  assert.deepEqual(rules.map(rule => rule.source?.segmentId), document.segments.map(segment => segment.id));
 });
 test('one multiline document paragraph stays intact and retains its citation', () => {
   const document = fixture(); document.segments = [document.segments[1]];
@@ -37,11 +37,10 @@ test('edited text loses its citation while unchanged paragraphs keep exact origi
   assert.equal(ruleSources(rules[1])[0].quote, document.segments[1].text);
   assert.equal(ruleSources(rules[1])[0].sha256, document.sha256);
 });
-test('plain text is not limited by line count, and excessive text is rejected without truncation', () => {
-  const text = Array.from({ length: 35 }, (_, i) => 'Requirement ' + i).join('\n');
-  assert.equal(textRequirements(text)[0].text, text);
+test('plain text is not limited by line count or length and is never truncated', () => {
+  const lines = Array.from({ length: 35 }, (_, i) => 'Requirement ' + i);
+  assert.deepEqual(textRequirements(lines.join('\n')).map(rule => rule.text), lines);
   assert.equal(textRequirements('A requirement.\nAnother requirement.').length, 2);
-  assert.equal(textRequirements('x'.repeat(12000))[0].text.length, 12000);
-  assert.throws(() => textRequirements('x'.repeat(12001)), /nothing is truncated/);
+  assert.equal(textRequirements('x'.repeat(200000))[0].text.length, 200000);
   assert.throws(() => textRequirements(' \n '), /Enter requirements/);
 });

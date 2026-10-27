@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { PythonReport } from "@/lib/python-types";
 import type { RequirementDocument } from "@/lib/requirements";
-import { documentText, requirementTextLimit } from "@/lib/requirement-input";
+import { documentText } from "@/lib/requirement-input";
 import { uncertainOcr } from "@/lib/document-selection";
 import { DocumentExtraction } from "./document-extraction";
 import type { ProjectSetup } from "@/lib/project-setup";
@@ -143,7 +143,7 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
     <RuntimeStatus {...runtimeStatus} />
     <form noValidate ref={formRef} key={parent?.id || 'new'} onSubmit={run} className="space-y-5" hidden={busy || Boolean(selected)}>
       <label className="block space-y-2">Run name<Input name="title" required maxLength={120} defaultValue={parent ? parent.title + ' — re-run' : 'Project verification'} /></label>
-      {parent ? <div className="space-y-3 border rounded p-4"><p>Reusing the saved code snapshot from {parent.title}. The previous report stays unchanged.</p><p>{parent.source}</p><details><summary>Previous requirements</summary><div className="max-h-64 overflow-auto">{parent.rules.map(rule => <blockquote key={rule.id}>{rule.id}: {rule.text}</blockquote>)}</div></details><label className="block">Clarification — additional requirements, one per line<Textarea name="clarification" rows={4} maxLength={4000} placeholder="State the intended rule that resolves the earlier ambiguity. These statements become new requirements in this run." /></label></div> : <>
+      {parent ? <div className="space-y-3 border rounded p-4"><p>Reusing the saved code snapshot from {parent.title}. The previous report stays unchanged.</p><p>{parent.source}</p><details><summary>Previous requirements</summary><div className="max-h-64 overflow-auto">{parent.rules.map(rule => <blockquote key={rule.id}>{rule.id}: {rule.text}</blockquote>)}</div></details><label className="block">Clarification — additional requirements, one per line<Textarea name="clarification" rows={4} placeholder="State the intended rule that resolves the earlier ambiguity. These statements become new requirements in this run." /></label></div> : <>
         <fieldset aria-label="Project configuration" className="space-y-5" disabled={checking} onChange={() => setSetup(undefined)}>
           <div className="grid gap-5 md:grid-cols-2">
             <label className="block space-y-2">GitHub repository<Input name="repository" type="url" placeholder="https://github.com/owner/repository" /></label>
@@ -171,14 +171,14 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
         <label className="block space-y-2">Requirement file (optional)<FileInput accept=".pdf,.doc,.docx,.txt,.md" disabled={extracting} onChange={event => extract(event.target.files?.[0])} /></label>
         {extracting && <p role="status">Extracting requirement text…</p>}
         <label className="block space-y-2">Requirements<Textarea name="requirements" required value={requirements} onChange={event => setRequirements(event.target.value)} disabled={extracting} rows={10} placeholder="Upload a requirement file to fill this field, or describe intended behavior, boundaries and exception rules." /></label>
-        <p className={'text-sm ' + (requirements.length > requirementTextLimit ? 'text-red-400' : 'text-muted-foreground')}>{requirements.length.toLocaleString('en-US')} / 12,000 characters{requirements.length > requirementTextLimit ? ' · Shorten the text before running. The uploaded content has not been truncated.' : ''}</p>
+        <p className="text-sm text-muted-foreground">{requirements.length.toLocaleString('en-US')} characters</p>
         {document && (document.warnings.length > 0 || document.segments.some(uncertainOcr)) && <p role="status" className="text-sm text-red-400">The document has extraction warnings or uncertain OCR text. Review source details and correct the text before running.</p>}
         {document && <details className="border rounded p-4 space-y-3"><summary className="cursor-pointer">{document.fileName} · Source and extraction details</summary><div className="mt-3 space-y-3"><p className="text-sm text-muted-foreground">{requirements === documentText(document) ? 'All extracted text was copied into Requirements. You can edit it directly.' : 'Requirements have been edited. Only unchanged original excerpts retain source citations.'}</p><DocumentExtraction document={document} /><a className="inline-block underline text-sm" href={'/api/requirements?id=' + document.id}>Download original document</a>{document.segments.some(segment => segment.extraction === 'ocr') && <p className="text-sm text-muted-foreground">OCR text may contain transcription errors. Compare uncertain excerpts with the original before running.</p>}</div></details>}
 
       </>}
       <p className="text-sm text-muted-foreground">Submit only approved project data. Source code, tests and project documentation are sent to the selected model. Tests execute in Docker. Automatic setup installs registry dependencies without running project install scripts.</p>
       {!modelReady && <p role="status">Configure OPENAI_API_KEY in the root .env.local, then restart.</p>}
-      <Button disabled={!canSubmit || !model.trim() || extracting || checking || (!parent && (!requirements.trim() || requirements.length > requirementTextLimit))}>{health?.worker === 'online' ? 'Run verification' : 'Queue verification'}</Button>
+      <Button disabled={!canSubmit || !model.trim() || extracting || checking || (!parent && !requirements.trim())}>{health?.worker === 'online' ? 'Run verification' : 'Queue verification'}</Button>
     </form>
     <div className="flex flex-wrap gap-3 items-center">
       <label htmlFor="python-history">Your runs</label><NativeSelect id="python-history" disabled={busy} value={selected?.id || ''} onChange={(event) => setSelected(runs.find((run) => run.id === event.target.value))}><NativeSelectOption value="">New verification</NativeSelectOption>{runs.map((run) => <NativeSelectOption key={run.id} value={run.id}>{run.title} · {run.status === 'running' && !busy ? 'Running / incomplete' : run.status}</NativeSelectOption>)}</NativeSelect>

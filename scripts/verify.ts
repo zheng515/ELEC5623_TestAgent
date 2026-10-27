@@ -24,7 +24,7 @@ async function main() {
   }
   await visit(directory);
   const rules = (await readFile(config.requirements, "utf8")).split(/\r?\n/).filter(line => line.trim()).map((text, index) => ({ id: "R" + (index + 1), text }));
-  if (!rules.length || rules.length > 12 || rules.map(rule => rule.text).join("\n").length > 12000) throw new Error("Use 1–12 requirement lines and at most 12,000 characters.");
+  if (!rules.length) throw new Error("Use at least one requirement line.");
   const id = randomUUID(), root = resolve(config.output, id);
   await mkdir(join(root, "generated"), { recursive: true });
   const snapshot = await importProject(root, await zip.generateAsync({ type: "nodebuffer" }));
@@ -32,7 +32,7 @@ async function main() {
   const report: PythonReport = { runtime: snapshot.runtime, id, title: "CI verification", createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || "gpt-6-luna", source: config.project, fingerprint: snapshot.fingerprint, status: "running", stage: "", rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: ["Model-generated assessments require review. CI completion is not exhaustive correctness."] };
   const controller = new AbortController(); process.once("SIGINT", () => controller.abort());
   const save = () => writeFile(join(root, "report.json"), JSON.stringify(report, null, 2));
-  try { await runPython(report, root, AbortSignal.any([controller.signal, AbortSignal.timeout(600000)]), async stage => { console.log(stage); await save(); }); }
+  try { await runPython(report, root, controller.signal, async stage => { console.log(stage); await save(); }); }
   catch (error) { report.status = controller.signal.aborted ? "cancelled" : "failed"; report.error = (error instanceof Error ? error.message : "Failed").replaceAll(process.env.OPENAI_API_KEY, "[redacted]"); report.states = report.states.map(state => ({ ...state, status: "Uncertain" })); }
   await save();
   await writeFile(join(root, "tests.zip"), await testArchive(report, "report.json").generateAsync({ type: "nodebuffer" }));
