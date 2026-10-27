@@ -5,6 +5,9 @@ import { mkdir, mkdtemp, readFile, writeFile, copyFile, rm, stat } from "node:fs
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
+import { createServer } from "node:net";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { Pool } from "pg";
 import { configurationChecks } from "../lib/deployment";
 import { createBackup, inspectBackup, restoreBackup } from "../lib/backup";
@@ -20,6 +23,35 @@ test("production configuration rejects unsafe and incomplete settings without ex
     assert.ok(!JSON.stringify(checks).includes(secret));
   }
   assert.ok(!configurationChecks({ ...valid, AUTH_REQUIRE_EMAIL_VERIFICATION: "true", REQTEST_LOCAL_MAIL: "true" }).some(check => check.status === "failed"));
+});
+
+test("production CLI reports an occupied port without starting services or exposing credentials", async context => {
+  const root = await mkdtemp(join(tmpdir(), "reqtest-startup-"));
+  const server = createServer();
+  context.after(async () => {
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    await rm(root, { recursive: true, force: true });
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const port = (server.address() as { port: number }).port;
+  const secret = "private-startup-fixture-never-print";
+  const args = ["--import", join(process.cwd(), "node_modules/tsx/dist/loader.mjs"), join(process.cwd(), "scripts/production.ts"), "start"];
+  const env = {
+    ...process.env, DATABASE_URL: "invalid", OPENAI_API_KEY: secret,
+    BETTER_AUTH_SECRET: secret, BETTER_AUTH_URL: `http://127.0.0.1:${port}`,
+  };
+  await assert.rejects(promisify(execFile)(process.execPath, args, { cwd: root, env, timeout: 30000 }), (error: unknown) => {
+    const output = error as Error & { stdout: string; stderr: string; code: number };
+    assert.equal(output.code, 1);
+    assert.match(output.stdout, /\[failed\] Application port:/);
+    assert.match(output.stderr, /Production configuration checks failed:/);
+    assert.ok(!(output.stdout + output.stderr).includes(secret));
+    assert.ok(!existsSync(join(root, ".data")));
+    return true;
+  });
 });
 
 test("offline backup and restore preserve PostgreSQL records, binary sources and signing secret", { skip: process.env.REQTEST_DOCKER_TEST !== "1" }, async context => {

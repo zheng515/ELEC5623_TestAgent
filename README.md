@@ -36,6 +36,7 @@ Requires Node.js 22.22.2+ and Docker.
 
 ```sh
 npm ci
+# New checkout only: preserve an existing .env.local and signing secret.
 cp .env.example .env.local
 # Set OPENAI_API_KEY and DATABASE_URL in .env.local.
 npm run db:up
@@ -124,10 +125,15 @@ To run a checked local production build, stop the development website and worker
 then run:
 
 ```sh
+# A production-only first install needs npm run db:migrate:production once.
 npm run production:check
 npm run build
 npm run production:start
 ```
+
+After a successful build, subsequent starts only need `npm run production:start`.
+Run `npm run production:check` to diagnose configuration without starting services
+or calling a model. Rebuild after changing application code.
 
 The production worker reads production-mode environment files, including
 `.env.local`. Keep the full repository, installed dependencies and persistent
@@ -137,7 +143,11 @@ initializes database tables and starts both services. If either service exits, t
 other is stopped. Ctrl+C stops both. It binds only to 127.0.0.1; use the hostname and
 port configured in BETTER_AUTH_URL. Optional GitHub/SMTP settings produce clear
 warnings when disabled; incomplete settings block startup. Key presence is not an
-API-access check. The lower-level npm run start:all command remains available.
+API-access check. `npm run start:all` uses the same checked launcher and configured
+port. Startup also checks that the application port is free before initializing
+tables or launching the worker; stop an existing instance before starting another.
+Failures identify the startup stage or the service that stopped, with sensitive
+configuration values redacted from the launcher's error message.
 
 This is a single-machine deployment. Hosted TLS/reverse proxies, automatic restart
 after machine reboot and external backup storage are not configured. See
@@ -236,6 +246,8 @@ instead of replacing PostgreSQL records. Transient rate-limit buckets keep exist
 destination entries. Preserve `.data/auth-secret` so imported
 session cookies remain valid. Tests use isolated PostgreSQL schemas and clean up
 only their own schema. PostgreSQL must be available before running account tests.
+The test commands load `.env` and then `.env.local`; explicit process variables
+take precedence over both files.
 
 ## Project verification
 
@@ -329,12 +341,16 @@ document coverage.
   execution node maps to a generated artifact only through a unique recorded failed
   node and matching file. Original model IDs remain in the audit trail. Duplicate
   aliases, unknown nodes and unsupported evidence cannot authorize repair.
-- **Improve:** at most one improvement action. Approved tests can be replaced only
-  after a generated-test-error diagnosis. A supported behavior with no approved
-  generated check can instead use this budget to replace blocked, unexecuted
-  proposals, followed by the same review gates and actual execution. Further
-  proposals stop when the budget is used. Otherwise passing tests trigger selected-file mutmut
-  measurement, relevance review and targeted additions for supported surviving mutants.
+- **Improve:** at most one improvement action. Diagnosed generated-test errors can
+  be replaced. Otherwise an unambiguous artifact with a unique, explicitly negative,
+  verbatim-cited review can be corrected under the same ID and behavior link. Every
+  replacement must pass the original review gates again, including promised value
+  and semantic type checks. Approved tests and justified failing assertions remain
+  unchanged. A clear behavior with no proposal can also use the single budget to
+  add a new reviewed check. Review-rejected replacements remain blocked and their proposals/reasons
+  are retained in the evidence export and Evaluation technical details.
+  Otherwise passing tests trigger selected-file mutmut measurement, relevance review
+  and targeted additions for supported surviving mutants.
   Python mutation checks explicitly run approved generated tests. Static imports and
   calls select top-level functions in one mapped source file; unresolved calls fall
   back to the selected full file. This selection is not dynamic coverage. File,

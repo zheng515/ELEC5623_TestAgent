@@ -1,5 +1,6 @@
 import { access, constants } from "node:fs/promises";
 import { join } from "node:path";
+import { createServer } from "node:net";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { Pool } from "pg";
@@ -35,6 +36,11 @@ export async function deploymentChecks(root = process.cwd(), env = process.env, 
   };
   const [major, minor, patch] = process.versions.node.split(".").map(Number);
   checks.push({ name: "Node.js", status: major > 22 || major === 22 && (minor > 22 || minor === 22 && patch >= 2) ? "passed" : "failed", detail: "Node.js 22.22.2 or newer is required." });
+  if (requireBuild && !checks.some(check => check.name === "Local application URL" && check.status === "failed")) await probe("Application port", () => new Promise<void>((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(Number(new URL(env.BETTER_AUTH_URL!).port), "127.0.0.1", () => server.close(error => error ? reject(error) : resolve()));
+  }), "The BETTER_AUTH_URL port on 127.0.0.1 must be free. Stop the existing website before starting another instance.");
   await probe("Signing secret", () => signingSecret(root, env), "A persistent signing secret of at least 32 characters is required. Preserve it when moving or restoring the app.");
   await probe("Writable workspace", () => access(root, constants.W_OK), "The workspace must be writable for .data, snapshots and runtime files.");
   await probe("Writable data directory", async () => { try { await access(join(root, ".data")); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; } await access(join(root, ".data"), constants.W_OK); }, "An existing .data directory must be writable by the service account.");
