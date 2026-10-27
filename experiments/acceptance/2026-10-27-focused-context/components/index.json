@@ -1,0 +1,159 @@
+{
+  "createdAt": "2026-10-27T05:51:36.140Z",
+  "model": "gpt-6-luna",
+  "policy": "contract-witness-v7-focused-context",
+  "scope": "Four raw component decisions on captured production follow-up contexts. Initial analyses, proposals and admission are scripted to reach the target stages. Tracebacks come from real Docker execution. This is not whole-agent acceptance, independent accuracy or a repeated benchmark.",
+  "sourceHash": "1d68c7bafa97e6c9c49d173f4f4e8b6f2f626e80bb19cf0caed9260fdd7cdad7",
+  "planned": 4,
+  "independentAccuracy": null,
+  "referenceReviewed": false,
+  "status": "completed",
+  "attempts": [
+    {
+      "id": "unsupported_assertion",
+      "kind": "review",
+      "inputHash": "139e481ceebeec3fdb0106e42d07335f73ad57330c793c81b9dc37f313d4c5b8",
+      "contextBytes": 2028,
+      "elapsedMs": 3907,
+      "draftExpected": "blocked",
+      "usage": {
+        "inputTokens": 1433,
+        "inputTokenDetails": {
+          "noCacheTokens": 3,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 1430
+        },
+        "outputTokens": 98,
+        "outputTokenDetails": {
+          "textTokens": 98,
+          "reasoningTokens": 0
+        },
+        "totalTokens": 1531,
+        "raw": {
+          "input_tokens": 1433,
+          "input_tokens_details": {
+            "cache_write_tokens": 1430,
+            "cached_tokens": 0
+          },
+          "output_tokens": 98,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1531
+        }
+      },
+      "label": "blocked",
+      "quoteGrounded": true
+    },
+    {
+      "id": "ambiguous_requirement",
+      "kind": "review",
+      "inputHash": "fb9dffd9e67b2e98379b2a654f760e405cab9acf716870bb957e256602ed62af",
+      "contextBytes": 1917,
+      "elapsedMs": 2249,
+      "draftExpected": "blocked",
+      "usage": {
+        "inputTokens": 1412,
+        "inputTokenDetails": {
+          "noCacheTokens": 3,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 1409
+        },
+        "outputTokens": 82,
+        "outputTokenDetails": {
+          "textTokens": 82,
+          "reasoningTokens": 0
+        },
+        "totalTokens": 1494,
+        "raw": {
+          "input_tokens": 1412,
+          "input_tokens_details": {
+            "cache_write_tokens": 1409,
+            "cached_tokens": 0
+          },
+          "output_tokens": 82,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1494
+        }
+      },
+      "label": "blocked",
+      "quoteGrounded": true
+    },
+    {
+      "id": "bad_import",
+      "kind": "diagnosis",
+      "inputHash": "b4fa49b6a3c72e89fd5c4e8329c565aed8a7c7bdff4014b41a0650ea176ba673",
+      "contextBytes": 3929,
+      "elapsedMs": 2872,
+      "draftExpected": "generated_test_error",
+      "usage": {
+        "inputTokens": 2041,
+        "inputTokenDetails": {
+          "noCacheTokens": 3,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 2038
+        },
+        "outputTokens": 197,
+        "outputTokenDetails": {
+          "textTokens": 149,
+          "reasoningTokens": 48
+        },
+        "totalTokens": 2238,
+        "raw": {
+          "input_tokens": 2041,
+          "input_tokens_details": {
+            "cache_write_tokens": 2038,
+            "cached_tokens": 0
+          },
+          "output_tokens": 197,
+          "output_tokens_details": {
+            "reasoning_tokens": 48
+          },
+          "total_tokens": 2238
+        }
+      },
+      "label": "generated_test_error",
+      "quoteGrounded": true,
+      "artifactQuotesGrounded": true
+    },
+    {
+      "id": "implementation_defect",
+      "kind": "diagnosis",
+      "inputHash": "baf0866493e6dc88a1fc44f2a279f901cb8a1b6beea405cad0010733cead4a09",
+      "contextBytes": 3212,
+      "elapsedMs": 4174,
+      "draftExpected": "potential_implementation_defect",
+      "usage": {
+        "inputTokens": 1888,
+        "inputTokenDetails": {
+          "noCacheTokens": 3,
+          "cacheReadTokens": 1074,
+          "cacheWriteTokens": 811
+        },
+        "outputTokens": 227,
+        "outputTokenDetails": {
+          "textTokens": 148,
+          "reasoningTokens": 79
+        },
+        "totalTokens": 2115,
+        "raw": {
+          "input_tokens": 1888,
+          "input_tokens_details": {
+            "cache_write_tokens": 811,
+            "cached_tokens": 1074
+          },
+          "output_tokens": 227,
+          "output_tokens_details": {
+            "reasoning_tokens": 79
+          },
+          "total_tokens": 2115
+        }
+      },
+      "label": "potential_implementation_defect",
+      "quoteGrounded": true,
+      "artifactQuotesGrounded": true
+    }
+  ]
+}

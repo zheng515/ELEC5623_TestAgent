@@ -2,7 +2,15 @@ import { z } from "zod";
 import type { RequirementSource, DocumentPage, RequirementDocument } from "./requirements";
 import type { ProjectSetup } from "./project-setup";
 import { sourceFile, type ProjectRuntime } from "./runtime";
-const evidence = z.object({ file: z.string(), quote: z.string().min(1) });
+const evidence = z.object({ file: z.string(), quote: z.string().min(1), line: z.number().int().min(1).optional() });
+export function sourceEvidenceSchema(files: Record<string, string>) {
+  const lines = Object.fromEntries(Object.entries(files).map(([file, text]) => [file, text.split('\n')]));
+  return z.object({ file: z.enum(Object.keys(files)), line: z.number().int().min(1).max(Math.max(1, ...Object.values(lines).map(rows => rows.length))) })
+    .superRefine((reference, context) => {
+      if (!lines[reference.file]?.[reference.line - 1]?.trim()) context.addIssue({ code: 'custom', message: 'Source line is missing or blank.' });
+    })
+    .transform(reference => ({ ...reference, quote: lines[reference.file][reference.line - 1] }));
+}
 export const analysisSchema = z.object({
   behaviors: z.array(z.object({
     id: z.string().regex(/^B[1-9]\d*$/), ruleId: z.string(), quote: z.string().min(1),
@@ -18,8 +26,8 @@ export function originalQuoteSchema(quotes: string[], references?: string[]) {
   if (references) return z.enum(references).transform(reference => quotes[references.indexOf(reference)]);
   return z.enum(quotes);
 }
-export function groundedAnalysisSchema(files: Record<string, string>, nodes: string[], quotes: string[], references?: string[]) {
-  const evidence = analysisSchema.shape.behaviors.element.shape.evidence.element.extend({ file: z.enum(Object.keys(files)) });
+export function groundedAnalysisSchema(files: Record<string, string>, nodes: string[], quotes: string[], references?: string[], lineReferences = false) {
+  const evidence = lineReferences ? sourceEvidenceSchema(files) : analysisSchema.shape.behaviors.element.shape.evidence.element.extend({ file: z.enum(Object.keys(files)) });
   const quote = originalQuoteSchema(quotes, references);
   const behavior = analysisSchema.shape.behaviors.element.extend({
     quote, files: z.array(z.enum(Object.keys(files).filter(sourceFile))).max(4),
@@ -51,10 +59,11 @@ export const diagnosisSchema = z.object({ decisions: z.array(z.object({
   testId: z.string(), category: z.enum(["generated_test_error", "requirement_ambiguity", "potential_implementation_defect", "environment_failure", "uncertain"]),
   reason: z.string(), quote: z.string(), executionQuote: z.string(), evidence: z.array(evidence).max(6),
 })).max(32) });
-export function groundedDiagnosisSchema(ids: string[], quote: z.ZodType<string>) {
-  return diagnosisSchema.extend({ decisions: z.array(diagnosisSchema.shape.decisions.element.extend({
+export function groundedDiagnosisSchema(ids: string[], quote: z.ZodType<string>, files?: Record<string, string>) {
+  const decision = diagnosisSchema.shape.decisions.element.extend({
     testId: ids.length ? z.enum(ids) : z.string(), quote,
-  })).max(32) });
+  });
+  return diagnosisSchema.extend({ decisions: z.array(files ? decision.extend({ evidence: z.array(sourceEvidenceSchema(files)).max(6) }) : decision).max(32) });
 }
 export const reviewTestsSchema = z.object({ decisions: z.array(z.object({
   testId: z.string(), supported: z.boolean(), reason: z.string(), quote: z.string(),

@@ -1,0 +1,10 @@
+{
+  "decisions": [
+    {
+      "testId": "T1",
+      "supported": false,
+      "reason": "The requirement only guarantees that a negative amount raises ValueError; it does not specify the exception message. The test adds an unsupported message-matching obligation, so it cannot be supported as proposed. The negative input does exercise the required behavior, but the extra assertion invalidates the proposal.",
+      "quote": "For a negative amount, shipping.fee(amount) raises ValueError."
+    }
+  ]
+}

@@ -99,10 +99,10 @@ async function main() {
       index.runs.push(entry);
       await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
       const save = () => writeFile(join(root, 'report.json'), JSON.stringify(report, null, 2));
-      const requests: { stage: string; taskHash: string; contextHash: string; elapsedMs: number; usage?: ReasonUsage; error?: string }[] = [];
+      const requests: { stage: string; taskHash: string; contextHash: string; contextBytes: number; elapsedMs: number; usage?: ReasonUsage; error?: string }[] = [];
       await writeFile(join(root, 'requests.json'), '[]');
       const measuredReason: Reason = async (schema, task, context, model, signal) => {
-        const started = Date.now(), request: typeof requests[number] = { stage: report.stage, taskHash: createHash('sha256').update(task).digest('hex'), contextHash: createHash('sha256').update(JSON.stringify(context)).digest('hex'), elapsedMs: 0 };
+        const started = Date.now(), request: typeof requests[number] = { stage: report.stage, taskHash: createHash('sha256').update(task).digest('hex'), contextHash: createHash('sha256').update(JSON.stringify(context)).digest('hex'), contextBytes: Buffer.byteLength(JSON.stringify(context)), elapsedMs: 0 };
         try { return await reason(schema, task, context, model, signal, usage => { request.usage = usage; }); }
         catch (error) { request.error = (error instanceof Error ? error.message : 'Request failed.').replaceAll(process.env.OPENAI_API_KEY!, '[redacted]').slice(0, 1500); throw error; }
         finally { request.elapsedMs = Date.now() - started; requests.push(request); await writeFile(join(root, 'requests.json'), JSON.stringify(requests, null, 2)); }
