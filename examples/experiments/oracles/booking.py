@@ -5,7 +5,7 @@ from booking import cancellation_fee
 def test_contract():
     for value, expected in [(0, 2500), (12, 2500), (23, 2500), (24, 0), (25, 0)]:
         actual = cancellation_fee(value)
-        assert type(actual) is int
+        assert isinstance(actual, int) and not isinstance(actual, bool)
         assert actual == expected
     with pytest.raises(ValueError):
         cancellation_fee(-1)

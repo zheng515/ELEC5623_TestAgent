@@ -5,7 +5,7 @@ from inventory import remaining
 def test_contract():
     for stock, requested, expected in [(10, 3, 7), (10, 10, 0), (0, 0, 0), (10, 0, 10)]:
         actual = remaining(stock, requested)
-        assert type(actual) is int
+        assert isinstance(actual, int) and not isinstance(actual, bool)
         assert actual == expected
     for stock, requested in [(1, 2), (-1, 0), (1, -1)]:
         with pytest.raises(ValueError):

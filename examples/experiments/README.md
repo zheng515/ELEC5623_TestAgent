@@ -6,13 +6,18 @@ contain the final academic report.
 
 ## Protocol
 
-The approved current run is `examples/experiments-pilot.json`: three existing
+The completed pilot used `examples/experiments-pilot.json`: three existing
 projects, B0/B3, one observation per project/configuration, six model-backed runs.
 It checks the experiment machinery and gives case-level observations only. It
 cannot assess repeatability, population reliability or component-level causality.
 The five-project standalone benchmark remains paused. Old result directories were
 removed on 2026-10-27 because their frozen sources differ from the current code;
 old scores must not be carried forward as measurements of this implementation.
+
+The next scope and decision rules are in
+[the repeated workflow protocol](REPEAT_PROTOCOL.md). Its B0/B3 manifest has 18
+planned runs, authorized on 2026-10-27. The fixture
+preflight can run independently with `--validate-only` and makes no model requests.
 
 `examples/experiments.json` fixes three synthetic development projects, four
 configurations and three repetitions: 36 complete-agent runs for a later study.
