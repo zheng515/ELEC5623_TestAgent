@@ -157,8 +157,15 @@ def extract_document(job):
             text = data.decode("utf-8-sig")
         except UnicodeDecodeError as error:
             raise ValueError("Text documents must use UTF-8. Save the file as UTF-8 and upload it again.") from error
-        for number, line in enumerate(text.splitlines(), 1):
-            add(line, f"Line {number}", line=number, extraction="text")
+        # Blank lines separate paragraphs; a requirement keeps its title, statement and list items together.
+        block, first = [], 0
+        for number, line in enumerate(text.splitlines() + [""], 1):
+            if line.strip():
+                block, first = block + [line], first or number
+            elif block:
+                last = number - 1
+                add("\n".join(block), f"Line {first}" if first == last else f"Lines {first}-{last}", line=first, extraction="text")
+                block, first = [], 0
     else:
         raise ValueError("Use PDF, DOC, DOCX, TXT or Markdown.")
     if not segments:

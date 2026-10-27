@@ -8,6 +8,9 @@ export function textRequirements(input: string, document?: RequirementDocument) 
   if (!text) throw new Error('Enter requirements or upload a requirement file.');
   let sections = text.split(/\n\s*\n/).filter(section => section.trim());
   if (sections.length === 1 && !document) sections = text.split(/\r?\n/).filter(section => section.trim());
+  // Markdown headings name a section; they state no requirement of their own.
+  const statements = sections.filter(section => !section.trim().split(/\r?\n/).every(line => /^\s*#{1,6}\s/.test(line)));
+  if (statements.length) sections = statements;
   const rules: { id: string; text: string; source?: RequirementSource; sources?: RequirementSource[] }[] = [];
   for (const content of sections) {
     const sources = document?.segments.filter(segment => segment.text.trim() && ('\n\n' + content + '\n\n').includes('\n\n' + segment.text + '\n\n')).map(segment => ({

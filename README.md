@@ -426,8 +426,8 @@ a development tag does not remove an in-use execution image. Keep images referen
 by saved reports when cleaning Docker storage.
 
 Limits: 500 archive entries, 10 MB compressed, 3 MB expanded, 200 KB per retained
-source/configuration file, 1 MB for uv.lock/package-lock.json, 200 KB model context,
-24 extracted behaviors and 16 initially generated tests. These lockfiles remain
+source/configuration file, 1 MB for uv.lock/package-lock.json and 200 KB model context.
+The number of extracted behaviors and generated tests is not limited. These lockfiles remain
 in the fingerprinted snapshot but are excluded from model reasoning. Automatic
 Python setup uses declared compatible wheels, not uv.lock resolution; exact
 installed versions and the resulting sandbox image are retained.

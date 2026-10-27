@@ -39,23 +39,51 @@ export function browserTestFormat(runDirectory: string) {
     runDirectory ? `Tests run from ${runDirectory}/ with it on the import path, so import modules as they are imported there; file keys under ${runDirectory}/ omit that prefix in imports.` : '',
   ].filter(Boolean).join(' ');
 }
+// Strict structured outputs reject control characters, quotes and backslashes in enum literals,
+// so such requirement quotes travel as their R IDs and are resolved back to the original text.
+export const quoteReferences = (rules: { id: string; text: string }[]) => rules.some(rule => /[\x00-\x1f"\\]/.test(rule.text)) ? rules.map(rule => rule.id) : undefined;
+const ANALYSIS_BATCH = 5, GENERATION_BATCH = 6, MODEL_CONCURRENCY = 4;
+export const chunks = <T,>(items: T[], size: number) => Array.from({ length: Math.ceil(items.length / size) }, (_, index) => items.slice(index * size, index * size + size));
+// Runs at most limit tasks at once and keeps results in input order. The first task runs alone,
+// so the provider has cached the shared prompt prefix before the rest start.
+export async function pool<T, R>(items: T[], limit: number, task: (item: T, index: number) => Promise<R>) {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  if (items.length > 1) results[next] = await task(items[next++], 0);
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => { while (next < items.length) { const index = next++; results[index] = await task(items[index], index); } }));
+  return results;
+}
+// Batch analyses number behaviors independently; renumber them run-wide and remap conflict links.
+export function mergeAnalyses(analyses: Analysis[]): Analysis {
+  if (analyses.length === 1) return analyses[0];
+  const merged: Analysis = { behaviors: [], inconsistencies: [] };
+  for (const analysis of analyses) {
+    const ids = new Map(analysis.behaviors.map(behavior => [behavior.id, 'B' + (merged.behaviors.length + analysis.behaviors.indexOf(behavior) + 1)]));
+    merged.behaviors.push(...analysis.behaviors.map(behavior => ({ ...behavior, id: ids.get(behavior.id)! })));
+    merged.inconsistencies.push(...analysis.inconsistencies.map(item => ({ ...item, behaviorIds: item.behaviorIds.map(id => ids.get(id) || id) })));
+  }
+  return merged;
+}
 export type ReasonUsage = { inputTokens?: number; outputTokens?: number; totalTokens?: number };
 export async function reason<T>(schema: z.ZodType<T>, task: string, context: unknown, model: string, signal: AbortSignal, onUsage?: (usage: ReasonUsage) => void): Promise<T> {
   const rules = (context as { rules?: { id: string; text: string }[] }).rules;
   let outputSchema: z.ZodType = schema;
-  const references = rules?.some(rule => /[\x00-\x1f]/.test(rule.text)) ? rules.map(rule => rule.id) : undefined;
+  const references = rules && quoteReferences(rules);
   // Constrain citations in the provider schema when possible and always validate originals.
   if (rules?.length) {
     const quote = originalQuoteSchema(rules.map((rule) => rule.text), references);
     const project = context as { files?: Record<string, string>; existingTests?: string[]; analysis?: Analysis };
     if (Object.is(schema, analysisSchema) && project.files) outputSchema = groundedAnalysisSchema(project.files, project.existingTests || [], rules.map((rule) => rule.text), references);
     if (Object.is(schema, testsSchema)) outputSchema = groundedTestsSchema(project.analysis?.behaviors || [], quote);
-    if (Object.is(schema, reviewTestsSchema)) outputSchema = reviewTestsSchema.extend({ decisions: z.array(reviewTestsSchema.shape.decisions.element.extend({ quote })).max(16) });
-    if (Object.is(schema, relevanceSchema)) outputSchema = relevanceSchema.extend({ decisions: z.array(relevanceSchema.shape.decisions.element.extend({ quote })).max(16) });
+    if (Object.is(schema, reviewTestsSchema)) outputSchema = reviewTestsSchema.extend({ decisions: z.array(reviewTestsSchema.shape.decisions.element.extend({ quote })) });
+    if (Object.is(schema, relevanceSchema)) outputSchema = relevanceSchema.extend({ decisions: z.array(relevanceSchema.shape.decisions.element.extend({ quote })) });
     if (Object.is(schema, diagnosisSchema)) outputSchema = groundedDiagnosisSchema((context as { failedTestIds?: string[] }).failedTestIds || [], originalQuoteSchema(['', ...rules.map((rule) => rule.text)], references ? ['', ...references] : undefined));
   }
   const encoding = references ? '\nOutput encoding: requirement quote fields in behaviors, inconsistencies, tests and decisions MUST contain the original R rule ID (for example R1), instead of copying raw requirement text. The server resolves this ID to the unchanged original text. This encoding takes precedence over instructions to copy quotes. Environment-only diagnosis may use an empty quote. Evidence quotes and executionQuote still contain verbatim artifact/log text, never rule IDs.' : '';
-  const result = await generateText({ ...options({ model }, signal), abortSignal: AbortSignal.any([signal, AbortSignal.timeout(180000)]), maxOutputTokens: 8000, providerOptions: { openai: { store: false, reasoningEffort: 'low' } }, system: policy + '\n' + clockPolicy + '\n' + task + encoding, prompt: JSON.stringify(context), output: Output.object({ schema: outputSchema }) });
+  const system = policy + '\n' + clockPolicy + '\n' + task + encoding;
+  // Requests for the same task share a cache key so batched calls reuse the cached project context.
+  const promptCacheKey = 'reqtest-' + createHash('sha256').update(system).digest('hex').slice(0, 32);
+  const result = await generateText({ ...options({ model }, signal), providerOptions: { openai: { store: false, reasoningEffort: 'low', promptCacheKey } }, system, prompt: JSON.stringify(context), output: Output.object({ schema: outputSchema }) });
   onUsage?.(result.usage);
   return schema.parse(result.output);
 }
@@ -109,7 +137,32 @@ export function validateAnalysis(analysis: Analysis, report: PythonReport, snaps
     const id = 'B' + (Math.max(0, ...analysis.behaviors.map((behavior) => Number(behavior.id.slice(1)))) + 1);
     analysis.behaviors.push({ id, ruleId: rule.id, quote: rule.text, text: rule.text, category: 'rule', issue: 'not_testable', reason: 'No grounded behavior was extracted; clarification is required.', files: [], existingTests: [], evidence: [], gaps: ['Behavior extraction incomplete.'] });
   }
-  if (analysis.behaviors.length > 24) throw new Error('More than 24 behaviors are needed. Split this verification into smaller requirements.');
+}
+// After the single correction, claims that still lack exact grounding are removed rather than failing the run.
+export function pruneAnalysis(analysis: Analysis, report: PythonReport, snapshot: Inspection) {
+  const removed: string[] = [], ids = new Set<string>();
+  analysis.behaviors = analysis.behaviors.filter(behavior => {
+    // A quote that matches exactly one requirement identifies it, even when the stated rule ID differs.
+    const quoted = behavior.quote.trim() ? report.rules.filter(rule => rule.text.includes(behavior.quote)) : [];
+    if (!quoted.some(rule => rule.id === behavior.ruleId) && quoted.length === 1) { removed.push(`${behavior.id}: rule ID ${behavior.ruleId} replaced by ${quoted[0].id}, the requirement it quotes.`); behavior.ruleId = quoted[0].id; }
+    if (ids.has(behavior.id) || !quoted.some(rule => rule.id === behavior.ruleId)) { removed.push(`${behavior.id}: requirement quote or ID is not grounded.`); return false; }
+    ids.add(behavior.id);
+    for (const item of behavior.evidence.filter(item => !validEvidence([item], snapshot))) removed.push(`${behavior.id}: evidence not found verbatim in ${item.file}: ${item.quote}`);
+    behavior.evidence = behavior.evidence.filter(item => validEvidence([item], snapshot));
+    behavior.files = behavior.files.filter(file => sourceFile(file) && snapshot.files[file] !== undefined);
+    behavior.existingTests = behavior.existingTests.filter(node => snapshot.nodes.includes(node));
+    if ((behavior.files.length || behavior.existingTests.length) && !behavior.evidence.length) {
+      removed.push(`${behavior.id}: code and test links removed without exact evidence.`);
+      behavior.files = []; behavior.existingTests = [];
+    }
+    return true;
+  });
+  analysis.inconsistencies = analysis.inconsistencies.filter(item => {
+    const grounded = report.rules.find(rule => rule.id === item.ruleId)?.text.includes(item.quote) && item.quote.trim() && validEvidence(item.evidence, snapshot) && item.behaviorIds.length > 0 && new Set(item.behaviorIds).size === item.behaviorIds.length && item.behaviorIds.every(id => analysis.behaviors.some(behavior => behavior.id === id && behavior.ruleId === item.ruleId));
+    if (!grounded) removed.push(`Conflict for ${item.ruleId} removed without grounded evidence: ${item.description}`);
+    return grounded;
+  });
+  return removed;
 }
 export function updateStates(report: PythonReport) {
   const latest = report.measurements.at(-1);
@@ -153,16 +206,34 @@ export async function runPython(report: PythonReport, root: string, signal: Abor
   const query = report.rules.map((rule) => rule.text).join(' ');
   const retrievedDocuments = variant === 'B0' ? [] : index.search(query, { combineWith: 'OR', prefix: true }).slice(0, 4).map((item) => ({ file: String(item.id), text: String(item.text), score: item.score, sha256: createHash('sha256').update(String(item.text)).digest('hex') }));
   report.retrieval = { query, documents: retrievedDocuments };
-  const context = { runtime: report.runtime || "python", artifactDirectory: "reqtest_generated", services: report.projectSetup?.services || [], installed: report.projectSetup?.installed || [], testFormat: report.runtime === "node" ? "Use node:test and node:assert/strict. Each file is saved at reqtest_generated/test_reqtest_<id>.test.ts. Resolve relative imports from that directory: a root shipping.mjs module is imported as ../shipping.mjs; a root shipping.ts module as ../shipping.ts. Each artifact must import test from node:test, declare one named function test_..., and register it with test(\"test_function_name\", test_function_name). Register exactly one top-level test case; do not use describe or nested suites. Use TypeScript-compatible imports. Local service URLs may be read from DATABASE_URL or REDIS_URL only when explicitly needed by the requirement." : "Use pytest. Each artifact declares one def test_... function. Only explicitly supplied services may use DATABASE_URL or REDIS_URL from the environment. " + browserTestFormat(report.projectSetup?.runDirectory || ''), rules: report.rules, files: variant === 'B0' ? Object.fromEntries(Object.entries(snapshot.files).filter(([file]) => sourceFile(file))) : snapshot.files, functions: snapshot.functions, existingTests: variant === 'B0' ? [] : snapshot.nodes, collection: ['B0', 'B1'].includes(variant) ? undefined : snapshot.collection, retrievedDocuments: variant === 'B0' ? [] : retrievedDocuments };
-  report.analysis = ['B0', 'B1'].includes(variant) ? { behaviors: report.rules.map((rule, index) => ({ id: 'B' + (index + 1), ruleId: rule.id, quote: rule.text, text: rule.text, category: 'rule', issue: 'none', reason: 'Baseline ID scaffolding; no semantic decomposition.', files: [], existingTests: [], evidence: [], gaps: ['Requirement not yet checked.'] })), inconsistencies: [] } : await stage('Analyze requirements and consistency', () => ask(analysisSchema, 'Decompose EACH requirement into atomic rules, boundaries, conditions and exceptions. Each B ID is unique. Categorize ambiguous/incomplete/not_testable requirements. List specific missing checks in gaps as plain descriptions without numbering; a gap\'s zero-based position in the list is its index. Map existing collected test IDs only when their assertions check that behavior; cite code and test quotes. Report cross-artifact inconsistencies as potential conflicts without assuming which artifact is correct. Each inconsistency MUST include behaviorIds referencing the affected B IDs from that same requirement. Copy source/test/document evidence as a single verbatim line from the named file; never paraphrase it or replace real line breaks with literal backslash escapes. Preserve unknowns.', context, report.model, signal));
-  const original = structuredClone(report.analysis);
-  try { validateAnalysis(report.analysis, report, snapshot); }
-  catch (error) {
-    const message = error instanceof Error ? error.message : 'Invalid analysis evidence.';
-    report.analysisCorrection = { original, error: message };
-    const invalidEvidence = [...original.behaviors, ...original.inconsistencies].flatMap(item => item.evidence).filter(item => !validEvidence([item], snapshot));
-    report.analysis = await stage('Correct invalid analysis evidence', () => ask(analysisSchema, 'Correct the supplied analysis once using ONLY the original requirements and files. Fix invalid IDs or citations identified by validationError and invalidEvidence. Every evidence quote must be a single unchanged source line from its exact file key, not a paraphrase or backslash-escaped multiline excerpt. Preserve justified findings; remove a claim only if original evidence cannot support it. Requirement quotes remain exact original rule text. Invent no new contract or evidence. The result will undergo the same strict validation again.', { ...context, previousAnalysis: original, validationError: message, invalidEvidence }, report.model, signal));
-    validateAnalysis(report.analysis, report, snapshot);
+  // Shared project context comes first and per-batch rules last, so batched requests share a cacheable prefix.
+  const context = { runtime: report.runtime || "python", artifactDirectory: "reqtest_generated", services: report.projectSetup?.services || [], installed: report.projectSetup?.installed || [], testFormat: report.runtime === "node" ? "Use node:test and node:assert/strict. Each file is saved at reqtest_generated/test_reqtest_<id>.test.ts. Resolve relative imports from that directory: a root shipping.mjs module is imported as ../shipping.mjs; a root shipping.ts module as ../shipping.ts. Each artifact must import test from node:test, declare one named function test_..., and register it with test(\"test_function_name\", test_function_name). Register exactly one top-level test case; do not use describe or nested suites. Use TypeScript-compatible imports. Local service URLs may be read from DATABASE_URL or REDIS_URL only when explicitly needed by the requirement." : "Use pytest. Each artifact declares one def test_... function. Fixtures from the project's conftest.py files apply only inside their own directories and are unavailable in reqtest_generated; create the setup each test needs inside the test, importing ordinary project functions where needed. Only explicitly supplied services may use DATABASE_URL or REDIS_URL from the environment. " + browserTestFormat(report.projectSetup?.runDirectory || ''), files: variant === 'B0' ? Object.fromEntries(Object.entries(snapshot.files).filter(([file]) => sourceFile(file))) : snapshot.files, functions: snapshot.functions, existingTests: variant === 'B0' ? [] : snapshot.nodes, collection: ['B0', 'B1'].includes(variant) ? undefined : snapshot.collection, retrievedDocuments: variant === 'B0' ? [] : retrievedDocuments, rules: report.rules };
+  const analysisTask = 'When context.requirementBatch is present, decompose only the requirements it lists; the other requirements are context. Decompose EACH requirement into atomic rules, boundaries, conditions and exceptions. Each B ID is unique, and each behavior\'s ruleId is the R ID of the context.rules entry it quotes, never a numbering used inside the document. Categorize ambiguous/incomplete/not_testable requirements: issue judges only the requirement text. Use none whenever the text states a checkable behavior, even when no existing test covers it; missing coverage belongs in gaps, never in issue. Behavior a user observes in pages is testable with the supplied browser fixtures (see testFormat). List specific missing checks in gaps as plain descriptions without numbering; a gap\'s zero-based position in the list is its index. Map existing collected test IDs only when their assertions check that behavior; cite code and test quotes. Report cross-artifact inconsistencies as potential conflicts without assuming which artifact is correct. Each inconsistency MUST include behaviorIds referencing the affected B IDs from that same requirement. Copy source/test/document evidence as a single verbatim line from the named file; never paraphrase it or replace real line breaks with literal backslash escapes. Preserve unknowns.';
+  const correctionTask = 'Correct the supplied analysis once using ONLY the original requirements and files. Fix invalid IDs or citations identified by validationError and invalidEvidence. Every evidence quote must be a single unchanged source line from its exact file key, not a paraphrase or backslash-escaped multiline excerpt. Preserve justified findings; remove a claim only if original evidence cannot support it. Requirement quotes remain exact original rule text. Invent no new contract or evidence. The result will undergo the same strict validation again.';
+  async function analyze(rules: PythonReport['rules'], label: string) {
+    // Every batch sees all requirements, so batched requests share one schema and cacheable prefix;
+    // requirementBatch names the requirements this request decomposes.
+    const scope = { ...report, rules }, scoped = rules.length === report.rules.length ? context : { ...context, requirementBatch: rules.map(rule => rule.id) };
+    const analysis = await stage('Analyze requirements and consistency' + label, () => ask(analysisSchema, analysisTask, scoped, report.model, signal));
+    const original = structuredClone(analysis);
+    try { validateAnalysis(analysis, scope, snapshot); return analysis; }
+    catch (error) {
+      const message = error instanceof Error ? error.message : 'Invalid analysis evidence.';
+      report.analysisCorrection ||= { original, error: message };
+      const invalidEvidence = [...original.behaviors, ...original.inconsistencies].flatMap(item => item.evidence).filter(item => !validEvidence([item], snapshot));
+      const corrected = await stage('Correct invalid analysis evidence' + label, () => ask(analysisSchema, correctionTask, { ...scoped, previousAnalysis: original, validationError: message, invalidEvidence }, report.model, signal));
+      const removed = pruneAnalysis(corrected, scope, snapshot);
+      if (removed.length) report.analysisCorrection!.removed = [...report.analysisCorrection!.removed || [], ...removed];
+      validateAnalysis(corrected, scope, snapshot);
+      return corrected;
+    }
+  }
+  if (['B0', 'B1'].includes(variant)) report.analysis = { behaviors: report.rules.map((rule, index) => ({ id: 'B' + (index + 1), ruleId: rule.id, quote: rule.text, text: rule.text, category: 'rule', issue: 'none', reason: 'Baseline ID scaffolding; no semantic decomposition.', files: [], existingTests: [], evidence: [], gaps: ['Requirement not yet checked.'] })), inconsistencies: [] };
+  else {
+    // Large specifications are analyzed a few requirements at a time so each one is decomposed fully.
+    const batches = chunks(report.rules, ANALYSIS_BATCH);
+    report.analysis = mergeAnalyses(await pool(batches, MODEL_CONCURRENCY, (rules, index) => analyze(rules, batches.length > 1 ? ` (batch ${index + 1} of ${batches.length})` : '')));
+    if (batches.length > 1) validateAnalysis(report.analysis, report, snapshot);
   }
   report.baseline = await stage('Measure existing tests', () => measureProject(root, snapshot.nodes.length ? snapshot.nodes : [1, 2, 3, 4].includes(snapshot.collection.exitCode) ? ['.'] : [], false, signal, image));
   const behaviorFor = (test: PythonTest) => report.analysis!.behaviors.find((behavior) => behavior.id === test.behaviorId);
@@ -173,7 +244,10 @@ export async function runPython(report: PythonReport, root: string, signal: Abor
   }
   async function reviewed(proposals: PythonTest[]) {
     if (new Set(proposals.map((test) => test.id)).size !== proposals.length) throw new Error('Duplicate generated test IDs.');
-    const review = proposals.length ? await ask(reviewTestsSchema, testReviewTask, { ...context, analysis: report.analysis, tests: proposals }, report.model, signal) : { decisions: [] };
+    const references = quoteReferences(report.rules);
+    // With ID-encoded quotes the reviewer copies each test's R ID rather than re-typing the requirement.
+    const shown = references ? proposals.map(test => ({ ...test, quote: report.rules.find(rule => rule.text === test.quote)?.id || test.quote })) : proposals;
+    const review = proposals.length ? await ask(reviewTestsSchema, testReviewTask, { ...context, analysis: report.analysis, tests: shown }, report.model, signal) : { decisions: [] };
     for (const test of proposals) {
       const decisions = review.decisions.filter((decision) => decision.testId === test.id);
       const decision = decisions[0];
@@ -194,8 +268,14 @@ export async function runPython(report: PythonReport, root: string, signal: Abor
     }
     return proposals;
   }
-  const proposals = await stage('Generate and review targeted tests', () => ask(testsSchema, 'Generate at most 16 standalone tests in context.testFormat for the identified behaviors/gaps. Each artifact has ONE test_ function, direct target calls or, for user-visible page behavior, browser interactions through the supplied fixtures, and explicit contract assertions. Use unique T IDs and exact B links. gapIndexes must identify the listed gaps actually checked. Import using the supplied project layout. Leave ambiguous behaviors for review. Do not use subprocess, external network, file modifications, mocks, skips or dynamic code. Only explicitly supplied local test services may be used when required by the contract. Each artifact includes a verbatim original requirement quote. ' + assertionPolicy, { ...context, analysis: report.analysis, baseline: ['B0', 'B1'].includes(variant) ? undefined : report.baseline }, report.model, signal));
-  report.tests = ['B0', 'B1'].includes(variant) ? proposals.tests.map((test) => ({ ...test, approved: Boolean(behaviorFor(test) && ruleFor(test)?.text.includes(test.quote) && test.quote.trim()), review: 'Evaluation baseline: no independent test review.' })) : await reviewed(proposals.tests);
+  const generationTask = 'Generate standalone tests in context.testFormat for the identified behaviors/gaps. Each artifact has ONE test_ function, direct target calls or, for user-visible page behavior, browser interactions through the supplied fixtures, and explicit contract assertions. Use unique T IDs and exact B links. gapIndexes must identify the listed gaps actually checked. Import using the supplied project layout. Leave ambiguous behaviors for review. Do not use subprocess, external network, file modifications, mocks, skips or dynamic code. Only explicitly supplied local test services may be used when required by the contract. Each artifact includes a verbatim original requirement quote. ' + assertionPolicy;
+  const baseline = ['B0', 'B1'].includes(variant) ? undefined : report.baseline;
+  const behaviorBatches = chunks(report.analysis.behaviors, GENERATION_BATCH);
+  const generated = await pool(behaviorBatches, MODEL_CONCURRENCY, (behaviors, index) => stage('Generate and review targeted tests' + (behaviorBatches.length > 1 ? ` (batch ${index + 1} of ${behaviorBatches.length})` : ''), () => ask(testsSchema, generationTask, { ...context, analysis: behaviorBatches.length > 1 ? { behaviors, inconsistencies: report.analysis!.inconsistencies.filter(item => item.behaviorIds.some(id => behaviors.some(behavior => behavior.id === id))) } : report.analysis, baseline }, report.model, signal)));
+  // Each batch numbers its own artifacts; give them run-wide IDs before review.
+  let serial = 0;
+  const proposals = generated.length > 1 ? generated.map(batch => batch.tests.map(test => ({ ...test, id: 'T' + ++serial }))) : generated.map(batch => batch.tests);
+  report.tests = ['B0', 'B1'].includes(variant) ? proposals.flat().map((test) => ({ ...test, approved: Boolean(behaviorFor(test) && ruleFor(test)?.text.includes(test.quote) && test.quote.trim()), review: 'Evaluation baseline: no independent test review.' })) : (await pool(proposals, MODEL_CONCURRENCY, reviewed)).flat();
   await writeTests(root, report.tests);
   async function measure() {
     const measurement = await cached('measurement:' + report.measurements.length, () => measureProject(root, snapshot.nodes, report.tests.some((test) => test.approved), signal, image));
@@ -225,11 +305,12 @@ export async function runPython(report: PythonReport, root: string, signal: Abor
       const decision = candidates[0];
       const test = report.tests.find((test) => test.id === testId);
       const behavior = test ? behaviorFor(test) : report.analysis!.behaviors.find((behavior) => behavior.existingTests.includes(testId));
-      const original = report.rules.find((rule) => rule.id === behavior?.ruleId);
       const logs = [measurement.log, ...failed.filter((outcome) => !test || outcome.file === testFile(test.id, report.runtime)).map((outcome) => outcome.message)];
       const executionSupported = decision && decision.executionQuote.trim() && logs.some((log) => log.includes(decision.executionQuote));
-      const codeAndTest = decision?.evidence.some((item) => behavior?.files.includes(item.file) && !snapshot.nodes.some((node) => node.startsWith(item.file + '::'))) && decision.evidence.some((item) => item.file === (test ? testFile(test.id, report.runtime) : testId.split('::')[0]));
-      const grounded = decision && candidates.length === 1 && (decision.category !== 'generated_test_error' || !!test && ['execution', 'remeasurement'].includes(phase)) && validEvidence(decision.evidence, evidenceSnapshot) && (decision.category === 'uncertain' || executionSupported && (decision.category === 'environment_failure' || decision.quote.trim() && original?.text.includes(decision.quote) && (!['generated_test_error', 'potential_implementation_defect'].includes(decision.category) || codeAndTest)));
+      // The violated contract and the failing code may belong to another requirement than the test's own
+      // behavior (specifications cross-reference each other); both must still be quoted verbatim.
+      const codeAndTest = decision?.evidence.some((item) => sourceFile(item.file) && snapshot.files[item.file] !== undefined && !snapshot.nodes.some((node) => node.startsWith(item.file + '::'))) && decision.evidence.some((item) => item.file === (test ? testFile(test.id, report.runtime) : testId.split('::')[0]));
+      const grounded = decision && candidates.length === 1 && (decision.category !== 'generated_test_error' || !!test && ['execution', 'remeasurement'].includes(phase)) && validEvidence(decision.evidence, evidenceSnapshot) && (decision.category === 'uncertain' || executionSupported && (decision.category === 'environment_failure' || decision.quote.trim() && report.rules.some((rule) => rule.text.includes(decision.quote)) && (!['generated_test_error', 'potential_implementation_defect'].includes(decision.category) || codeAndTest)));
       return grounded ? decision : { testId, category: 'uncertain' as const, reason: 'Diagnosis lacks unique, grounded requirement/code/test/execution evidence; refinement is blocked.', quote: '', executionQuote: '', evidence: [] };
     });
     report.proposedDiagnoses = [...(report.proposedDiagnoses || []), ...result.decisions.map((decision) => ({ ...decision, phase }))];

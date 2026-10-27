@@ -191,7 +191,8 @@ def measure(job):
         return {'outcomes': [], 'exitCode': 5, 'log': 'No selected tests.', 'timedOut': False, 'integrity': True}
     execution_fingerprint = fingerprint()
     original_files = {str(path.relative_to(PROJECT)) for path in project_files()}
-    code, log, timed = command([sys.executable, '-m', 'pytest', '-q', *pytest_args(), '-o', 'junit_family=legacy', '--junitxml=/tmp/results.xml', '--', *paths], MEASURE_SECONDS)
+    # One unloadable test module is recorded as its own error instead of stopping every other test.
+    code, log, timed = command([sys.executable, '-m', 'pytest', '-q', *pytest_args(), '--continue-on-collection-errors', '-o', 'junit_family=legacy', '--junitxml=/tmp/results.xml', '--', *paths], MEASURE_SECONDS)
     outcomes = []
     # Failed browser tests leave a screenshot keyed by their pytest node ID.
     screenshots = {}

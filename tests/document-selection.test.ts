@@ -44,3 +44,9 @@ test('plain text is not limited by line count or length and is never truncated',
   assert.equal(textRequirements('x'.repeat(200000))[0].text.length, 200000);
   assert.throws(() => textRequirements(' \n '), /Enter requirements/);
 });
+test('Markdown heading-only paragraphs are section titles, not requirements', () => {
+  const rules = textRequirements('# Shop requirements\n\n## 1. Login\n\n**FR1 — Role Selection**  \nCustomer Login is selected by default.\n\n### Notes\n\nPrices use two decimals.');
+  assert.deepEqual(rules.map(rule => rule.text), ['**FR1 — Role Selection**  \nCustomer Login is selected by default.', 'Prices use two decimals.']);
+  assert.deepEqual(rules.map(rule => rule.id), ['R1', 'R2']);
+  assert.equal(textRequirements('# Only a heading')[0].text, '# Only a heading');
+});
