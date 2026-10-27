@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { cp, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { dataDir, database, session } from "@/lib/auth";
@@ -49,7 +49,6 @@ export async function POST(request: Request) {
   if (!account) return Response.json({ error: 'Sign in required.' }, { status: 401 });
   if (!sameOrigin(request)) return Response.json({ error: 'Cross-origin execution is not allowed.' }, { status: 403 });
   if (jobs.active.has(account.user.id) || jobs.active.size >= 2) return Response.json({ error: 'A verification is already running. Try again after it finishes.' }, { status: 409 });
-  if (!process.env.OPENAI_API_KEY) return Response.json({ error: 'Configure OPENAI_API_KEY in the root .env.local and restart.' }, { status: 503 });
   if (Number(request.headers.get('content-length')) > 11_000_000) return Response.json({ error: 'Upload exceeds 11 MB.' }, { status: 413 });
   const id = randomUUID(), root = join(dataDir, 'runs', id), controller = new AbortController();
   jobs.active.set(account.user.id, { id, controller });
@@ -57,6 +56,8 @@ export async function POST(request: Request) {
   let report: PythonReport | undefined;
   try {
     const form = await request.formData();
+    const replay = form.get('mode') === 'saved_tests';
+    if (!replay && !process.env.OPENAI_API_KEY) throw new Error('Configure OPENAI_API_KEY in the root .env.local and restart.');
     const title = String(form.get('title') || 'Project verification').trim();
     const model = String(form.get('model') || process.env.REQTEST_LLM_MODEL || 'gpt-6-luna');
     const parentRunId = String(form.get('parentRunId') || '');
@@ -98,6 +99,7 @@ export async function POST(request: Request) {
     if (rules.length > 24) throw new Error('This run supports up to 24 requirement items. Split the specification into smaller runs; no text is truncated automatically.');
     if (!title || title.length > 120 || model.length > 100) throw new Error('Use a title up to 120 characters and a valid model.');
     const clarification = String(form.get('clarification') || '').trim();
+    if (replay && (!parent?.analysis || !parent.tests.some(test => test.approved) || clarification || form.get('reuseRequirements') !== 'true')) throw new Error('Saved-test execution requires an owned finished run with approved tests and unchanged requirements.');
     if (clarification.length > 4000) throw new Error('Clarification exceeds 4000 characters.');
     if (clarification && !parent) throw new Error('Clarifications must reference a previous run.');
     // Clarifications are explicitly new user requirements, never retroactive edits to prior evidence.
@@ -120,7 +122,7 @@ export async function POST(request: Request) {
       if (setup.setup.status === 'needs_setup' && form.get('allowEnvironmentFailure') !== 'true') throw new Error('Project dependencies do not match the sandbox. Check project setup first, prepare the image, or explicitly run to diagnose environment failures.');
       source = setup.source; fingerprint = setup.fingerprint; projectSetup = setup;
     }
-    report = { runtime: parent?.runtime || projectSetup?.runtime || 'python', execution: {queueId: id, image: projectSetup?.sandboxImage || await sandboxImage(), attempt: 0, recovered: false}, id, title, model, createdAt: new Date().toISOString(), source, fingerprint, workerId: jobs.workerId, parentRunId: parent?.id, clarification: clarification || undefined, projectSetup, requirementDocument, requirementInput, status: 'running', stage: 'Queued — waiting for verification worker', rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: [
+    report = { runtime: parent?.runtime || projectSetup?.runtime || 'python', execution: {queueId: id, image: (replay ? parent?.execution?.image || parent?.configuration?.sandboxImage : undefined) || projectSetup?.sandboxImage || await sandboxImage(), attempt: 0, recovered: false}, id, title, model, createdAt: new Date().toISOString(), source, fingerprint, workerId: jobs.workerId, parentRunId: parent?.id, clarification: clarification || undefined, projectSetup, requirementDocument, requirementInput, status: 'running', stage: 'Queued — waiting for verification worker', rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: [
       'Verified describes mapped, reviewed cases and recorded execution; exhaustive correctness is not established.',
       'Model analysis, mappings, diagnoses and equivalence decisions require independent evaluation.',
       'Python/pytest/mutmut or Node.js/node:test/Stryker run in disposable containers. Selected test services use a private internal network; public network access is unavailable during tests.',
@@ -130,6 +132,13 @@ export async function POST(request: Request) {
       'Focused Python or Node.js snapshots only. Host request headers, access tokens and environment secrets are not mounted into the sandbox.',
       ...(requirementDocument ? ['Uploaded text is editable. Only exact original excerpts retain document citations; review extraction warnings. Analysis does not establish complete specification verification.'] : []),
     ] };
+    if (replay && parent) {
+      report.analysis = structuredClone(parent.analysis);
+      report.tests = structuredClone(parent.tests);
+      report.replay = { suiteHash: createHash('sha256').update(JSON.stringify(report.tests)).digest('hex'), states: structuredClone(parent.states) };
+      report.model = parent.model;
+      report.limitations.push('Saved-test execution makes no model calls. Original analysis and test reviews are reused; diagnoses and mutation measurements are not refreshed. Results may change for time-dependent or nondeterministic target code.');
+    }
     signal.throwIfAborted();
     await enqueueRun(report, account.user.id);
     jobs.active.delete(account.user.id);

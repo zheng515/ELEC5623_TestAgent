@@ -1,0 +1,436 @@
+{
+  "scope": "Observed workflow records on identical case inputs. Counts do not establish semantic correctness or superiority over external products.",
+  "baseline": "B0 is this repository's direct-generation configuration, not a measurement of Codex, Claude, CoverUp or TestGen-LLM.",
+  "rows": [
+    {
+      "caseId": "shipping",
+      "variant": "B0",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B0-1/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B0",
+      "repeat": 2,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B0-2/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B0",
+      "repeat": 3,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B0-3/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B1-1/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B1",
+      "repeat": 2,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B1-2/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B1",
+      "repeat": 3,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B1-3/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B2-1/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B2",
+      "repeat": 2,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B2-2/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B2",
+      "repeat": 3,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B2-3/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B3-1/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B3",
+      "repeat": 2,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B3-2/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B3",
+      "repeat": 3,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B3-3/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B0",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B0-1/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B0",
+      "repeat": 2,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B0-2/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B0",
+      "repeat": 3,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B0-3/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B1-1/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B1",
+      "repeat": 2,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B1-2/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B1",
+      "repeat": 3,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B1-3/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 5,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B2-1/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B2",
+      "repeat": 2,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B2-2/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B2",
+      "repeat": 3,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B2-3/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 5,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B3-1/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B3",
+      "repeat": 2,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 7,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B3-2/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B3",
+      "repeat": 3,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 5,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B3-3/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B0",
+      "repeat": 1,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B0-1/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B0",
+      "repeat": 2,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B0-2/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B0",
+      "repeat": 3,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B0-3/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B1-1/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B1",
+      "repeat": 2,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B1-2/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B1",
+      "repeat": 3,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B1-3/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 10,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B2-1/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B2",
+      "repeat": 2,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 8,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B2-2/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B2",
+      "repeat": 3,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 5,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B2-3/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 8,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B3-1/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B3",
+      "repeat": 2,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 6,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B3-2/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B3",
+      "repeat": 3,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 6,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B3-3/report.json"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "variant": "B0",
+      "completed": 9,
+      "planned": 9,
+      "seededFaultDetection": 1,
+      "medianSeconds": 8.657,
+      "totalTokens": 26957
+    },
+    {
+      "variant": "B1",
+      "completed": 9,
+      "planned": 9,
+      "seededFaultDetection": 1,
+      "medianSeconds": 8.525,
+      "totalTokens": 28430
+    },
+    {
+      "variant": "B2",
+      "completed": 9,
+      "planned": 9,
+      "seededFaultDetection": 1,
+      "medianSeconds": 31.745,
+      "totalTokens": 150419
+    },
+    {
+      "variant": "B3",
+      "completed": 9,
+      "planned": 9,
+      "seededFaultDetection": 1,
+      "medianSeconds": 32.788,
+      "totalTokens": 152931
+    }
+  ]
+}

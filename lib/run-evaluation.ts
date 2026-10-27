@@ -4,6 +4,17 @@ import { testFile } from './runtime';
 
 export const requirementStates = ['Verified', 'Partially Verified', 'Unverified', 'Uncertain', 'Pending'] as const;
 export type RequirementState = typeof requirementStates[number];
+export function agentStopReason(report: PythonReport) {
+  if (report.status === 'running') return 'In progress: ' + report.stage;
+  if (report.status !== 'completed') return report.error || report.testAttempts?.at(-1)?.error || 'The run ended before completion. Inspect the saved execution records.';
+  return report.stopReason || 'No stopping decision was recorded for this older run. Inspect the saved tests and execution evidence.';
+}
+export function verificationGate(report: PythonReport, requireVerified = true) {
+  const measured = report.measurements.at(-1), requirements = runEvaluation(report).requirements;
+  return report.status === 'completed' && measured?.integrity === true && !measured.timedOut && measured.exitCode === 0 &&
+    measured.outcomes.length > 0 && measured.outcomes.every(outcome => outcome.status === 'passed') && requirements.length > 0 &&
+    requirements.every(rule => requireVerified ? rule.status === 'Verified' : !['Uncertain', 'Unverified', 'Pending'].includes(rule.status));
+}
 export function outcomeCounts(measurement?: Measurement) {
   return (['passed', 'failed', 'error', 'skipped'] as const).map(status => ({
     name: status === 'error' ? 'Errors' : status[0].toUpperCase() + status.slice(1),
@@ -16,6 +27,7 @@ export function verificationSummary(report: PythonReport) {
   const [passed, failed, errors, skipped] = evaluation.outcomes.map(item => item.value);
   const unmapped = evaluation.requirements.filter(rule => !rule.behaviors.length || rule.behaviors.every(behavior =>
     behavior.issue === 'not_testable' && behavior.gaps.includes('Behavior extraction incomplete.')));
+  const unresolved = evaluation.requirements.filter(rule => rule.status !== 'Verified');
   const phase = report.measurements.length > 1 ? 'remeasurement' : 'execution';
   const initialFailure = report.collection && (report.collection.timedOut || ![0, 5].includes(report.collection.exitCode)) ||
     report.baseline && (report.baseline.timedOut || report.baseline.integrity !== true || ![0, 5].includes(report.baseline.exitCode) || report.baseline.outcomes.some(outcome => ['failed', 'error'].includes(outcome.status)));
@@ -31,7 +43,9 @@ export function verificationSummary(report: PythonReport) {
   else if (failed || errors) { title = `${failed + errors} ${failed + errors === 1 ? 'check needs' : 'checks need'} investigation`; next = 'Compare failing assertions and Agent diagnoses with the original requirements. A failure is not automatically a software defect.'; }
   else if (initialFailure) { title = 'Existing-test checks need attention'; next = 'Inspect collection and baseline diagnoses and logs. Later passing checks do not resolve earlier setup or existing-test failures.'; }
   else { title = `${passed} ${passed === 1 ? 'test' : 'tests'} passed${skipped ? `; ${skipped} skipped` : ''}`; next = 'Review unresolved behavior states and blocked tests. Passing cases do not establish complete specification coverage.'; }
-  return { ...evaluation, passed, failedCount: failed, errors, skipped, unmapped, preserved, title, next };
+  if (report.status === 'completed' && evaluation.blocked) next = `${evaluation.blocked} blocked test proposals need attention. Inspect their review reasons and uncovered requirements before regenerating. ` + next;
+  if (report.replay) next += ' Saved-test execution does not regenerate analysis or diagnoses.';
+  return { ...evaluation, passed, failedCount: failed, errors, skipped, unmapped, unresolved, preserved, title, next };
 }
 
 // Summarize saved assessments conservatively; this does not independently grade the agent.

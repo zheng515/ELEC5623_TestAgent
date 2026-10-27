@@ -1,0 +1,26 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [
+    {
+      "id": "loyalty-policy",
+      "ruleId": "R2",
+      "description": "Loyalty criteria and discount amount are unspecified."
+    }
+  ],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "rule-1",
+      "ruleId": "R1",
+      "description": "For nonnegative built-in int count, discount.subtotal(count) returns an integer count multiplied by 200 cents. Negative built-in int counts raise ValueError; non-built-in-int counts, including bool, raise TypeError.",
+      "initialGap": true
+    },
+    {
+      "id": "rule-2",
+      "ruleId": "R2",
+      "description": "discount.discount(customer) should offer an appropriate discount to loyal customers.",
+      "initialGap": true
+    }
+  ]
+}

@@ -1,5 +1,44 @@
 # Implementation status
 
+## Local version-2 conflict resolution: 2026-10-27
+
+Integrated remote `0d03a50` with the main-based local implementation. Production
+startup checks and shared test fixtures are retained. An existing proposal needs
+a unique, explicitly negative review with valid original quotes to qualify for
+unexecuted correction. A supported behavior with no proposal can receive a new
+reviewed check. Approved tests and valid failing assertions remain unchanged.
+Repaired passing suites retain the main branch mutation measurement; missing
+mutation judgments do not grant verification credit. Proposal history, saved-suite
+execution and decision displays remain connected. Older improvementProposal-only
+reports retain a technical-details fallback without duplicating newer history.
+
+Post-integration checks: 109 tests passed, two optional checks skipped, zero failed;
+production build, typecheck, lint and English checks passed. The policy marker is
+`contract-witness-v6-review-recovery`. Real-model acceptance was not repeated during
+conflict resolution; the v5 records below remain historical evidence for their
+archived implementation.
+
+## Integrated working-tree update: 2026-10-27
+
+The local integration preserves the latest main fixes and restored SRS traceability,
+shared website/CI parsing, saved-suite execution and proposal history. Evaluation
+now displays each generation/improvement round and the recorded stopping reason.
+Older reports without this metadata are identified without invented history.
+Quick start explains supported projects/documents and result interpretation.
+Expanded evidence passed page-width checks at 320, 390, 768 and 1440 px.
+
+Current regression: 102 passed, two optional skipped, zero failed. Build, typecheck,
+lint and English checks passed. Fresh model acceptance on the correct Shipping
+copy passed strict CI with nine outcomes and four Verified behaviors. A separate
+known-defect copy produced four passes and one retained boundary failure; strict
+CI correctly rejected it. Export replay reproduced both outcomes, and saved-suite
+execution repeated the nine passes without model calls. The source snapshot and
+actual reports are under `experiments/acceptance/2026-10-27`.
+
+This is one synthetic project in two conditions. Independent semantic annotation,
+representative reliability, independent first-use testing and the formal experiment
+remain outstanding. The historical sections below describe earlier evidence.
+
 Audit date: 2026-10-26. Scope: the current Version 2 working tree, including
 uncommitted implementation files. This is a capability audit, not an independent
 measurement of model accuracy or a production-readiness certification.

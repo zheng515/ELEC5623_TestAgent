@@ -1,0 +1,39 @@
+{
+  "valid": true,
+  "sourceFingerprint": "2ef7d4112be17fa4eb602bec7501a241b51a46b2d68eb7d446925cb9da1369b1",
+  "faultHash": "ecf064530fe37bc7f3d591195ba457d93eeb06e46a5b440666522592effdedd7",
+  "oracleHash": "0110da23c3b2a5fea789066c6859521a738b9135d460bf029674571e0d340112",
+  "original": {
+    "outcomes": [
+      {
+        "node": "reqtest_generated/test_reqtest_T1.py::test_contract",
+        "file": "reqtest_generated/test_reqtest_T1.py",
+        "name": "test_contract",
+        "status": "failed",
+        "message": "def test_contract():\n        for units in [0,1,7]:\n            value = charge(units)\n>           assert isinstance(value, int) and not isinstance(value, bool)\nE           assert (True and not True)\nE            +  where True = isinstance(False, int)\nE            +  and   True = isinstance(False, bool)\n\nreqtest_generated/test_reqtest_T1.py:6: AssertionError"
+      }
+    ],
+    "exitCode": 1,
+    "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n________________________________ test_contract _________________________________\n\n    def test_contract():\n        for units in [0,1,7]:\n            value = charge(units)\n>           assert isinstance(value, int) and not isinstance(value, bool)\nE           assert (True and not True)\nE            +  where True = isinstance(False, int)\nE            +  and   True = isinstance(False, bool)\n\nreqtest_generated/test_reqtest_T1.py:6: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_contract - assert (True and...\n1 failed in 0.01s\n",
+    "timedOut": false,
+    "integrity": true,
+    "runtimeArtifacts": []
+  },
+  "corrected": {
+    "outcomes": [
+      {
+        "node": "reqtest_generated/test_reqtest_T1.py::test_contract",
+        "file": "reqtest_generated/test_reqtest_T1.py",
+        "name": "test_contract",
+        "status": "passed",
+        "message": ""
+      }
+    ],
+    "exitCode": 0,
+    "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+    "timedOut": false,
+    "integrity": true,
+    "runtimeArtifacts": []
+  },
+  "scope": "Fixed executable contract witnesses only; not independent semantic review or complete specification coverage."
+}

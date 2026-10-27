@@ -1,0 +1,406 @@
+{
+  "id": "163abf7e-387e-4f06-a819-15d45cbc0dd3",
+  "variant": "B3",
+  "title": "credits",
+  "createdAt": "2026-10-26T11:55:08.128Z",
+  "model": "gpt-6-luna",
+  "source": "examples/standalone-benchmark/credits/project",
+  "fingerprint": "2ef7d4112be17fa4eb602bec7501a241b51a46b2d68eb7d446925cb9da1369b1",
+  "requirementInput": {
+    "mode": "numbered",
+    "text": "# Credits SRS\n\nAmounts use integer cents where specified.\n\n## Functional requirements\n\nR1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0.\n\nR2: Negative built-in int units raise ValueError; non-built-in-int units, including bool, raise TypeError.\n\n## Environment\n\nPython 3.11, no network or external services.",
+    "context": "# Credits SRS\n\nAmounts use integer cents where specified.\n\n\n\n## Functional requirements\n\n\n\n## Environment\n\nPython 3.11, no network or external services."
+  },
+  "status": "completed",
+  "stage": "Complete",
+  "rules": [
+    {
+      "id": "R1",
+      "text": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0.",
+      "originalId": "R1"
+    },
+    {
+      "id": "R2",
+      "text": "R2: Negative built-in int units raise ValueError; non-built-in-int units, including bool, raise TypeError.",
+      "originalId": "R2"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_positive_units_return_tripled_integer",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import credits\n\n\ndef test_positive_units_return_tripled_integer():\n    result = credits.charge(2)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 6",
+      "quote": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0.",
+      "purpose": "Check that a positive built-in int input returns the required multiplied value and an integer that is not bool.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T1",
+        "supported": true,
+        "reason": "The test checks a positive built-in int input, the multiplied value, and both required integer-type conditions.",
+        "quote": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0."
+      },
+      "review": "The test checks a positive built-in int input, the multiplied value, and both required integer-type conditions."
+    },
+    {
+      "id": "T2",
+      "behaviorId": "B2",
+      "functionName": "test_zero_units_return_integer_zero",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import credits\n\n\ndef test_zero_units_return_integer_zero():\n    result = credits.charge(0)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0",
+      "quote": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0.",
+      "purpose": "Check the specified zero-input result, including its integer semantic type and that it is not bool.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T2",
+        "supported": true,
+        "reason": "The test checks the explicitly specified zero-input result and verifies it is an integer but not bool.",
+        "quote": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0."
+      },
+      "review": "The test checks the explicitly specified zero-input result and verifies it is an integer but not bool."
+    },
+    {
+      "id": "T3",
+      "behaviorId": "B3",
+      "functionName": "test_negative_units_raise_value_error",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import pytest\nimport credits\n\n\ndef test_negative_units_raise_value_error():\n    with pytest.raises(ValueError):\n        credits.charge(-1)",
+      "quote": "R2: Negative built-in int units raise ValueError; non-built-in-int units, including bool, raise TypeError.",
+      "purpose": "Check that a negative built-in int input raises ValueError.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T3",
+        "supported": true,
+        "reason": "The test checks that a negative built-in int input raises the required ValueError.",
+        "quote": "R2: Negative built-in int units raise ValueError; non-built-in-int units, including bool, raise TypeError."
+      },
+      "review": "The test checks that a negative built-in int input raises the required ValueError."
+    },
+    {
+      "id": "T4",
+      "behaviorId": "B4",
+      "functionName": "test_non_builtin_int_inputs_raise_type_error",
+      "gapIndexes": [
+        0,
+        1
+      ],
+      "code": "import pytest\nimport credits\n\n\ndef test_non_builtin_int_inputs_raise_type_error():\n    with pytest.raises(TypeError):\n        credits.charge(True)\n    with pytest.raises(TypeError):\n        credits.charge(1.5)",
+      "quote": "R2: Negative built-in int units raise ValueError; non-built-in-int units, including bool, raise TypeError.",
+      "purpose": "Check that bool and a non-bool, non-built-in-int input each raise TypeError.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T4",
+        "supported": true,
+        "reason": "The test checks both a bool and a non-bool, non-built-in-int input, and requires TypeError for each.",
+        "quote": "R2: Negative built-in int units raise ValueError; non-built-in-int units, including bool, raise TypeError."
+      },
+      "review": "The test checks both a bool and a non-bool, non-built-in-int input, and requires TypeError for each."
+    }
+  ],
+  "measurements": [
+    {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_positive_units_return_tripled_integer",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_positive_units_return_tripled_integer",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T2.py::test_zero_units_return_integer_zero",
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "name": "test_zero_units_return_integer_zero",
+          "status": "failed",
+          "message": "def test_zero_units_return_integer_zero():\n        result = credits.charge(0)\n        assert isinstance(result, int)\n>       assert not isinstance(result, bool)\nE       assert not True\nE        +  where True = isinstance(False, bool)\n\nreqtest_generated/test_reqtest_T2.py:7: AssertionError"
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T3.py::test_negative_units_raise_value_error",
+          "file": "reqtest_generated/test_reqtest_T3.py",
+          "name": "test_negative_units_raise_value_error",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T4.py::test_non_builtin_int_inputs_raise_type_error",
+          "file": "reqtest_generated/test_reqtest_T4.py",
+          "name": "test_non_builtin_int_inputs_raise_type_error",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 1,
+      "log": ".F..                                                                     [100%]\n=================================== FAILURES ===================================\n_____________________ test_zero_units_return_integer_zero ______________________\n\n    def test_zero_units_return_integer_zero():\n        result = credits.charge(0)\n        assert isinstance(result, int)\n>       assert not isinstance(result, bool)\nE       assert not True\nE        +  where True = isinstance(False, bool)\n\nreqtest_generated/test_reqtest_T2.py:7: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T2.py::test_zero_units_return_integer_zero\n1 failed, 3 passed in 0.02s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  ],
+  "mutations": [],
+  "diagnoses": [
+    {
+      "testId": "T2",
+      "category": "potential_implementation_defect",
+      "reason": "The failing assertion checks a contractually required condition: the zero-input result must not be bool. The trace shows `credits.charge(0)` returns `False`, so the implementation violates R1.",
+      "quote": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0.",
+      "executionQuote": "E       assert not True\nE        +  where True = isinstance(False, bool)",
+      "evidence": [
+        {
+          "file": "credits.py",
+          "quote": "    return False if units == 0 else units * 3"
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "quote": "    assert not isinstance(result, bool)"
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "relevance": [],
+  "improvements": [],
+  "states": [
+    {
+      "id": "B1",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T1.py::test_positive_units_return_tripled_integer"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_zero_units_return_integer_zero"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_negative_units_raise_value_error"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_non_builtin_int_inputs_raise_type_error"
+      ]
+    }
+  ],
+  "limitations": [
+    "Dataset purpose: pilot. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis."
+  ],
+  "configuration": {
+    "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+    "improvementLimit": 1,
+    "mutationSeconds": 75,
+    "policyVersion": "contract-witness-v3",
+    "mode": "regenerate"
+  },
+  "environment": {
+    "python": "3.11.17",
+    "pytest": "8.4.2",
+    "mutmut": "2.5.1"
+  },
+  "collection": {
+    "exitCode": 5,
+    "log": "\nno tests collected in 0.00s\n",
+    "timedOut": false
+  },
+  "retrieval": {
+    "query": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0. R2: Negative built-in int units raise ValueError; non-built-in-int units, including bool, raise TypeError.",
+    "documents": []
+  },
+  "analysis": {
+    "behaviors": [
+      {
+        "id": "B1",
+        "ruleId": "R1",
+        "quote": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0.",
+        "text": "For positive built-in int units, credits.charge(units) returns an integer that is not bool and equals units multiplied by 3.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "The requirement clearly specifies the return value and semantic return type for nonnegative built-in int inputs.",
+        "files": [
+          "credits.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "credits.py",
+            "quote": "    return False if units == 0 else units * 3"
+          }
+        ],
+        "gaps": [
+          "Check a positive built-in int input for the multiplied value and separately assert isinstance(result, int) and not isinstance(result, bool)."
+        ]
+      },
+      {
+        "id": "B2",
+        "ruleId": "R1",
+        "quote": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0.",
+        "text": "For zero built-in int units, credits.charge(units) returns integer 0, not bool.",
+        "category": "boundary",
+        "issue": "none",
+        "reason": "Zero is explicitly specified as a special case with an integer zero result.",
+        "files": [
+          "credits.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "credits.py",
+            "quote": "    return False if units == 0 else units * 3"
+          }
+        ],
+        "gaps": [
+          "Check input 0 for value 0 and separately assert isinstance(result, int) and not isinstance(result, bool)."
+        ]
+      },
+      {
+        "id": "B3",
+        "ruleId": "R2",
+        "quote": "R2: Negative built-in int units raise ValueError; non-built-in-int units, including bool, raise TypeError.",
+        "text": "Negative built-in int units raise ValueError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The required exception for negative built-in int inputs is explicit.",
+        "files": [
+          "credits.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "credits.py",
+            "quote": "    if units < 0:"
+          },
+          {
+            "file": "credits.py",
+            "quote": "        raise ValueError('units')"
+          }
+        ],
+        "gaps": [
+          "Check a negative built-in int input raises ValueError."
+        ]
+      },
+      {
+        "id": "B4",
+        "ruleId": "R2",
+        "quote": "R2: Negative built-in int units raise ValueError; non-built-in-int units, including bool, raise TypeError.",
+        "text": "Non-built-in-int inputs, including bool, raise TypeError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The requirement explicitly includes bool among inputs that must raise TypeError.",
+        "files": [
+          "credits.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "credits.py",
+            "quote": "    if type(units) is not int:"
+          },
+          {
+            "file": "credits.py",
+            "quote": "        raise TypeError('units')"
+          }
+        ],
+        "gaps": [
+          "Check a bool input raises TypeError.",
+          "Check a non-bool, non-built-in-int input raises TypeError."
+        ]
+      }
+    ],
+    "inconsistencies": [
+      {
+        "ruleId": "R1",
+        "behaviorIds": [
+          "B2"
+        ],
+        "quote": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0.",
+        "description": "The implementation returns False for zero, conflicting with the required integer 0 that is not bool.",
+        "evidence": [
+          {
+            "file": "credits.py",
+            "quote": "    return False if units == 0 else units * 3"
+          }
+        ]
+      }
+    ]
+  },
+  "baseline": {
+    "outcomes": [],
+    "exitCode": 5,
+    "log": "No selected tests.",
+    "timedOut": false,
+    "integrity": true
+  },
+  "initialStates": [
+    {
+      "id": "B1",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T1.py::test_positive_units_return_tripled_integer"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_zero_units_return_integer_zero"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_negative_units_raise_value_error"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_non_builtin_int_inputs_raise_type_error"
+      ]
+    }
+  ],
+  "proposedDiagnoses": [
+    {
+      "testId": "T2",
+      "category": "potential_implementation_defect",
+      "reason": "The failing assertion checks a contractually required condition: the zero-input result must not be bool. The trace shows `credits.charge(0)` returns `False`, so the implementation violates R1.",
+      "quote": "R1: For nonnegative built-in int units, credits.charge(units) returns an integer, not bool, equal to units multiplied by 3. Zero units returns integer 0.",
+      "executionQuote": "E       assert not True\nE        +  where True = isinstance(False, bool)",
+      "evidence": [
+        {
+          "file": "credits.py",
+          "quote": "    return False if units == 0 else units * 3"
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "quote": "    assert not isinstance(result, bool)"
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "elapsedMs": 28157
+}

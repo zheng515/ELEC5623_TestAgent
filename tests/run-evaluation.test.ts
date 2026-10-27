@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runEvaluation, verificationSummary } from '../lib/run-evaluation';
+import { agentStopReason, runEvaluation, verificationSummary } from '../lib/run-evaluation';
 import type { PythonReport } from '../lib/python-types';
 
 function fixture(): PythonReport {
@@ -13,6 +13,22 @@ function fixture(): PythonReport {
     mutations: [], diagnoses: [], relevance: [], improvements: [], limitations: [],
   };
 }
+test('stopping explanations use recorded decisions without inventing history or verification credit', () => {
+  const report = fixture(), originalStates = structuredClone(report.states);
+  assert.match(agentStopReason(report), /No stopping decision was recorded/);
+  report.stopReason = 'The improvement was not admitted. Earlier tests remain active.';
+  assert.equal(agentStopReason(report), report.stopReason);
+  report.status = 'running'; report.stage = 'Review tests';
+  assert.equal(agentStopReason(report), 'In progress: Review tests');
+  report.status = 'failed'; report.error = 'Execution timed out.';
+  assert.equal(agentStopReason(report), report.error, 'An execution failure takes precedence over a saved completion reason.');
+  report.error = undefined;
+  report.testAttempts = [{ phase: 'generation', reason: '', status: 'failed', tests: [], error: 'Review unavailable.' }];
+  assert.equal(agentStopReason(report), 'Review unavailable.');
+  report.status = 'cancelled'; report.error = 'Stopped by owner.';
+  assert.equal(agentStopReason(report), report.error);
+  assert.deepEqual(report.states, originalStates, 'Explanations must never change verification states.');
+});
 test('requirements aggregate behaviors without counting behaviors as requirements', () => {
   const result = runEvaluation(fixture());
   assert.equal(result.requirements.length, 3);
@@ -35,6 +51,16 @@ test('workflow completion, passing checks and verification remain separate in us
   report.measurements[0].outcomes.forEach(outcome => { outcome.status = 'passed'; });
   report.collection = { exitCode: 2, log: 'Import failed.' };
   assert.equal(verificationSummary(report).title, 'Existing-test checks need attention');
+});
+
+test('passing checks leave blocked proposals and unresolved requirements visible', () => {
+  const report = fixture(); report.measurements[0].outcomes.forEach(outcome => { outcome.status = 'passed'; });
+  report.tests = [{ id: 'T1', behaviorId: 'B1', code: '', functionName: 'test_missing', gapIndexes: [], quote: '', purpose: '', approved: false }];
+  const result = verificationSummary(report);
+  assert.equal(result.blocked, 1); assert.match(result.next, /1 blocked test/);
+  assert.ok(result.unresolved.length > 0);
+  report.replay = { suiteHash: 'saved', states: report.states };
+  assert.match(verificationSummary(report).next, /does not regenerate/);
 });
 
 test('retained-failure summaries exclude changed assertions, stale phases and untrusted execution', () => {

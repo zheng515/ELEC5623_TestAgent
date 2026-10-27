@@ -1,0 +1,479 @@
+{
+  "id": "57dd3458-f820-4b2b-a6d1-a119481baec4",
+  "variant": "B3",
+  "title": "membership",
+  "createdAt": "2026-10-26T11:53:32.403Z",
+  "model": "gpt-6-luna",
+  "source": "examples/standalone-benchmark/membership/project",
+  "fingerprint": "3fb508a5fef4d22b622fe68a160e5ea417f34c021cfac11cb92d49e2d5fcfd8e",
+  "requirementInput": {
+    "mode": "numbered",
+    "text": "# Membership SRS\n\nAmounts use integer cents where specified.\n\n## Functional requirements\n\nR1: For built-in int years from 0 through 4, membership.annual_fee(years) returns integer 12000.\n\nR2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.\n\nR3: Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError.\n\n## Environment\n\nPython 3.11, no network or external services.",
+    "context": "# Membership SRS\n\nAmounts use integer cents where specified.\n\n\n\n## Functional requirements\n\n\n\n## Environment\n\nPython 3.11, no network or external services."
+  },
+  "status": "completed",
+  "stage": "Complete",
+  "rules": [
+    {
+      "id": "R1",
+      "text": "R1: For built-in int years from 0 through 4, membership.annual_fee(years) returns integer 12000.",
+      "originalId": "R1"
+    },
+    {
+      "id": "R2",
+      "text": "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.",
+      "originalId": "R2"
+    },
+    {
+      "id": "R3",
+      "text": "R3: Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError.",
+      "originalId": "R3"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_annual_fee_returns_integer_12000_for_years_0_through_4_witnesses",
+      "gapIndexes": [
+        0,
+        1,
+        2
+      ],
+      "code": "import membership\n\n\ndef test_annual_fee_returns_integer_12000_for_years_0_through_4_witnesses():\n    for years in (0, 4, 2):\n        result = membership.annual_fee(years)\n        assert isinstance(result, int)\n        assert not isinstance(result, bool)\n        assert result == 12000\n",
+      "quote": "R1: For built-in int years from 0 through 4, membership.annual_fee(years) returns integer 12000.",
+      "purpose": "Check the specified integer result at the lower endpoint, upper endpoint, and an interior witness in the range.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T1",
+        "supported": true,
+        "reason": "The test checks the required integer value for built-in integer witnesses at both endpoints and within the specified 0–4 range. It checks both semantic integer type and value, without imposing an unsupported concrete return class.",
+        "quote": "R1: For built-in int years from 0 through 4, membership.annual_fee(years) returns integer 12000."
+      },
+      "review": "The test checks the required integer value for built-in integer witnesses at both endpoints and within the specified 0–4 range. It checks both semantic integer type and value, without imposing an unsupported concrete return class."
+    },
+    {
+      "id": "T2",
+      "behaviorId": "B2",
+      "functionName": "test_annual_fee_returns_integer_zero_at_years_5",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import membership\n\n\ndef test_annual_fee_returns_integer_zero_at_years_5():\n    result = membership.annual_fee(5)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+      "quote": "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.",
+      "purpose": "Check the explicitly specified threshold case.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T2",
+        "supported": true,
+        "reason": "The test uses the explicitly specified threshold input, 5, and checks that the result is an integer but not bool and equals 0.",
+        "quote": "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5."
+      },
+      "review": "The test uses the explicitly specified threshold input, 5, and checks that the result is an integer but not bool and equals 0."
+    },
+    {
+      "id": "T3",
+      "behaviorId": "B3",
+      "functionName": "test_annual_fee_returns_integer_zero_above_years_5",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import membership\n\n\ndef test_annual_fee_returns_integer_zero_above_years_5():\n    result = membership.annual_fee(6)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+      "quote": "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.",
+      "purpose": "Check the specified zero result with a built-in integer above the threshold.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T3",
+        "supported": true,
+        "reason": "The test uses a built-in integer above 5 and checks the required integer result of 0, including the semantic type check.",
+        "quote": "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5."
+      },
+      "review": "The test uses a built-in integer above 5 and checks the required integer result of 0, including the semantic type check."
+    },
+    {
+      "id": "T4",
+      "behaviorId": "B4",
+      "functionName": "test_annual_fee_rejects_negative_builtin_int",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import pytest\nimport membership\n\n\ndef test_annual_fee_rejects_negative_builtin_int():\n    with pytest.raises(ValueError):\n        membership.annual_fee(-1)\n",
+      "quote": "R3: Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError.",
+      "purpose": "Check that a negative built-in integer raises the required exception.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T4",
+        "supported": true,
+        "reason": "The test supplies a negative built-in integer and checks that it raises the required ValueError.",
+        "quote": "R3: Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError."
+      },
+      "review": "The test supplies a negative built-in integer and checks that it raises the required ValueError."
+    },
+    {
+      "id": "T5",
+      "behaviorId": "B5",
+      "functionName": "test_annual_fee_rejects_non_builtin_int_inputs",
+      "gapIndexes": [
+        0,
+        1
+      ],
+      "code": "import pytest\nimport membership\n\n\ndef test_annual_fee_rejects_non_builtin_int_inputs():\n    for years in (1.0, True):\n        with pytest.raises(TypeError):\n            membership.annual_fee(years)\n",
+      "quote": "R3: Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError.",
+      "purpose": "Check that a float and bool input each raise the required exception.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T5",
+        "supported": true,
+        "reason": "The test checks that both a float and bool input raise the required TypeError; both are covered by the stated non-built-in-int rule.",
+        "quote": "R3: Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError."
+      },
+      "review": "The test checks that both a float and bool input raise the required TypeError; both are covered by the stated non-built-in-int rule."
+    }
+  ],
+  "measurements": [
+    {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_integer_12000_for_years_0_through_4_witnesses",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_annual_fee_returns_integer_12000_for_years_0_through_4_witnesses",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_integer_zero_at_years_5",
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "name": "test_annual_fee_returns_integer_zero_at_years_5",
+          "status": "failed",
+          "message": "def test_annual_fee_returns_integer_zero_at_years_5():\n        result = membership.annual_fee(5)\n        assert isinstance(result, int)\n        assert not isinstance(result, bool)\n>       assert result == 0\nE       assert 12000 == 0\n\nreqtest_generated/test_reqtest_T2.py:8: AssertionError"
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T3.py::test_annual_fee_returns_integer_zero_above_years_5",
+          "file": "reqtest_generated/test_reqtest_T3.py",
+          "name": "test_annual_fee_returns_integer_zero_above_years_5",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T4.py::test_annual_fee_rejects_negative_builtin_int",
+          "file": "reqtest_generated/test_reqtest_T4.py",
+          "name": "test_annual_fee_rejects_negative_builtin_int",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T5.py::test_annual_fee_rejects_non_builtin_int_inputs",
+          "file": "reqtest_generated/test_reqtest_T5.py",
+          "name": "test_annual_fee_rejects_non_builtin_int_inputs",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 1,
+      "log": ".F...                                                                    [100%]\n=================================== FAILURES ===================================\n_______________ test_annual_fee_returns_integer_zero_at_years_5 ________________\n\n    def test_annual_fee_returns_integer_zero_at_years_5():\n        result = membership.annual_fee(5)\n        assert isinstance(result, int)\n        assert not isinstance(result, bool)\n>       assert result == 0\nE       assert 12000 == 0\n\nreqtest_generated/test_reqtest_T2.py:8: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_integer_zero_at_years_5\n1 failed, 4 passed in 0.02s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  ],
+  "mutations": [],
+  "diagnoses": [
+    {
+      "testId": "T2",
+      "category": "potential_implementation_defect",
+      "reason": "The failing assertion checks the required result for the explicitly specified input 5. The implementation returns 12000 instead of 0, violating R2.",
+      "quote": "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.",
+      "executionQuote": "E       assert 12000 == 0",
+      "evidence": [
+        {
+          "file": "membership.py",
+          "quote": "    return 0 if years > 5 else 12000"
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "quote": "    assert result == 0"
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "relevance": [],
+  "improvements": [],
+  "states": [
+    {
+      "id": "B1",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_integer_12000_for_years_0_through_4_witnesses"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_integer_zero_at_years_5"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_annual_fee_returns_integer_zero_above_years_5"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_annual_fee_rejects_negative_builtin_int"
+      ]
+    },
+    {
+      "id": "B5",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T5.py::test_annual_fee_rejects_non_builtin_int_inputs"
+      ]
+    }
+  ],
+  "limitations": [
+    "Dataset purpose: pilot. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis."
+  ],
+  "configuration": {
+    "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+    "improvementLimit": 1,
+    "mutationSeconds": 75,
+    "policyVersion": "contract-witness-v3",
+    "mode": "regenerate"
+  },
+  "environment": {
+    "python": "3.11.17",
+    "pytest": "8.4.2",
+    "mutmut": "2.5.1"
+  },
+  "collection": {
+    "exitCode": 5,
+    "log": "\nno tests collected in 0.00s\n",
+    "timedOut": false
+  },
+  "retrieval": {
+    "query": "R1: For built-in int years from 0 through 4, membership.annual_fee(years) returns integer 12000. R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5. R3: Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError.",
+    "documents": []
+  },
+  "analysis": {
+    "behaviors": [
+      {
+        "id": "B1",
+        "ruleId": "R1",
+        "quote": "R1: For built-in int years from 0 through 4, membership.annual_fee(years) returns integer 12000.",
+        "text": "For built-in int years in the range 0 through 4, annual_fee returns integer 12000.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "The input range and promised integer result are specified.",
+        "files": [
+          "membership.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "membership.py",
+            "quote": "    return 0 if years > 5 else 12000"
+          }
+        ],
+        "gaps": [
+          "Add a test for built-in int years=0 that checks the result is an int but not bool, and equals 12000.",
+          "Add a test for built-in int years=4 that checks the result is an int but not bool, and equals 12000.",
+          "Add an interior-range witness, such as built-in int years=2, checking the result is an int but not bool, and equals 12000."
+        ]
+      },
+      {
+        "id": "B2",
+        "ruleId": "R2",
+        "quote": "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.",
+        "text": "For built-in int years exactly 5, annual_fee returns integer 0.",
+        "category": "boundary",
+        "issue": "none",
+        "reason": "The threshold case and required result are explicit. The implementation's conditional returns 12000 at 5, which conflicts with this requirement.",
+        "files": [
+          "membership.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "membership.py",
+            "quote": "    return 0 if years > 5 else 12000"
+          }
+        ],
+        "gaps": [
+          "Add a test for built-in int years=5 that checks the result is an int but not bool, and equals 0."
+        ]
+      },
+      {
+        "id": "B3",
+        "ruleId": "R2",
+        "quote": "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.",
+        "text": "For built-in int years greater than 5, annual_fee returns integer 0.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "The range above 5 and required result are specified.",
+        "files": [
+          "membership.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "membership.py",
+            "quote": "    return 0 if years > 5 else 12000"
+          }
+        ],
+        "gaps": [
+          "Add a test for a built-in int above the threshold, such as years=6, that checks the result is an int but not bool, and equals 0."
+        ]
+      },
+      {
+        "id": "B4",
+        "ruleId": "R3",
+        "quote": "R3: Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError.",
+        "text": "Negative built-in int years raise ValueError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The input condition and required exception are explicit.",
+        "files": [
+          "membership.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "membership.py",
+            "quote": "    if years < 0:"
+          },
+          {
+            "file": "membership.py",
+            "quote": "        raise ValueError('years')"
+          }
+        ],
+        "gaps": [
+          "Add a test with a negative built-in int, such as years=-1, that checks ValueError is raised."
+        ]
+      },
+      {
+        "id": "B5",
+        "ruleId": "R3",
+        "quote": "R3: Negative built-in int years raise ValueError; all non-built-in-int inputs, including bool, raise TypeError.",
+        "text": "Inputs that are not built-in ints raise TypeError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The input category and required exception are explicit; bool is included by the requirement.",
+        "files": [
+          "membership.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "membership.py",
+            "quote": "    if type(years) is not int:"
+          },
+          {
+            "file": "membership.py",
+            "quote": "        raise TypeError('years')"
+          }
+        ],
+        "gaps": [
+          "Add a test with a non-built-in-int input, such as a float, that checks TypeError is raised.",
+          "Add a test with a bool input that checks TypeError is raised."
+        ]
+      }
+    ],
+    "inconsistencies": [
+      {
+        "ruleId": "R2",
+        "behaviorIds": [
+          "B2"
+        ],
+        "quote": "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.",
+        "description": "The requirement specifies a return value of 0 at exactly 5, while the code's condition `years > 5` makes the function return 12000 for that input.",
+        "evidence": [
+          {
+            "file": "membership.py",
+            "quote": "    return 0 if years > 5 else 12000"
+          }
+        ]
+      }
+    ]
+  },
+  "baseline": {
+    "outcomes": [],
+    "exitCode": 5,
+    "log": "No selected tests.",
+    "timedOut": false,
+    "integrity": true
+  },
+  "initialStates": [
+    {
+      "id": "B1",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T1.py::test_annual_fee_returns_integer_12000_for_years_0_through_4_witnesses"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_annual_fee_returns_integer_zero_at_years_5"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_annual_fee_returns_integer_zero_above_years_5"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_annual_fee_rejects_negative_builtin_int"
+      ]
+    },
+    {
+      "id": "B5",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T5.py::test_annual_fee_rejects_non_builtin_int_inputs"
+      ]
+    }
+  ],
+  "proposedDiagnoses": [
+    {
+      "testId": "T2",
+      "category": "potential_implementation_defect",
+      "reason": "The failing assertion checks the required result for the explicitly specified input 5. The implementation returns 12000 instead of 0, violating R2.",
+      "quote": "R2: For built-in int years of at least 5, membership.annual_fee(years) returns integer 0, including exactly 5.",
+      "executionQuote": "E       assert 12000 == 0",
+      "evidence": [
+        {
+          "file": "membership.py",
+          "quote": "    return 0 if years > 5 else 12000"
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "quote": "    assert result == 0"
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "elapsedMs": 33052
+}

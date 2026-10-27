@@ -45,7 +45,7 @@ function Dashboard({ userId }: { userId: string }) {
     <div className="min-h-screen">
       <Topbar currentModel={model} onSelectModel={selectModel} isRunning={isRunning} configured={configured} />
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        <nav className="flex gap-3"><Button variant={mode === "python" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("python")}>Project verification</Button><Button variant={mode === "evaluation" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("evaluation")}>Evaluation</Button></nav>
+        <nav className="flex flex-wrap gap-3"><Button variant={mode === "python" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("python")}>Project verification</Button><Button variant={mode === "evaluation" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("evaluation")}>Evaluation</Button></nav>
         {message && <p role="alert" className="text-base text-red-400">{message}</p>}
         {mode === "evaluation" ? <EvaluationWorkspace initialRunId={evaluationRunId} /> : <PythonWorkspace model={model} configured={configured} onRunningChange={setIsRunning} onOpenEvaluation={(runId) => { setEvaluationRunId(runId); setMode("evaluation"); }} />}
       </main>

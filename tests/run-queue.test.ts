@@ -89,7 +89,37 @@ test('durable queue executes, survives a killed worker, reuses checkpoints and r
   assert.equal(complete.measurements[0].outcomes[0].status, 'failed');
   assert.equal(complete.diagnoses[0].category, 'potential_implementation_defect');
   assert.equal(complete.improvements.length, 0, 'Recovery must retain valid defect assertions');
+  assert.equal(complete.testAttempts?.length, 1, 'Recovered proposal history must not duplicate earlier rounds.');
+  assert.equal(complete.testAttempts![0].status, 'applied');
+  assert.match(complete.stopReason!, /Failing checks were retained/);
   await stop(second.child);
+
+  // Saved-suite requests remain owner-only and run through the durable worker without an API key.
+  await until(async () => (await boss.findJobs(queueName, { id: run.id }))[0]?.state === 'completed' ? true : undefined);
+  const replayForm = (clarification = '') => {
+    const form = new FormData(); form.set('parentRunId', run.id); form.set('reuseRequirements', 'true'); form.set('mode', 'saved_tests');
+    if (clarification) form.set('clarification', clarification);
+    return form;
+  };
+  const replayRequest = (cookie: string, clarification = '') => routes.POST(new Request(base + '/api/python', { method: 'POST', headers: { Cookie: cookie, Origin: base }, body: replayForm(clarification) }));
+  const key = process.env.OPENAI_API_KEY; delete process.env.OPENAI_API_KEY;
+  try {
+    assert.equal((await replayRequest(other.cookie)).status, 422);
+    assert.equal((await replayRequest(owner.cookie, 'Change the contract')).status, 422);
+    const callsBeforeReplay = await readFile(calls, 'utf8');
+    const response = await replayRequest(owner.cookie); assert.equal(response.status, 200);
+    const stream = response.body!.getReader(), event = await stream.read();
+    const replay: PythonReport = JSON.parse(new TextDecoder().decode(event.value).split('\ndata: ')[1].trim()).report;
+    await stream.cancel();
+    const workerReplay = worker(false); await workerReplay.wait('ready');
+    const result = await until(async () => { const next = await saved(replay.id); return next.status !== 'running' ? next : undefined; });
+    assert.equal(result.status, 'completed', result.error); assert.equal(result.configuration?.mode, 'saved_tests');
+    assert.equal(result.measurements[0].outcomes[0].status, 'failed');
+    assert.equal(await readFile(calls, 'utf8'), callsBeforeReplay, 'Saved execution must make zero model requests');
+    assert.deepEqual(result.tests, complete.tests); assert.deepEqual(result.diagnoses, []);
+    assert.deepEqual((await saved(run.id)).measurements, complete.measurements, 'The parent evidence stays unchanged');
+    await stop(workerReplay.child);
+  } finally { process.env.OPENAI_API_KEY = key; }
 
   // Cancellation uses the same authenticated endpoint as the UI.
   const active = await fixture(); await enqueueRun(active, owner.user.id);

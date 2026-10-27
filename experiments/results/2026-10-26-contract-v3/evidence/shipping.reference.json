@@ -1,0 +1,23 @@
+{
+  "valid": true,
+  "sourceFingerprint": "1cb700c032c7fef64e8fc6bb618b829a8c61237d0de721c52fa71291c58569fe",
+  "faultHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+  "oracleHash": "aa4eb7954bd3befa2407f36e86d0894ffd2360e30b7113f2a045779e491f7961",
+  "original": {
+    "outcomes": [
+      {
+        "node": "reqtest_generated/test_reqtest_T1.py::test_contract",
+        "file": "reqtest_generated/test_reqtest_T1.py",
+        "name": "test_contract",
+        "status": "passed",
+        "message": ""
+      }
+    ],
+    "exitCode": 0,
+    "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+    "timedOut": false,
+    "integrity": true,
+    "runtimeArtifacts": []
+  },
+  "scope": "Fixed executable contract witnesses only; not independent semantic review or complete specification coverage."
+}

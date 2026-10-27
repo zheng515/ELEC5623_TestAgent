@@ -90,7 +90,7 @@ export async function executeRun(job: RunJob, ask: Reason = reason) {
   const row = (await database.query("SELECT report,cancel_requested FROM runs WHERE id=$1 AND user_id=$2", [runId, userId])).rows[0];
   if (!row || row.cancel_requested || row.report.status !== "running") return;
   const original: PythonReport = row.report;
-  const report: PythonReport = { ...original, status: "running", stage: "Resuming", error: undefined, tests: [], measurements: [], mutations: [], diagnoses: [], proposedDiagnoses: undefined, relevance: [], improvementProposal: undefined, improvements: [], states: [], initialStates: undefined, analysis: undefined, analysisCorrection: undefined };
+  const report: PythonReport = { ...original, status: "running", stage: "Resuming", error: undefined, stopReason: undefined, testAttempts: undefined, improvementProposal: undefined, tests: original.replay ? original.tests : [], measurements: [], mutations: [], diagnoses: [], proposedDiagnoses: undefined, relevance: [], improvements: [], states: [], initialStates: undefined, analysis: original.replay ? original.analysis : undefined, analysisCorrection: undefined };
   report.execution = { ...original.execution!, attempt: job.retryCount + 1, recovered: job.retryCount > 0 };
   const cancelled = new AbortController(), signal = AbortSignal.any([job.signal, cancelled.signal, AbortSignal.timeout(600000)]);
   const timer = setInterval(async () => {

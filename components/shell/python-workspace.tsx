@@ -16,6 +16,7 @@ import type { ProjectSetup } from "@/lib/project-setup";
 import Link from "next/link";
 import type { GitHubConnectionStatus } from "@/lib/github-config";
 import { RuntimeStatus, useRuntimeHealth } from "./runtime-health";
+import { VerificationGuide } from './verification-guide';
 
 export function PythonWorkspace({ model, configured, onRunningChange, onOpenEvaluation }: { model: string; configured: boolean; onRunningChange: (running: boolean) => void; onOpenEvaluation: (runId: string) => void }) {
   const runtimeStatus = useRuntimeHealth();
@@ -100,14 +101,15 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
   function newVerification(previous?: PythonReport) {
     setSelected(undefined); setError(''); setDocument(undefined); setRequirements(''); setSetup(undefined); setParent(previous); setComparison(previous);
   }
-  async function run(event: FormEvent<HTMLFormElement>) {
-    if (!canSubmit) { event.preventDefault(); setError('Check runtime status and restore the required services before submitting. Your inputs are retained.'); return; }
-    event.preventDefault(); setError(''); setBusy(true); onRunningChange(true); setSelected(undefined); setStage('Import project');
+  async function run(event?: FormEvent<HTMLFormElement>, saved?: PythonReport) {
+    if (!(saved ? health && health.queue !== 'unavailable' && health.sandbox === 'available' : canSubmit)) { event?.preventDefault(); setError('Check runtime status and restore the required services before submitting. Your inputs are retained.'); return; }
+    event?.preventDefault(); setError(''); setBusy(true); onRunningChange(true); setSelected(undefined); setStage('Import project');
     const controller = new AbortController(); execution.current = controller;
-    const form = new FormData(event.currentTarget); form.set('model', model);
+    const form = saved ? new FormData() : new FormData(event!.currentTarget); form.set('model', model);
+    if (saved) { form.set('mode', 'saved_tests'); form.set('parentRunId', saved.id); form.set('reuseRequirements', 'true'); form.set('title', saved.title.slice(0, 100) + ' - saved tests'); }
     if (document) form.set('documentId', document.id);
     if (setup) form.set('preflightId', setup.id);
-    if (parent) { form.set('parentRunId', parent.id); form.set('reuseRequirements', 'true'); }
+    if (parent && !saved) { form.set('parentRunId', parent.id); form.set('reuseRequirements', 'true'); }
     try {
       const response = await fetch('/api/python', { method: 'POST', body: form, signal: controller.signal });
       if (!response.ok) throw new Error((await response.json()).error);
@@ -137,9 +139,10 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
     fetch('/api/python?id=' + selected.parentRunId, { cache: 'no-store' }).then(response => response.ok ? response.json() : undefined).then(report => { if (active) setComparison(report); }).catch(() => {});
     return () => { active = false; };
   }, [selected?.parentRunId]);
-  return <section className="space-y-8">
+  return <section className="min-w-0 space-y-8 [overflow-wrap:anywhere] [&_details]:min-w-0 [&_pre]:max-w-full [&_pre]:max-h-80 [&_pre]:overflow-auto [&_pre]:whitespace-pre-wrap [&_[data-slot=native-select-wrapper]]:max-w-full">
     <header className="space-y-3"><h1 className="text-4xl font-bold uppercase">Requirement-aware verification</h1><p className="text-muted-foreground">Understand → Measure → Diagnose → Improve → Re-measure</p></header>
     <RuntimeStatus {...runtimeStatus} />
+    {!busy && !selected && <VerificationGuide firstRun={!runs.length} />}
     <form noValidate ref={formRef} key={parent?.id || 'new'} onSubmit={run} className="space-y-5" hidden={busy || Boolean(selected)}>
       <label className="block space-y-2">Run name<Input name="title" required maxLength={120} defaultValue={parent ? parent.title + ' — re-run' : 'Project verification'} /></label>
       {parent ? <div className="space-y-3 border rounded p-4"><p>Reusing the saved code snapshot from {parent.title}. The previous report stays unchanged.</p><p>{parent.source}</p><details><summary>Previous requirements</summary><div className="max-h-64 overflow-auto">{parent.rules.map(rule => <blockquote key={rule.id}>{rule.id}: {rule.text}</blockquote>)}</div></details><label className="block">Clarification — additional requirements, one per line<Textarea name="clarification" rows={4} maxLength={4000} placeholder="State the intended rule that resolves the earlier ambiguity. These statements become new requirements in this run." /></label></div> : <>
@@ -184,7 +187,8 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
     <div className="flex flex-wrap gap-3 items-center">
       <label htmlFor="python-history">Your runs</label><NativeSelect id="python-history" disabled={busy} value={selected?.id || ''} onChange={(event) => setSelected(runs.find((run) => run.id === event.target.value))}><NativeSelectOption value="">New verification</NativeSelectOption>{runs.map((run) => <NativeSelectOption key={run.id} value={run.id}>{run.title} · {run.status === 'running' && !busy ? 'Running / incomplete' : run.status}</NativeSelectOption>)}</NativeSelect>
       {selected && !busy && <Button variant="outline" onClick={() => newVerification()}>New verification</Button>}
-      {selected && !busy && <Button variant="outline" onClick={() => newVerification(selected)}>Clarify and re-run</Button>}
+      {selected && !busy && <Button variant="outline" onClick={() => newVerification(selected)}>Regenerate / clarify</Button>}
+      {selected && !busy && <Button variant="outline" disabled={!selected.tests.some(test => test.approved) || selected.status === 'running'} onClick={() => run(undefined, selected)}>Re-run saved tests</Button>}
       {busy && <Button variant="destructive" onClick={stop}>Stop</Button>}
       {busy && <p role="status">{stage}…</p>}
     </div>
@@ -194,8 +198,11 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
       <section className="border rounded p-5 space-y-3">
         <h3 className="font-bold text-lg">{summary?.title}</h3>
         {selected.execution && <p className="text-sm text-muted-foreground">{selected.status === 'running' ? selected.stage + '. ' : ''}{selected.execution.recovered ? `Worker recovery attempt ${selected.execution.attempt}. Saved checkpoints are reused when available.` : selected.execution.attempt ? 'Processed by the background verification worker.' : 'Queued. Waiting for an available background worker.'}</p>}
+        <p>Workflow: {selected.status}. This is separate from test and requirement results.</p>
+        {selected.replay && <p>Saved tests re-executed without model calls. Original analysis and reviews were reused; no new diagnosis or mutation analysis was performed.</p>}
         <p>{summary?.passed} passed · {summary?.failedCount} failed · {summary?.errors} errors · {summary?.skipped} skipped</p>
         <p className="text-sm text-muted-foreground">{selected.rules.length} input items · {selected.analysis?.behaviors.length || 0} analyzed behaviors · {summary?.approved} approved test files · {summary?.blocked} blocked or awaiting review</p>
+        <p>{summary?.unresolved.length} of {selected.rules.length} requirement items still need verification.</p>
         <p><strong>Next action:</strong> {summary?.next}</p>
         {!!summary?.unmapped.length && <p role="status">{summary.unmapped.length} input items have no analyzed behavior. They are not verified.</p>}
         {selected.requirementDocument && <p className="text-sm">Document scope: {selected.requirementDocument.selectedBlocks} of {selected.requirementDocument.totalBlocks} original text blocks linked from {selected.requirementDocument.fileName}. Edited text without an exact match has no original-block citation.</p>}

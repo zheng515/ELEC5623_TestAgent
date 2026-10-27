@@ -457,9 +457,24 @@ be resumed and are marked interrupted with uncertain states after a server resta
 The website and worker must share the same local snapshot storage. Multi-host and
 serverless deployment are not configured.
 
-Use **Clarify and re-run** to add explicit requirement statements against the same
-source snapshot. The original report stays unchanged and is linked from the new
+Use **Regenerate / clarify** to make a fresh model analysis and optionally add
+explicit requirement statements against the same source snapshot. The original report stays unchanged and is linked from the new
 report. Changed requirements mean this comparison is not a controlled quality score.
+
+Surviving mutations are reviewed per `(mutantId, behaviorId)` pair for every
+behavior mapped to the mutated file. Batches contain at most 16 pairs. Complete
+exact-diff pair judgments are cached individually; missing/duplicate pairs remain
+unresolved. An exclusion for one behavior never clears another. The Evaluation
+panel shows reviewed/required pair counts. Strict CI uses the same conservative
+requirement aggregation as the dashboard.
+
+Use **Re-run saved tests** to execute approved saved artifacts on the same checked
+source snapshot and pinned image, without model requests or an API key. Blocked
+proposals remain blocked. The original report stays unchanged. Source and suite
+hashes are checked; changed evidence is refused. Original analysis/reviews are
+reused, and diagnoses/mutation results are not refreshed. Previously unresolved
+adequacy cannot become Verified solely because the same checks pass again.
+Time-dependent target code can still produce different execution outcomes.
 
 For multiline document requirements, model outputs reference stable requirement
 IDs; the SDK resolves these to unchanged original quotes before evidence validation.
@@ -581,6 +596,11 @@ PNG/SVG figures. Independent semantic metrics remain unavailable without human
 review. See [the experiment protocol](examples/experiments/README.md) for commands,
 denominators and limitations. This workflow is separate from the website.
 
+The five-project standalone comparison is configured separately in
+[the standalone benchmark protocol](examples/standalone-benchmark/README.md).
+It compares B0 and B3 on newly authored synthetic fixtures; it is not a named
+commercial-product comparison or independent semantic accuracy assessment.
+
 ### Repeated decision consistency
 
 Run `npm run evaluate:decisions -- 3` for eleven focused test-review and diagnosis
@@ -630,6 +650,17 @@ task page. Original text and excerpts are collapsed with bounded scroll areas.
   document citations. Fingerprints are not rechecked by viewing the dashboard.
 - Expand requirements to inspect original quotes, PDF page links, OCR confidence
   and mapped test nodes. Filter by state to find unresolved requirements.
+- Summary shortcuts open the matching failures or blocked-test panel. Unresolved
+  requirement counts remain visible even when every executed test passes.
+- Quick start explains supported projects/documents and how to interpret results.
+  Expanded evidence wraps long text on narrow screens; code and logs remain scrollable.
+- Agent decisions shows each recorded generation/improvement round, proposed code,
+  model review responses, admission results and the saved stopping reason. Applied
+  means admitted into the active suite, not passed. Earlier reports without this
+  metadata are identified explicitly. Evidence JSON and test exports retain it.
+- The [integrated local acceptance](experiments/acceptance/2026-10-27/README.md)
+  records fresh correct/defective Shipping checks, export replay and saved-suite
+  execution. These are development checks, not a benchmark or accuracy score.
 - Failure diagnoses, blocked tests, execution logs and limitations remain available
   in expandable sections. Retrieval and mutation records are under Technical
   details. Download run evidence or the approved generated tests from this page.

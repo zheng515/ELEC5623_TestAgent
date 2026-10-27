@@ -1,0 +1,479 @@
+{
+  "id": "8e194b5e-fac3-458a-90bc-41db8dadeb84",
+  "variant": "B3",
+  "title": "github-full-srs",
+  "createdAt": "2026-10-26T11:51:17.541Z",
+  "model": "gpt-6-luna",
+  "source": "examples/experiments/github-demo/project",
+  "fingerprint": "5721f21c6f78655415c0b29e1ad76d2981c14c68d65ff23e7ef0172759432a24",
+  "requirementInput": {
+    "mode": "numbered",
+    "text": "# Software Requirements Specification: Shipping Fee Demo\n\nVersion: 1.0\n\n## 1. Purpose and scope\n\nThis project calculates one shipping fee from one order amount. It is a small,\nsynthetic application for testing a requirement-to-test agent against actual source\ncode. It does not process payments or contact external services.\n\nAll monetary values are integer cents. The public interface is\n`shipping.fee(amount_cents: int) -> int`. The requirements below define behavior;\nsource code must not be used to invent the expected result.\n\n## 2. Functional requirements\n\nR1: For an integer order amount from 0 through 9999 cents inclusive, shipping.fee must return the integer 1000.\n\nR2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\nR3: For a negative integer order amount, shipping.fee must raise the built-in ValueError exception.\n\nR4: For any input whose type is not the built-in int type, shipping.fee must raise the built-in TypeError exception. This includes bool, float, str, and None. A boolean must not be accepted as an integer order amount.\n\nNo exact exception message is required.\n\n## 3. Acceptance examples\n\nEach row is a separate function call, without accounts, environment setup, network\naccess, files, time dependencies, or fixtures. These are representative examples;\nthey do not exhaust the input domain.\n\n| Requirement | Python input | Expected result |\n| --- | --- | --- |\n| R1 | 0 | Integer 1000 |\n| R1 | 9999 | Integer 1000 |\n| R2 | 10000 | Integer 0 |\n| R2 | 10001 | Integer 0 |\n| R3 | -1 | Raise ValueError |\n| R4 | True | Raise TypeError |\n| R4 | False | Raise TypeError |\n| R4 | 1.5 | Raise TypeError |\n| R4 | \"10000\" | Raise TypeError |\n| R4 | None | Raise TypeError |\n\n## 4. Execution environment\n\nPython 3.11 or newer. The production code uses no third-party packages. pytest is\na test runner, not a production dependency. Browser behavior, APIs, persistence,\npayments, and performance benchmarks are outside this specification.",
+    "context": "# Software Requirements Specification: Shipping Fee Demo\n\nVersion: 1.0\n\n\n\n## 1. Purpose and scope\n\nThis project calculates one shipping fee from one order amount. It is a small,\nsynthetic application for testing a requirement-to-test agent against actual source\ncode. It does not process payments or contact external services.\n\nAll monetary values are integer cents. The public interface is\n`shipping.fee(amount_cents: int) -> int`. The requirements below define behavior;\nsource code must not be used to invent the expected result.\n\n\n\n## 2. Functional requirements\n\n\n\n## 3. Acceptance examples\n\nEach row is a separate function call, without accounts, environment setup, network\naccess, files, time dependencies, or fixtures. These are representative examples;\nthey do not exhaust the input domain.\n\n| Requirement | Python input | Expected result |\n| --- | --- | --- |\n\n\n## 4. Execution environment\n\nPython 3.11 or newer. The production code uses no third-party packages. pytest is\na test runner, not a production dependency. Browser behavior, APIs, persistence,\npayments, and performance benchmarks are outside this specification."
+  },
+  "status": "completed",
+  "stage": "Complete",
+  "rules": [
+    {
+      "id": "R1",
+      "text": "R1: For an integer order amount from 0 through 9999 cents inclusive, shipping.fee must return the integer 1000.\n\n| R1 | 0 | Integer 1000 |\n\n| R1 | 9999 | Integer 1000 |",
+      "originalId": "R1"
+    },
+    {
+      "id": "R2",
+      "text": "R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\n| R2 | 10000 | Integer 0 |\n\n| R2 | 10001 | Integer 0 |",
+      "originalId": "R2"
+    },
+    {
+      "id": "R3",
+      "text": "R3: For a negative integer order amount, shipping.fee must raise the built-in ValueError exception.\n\n| R3 | -1 | Raise ValueError |",
+      "originalId": "R3"
+    },
+    {
+      "id": "R4",
+      "text": "R4: For any input whose type is not the built-in int type, shipping.fee must raise the built-in TypeError exception. This includes bool, float, str, and None. A boolean must not be accepted as an integer order amount.\n\nNo exact exception message is required.\n\n| R4 | True | Raise TypeError |\n\n| R4 | False | Raise TypeError |\n\n| R4 | 1.5 | Raise TypeError |\n\n| R4 | \"10000\" | Raise TypeError |\n\n| R4 | None | Raise TypeError |",
+      "originalId": "R4"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_fee_for_in_range_amounts",
+      "gapIndexes": [
+        0,
+        1,
+        2
+      ],
+      "code": "from shipping import fee\n\n\ndef test_fee_for_in_range_amounts():\n    for amount in (5000, 0, 9999):\n        result = fee(amount)\n        assert isinstance(result, int) and not isinstance(result, bool)\n        assert result == 1000",
+      "quote": "R1: For an integer order amount from 0 through 9999 cents inclusive, shipping.fee must return the integer 1000.\n\n| R1 | 0 | Integer 1000 |\n\n| R1 | 9999 | Integer 1000 |",
+      "purpose": "Check an interior amount and both inclusive endpoints in the 0–9999-cent range, including the promised integer return.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T1",
+        "supported": true,
+        "reason": "Checks the interior amount and both inclusive endpoints, asserting both the required value and a non-boolean integer return.",
+        "quote": "R1: For an integer order amount from 0 through 9999 cents inclusive, shipping.fee must return the integer 1000.\n\n| R1 | 0 | Integer 1000 |\n\n| R1 | 9999 | Integer 1000 |"
+      },
+      "review": "Checks the interior amount and both inclusive endpoints, asserting both the required value and a non-boolean integer return."
+    },
+    {
+      "id": "T2",
+      "behaviorId": "B2",
+      "functionName": "test_fee_at_and_above_free_shipping_threshold",
+      "gapIndexes": [
+        0,
+        1
+      ],
+      "code": "from shipping import fee\n\n\ndef test_fee_at_and_above_free_shipping_threshold():\n    for amount in (10000, 10001):\n        result = fee(amount)\n        assert isinstance(result, int) and not isinstance(result, bool)\n        assert result == 0",
+      "quote": "R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\n| R2 | 10000 | Integer 0 |\n\n| R2 | 10001 | Integer 0 |",
+      "purpose": "Check the exact free-shipping threshold and an amount above it, including the promised integer return.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T2",
+        "supported": true,
+        "reason": "Checks the exact threshold and an amount above it, asserting both the required value and a non-boolean integer return.",
+        "quote": "R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\n| R2 | 10000 | Integer 0 |\n\n| R2 | 10001 | Integer 0 |"
+      },
+      "review": "Checks the exact threshold and an amount above it, asserting both the required value and a non-boolean integer return."
+    },
+    {
+      "id": "T3",
+      "behaviorId": "B3",
+      "functionName": "test_negative_integer_amount_raises_value_error",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import pytest\n\nfrom shipping import fee\n\n\ndef test_negative_integer_amount_raises_value_error():\n    with pytest.raises(ValueError):\n        fee(-1)",
+      "quote": "R3: For a negative integer order amount, shipping.fee must raise the built-in ValueError exception.\n\n| R3 | -1 | Raise ValueError |",
+      "purpose": "Check that a negative integer amount raises ValueError.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T3",
+        "supported": true,
+        "reason": "Checks that the specified negative integer input raises ValueError.",
+        "quote": "R3: For a negative integer order amount, shipping.fee must raise the built-in ValueError exception.\n\n| R3 | -1 | Raise ValueError |"
+      },
+      "review": "Checks that the specified negative integer input raises ValueError."
+    },
+    {
+      "id": "T4",
+      "behaviorId": "B4",
+      "functionName": "test_non_builtin_int_amounts_raise_type_error",
+      "gapIndexes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "code": "import pytest\n\nfrom shipping import fee\n\n\ndef test_non_builtin_int_amounts_raise_type_error():\n    for amount in (True, False, 1.5, \"10000\", None):\n        with pytest.raises(TypeError):\n            fee(amount)",
+      "quote": "R4: For any input whose type is not the built-in int type, shipping.fee must raise the built-in TypeError exception. This includes bool, float, str, and None. A boolean must not be accepted as an integer order amount.\n\nNo exact exception message is required.\n\n| R4 | True | Raise TypeError |\n\n| R4 | False | Raise TypeError |\n\n| R4 | 1.5 | Raise TypeError |\n\n| R4 | \"10000\" | Raise TypeError |\n\n| R4 | None | Raise TypeError |",
+      "purpose": "Check that both booleans and the listed float, string, and None inputs raise TypeError.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T4",
+        "supported": true,
+        "reason": "Checks each listed non-built-in-int input, including both booleans, raises TypeError; no message assertion is required.",
+        "quote": "R4: For any input whose type is not the built-in int type, shipping.fee must raise the built-in TypeError exception. This includes bool, float, str, and None. A boolean must not be accepted as an integer order amount.\n\nNo exact exception message is required.\n\n| R4 | True | Raise TypeError |\n\n| R4 | False | Raise TypeError |\n\n| R4 | 1.5 | Raise TypeError |\n\n| R4 | \"10000\" | Raise TypeError |\n\n| R4 | None | Raise TypeError |"
+      },
+      "review": "Checks each listed non-built-in-int input, including both booleans, raises TypeError; no message assertion is required."
+    }
+  ],
+  "measurements": [
+    {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_fee_for_in_range_amounts",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_fee_for_in_range_amounts",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T2.py::test_fee_at_and_above_free_shipping_threshold",
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "name": "test_fee_at_and_above_free_shipping_threshold",
+          "status": "failed",
+          "message": "def test_fee_at_and_above_free_shipping_threshold():\n        for amount in (10000, 10001):\n            result = fee(amount)\n            assert isinstance(result, int) and not isinstance(result, bool)\n>           assert result == 0\nE           assert 1000 == 0\n\nreqtest_generated/test_reqtest_T2.py:8: AssertionError"
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T3.py::test_negative_integer_amount_raises_value_error",
+          "file": "reqtest_generated/test_reqtest_T3.py",
+          "name": "test_negative_integer_amount_raises_value_error",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T4.py::test_non_builtin_int_amounts_raise_type_error",
+          "file": "reqtest_generated/test_reqtest_T4.py",
+          "name": "test_non_builtin_int_amounts_raise_type_error",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 1,
+      "log": ".F..                                                                     [100%]\n=================================== FAILURES ===================================\n________________ test_fee_at_and_above_free_shipping_threshold _________________\n\n    def test_fee_at_and_above_free_shipping_threshold():\n        for amount in (10000, 10001):\n            result = fee(amount)\n            assert isinstance(result, int) and not isinstance(result, bool)\n>           assert result == 0\nE           assert 1000 == 0\n\nreqtest_generated/test_reqtest_T2.py:8: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T2.py::test_fee_at_and_above_free_shipping_threshold\n1 failed, 3 passed in 0.02s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  ],
+  "mutations": [],
+  "diagnoses": [
+    {
+      "testId": "T2",
+      "category": "potential_implementation_defect",
+      "reason": "The test's expected value is explicitly required by R2. The first loop input, 10000, returns 1000 instead of 0, violating the exact-threshold requirement.",
+      "quote": "R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\n| R2 | 10000 | Integer 0 |\n\n| R2 | 10001 | Integer 0 |",
+      "executionQuote": "E           assert 1000 == 0",
+      "evidence": [
+        {
+          "file": "shipping.py",
+          "quote": "    return 0 if amount_cents > 10000 else 1000"
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "quote": "        assert result == 0"
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "relevance": [],
+  "improvements": [],
+  "states": [
+    {
+      "id": "B1",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T1.py::test_fee_for_in_range_amounts"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_fee_at_and_above_free_shipping_threshold"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_negative_integer_amount_raises_value_error"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_non_builtin_int_amounts_raise_type_error"
+      ]
+    }
+  ],
+  "limitations": [
+    "Dataset purpose: pilot. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis."
+  ],
+  "configuration": {
+    "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+    "improvementLimit": 1,
+    "mutationSeconds": 75,
+    "policyVersion": "contract-witness-v3",
+    "mode": "regenerate"
+  },
+  "environment": {
+    "python": "3.11.17",
+    "pytest": "8.4.2",
+    "mutmut": "2.5.1"
+  },
+  "collection": {
+    "exitCode": 5,
+    "log": "\nno tests collected in 0.00s\n",
+    "timedOut": false
+  },
+  "retrieval": {
+    "query": "R1: For an integer order amount from 0 through 9999 cents inclusive, shipping.fee must return the integer 1000.\n\n| R1 | 0 | Integer 1000 |\n\n| R1 | 9999 | Integer 1000 | R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\n| R2 | 10000 | Integer 0 |\n\n| R2 | 10001 | Integer 0 | R3: For a negative integer order amount, shipping.fee must raise the built-in ValueError exception.\n\n| R3 | -1 | Raise ValueError | R4: For any input whose type is not the built-in int type, shipping.fee must raise the built-in TypeError exception. This includes bool, float, str, and None. A boolean must not be accepted as an integer order amount.\n\nNo exact exception message is required.\n\n| R4 | True | Raise TypeError |\n\n| R4 | False | Raise TypeError |\n\n| R4 | 1.5 | Raise TypeError |\n\n| R4 | \"10000\" | Raise TypeError |\n\n| R4 | None | Raise TypeError |",
+    "documents": [
+      {
+        "file": "docs/SRS.md",
+        "text": "# Software Requirements Specification: Shipping Fee Demo\n\nVersion: 1.0\n\n## 1. Purpose and scope\n\nThis project calculates one shipping fee from one order amount. It is a small,\nsynthetic application for testing a requirement-to-test agent against actual source\ncode. It does not process payments or contact external services.\n\nAll monetary values are integer cents. The public interface is\n`shipping.fee(amount_cents: int) -> int`. The requirements below define behavior;\nsource code must not be used to invent the expected result.\n\n## 2. Functional requirements\n\nR1: For an integer order amount from 0 through 9999 cents inclusive, shipping.fee must return the integer 1000.\n\nR2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\nR3: For a negative integer order amount, shipping.fee must raise the built-in ValueError exception.\n\nR4: For any input whose type is not the built-in int type, shipping.fee must raise the built-in TypeError exception. This includes bool, float, str, and None. A boolean must not be accepted as an integer order amount.\n\nNo exact exception message is required.\n\n## 3. Acceptance examples\n\nEach row is a separate function call, without accounts, environment setup, network\naccess, files, time dependencies, or fixtures. These are representative examples;\nthey do not exhaust the input domain.\n\n| Requirement | Python input | Expected result |\n| --- | --- | --- |\n| R1 | 0 | Integer 1000 |\n| R1 | 9999 | Integer 1000 |\n| R2 | 10000 | Integer 0 |\n| R2 | 10001 | Integer 0 |\n| R3 | -1 | Raise ValueError |\n| R4 | True | Raise TypeError |\n| R4 | False | Raise TypeError |\n| R4 | 1.5 | Raise TypeError |\n| R4 | \"10000\" | Raise TypeError |\n| R4 | None | Raise TypeError |\n\n## 4. Execution environment\n\nPython 3.11 or newer. The production code uses no third-party packages. pytest is\na test runner, not a production dependency. Browser behavior, APIs, persistence,\npayments, and performance benchmarks are outside this specification.\n",
+        "score": 16114.898419686404,
+        "sha256": "597aa0ed805b7775994dc9eebbd68238df1c4dc39b818482c5abf8bc9b8f132f"
+      },
+      {
+        "file": "docs/DEMO_RESULTS.md",
+        "text": "# Recorded Demo Results\n\nThis is a recorded real requirement-to-test run, not a simulated execution.\n\n- Requirement source: `docs/SRS.md` (the same file on both branches).\n- Test-planning model: `gpt-6-luna` through OpenAI Responses API with structured outputs.\n- Correct code commit: `88d59a92369e3b450cee2b83dcd765ebfcaf0b82`.\n- Intentional defect commit: `2e10601069537fcbb50d5c7a309f8f00c370f37e`.\n- Extracted requirements: 4.\n- Planned scenarios: 10.\n- Generated pytest artifacts: 10; all passed the code-to-plan validation.\n- Correct code: 10 executed tests passed.\n- Defect replay: 9 tests passed, 1 failed, 0 errored.\n\n## Controlled comparison\n\nThe exact same generated tests were replayed against the defect commit. Expected\nresults were not rewritten, and no second model generation was used for the replay.\nTests ran in the isolated pytest Docker sandbox without network access.\n\n| Test | Correct implementation | Intentional defect |\n| --- | --- | --- |\n| `test_standard_fee_for_5000_cents` | passed | passed |\n| `test_none_amount_raises_type_error` | passed | passed |\n| `test_standard_fee_at_zero_cents` | passed | passed |\n| `test_standard_fee_at_9999_cents` | passed | passed |\n| `test_free_shipping_at_exactly_10000_cents` | passed | failed |\n| `test_free_shipping_above_threshold` | passed | passed |\n| `test_negative_integer_amount_raises_value_error` | passed | passed |\n| `test_boolean_amount_raises_type_error` | passed | passed |\n| `test_float_amount_raises_type_error` | passed | passed |\n| `test_string_amount_raises_type_error` | passed | passed |\n\nThe boundary failure was:\n\n```text\nAssertionError: fee for exactly 10000 cents must be 0\nassert 1000 == 0\n```\n\n## What this demonstrates\n\nThe repository can be downloaded from GitHub, requirements can be extracted from\na real Markdown file, supported checks can be generated, and those tests can run\nagainst the downloaded code. A stated requirement can detect a concrete boundary\ndefect instead of adopting the faulty implementation as its expected result.\n\n## Limits\n\nThis is a small synthetic project, not a broad model benchmark. The generated cases\nare not exhaustive. Source links and code-to-plan validation do not prove complete\nor semantically correct requirement extraction. Passing tests establish only the\nrecorded sampled behavior. Future model runs may choose different scenarios.\n\nThe sandbox executed Python functions only; no browser, database, payment system,\nor external API was tested. The defect is deliberately inserted and labelled.\n",
+        "score": 4986.839333737076,
+        "sha256": "3dd4f83994fc626db514d148d21b44c6dedc4f1eeee08366130de3080ae95d47"
+      },
+      {
+        "file": "README.md",
+        "text": "# ReqTest Shipping Demo\n\nA minimal Python application for a real requirement-to-test demonstration.\nThe inputs and rules are synthetic; the repository download, model requests,\ngenerated tests, and sandbox execution are real operations.\n\n- Production code: `shipping.py`\n- Requirement document: [`docs/SRS.md`](docs/SRS.md)\n- Runtime: Python 3.11+, without third-party production dependencies\n- Recorded live validation: [`docs/DEMO_RESULTS.md`](docs/DEMO_RESULTS.md)\n\n## Use with ReqTest\n\n1. Use this repository's GitHub URL as the repository reference.\n2. Download `docs/SRS.md` and import it as the requirement file.\n3. Use the goal: \"Generate and execute independent nominal, boundary, and invalid-input tests for shipping.fee using only the SRS rules. Include the exact 10000-cent boundary.\"\n4. Run the agent with a valid OpenAI API key and the pytest Docker sandbox.\n5. Inspect source citations, the saved test plan, code validation, and recorded outcomes.\n\nA plan or generated file is not an execution result. A passing sample does not\nprove that the input domain is exhaustively covered.\n\n## Run the function locally\n\n```bash\npython -c \"from shipping import fee; print(fee(10000))\"\n```\n\nExpected output: `0`.\n\n## Controlled defect demonstration\n\nThe `demo/buggy-threshold` branch intentionally uses a strict `>` comparison\ninstead of `>=`. It charges 1000 cents for an order of exactly 10000 cents,\ncontradicting R2. The SRS stays identical between the two branches.\n\nCompare the correct `main` branch with `demo/buggy-threshold` using the same SRS.\nThe defect branch is an intentionally faulty teaching fixture, not the correct\nimplementation. Requirement-based tests should detect the boundary error rather\nthan change their expected result to match it.\n",
+        "score": 1146.284416335617,
+        "sha256": "82ecce585b8546cbcb8eef5c607bc0d9564b94e69b92e4c008f06d64777ffbdf"
+      }
+    ]
+  },
+  "analysis": {
+    "behaviors": [
+      {
+        "id": "B1",
+        "ruleId": "R1",
+        "quote": "R1: For an integer order amount from 0 through 9999 cents inclusive, shipping.fee must return the integer 1000.\n\n| R1 | 0 | Integer 1000 |\n\n| R1 | 9999 | Integer 1000 |",
+        "text": "For integer order amounts from 0 through 9999 cents inclusive, shipping.fee returns the integer 1000.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "The inclusive input range and required result are explicit. The current implementation returns 1000 at both endpoints but also returns 1000 at 10000, contrary to R2.",
+        "files": [
+          "shipping.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "docs/SRS.md",
+            "quote": "R1: For an integer order amount from 0 through 9999 cents inclusive, shipping.fee must return the integer 1000."
+          },
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents > 10000 else 1000"
+          }
+        ],
+        "gaps": [
+          "Check an interior amount such as 5000 returns 1000.",
+          "Check the lower endpoint 0 returns 1000.",
+          "Check the upper endpoint 9999 returns 1000."
+        ]
+      },
+      {
+        "id": "B2",
+        "ruleId": "R2",
+        "quote": "R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\n| R2 | 10000 | Integer 0 |\n\n| R2 | 10001 | Integer 0 |",
+        "text": "For integer order amounts of at least 10000 cents, shipping.fee returns the integer 0, including exactly 10000 cents.",
+        "category": "boundary",
+        "issue": "none",
+        "reason": "The threshold and inclusion of the exact boundary are explicit. The implementation returns 1000 at exactly 10000 because its comparison is strict.",
+        "files": [
+          "shipping.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "docs/SRS.md",
+            "quote": "R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping."
+          },
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents > 10000 else 1000"
+          }
+        ],
+        "gaps": [
+          "Check exactly 10000 returns 0.",
+          "Check an amount above the threshold, such as 10001, returns 0."
+        ]
+      },
+      {
+        "id": "B3",
+        "ruleId": "R3",
+        "quote": "R3: For a negative integer order amount, shipping.fee must raise the built-in ValueError exception.\n\n| R3 | -1 | Raise ValueError |",
+        "text": "For negative integer order amounts, shipping.fee raises the built-in ValueError exception.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The input condition and required exception class are explicit; no exact message is specified.",
+        "files": [
+          "shipping.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "docs/SRS.md",
+            "quote": "R3: For a negative integer order amount, shipping.fee must raise the built-in ValueError exception."
+          },
+          {
+            "file": "shipping.py",
+            "quote": "    if amount_cents < 0:"
+          },
+          {
+            "file": "shipping.py",
+            "quote": "        raise ValueError(\"Order amount must not be negative.\")"
+          }
+        ],
+        "gaps": [
+          "Check a negative integer, such as -1, raises ValueError."
+        ]
+      },
+      {
+        "id": "B4",
+        "ruleId": "R4",
+        "quote": "R4: For any input whose type is not the built-in int type, shipping.fee must raise the built-in TypeError exception. This includes bool, float, str, and None. A boolean must not be accepted as an integer order amount.\n\nNo exact exception message is required.\n\n| R4 | True | Raise TypeError |\n\n| R4 | False | Raise TypeError |\n\n| R4 | 1.5 | Raise TypeError |\n\n| R4 | \"10000\" | Raise TypeError |\n\n| R4 | None | Raise TypeError |",
+        "text": "Inputs whose type is not the built-in int type raise the built-in TypeError exception; bool, float, str, and None are explicitly included, and bool must not be accepted as an integer amount.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The type condition, exception class, and listed non-int examples are explicit. No exact exception message is required. The implementation uses a concrete type check that rejects these listed inputs.",
+        "files": [
+          "shipping.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "docs/SRS.md",
+            "quote": "R4: For any input whose type is not the built-in int type, shipping.fee must raise the built-in TypeError exception. This includes bool, float, str, and None. A boolean must not be accepted as an integer order amount."
+          },
+          {
+            "file": "docs/SRS.md",
+            "quote": "No exact exception message is required."
+          },
+          {
+            "file": "shipping.py",
+            "quote": "    if type(amount_cents) is not int:"
+          },
+          {
+            "file": "shipping.py",
+            "quote": "        raise TypeError(\"Order amount must be an integer number of cents.\")"
+          }
+        ],
+        "gaps": [
+          "Check True raises TypeError.",
+          "Check False raises TypeError.",
+          "Check a float such as 1.5 raises TypeError.",
+          "Check a string such as \"10000\" raises TypeError.",
+          "Check None raises TypeError."
+        ]
+      }
+    ],
+    "inconsistencies": [
+      {
+        "ruleId": "R2",
+        "behaviorIds": [
+          "B2"
+        ],
+        "quote": "R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\n| R2 | 10000 | Integer 0 |\n\n| R2 | 10001 | Integer 0 |",
+        "description": "The SRS requires exactly 10000 cents to return 0, while shipping.py returns 1000 at that input. README.md and the recorded demo documentation describe this threshold behavior as an intentional defect on a separate demo branch; they do not remove the conflict between the SRS and the supplied shipping.py.",
+        "evidence": [
+          {
+            "file": "docs/SRS.md",
+            "quote": "R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping."
+          },
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents > 10000 else 1000"
+          },
+          {
+            "file": "README.md",
+            "quote": "The `demo/buggy-threshold` branch intentionally uses a strict `>` comparison"
+          },
+          {
+            "file": "docs/DEMO_RESULTS.md",
+            "quote": "- Intentional defect commit: `2e10601069537fcbb50d5c7a309f8f00c370f37e`."
+          }
+        ]
+      }
+    ]
+  },
+  "baseline": {
+    "outcomes": [],
+    "exitCode": 5,
+    "log": "No selected tests.",
+    "timedOut": false,
+    "integrity": true
+  },
+  "initialStates": [
+    {
+      "id": "B1",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T1.py::test_fee_for_in_range_amounts"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T2.py::test_fee_at_and_above_free_shipping_threshold"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_negative_integer_amount_raises_value_error"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_non_builtin_int_amounts_raise_type_error"
+      ]
+    }
+  ],
+  "proposedDiagnoses": [
+    {
+      "testId": "T2",
+      "category": "potential_implementation_defect",
+      "reason": "The test's expected value is explicitly required by R2. The first loop input, 10000, returns 1000 instead of 0, violating the exact-threshold requirement.",
+      "quote": "R2: For an integer order amount of at least 10000 cents, shipping.fee must return the integer 0. Exactly 10000 cents qualifies for free shipping.\n\n| R2 | 10000 | Integer 0 |\n\n| R2 | 10001 | Integer 0 |",
+      "executionQuote": "E           assert 1000 == 0",
+      "evidence": [
+        {
+          "file": "shipping.py",
+          "quote": "    return 0 if amount_cents > 10000 else 1000"
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "quote": "        assert result == 0"
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "elapsedMs": 27525
+}

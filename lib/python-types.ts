@@ -7,7 +7,7 @@ export const analysisSchema = z.object({
   behaviors: z.array(z.object({
     id: z.string().regex(/^B[1-9]\d*$/), ruleId: z.string(), quote: z.string().min(1),
     text: z.string(), category: z.enum(["rule", "boundary", "condition", "exception"]),
-    issue: z.enum(["none", "ambiguous", "incomplete", "not_testable"]), reason: z.string(),
+    issue: z.enum(["none", "ambiguous", "incomplete", "not_testable"]).describe('Quality of the ORIGINAL REQUIREMENT, never test coverage or implementation status. Missing tests go in gaps with issue=none when the contract is clear. incomplete means a missing contract detail, not absent assertions.'), reason: z.string(),
     files: z.array(z.string()).max(4), existingTests: z.array(z.string()).max(8),
     evidence: z.array(evidence).max(8), gaps: z.array(z.string()).max(6),
   })).max(24),
@@ -62,14 +62,26 @@ export const reviewTestsSchema = z.object({ decisions: z.array(z.object({
 export const relevanceSchema = z.object({ decisions: z.array(z.object({
   mutantId: z.string().regex(/^Mutant #[1-9]\d*$/), behaviorId: z.string().regex(/^B[1-9]\d*$/), relevant: z.boolean(), reason: z.string(), quote: z.string(),
 })).max(16) });
+export function groundedRelevanceSchema(pairs: { id: string; behaviorId: string }[], quote: z.ZodType<string>) {
+  const variants = pairs.map(pair => relevanceSchema.shape.decisions.element.extend({ mutantId: z.literal(pair.id), behaviorId: z.literal(pair.behaviorId), quote }));
+  const item = variants.length === 1 ? variants[0] : variants.length ? z.union(variants) : relevanceSchema.shape.decisions.element;
+  return relevanceSchema.extend({ decisions: z.array(item).max(Math.min(16, pairs.length)) });
+}
 export type Analysis = z.infer<typeof analysisSchema>;
 export type PythonTest = z.infer<typeof testsSchema>["tests"][number] & { approved?: boolean; review?: string; reviewDecision?: { supported: boolean; quote: string; reason: string } };
+export type TestAttempt = {
+  phase: 'generation' | 'improvement'; reason: string;
+  status: 'proposed' | 'reviewed' | 'applied' | 'rejected' | 'failed';
+  tests: PythonTest[]; decisions?: z.infer<typeof reviewTestsSchema>['decisions']; error?: string;
+};
 export type Outcome = { node: string; file: string; name: string; status: "passed" | "failed" | "error" | "skipped"; message: string };
 export type Measurement = { outcomes: Outcome[]; exitCode: number; log: string; timedOut: boolean; integrity: boolean; runtimeArtifacts?: { file: string; kind: 'sqlite'; sha256: string }[] };
 export type Mutation = { incomplete: boolean; mutants: { id: string; file: string; line: number; status: string; diff: string }[]; log: string; timedOut: boolean; scope?: { file: string; functions: string[]; lines: number[]; kind: 'functions' | 'file'; suite: 'approved_generated'; setupFiles?: string[] }; totalMutants?: number };
 export type DiagnosisPhase = 'collection' | 'baseline' | 'execution' | 'remeasurement';
 export type Diagnosis = z.infer<typeof diagnosisSchema>["decisions"][number] & { phase?: DiagnosisPhase };
 export type PythonReport = {
+  testAttempts?: TestAttempt[];
+  stopReason?: string;
   analysisCorrection?: { original: Analysis; error: string };
   runtime?: ProjectRuntime;
   execution?: { queueId: string; image: string; attempt: number; recovered: boolean };
@@ -78,7 +90,7 @@ export type PythonReport = {
   collection?: { exitCode: number; log: string; timedOut?: boolean };
   elapsedMs?: number;
   retrieval?: { query: string; documents: { file: string; text: string; score: number; sha256: string }[] };
-  configuration?: { sandboxImage: string; improvementLimit: number; mutationSeconds: number };
+  configuration?: { sandboxImage: string; improvementLimit: number; mutationSeconds: number; policyVersion?: string; mode?: 'saved_tests' | 'regenerate' };
   initialStates?: PythonReport["states"];
   id: string; title: string; createdAt: string; model: string; source: string; fingerprint: string;
   status: "running" | "completed" | "failed" | "cancelled"; stage: string; error?: string;
@@ -86,6 +98,7 @@ export type PythonReport = {
   requirementInput?: { mode: 'numbered' | 'text'; text: string; context: string };
   requirementDocument?: { id: string; fileName: string; sha256: string; warnings: string[]; selectedBlocks: number; totalBlocks: number; textEdited?: boolean; format?: RequirementDocument['format']; pages?: DocumentPage[] };
   parentRunId?: string;
+  replay?: { suiteHash: string; states: PythonReport['states'] };
   clarification?: string;
   workerId?: string;
   projectSetup?: ProjectSetup;

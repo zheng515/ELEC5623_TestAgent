@@ -26,8 +26,42 @@ policy, whose effectiveness still requires independent evaluation.
 | Which requirement was tested? | Automatic numbered input grouping, original IDs and exact page/paragraph excerpts. | Original document, excerpt offsets, rule/behavior/test IDs and executed node. Supporting context is retained but not independently verified. |
 | Why did a test fail? | Phase-specific diagnoses with requirement, source, test and traceback quotes. | Saved evidence links, not the diagnosis label alone. |
 | Why was a failure retained? | Only diagnosed generated-test errors can replace approved tests. | Current failing node, potential-defect diagnosis, unchanged artifact and before/after history. The defect remains a hypothesis until investigated. |
-| What happens after a proposal is rejected? | One bounded improvement can target a supported behavior lacking an approved generated check. | Original blocked proposal, replacement review and actual re-execution. No review gate is bypassed. |
+| What happens after a proposal is rejected? | One bounded improvement can correct an explicitly rejected proposal with unique, valid original citations. A supported behavior without any proposal can receive a new reviewed check. | Original blocked proposal, replacement review and actual re-execution. Duplicate or ungrounded reviews do not authorize correction. |
 | Is a passing suite strong enough? | Selected mutation execution and original-contract survivor review. | Exact mutant differences and raw outcomes. Unreviewed relevance/equivalence judgments are not a gold mutation score. |
+
+## Concrete user workflows
+
+These examples illustrate the implemented contribution. They are development
+evidence, not a benchmark against another product or independent accuracy labels.
+No model run is needed to inspect the saved records.
+
+| Situation | What the user can inspect | Useful next action |
+| --- | --- | --- |
+| A passing suite misses a stated boundary | The shipping SRS explicitly includes 10000 cents in free shipping. The implementation uses `> 10000`; a generated boundary assertion fails. The retained run has six passes and one failure, and its exported tests reproduce those outcomes. | Follow R2 to its behavior, assertion and failure. Investigate the implementation while keeping the requirement-grounded failing check. |
+| The Agent proposes a test that is not admitted | Each round records its candidate code, admission reasons and model review responses. A rejected retry leaves the earlier approved suite intact. Applied does not imply that execution passed. | Open Agent decisions, inspect the exact rejection, then clarify or regenerate. A zero-test run is not a verification success. |
+| A surviving mutation changes an unspecified detail | The saved strict-CI acceptance has two message-only survivors, each reviewed separately against all four mapped behaviors. The eight decisions support their individual exclusions; one decision cannot clear the entire file. | Inspect the exact diff and each cited requirement. Investigate a missing/relevant pair instead of interpreting every survivor as a business defect. |
+| A fresh generation produces different tests | Saved-test execution checks the same source fingerprint, image and saved suite without a model call. A separate regenerate action requests fresh analysis. | Repeat saved tests when investigating execution behavior; regenerate when revising requirements or analysis. Unresolved adequacy is not upgraded merely because the same tests pass again. |
+
+Inspect the actual [shipping SRS and defect](../experiments/acceptance/2026-10-26/srs/README.md)
+and [strict-CI mutation acceptance](../experiments/acceptance/2026-10-26/strict-ci/README.md).
+Both are historical synthetic model runs; they predate the current decision-history
+UI and must not be described as fresh acceptance of the current build.
+Current deterministic regressions in `tests/python-agent.test.ts` exercise admitted,
+rejected, failed and out-of-scope proposals; `tests/run-queue.test.ts` checks saved
+execution and interrupted-worker recovery. These establish control-flow properties,
+not the correctness of arbitrary model judgments.
+
+The [integrated acceptance from 2026-10-27](../experiments/acceptance/2026-10-27/README.md)
+adds fresh model runs with decision history and stopping reasons: the correct copy
+passed strict CI, while the known boundary defect was detected and its assertion
+retained. Separate exported-suite executions reproduced both outcomes. This is one
+synthetic project in two conditions, not a comparative benchmark or accuracy score.
+
+The overlap with the related approaches above is generation, executable feedback
+and mutation analysis. The specific contribution demonstrated here is keeping an
+inspectable requirement contract across admission, execution, diagnosis and bounded
+improvement so the user can choose what to investigate. It is not a claim of a new
+test-generation algorithm, higher fault detection or a feature absent elsewhere.
 
 ## Reproduce the comparison without model calls
 

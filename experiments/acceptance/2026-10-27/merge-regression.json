@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-27",
+  "kind": "post-merge deterministic regression; not model acceptance or a benchmark",
+  "branch": "version-2",
+  "mergeCommit": "0ce64ff89d6778f75a067b4d90238112cbf9c051",
+  "remoteVersion2": "0d03a50e7314db4a6351aea0638bb39c75771b78",
+  "workingTreeModified": true,
+  "policyVersion": "contract-witness-v6-review-recovery",
+  "fileHashes": {
+    "lib/python-agent.ts": "e2c906c0f9667ef0986f35ea55fb889f355b58888e06b64c30ad3e207284391e",
+    "lib/python-types.ts": "c03bfb3fbed2d08e89b91610739f825ee7e3b3fe5f8fadef44bd28a2fd9a9e3e",
+    "lib/run-queue.ts": "c30d0ee55206aca873f8898e60456d158872ecee3147a8e75fb047ec87114e7e",
+    "lib/deployment.ts": "633ff287fd160d583c3194d688d83a5e844e94c87eb801cf85a8d0200cb198a8",
+    "scripts/production.ts": "17ee00b235a58715d2015ec385b58882348580644be51a16e5fc22457245e97d",
+    "package.json": "77d621dc893001b2b2e2995f50d45b476bbf2b834507b70a9266f2b0d1474a9a",
+    "components/shell/evaluation-workspace.tsx": "133046e45b3b6ef77b057320e8666e6a216c264b579489e33571d2d39123b394",
+    "tests/review-recovery.test.ts": "44047db3176e83d715e8f53deb3143235a954f198033fdeedba1b3d4f3f87dee"
+  },
+  "regression": {
+    "total": 111,
+    "passed": 109,
+    "skipped": 2,
+    "failed": 0
+  },
+  "recoveryFocusedTests": {
+    "passed": 7,
+    "failed": 0
+  },
+  "build": "passed",
+  "typecheck": "passed",
+  "lint": "passed",
+  "englishCheck": "passed",
+  "productionConfigurationCheck": "passed with local-mail warning",
+  "browser": "project workflow and saved-suite replay passed with mocked transport",
+  "realModelCalls": 0,
+  "backupStash": "0683da4fe08b2c52d2e1719b4e08da231ee3c906",
+  "restoredNewFiles": 336,
+  "missingRestoredFiles": 0
+}

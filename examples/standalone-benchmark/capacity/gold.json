@@ -1,0 +1,26 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "rule-1",
+      "ruleId": "R1",
+      "description": "For built-in integer capacity and booked with 0 <= booked <= capacity, capacity.available(capacity, booked) returns the integer capacity minus booked. Equality and zero capacity are valid.",
+      "initialGap": true
+    },
+    {
+      "id": "rule-2",
+      "ruleId": "R2",
+      "description": "Negative counts or booked greater than capacity raise ValueError.",
+      "initialGap": true
+    },
+    {
+      "id": "rule-3",
+      "ruleId": "R3",
+      "description": "Either argument whose type is not built-in int, including bool, raises TypeError.",
+      "initialGap": true
+    }
+  ]
+}
