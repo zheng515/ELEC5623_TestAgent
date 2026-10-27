@@ -12,6 +12,7 @@ failures and attempts one bounded test improvement.
 - Check project dependencies before model calls and reuse the checked code snapshot.
 - Analyze requirement quality, behavior-level test gaps and code/test conflicts.
 - Generate reviewed pytest or node:test artifacts and execute them in a disposable Docker sandbox.
+- Verify full-stack Python web projects: server rules get API or unit tests, and page behavior gets headless Chromium browser tests against the project's own application, with screenshots of failures.
 - Install compatible Python wheels or locked npm packages in a reusable, pinned image; inspect actual installed versions.
 - Run checks against disposable PostgreSQL and Redis services on a private network.
 - Diagnose collection, existing-test and generated-test failures with recorded evidence.
@@ -247,6 +248,13 @@ only their own schema. PostgreSQL must be available before running account tests
    It becomes the project root for runtime detection, dependencies, imports and
    tests. Sibling directories are outside the analyzed scope; keep required shared
    code inside the selected project or select a broader root.
+   For a full-stack Python project whose server code, requirement files and pytest
+   configuration live in a subdirectory, leave **Project directory** at the root and
+   set **Advanced settings → Run directory** to that subdirectory, for example `backend`.
+   The whole project, including HTML, CSS and JavaScript, is analyzed and cited, while
+   dependencies are installed and pytest runs inside the run directory. Recorded paths
+   stay relative to the project root. Requirement files may include each other with
+   `-r other-requirements.txt` inside the run directory.
    Advanced settings are collapsed by default. Defaults detect the runtime and use
    the server sandbox without installing dependencies or starting test services.
    Collapsing the panel retains selections; changing project or environment inputs
@@ -382,10 +390,27 @@ Discovery executes existing test bodies in a disposable copy; it is not static
 collection. Assertion failures are retained for baseline diagnosis, while import,
 unsupported-suite, duplicate-name and integrity errors prevent unsupported
 verification. Selected existing test IDs are executed individually by file/name.
-Jest/Vitest, nested suites, browser automation and arbitrary project layouts are
-not supported. Generated artifacts are stored under reqtest_generated; file-load
+Jest/Vitest, nested suites and arbitrary project layouts are not supported. Generated artifacts are stored under reqtest_generated; file-load
 errors are associated with their artifact for evidence-based diagnosis/repair,
 while positive verification still requires the exact registered test name.
+
+### Browser tests
+
+Python projects can verify page behavior in headless Chromium (Playwright 1.55).
+The model chooses the test level per behavior: server rules, data, validation and
+access control are checked through direct calls or the project's own test client;
+what a user sees in pages (defaults, navigation, redirects, client-side validation and
+messages) is checked in a browser. Browser tests request two sandbox fixtures:
+`live_server(app)` serves the project's own ASGI application (with uvicorn from the
+project's dependencies) or WSGI application on a loopback port and stops it after the
+test, and `page` is a Chromium page with five-second waits. Tests build the
+application through the project's public factory with temporary storage, use
+selectors present in the submitted frontend files and never reach an external
+network. A failed browser test records a JPEG of the page, shown under its failure in
+Evaluation. Exported test archives include the fixtures as
+`reqtest_generated/conftest.py`. Mutation testing covers Python sources only;
+frontend JavaScript is exercised by browser tests but not mutated. Browser tests make
+mutation runs slower, so fewer mutants finish within the mutation time budget.
 
 Optional PostgreSQL 17 and Redis 7 services start fresh for each tool invocation,
 on an internal Docker network with no published ports. Only their generated

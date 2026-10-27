@@ -64,7 +64,7 @@ export const relevanceSchema = z.object({ decisions: z.array(z.object({
 })).max(16) });
 export type Analysis = z.infer<typeof analysisSchema>;
 export type PythonTest = z.infer<typeof testsSchema>["tests"][number] & { approved?: boolean; review?: string; reviewDecision?: { supported: boolean; quote: string; reason: string } };
-export type Outcome = { node: string; file: string; name: string; status: "passed" | "failed" | "error" | "skipped"; message: string };
+export type Outcome = { node: string; file: string; name: string; status: "passed" | "failed" | "error" | "skipped"; message: string; screenshot?: string };
 export type Measurement = { outcomes: Outcome[]; exitCode: number; log: string; timedOut: boolean; integrity: boolean; runtimeArtifacts?: { file: string; kind: 'sqlite'; sha256: string }[] };
 export type Mutation = { incomplete: boolean; mutants: { id: string; file: string; line: number; status: string; diff: string }[]; log: string; timedOut: boolean; scope?: { file: string; functions: string[]; lines: number[]; kind: 'functions' | 'file'; suite: 'approved_generated'; setupFiles?: string[] }; totalMutants?: number };
 export type DiagnosisPhase = 'collection' | 'baseline' | 'execution' | 'remeasurement';

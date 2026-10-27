@@ -31,7 +31,7 @@ export async function importProject(root: string, archive: Buffer, requested: Pr
     if (directory && !relative.startsWith(directory + '/')) continue;
     const name = directory ? relative.slice(directory.length + 1) : relative;
     if (!/^[\w./-]+$/.test(name) || name.split('/').some((part) => part.startsWith('.') || ['node_modules', '__pycache__', 'reqtest_generated'].includes(part))) continue;
-    if (!/\.(py|[cm]?[jt]sx?|md|txt|toml|cfg|json|lock)$/.test(name)) continue;
+    if (!/\.(py|[cm]?[jt]sx?|md|txt|toml|cfg|ini|json|lock|html?|css)$/.test(name)) continue;
     // JSZip replaces each empty entry with in-memory empty data that has no declared size.
     const data = (entry as unknown as { _data?: { uncompressedSize?: number } })._data;
     const declared = data && 'uncompressedSize' in data ? Number(data.uncompressedSize) : 0;
@@ -94,6 +94,7 @@ export async function dockerTool<T>(root: string, job: object, signal: AbortSign
   const runtime = await readRuntime(root);
   const config = await readFile(join(root, "runtime.json"), "utf8").then(text => JSON.parse(text)).catch(() => ({}));
   const service = !buildName && ["inspect", "measure", "mutate"].includes((job as {action?:string}).action || "") ? await testServices(config.services || [], signal, basename(root)) : await testServices([], signal);
+  const runDirectory = typeof config.runDirectory === "string" ? config.runDirectory : "";
   if (signal.aborted) { await service.cleanup(); signal.throwIfAborted(); }
   const child = spawn('docker', ['run', ...(buildName ? [] : ['--rm']), '-i', '--name', name, '--label', 'reqtest.role=sandbox', '--label', 'reqtest.scope=' + basename(root), '--network', buildName ? 'bridge' : service.network, ...(buildName ? [] : ['--read-only']), '--cap-drop=ALL', '--security-opt=no-new-privileges', '--pids-limit', '128', '--cpus', '1', '--memory', '512m', ...service.env.flatMap(value => ['--env', value]), '--tmpfs', '/work:rw,exec,size=256m,mode=1777', '--tmpfs', '/tmp:rw,exec,size=' + (buildName ? '256m' : '32m') + ',mode=1777', '--mount', `type=bind,src=${join(root, 'source')},dst=/project,readonly`, '--mount', `type=bind,src=${join(root, 'generated')},dst=/generated,readonly`, image], { stdio: ['pipe', 'pipe', 'pipe'] });
   let stdout = '', stderr = '', stopReason = '';
@@ -102,7 +103,7 @@ export async function dockerTool<T>(root: string, job: object, signal: AbortSign
   // Requirement extraction runs until the request ends; project commands keep their time limits.
   const timeout = (job as {action?:string}).action === 'document' ? undefined : setTimeout(() => { stopReason = 'Sandbox execution exceeded its time limit.'; stop(); }, buildName ? 240000 : 110000);
   signal.addEventListener('abort', stop, { once: true });
-  child.stdin.on('error', () => {}); child.stdin.end(JSON.stringify({ ...job, runtime }));
+  child.stdin.on('error', () => {}); child.stdin.end(JSON.stringify({ ...job, runtime, runDirectory }));
   try {
     return await new Promise<T>((resolve, reject) => {
       child.on('error', reject);
@@ -134,10 +135,24 @@ export const inspectProject = async (root: string, signal: AbortSignal, image?: 
   snapshot.files = Object.fromEntries(Object.entries(snapshot.files).filter(([name]) => !dependencyLockFile(name)));
   return snapshot;
 };
-export const measureProject = (root: string, nodes: string[], generated: boolean, signal: AbortSignal, image?: string) => dockerTool<Measurement>(root, { action: 'measure', nodes, generated }, signal, image);
+export async function measureProject(root: string, nodes: string[], generated: boolean, signal: AbortSignal, image?: string) {
+  const measurement = await dockerTool<Measurement>(root, { action: 'measure', nodes, generated }, signal, image);
+  // Store failure screenshots beside the run; the report keeps only their content-addressed names.
+  for (const outcome of measurement.outcomes) {
+    if (!outcome.screenshot) continue;
+    const bytes = Buffer.from(outcome.screenshot, 'base64'), name = createHash('sha256').update(bytes).digest('hex') + '.jpg';
+    await mkdir(join(root, 'screenshots'), { recursive: true });
+    await writeFile(join(root, 'screenshots', name), bytes);
+    outcome.screenshot = name;
+  }
+  return measurement;
+}
 export const mutateProject = (root: string, files: string | string[], signal: AbortSignal, image?: string, functions?: string[], nodes: string[] = []) => dockerTool<Mutation>(root, { action: 'mutate', file: typeof files === 'string' ? files : files[0], files: typeof files === 'string' ? [files] : files, functions, nodes }, signal, image);
 
 
+export async function readRunDirectory(root: string) {
+  try { const data = JSON.parse(await readFile(join(root, "runtime.json"), "utf8")); return typeof data.runDirectory === "string" ? data.runDirectory : ""; } catch { return ""; }
+}
 export async function readRuntime(root: string): Promise<ProjectRuntime> {
   try { const data = JSON.parse(await readFile(join(root, "runtime.json"), "utf8")); return data.runtime === "node" ? "node" : "python"; } catch { return "python"; }
 }

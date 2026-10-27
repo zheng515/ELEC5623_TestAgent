@@ -9,7 +9,7 @@ import JSZip from "jszip";
 import { extractRequirements, loadRequirements, documentRules, originalRequirements } from "../lib/requirements";
 import { prepareProject, copyPreparedProject } from "../lib/project-setup";
 import { dataDir } from "../lib/auth";
-import { githubArchive, importProject, inspectProject } from "../lib/python-tools";
+import { githubArchive, importProject, inspectProject, measureProject } from "../lib/python-tools";
 
 test("project directories isolate runtime inputs while retaining bounded dependency lockfiles", async () => {
   const root = await mkdtemp(join(tmpdir(), 'reqtest-directory-'));
@@ -155,6 +155,41 @@ test("preflight detects missing/versioned dependencies without importing project
   } finally { await rm(destination, { recursive: true, force: true }); await rm(join(dataDir, "preflights", createHash("sha256").update(user).digest("hex")), { recursive: true, force: true }); }
 });
 
+
+test("run directories execute whole-project browser checks and keep failure screenshots", { skip: process.env.REQTEST_DOCKER_TEST !== "1", timeout: 180000 }, async () => {
+  const user = randomUUID(), destination = await mkdtemp(join(tmpdir(), "reqtest-browser-"));
+  const zip = new JSZip();
+  zip.file("shop/web/index.html", '<!doctype html><title>Shop</title><button id="buy" disabled>Buy</button>');
+  zip.file("shop/server/__init__.py", "");
+  zip.file("shop/server/app.py", "from pathlib import Path\nPAGE = Path(__file__).resolve().parent.parent / 'web' / 'index.html'\n\n\ndef read_page():\n    return PAGE.read_text()\n\n\ndef application(environ, start_response):\n    start_response('200 OK', [('Content-Type', 'text/html')])\n    return [read_page().encode()]\n");
+  zip.file("shop/server/requirements.txt", "-r base-requirements.txt\n");
+  zip.file("shop/server/base-requirements.txt", "pytest>=8\n");
+  zip.file("shop/server/tests/test_app.py", "from app import read_page\n\n\ndef test_page():\n    assert 'Buy' in read_page()\n");
+  const form = new FormData(); form.set("project", new File([new Uint8Array(await zip.generateAsync({ type: "nodebuffer" }))], "shop.zip"));
+  form.set("runDirectory", "server");
+  try {
+    const setup = await prepareProject(user, form, new AbortController().signal);
+    assert.equal(setup.runDirectory, "server");
+    assert.equal(setup.setup.checks.find(check => check.label === "pytest>=8")?.status, "passed", "Requirement includes resolve inside the run directory");
+    await copyPreparedProject(user, setup.id, destination); await mkdir(join(destination, "generated"));
+    const inspection = await inspectProject(destination, AbortSignal.timeout(60000), setup.sandboxImage);
+    assert.deepEqual(inspection.nodes, ["server/tests/test_app.py::test_page"]);
+    assert.match(inspection.files["web/index.html"], /id="buy"/);
+    const browser = (name: string, state: string) => `from app import application\nfrom playwright.sync_api import expect\n\n\ndef ${name}(live_server, page):\n    page.goto(live_server(application))\n    expect(page.locator('#buy')).to_be_${state}()\n`;
+    await writeFile(join(destination, "generated", "test_reqtest_T1.py"), browser("test_buy_starts_disabled", "disabled"));
+    await writeFile(join(destination, "generated", "test_reqtest_T2.py"), browser("test_buy_starts_enabled", "enabled"));
+    const measured = await measureProject(destination, inspection.nodes, true, AbortSignal.timeout(120000), setup.sandboxImage);
+    const status = Object.fromEntries(measured.outcomes.map(outcome => [outcome.node, outcome.status]));
+    assert.deepEqual(status, { "server/tests/test_app.py::test_page": "passed", "reqtest_generated/test_reqtest_T1.py::test_buy_starts_disabled": "passed", "reqtest_generated/test_reqtest_T2.py::test_buy_starts_enabled": "failed" });
+    assert.equal(measured.integrity, true);
+    const failed = measured.outcomes.find(outcome => outcome.status === "failed")!;
+    assert.match(failed.screenshot || "", /^[a-f0-9]{64}\.jpg$/);
+    assert.deepEqual([...(await readFile(join(destination, "screenshots", failed.screenshot!))).subarray(0, 2)], [0xff, 0xd8], "Failure screenshots are stored as JPEG files");
+    assert.equal(measured.outcomes.filter(outcome => outcome.screenshot).length, 1, "Passing tests leave no screenshot");
+    const missing = new FormData(); missing.set("project", form.get("project")!); missing.set("runDirectory", "client");
+    await assert.rejects(prepareProject(user, missing, new AbortController().signal), /run directory contains no imported files/);
+  } finally { await rm(destination, { recursive: true, force: true }); await rm(join(dataDir, "preflights", createHash("sha256").update(user).digest("hex")), { recursive: true, force: true }); }
+});
 
 test("document page budgets, conversion failures and OCR timeouts retain explicit outcomes", { skip: process.env.REQTEST_DOCKER_TEST !== "1", timeout: 30000 }, async () => {
   execFileSync('docker', ['run', '--rm', '-i', '--network', 'none', '--read-only', '--tmpfs', '/work:rw,size=32m,mode=1777', '--tmpfs', '/tmp:rw,size=32m,mode=1777', '--entrypoint', 'python', process.env.REQTEST_SANDBOX_IMAGE || 'reqtest-python:1', '-c', 'import sys;exec(sys.stdin.read())'], { input: await readFile('tests/fixtures/document-failures.py'), timeout: 25000, stdio: ['pipe', 'pipe', 'pipe'] });

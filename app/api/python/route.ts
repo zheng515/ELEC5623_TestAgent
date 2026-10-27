@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     if (parent) {
       await cp(join(dataDir, 'runs', parent.id, 'source'), join(root, 'source'), { recursive: true });
       source = parent.source; fingerprint = parent.fingerprint; projectSetup = parent.projectSetup;
-      await writeFile(join(root, 'runtime.json'), JSON.stringify({runtime: parent.runtime || 'python', services: projectSetup?.services || []}));
+      await writeFile(join(root, 'runtime.json'), JSON.stringify({runtime: parent.runtime || 'python', runDirectory: projectSetup?.runDirectory || '', services: projectSetup?.services || []}));
     } else {
       const setupId = String(form.get('preflightId') || '');
       const setup = setupId ? await copyPreparedProject(account.user.id, setupId, root) : await (async () => { const token = form.get('repository') ? await repositoryToken(request, form) : ''; const next = await prepareProject(account.user.id, form, signal, token); return copyPreparedProject(account.user.id, next.id, root); })();

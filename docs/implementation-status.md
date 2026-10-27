@@ -139,7 +139,9 @@ tokens remain an alternative. Mocked-provider tests cover callback state, accoun
 isolation and encrypted persistence; real consent requires administrator-provided
 OAuth App credentials. Static preflight still does not prove
 startup readiness. Native install hooks, private registries, Jest/Vitest, nested
-Node suites, browser automation and general external services are unsupported.
+Node suites and general external services are unsupported. Browser automation is
+available for Python projects through sandbox Chromium fixtures; frontend JavaScript
+is not mutation-tested.
 
 ### Evaluation and deployment limits
 
