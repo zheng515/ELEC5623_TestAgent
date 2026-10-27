@@ -1,5 +1,63 @@
 # Implementation status
 
+## Source-line citations: 2026-10-27
+
+Policy v8 replaces copied file quotations in model analysis and diagnosis outputs
+with file/line selections. Zod resolves each selection against the original source,
+preserving indentation and line endings, and stores the exact quote and one-based
+line number. Invalid, blank, fractional and out-of-file selections are rejected;
+there is no fuzzy matching. Legacy quote-only evidence remains supported. A supplied
+line number must match its quote during validation. Real file lines do not establish
+semantic correctness or independently reviewed evidence.
+
+Only the provider-facing file view has numbered prefixes. Project snapshots and
+requirements stay unchanged. Prompt bytes/hash are recorded separately from the
+caller's original context size. Offline schema and mocked official-SDK checks cover
+encoding, original-quote restoration, legacy compatibility and invalid references.
+The full Docker regression passed 121 checks with two optional skips and no failures.
+Typecheck, lint, English-source checks, production build and ten browser-check groups
+passed. Evaluation displays file:line when that metadata is present.
+No paid model request, new experiment or academic report was produced for this
+change. The v7 acceptance below remains frozen evidence for its own source.
+
+## Focused-context real-model acceptance: 2026-10-27
+
+Four real-model component calls on captured follow-up inputs blocked an unsupported
+exception message and undefined threshold, identified a generated import error and
+flagged a seeded boundary defect. Draft expectations remain independently unreviewed;
+the fixture setup is scripted and these are not four full Agent runs.
+
+One complete B3 Booking run then produced five passing outcomes and one retained
+boundary failure. All five generated checks passed on the separate corrected copy.
+The first analysis included a non-verbatim README quote; source validation rejected
+it and the single correction succeeded. The workflow used five requests, 17389 tokens
+and 39.966 seconds. Together the checks used nine requests and 24767 tokens. No repeated
+trial or full-context control was run, and lower cost is not established. The older
+Booking observation used fewer resources, so input shrinking must not be claimed
+as measured savings. Frozen inputs, raw outputs and offline-rescorable evidence are
+under [the acceptance record](../experiments/acceptance/2026-10-27-focused-context/README.md).
+No academic report or separate five-project benchmark was produced.
+
+## Focused follow-up context and automatic safety checks: 2026-10-27
+
+Policy v7 removes duplicated retrieved-document bodies from model requests while
+retaining full retrieval evidence in reports. Initial analysis and generation keep
+the project context. Admission review, failure diagnosis and mutation review use
+mapped source files, cited documents/tests and recorded traceback files. All original
+requirements and supporting requirement context remain. Whole files are retained;
+unmapped cases fall back to the complete file context. Generated failure code is
+supplied once under its real artifact path. The experiment runner records serialized
+context bytes alongside hashes and provider usage for future runs.
+
+Four scripted-decision scenarios exercise real Docker execution: an unsupported
+exception message cannot execute, an invented import can receive one reviewed
+repair, a requirement-grounded boundary failure remains unchanged, and an ambiguous
+threshold cannot earn verification credit. Input-size checks use a controlled
+fixture containing unrelated documentation. These are orchestration safeguards,
+not evidence that the model always recognizes hallucinations or that model quality,
+latency or billed cost improved. No new model experiment or benchmark was run.
+The earlier six-run pilot keeps its frozen v6 source and original measurements.
+
 ## Code cleanup and Evaluation simplification: 2026-10-27
 
 Import-graph and TypeScript unused-symbol checks identified an unreferenced table

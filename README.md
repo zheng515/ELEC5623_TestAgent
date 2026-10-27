@@ -324,7 +324,10 @@ document coverage.
   uncertain just because another behavior in the same requirement has a conflict.
   Structured analysis limits implementation links to retained source files and
   existing-test links to discovered test IDs; documentation remains evidence.
-  Every evidence quote must appear verbatim in its file. A rejected analysis is sent
+  Analysis and diagnosis select a file and a one-based, nonblank source line; the
+  server restores its unchanged quotation and records the line number. Unknown
+  files, blank or invalid lines are rejected. Legacy quote-only records remain
+  readable. Source location does not prove semantic support. A rejected analysis is sent
   back once with the exact failure and invalid evidence; a second rejection fails the
   run. The report retains the original analysis and its error.
 - **Measure:** execute existing tests, generate targeted runtime-specific artifacts, independently
@@ -478,6 +481,11 @@ Time-dependent target code can still produce different execution outcomes.
 
 For multiline document requirements, model outputs reference stable requirement
 IDs; the SDK resolves these to unchanged original quotes before evidence validation.
+Source evidence uses a separate file/line encoding. Only model-facing file views
+receive line-number prefixes; saved code, requirement text and exported quotes are
+not rewritten. Provider usage includes promptBytes and promptHash for the actual
+encoded user prompt; experiment contextBytes describes the caller's pre-encoding
+context. Neither byte count includes system instructions or the output schema.
 Generated gap indexes are constrained to their referenced behavior's own gap list.
 New SQLite databases created during Python tests are recorded separately by path
 and SHA-256. Original files, generated test code and unexpected new files remain
@@ -542,6 +550,26 @@ ownership, source/evidence validation and verification-state safeguards. Docker 
 exercise real pytest/mutmut with deterministic model outputs: one preserves a genuine
 implementation defect, another detects surviving mutants and re-measures a targeted
 improvement. These are control-flow tests, **not measurements of model quality**.
+The focused safety check covers unsupported exception-message assertions, an invented
+generated import, a genuine boundary defect and an ambiguous threshold. It uses
+scripted model decisions with real Docker execution, makes no model requests and
+prints before/after serialized input sizes for its controlled context fixture:
+
+```sh
+REQTEST_DOCKER_TEST=1 node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx --test tests/agent-safety.test.ts
+```
+
+Initial analysis and generation retain project context. Follow-up review and
+diagnosis use mapped files, citations and traceback files; all original requirements
+and supporting requirement context remain. Unmapped cases retain full file context.
+File contents are not truncated. Retrieval records keep original text, but model
+requests reference the text in files instead of duplicating it. Generated failure
+code is sent once under its artifact path. Smaller serialized inputs are not a
+measured token, latency or accuracy improvement. A [small real-model acceptance](experiments/acceptance/2026-10-27-focused-context/README.md)
+records four component observations and one full Booking run. One invalid source
+quotation required correction; this acceptance does not establish lower cost or
+independent semantic accuracy. Broader comparisons remain pending.
+
 The queue integration test uses isolated PostgreSQL schemas and real Docker
 execution. It forcibly kills a worker during a task, starts a replacement, checks
 that saved analysis is reused, preserves a genuine failing assertion and verifies

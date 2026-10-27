@@ -505,8 +505,10 @@ test('collection and baseline dependency errors are diagnosed even with no gener
         return schema.parse({tests:[]});
       }
       if(Object.is(schema,diagnosisSchema)) {
-        const evidence=context as {phase:DiagnosisPhase;failedTestIds:string[];measurement:Measurement};
+        const evidence=context as {phase:DiagnosisPhase;failedTestIds:string[];measurement:Measurement;files:Record<string,string>;analysis:ReturnType<typeof analysis>};
         assert.ok(['collection','baseline'].includes(evidence.phase));
+        assert.equal(evidence.files['tests/test_missing.py'], 'import reqtest_missing_dependency\n', 'Unmapped environment failures retain full source context.');
+        assert.ok(evidence.analysis.behaviors.some(behavior => behavior.id === 'B1'), 'Fallback retains the original behavior analysis.');
         const executionQuote="ModuleNotFoundError: No module named 'reqtest_missing_dependency'";
         assert.ok(evidence.measurement.log.includes(executionQuote));
         return schema.parse({decisions:evidence.failedTestIds.map(testId=>({testId,category:'environment_failure',reason:'The sandbox is missing a dependency required by existing tests.',quote:'',executionQuote,evidence:[{file:'tests/test_missing.py',quote:'import reqtest_missing_dependency'}]}))});
