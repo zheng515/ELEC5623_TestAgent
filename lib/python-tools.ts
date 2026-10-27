@@ -32,7 +32,9 @@ export async function importProject(root: string, archive: Buffer, requested: Pr
     const name = directory ? relative.slice(directory.length + 1) : relative;
     if (!/^[\w./-]+$/.test(name) || name.split('/').some((part) => part.startsWith('.') || ['node_modules', '__pycache__', 'reqtest_generated'].includes(part))) continue;
     if (!/\.(py|[cm]?[jt]sx?|md|txt|toml|cfg|json|lock)$/.test(name)) continue;
-    const declared = (entry as unknown as { _data: { uncompressedSize: number } })._data?.uncompressedSize;
+    // JSZip replaces each empty entry with in-memory empty data that has no declared size.
+    const data = (entry as unknown as { _data?: { uncompressedSize?: number } })._data;
+    const declared = data && 'uncompressedSize' in data ? Number(data.uncompressedSize) : 0;
     const limit = dependencyLockFile(name) ? 1_000_000 : 200_000;
     if (!Number.isFinite(declared) || declared > limit || size + declared > 3_000_000) throw new Error("Expanded project exceeds 3 MB, a source file exceeds 200 KB, or a supported dependency lockfile exceeds 1 MB. Select a smaller project directory.");
     const text = await entry.async('string'); size += Buffer.byteLength(text);

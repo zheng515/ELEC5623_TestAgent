@@ -15,6 +15,7 @@ test("project directories isolate runtime inputs while retaining bounded depende
   const root = await mkdtemp(join(tmpdir(), 'reqtest-directory-'));
   const zip = new JSZip();
   zip.file('repository/backend/service.py', 'def fee(): return 0\n');
+  zip.file('repository/backend/__init__.py', '');
   zip.file('repository/backend/pyproject.toml', '[project]\nname="backend"\nversion="1"\ndependencies=["flask>=3"]');
   zip.file('repository/backend/uv.lock', '# retained lock metadata\n' + 'x'.repeat(210000));
   zip.file('repository/frontend/app.js', 'x'.repeat(250000));
@@ -23,7 +24,8 @@ test("project directories isolate runtime inputs while retaining bounded depende
   try {
     const snapshot = await importProject(root, archive, 'auto', 'backend/');
     assert.equal(snapshot.runtime, 'python');
-    assert.deepEqual(Object.keys(snapshot.files).sort(), ['pyproject.toml', 'service.py', 'uv.lock']);
+    assert.deepEqual(Object.keys(snapshot.files).sort(), ['__init__.py', 'pyproject.toml', 'service.py', 'uv.lock']);
+    assert.equal(snapshot.files['__init__.py'], '');
     assert.match(await readFile(join(root, 'source/pyproject.toml'), 'utf8'), /flask/);
     for (const path of ['../backend', '/backend', '/', 'backend/../frontend', 'backend\\service', '.hidden', 'backend//service']) await assert.rejects(importProject(root, archive, 'auto', path), /relative project directory/);
     await assert.rejects(importProject(root, archive, 'auto', 'missing'), /No source files/);
