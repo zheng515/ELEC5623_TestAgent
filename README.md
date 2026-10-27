@@ -587,14 +587,21 @@ pilot is not a completed independent evaluation or a real-world effectiveness cl
 
 ### Controlled project experiments
 
-The standalone experiment configuration runs three development projects across
-B0–B3 with three repetitions each (36 runs). External executable contract witnesses
+The current small pilot uses three development projects and B0/B3 once each
+(six runs): `npm run experiment:pilot`. It cannot assess repeatability. The larger
+B0–B3 configuration remains available but is not started by the pilot. Older
+experiment outputs were removed because their frozen sources differed from the
+current implementation. External executable contract witnesses
 validate original/corrected reference copies without entering model context.
 The runner preserves frozen inputs, image/source/dependency fingerprints, request
 usage, errors and timing. Objective measurements export to CSV/JSON and standalone
 PNG/SVG figures. Independent semantic metrics remain unavailable without human
 review. See [the experiment protocol](examples/experiments/README.md) for commands,
 denominators and limitations. This workflow is separate from the website.
+The [current-source six-run pilot](experiments/results/2026-10-27-current-pilot/README.md)
+contains actual records and standalone figures. Both configurations detected the
+two seeded defects; the full Agent consumed more time and tokens. One observation
+per case/configuration does not assess repeatability or independent semantic accuracy.
 
 The five-project standalone comparison is configured separately in
 [the standalone benchmark protocol](examples/standalone-benchmark/README.md).
@@ -631,21 +638,22 @@ verification runs. Refresh reloads saved results without making a model request;
 a selected running job updates every four seconds.
 
 Project verification contains inputs, progress, a short summary and next actions.
-Use **View results in Evaluation** to open that run's charts and detailed results.
-The requirement traceability table and technical report are not repeated on the
+Use **View results in Evaluation** to open that run's results and evidence.
+The requirement traceability list and technical report are not repeated on the
 task page. Original text and excerpts are collapsed with bounded scroll areas.
 
-- Summary cards show passed, failed/error and skipped outcomes separately from
-  approved test files. A shared next-action summary distinguishes workflow
-  completion, test outcomes and requirement verification. Existing charts remain.
-- Charts show requirement states and the latest test outcomes, including errors
-  and skipped cases. A missing execution is unavailable, not a zero-percent pass.
+- Four result cards show passed, failed, errors and skipped separately. Select a
+  card to filter the test list; failures and errors appear first in All results.
+  Expand a result for its test ID, behavior link, execution node and message.
+- A native SVG ring shows the recorded pass rate, passing count and total, with
+  separate counts for failures, errors and skips. Empty execution shows no rate.
+  Requirement progress is separate. Blocked proposals are not executed outcomes.
 - A requirement is Verified only when all its mapped behavior assessments are
   Verified with passing recorded nodes and intact execution evidence. Running
   reports are Pending; failed, cancelled or conflicting evidence is Uncertain.
   Unmapped requirements stay visible. These states concern recorded cases and do
   not establish exhaustive specification coverage or independent agent accuracy.
-- Evidence checks show saved code fingerprints, document citations, selected
+- Collapsed evidence checks show saved code fingerprints, document citations, selected
   extraction scope and execution integrity. Pasted requirements do not require
   document citations. Fingerprints are not rechecked by viewing the dashboard.
 - Expand requirements to inspect original quotes, PDF page links, OCR confidence

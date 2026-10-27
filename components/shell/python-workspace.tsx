@@ -96,7 +96,7 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
     if (!selected) { setError('Project import is still starting. Wait for the run record before stopping.'); return; }
     const response = await fetch('/api/python', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selected.id }) });
     if (!response.ok) setError('Cannot stop this run. Refresh its current state.');
-    else setStage('Stopping');
+    else { setStage('Stopping'); setSelected(current => current && { ...current, stage: 'Stopping' }); }
   }
   function newVerification(previous?: PythonReport) {
     setSelected(undefined); setError(''); setDocument(undefined); setRequirements(''); setSetup(undefined); setParent(previous); setComparison(previous);
@@ -189,27 +189,35 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
       {selected && !busy && <Button variant="outline" onClick={() => newVerification()}>New verification</Button>}
       {selected && !busy && <Button variant="outline" onClick={() => newVerification(selected)}>Regenerate / clarify</Button>}
       {selected && !busy && <Button variant="outline" disabled={!selected.tests.some(test => test.approved) || selected.status === 'running'} onClick={() => run(undefined, selected)}>Re-run saved tests</Button>}
-      {busy && <Button variant="destructive" onClick={stop}>Stop</Button>}
-      {busy && <p role="status">{stage}…</p>}
+      {busy && !selected && <Button variant="destructive" onClick={stop}>Stop</Button>}
+      {busy && !selected && <p role="status">{stage}…</p>}
     </div>
     {error && <p role="alert" className="text-red-400">{error}</p>}
     {selected && <>
       <header><h2 className="text-2xl font-bold">{selected.title} · {selected.status}</h2><p className="text-sm text-muted-foreground">{selected.source}</p>{selected.error && <p role="alert" className="text-red-400">{selected.error}</p>}</header>
       <section className="border rounded p-5 space-y-3">
+        {selected.status === 'running' ? <>
+          <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold text-lg">Verification in progress</h3><Button variant="destructive" disabled={selected.stage === 'Stopping'} onClick={stop}>{selected.stage === 'Stopping' ? 'Stopping…' : 'Stop'}</Button></div>
+          <p role="status" className="flex items-center gap-2"><span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-primary motion-safe:animate-pulse" />Current step: {selected.stage}</p>
+          <p className="text-sm text-muted-foreground">{selected.rules.length} requirement items detected</p>
+          <p className="text-sm text-muted-foreground">Please wait. Results will be available when verification finishes.</p>
+        </> : <>
         <h3 className="font-bold text-lg">{summary?.title}</h3>
-        {selected.execution && <p className="text-sm text-muted-foreground">{selected.status === 'running' ? selected.stage + '. ' : ''}{selected.execution.recovered ? `Worker recovery attempt ${selected.execution.attempt}. Saved checkpoints are reused when available.` : selected.execution.attempt ? 'Processed by the background verification worker.' : 'Queued. Waiting for an available background worker.'}</p>}
-        <p>Workflow: {selected.status}. This is separate from test and requirement results.</p>
-        {selected.replay && <p>Saved tests re-executed without model calls. Original analysis and reviews were reused; no new diagnosis or mutation analysis was performed.</p>}
         <p>{summary?.passed} passed · {summary?.failedCount} failed · {summary?.errors} errors · {summary?.skipped} skipped</p>
         <p className="text-sm text-muted-foreground">{selected.rules.length} input items · {selected.analysis?.behaviors.length || 0} analyzed behaviors · {summary?.approved} approved test files · {summary?.blocked} blocked or awaiting review</p>
         <p>{summary?.unresolved.length} of {selected.rules.length} requirement items still need verification.</p>
         <p><strong>Next action:</strong> {summary?.next}</p>
         {!!summary?.unmapped.length && <p role="status">{summary.unmapped.length} input items have no analyzed behavior. They are not verified.</p>}
-        {selected.requirementDocument && <p className="text-sm">Document scope: {selected.requirementDocument.selectedBlocks} of {selected.requirementDocument.totalBlocks} original text blocks linked from {selected.requirementDocument.fileName}. Edited text without an exact match has no original-block citation.</p>}
+        </>}
+        <details className="text-sm text-muted-foreground"><summary className="cursor-pointer">Run details</summary><div className="mt-3 space-y-2">
+          <p>Workflow: {selected.status}. This is separate from test and requirement results.</p>
+          {selected.execution && <p>{selected.execution.recovered ? `Worker recovery attempt ${selected.execution.attempt}. Saved checkpoints are reused when available.` : selected.execution.attempt ? 'Processed by the background verification worker.' : 'Queued. Waiting for an available background worker.'}</p>}
+          {selected.replay && <p>Saved tests re-executed without model calls. Original analysis and reviews were reused; no new diagnosis or mutation analysis was performed.</p>}
+          {selected.requirementDocument && <p>Document scope: {selected.requirementDocument.selectedBlocks} of {selected.requirementDocument.totalBlocks} original text blocks linked from {selected.requirementDocument.fileName}. Edited text without an exact match has no original-block citation.</p>}
+        </div></details>
         {selected.parentRunId && comparison?.id === selected.parentRunId && <details><summary>Compare with previous run</summary><p>Previous: {comparison.status}, {comparison.measurements.at(-1)?.outcomes.length || 0} recorded outcomes, {comparison.states.filter(state => state.status === 'Verified').length} verified behaviors.</p><p>Current: {selected.status}, {summary?.latest?.outcomes.length || 0} recorded outcomes, {selected.states.filter(state => state.status === 'Verified').length} verified behaviors.</p><p>Same source fingerprint: {comparison.fingerprint === selected.fingerprint ? 'Yes' : 'No'}. Requirements may have changed; this is a run comparison, not an independent improvement score.</p></details>}
       </section>
-      <Button disabled={busy} onClick={() => onOpenEvaluation(selected.id)}>View results in Evaluation</Button>
-      <p className="text-sm text-muted-foreground">Requirement states, test results, generated tests and detailed evidence are available in Evaluation.</p>
+      {selected.status !== 'running' && <><Button disabled={busy} onClick={() => onOpenEvaluation(selected.id)}>View results in Evaluation</Button><p className="text-sm text-muted-foreground">Requirement states, test results, generated tests and detailed evidence are available in Evaluation.</p></>}
     </>}
   </section>;
 }

@@ -136,4 +136,17 @@ ax.tick_params(length=0, pad=10)
 for spine in ax.spines.values(): spine.set_visible(False)
 save(fig, "06-case-results", "Denominators include every planned repeat. No seeded fault does not mean no possible bug. Detection requires the original failure and a matching pass on the corrected copy; this is not overall semantic accuracy.")
 
+if any("referenceFailureObserved" in row for row in rows):
+    fig, ax = plt.subplots(figsize=(9, 5))
+    bottom = np.zeros(len(labels))
+    for state, color, label in [(False, "#2563eb", "No reference assertion failure"), (True, "#f59e0b", "Reference assertion failure"), (None, "#cbd5e1", "Replay unavailable")]:
+        values = [sum(row.get("referenceFailureObserved") is state for row in rows if row["variant"] == variant) for variant in labels]
+        bars = ax.bar(x, values, bottom=bottom, color=color, label=label, width=.55)
+        ax.bar_label(bars, labels=[str(value) if value else "" for value in values], label_type="center")
+        bottom += values
+    ax.set(xticks=x, xticklabels=labels, ylabel="Number of runs", title="Generated tests replayed on reference copies", ylim=(0, max(bottom) * 1.15))
+    ax.yaxis.get_major_locator().set_params(integer=True)
+    ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1, 1))
+    save(fig, "07-reference-replay", "Reference copies passed fixed external contract witnesses. Remaining assertion failures are disagreements to investigate, not independently established false positives. Empty, erroneous or skipped replays are unavailable.")
+
 print(f"Saved PNG and SVG figures to {figures}")

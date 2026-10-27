@@ -63,25 +63,23 @@ inspectable requirement contract across admission, execution, diagnosis and boun
 improvement so the user can choose what to investigate. It is not a claim of a new
 test-generation algorithm, higher fault detection or a feature absent elsewhere.
 
-## Reproduce the comparison without model calls
+## Current evaluation status
 
-The checked-in pilot uses three development cases, four configurations and three
-repetitions. Re-score its frozen evidence with:
+Old benchmark and experiment outputs were removed on 2026-10-27 because their
+frozen agent sources differ from the current implementation. Their scores and
+latency comparisons must not be presented as current results.
 
-```sh
-npm run experiment:analyze -- experiments/results/2026-10-26/evidence/index.json /tmp/reqtest-comparison
-```
+The replacement [six-run development pilot](../experiments/results/2026-10-27-current-pilot/README.md)
+completed: three existing projects,
+B0 and B3, one observation per project/configuration. B0 is local direct generation
+with schema/original-quote checks but no model admission review; it is not Codex,
+Claude or a paper implementation. B3 adds model review and the full workflow. Both
+configurations share model, input archives, requirements and sandbox image.
+See [the experiment protocol](../examples/experiments/README.md).
 
-Inspect `workflow-evidence.json` for linked behavior evidence, diagnosis counts,
-retained potential-defect failures, accepted changes and per-variant trade-offs.
-Counts describe recorded workflow actions; they are not correctness labels.
-The file points to each saved report so a reader can inspect the actual decisions.
-
-B0 is a local direct-generation baseline, not an implementation of a named
-commercial product or paper. B0, B1 and B3 each detected 6/6 seeded-fault runs;
-B2 detected 5/6. B3's median run took 33.880 seconds versus B0's 9.108 seconds.
-These results do not show superior fault detection by B3. Its extra diagnostics
-and traceability must be judged alongside their additional latency and token use.
-All cases were used in development and predate the latest input/repair changes;
-a new frozen run is needed to evaluate those changes. Independent semantic
-accuracy, diagnosis F1 and reviewed mutation scores remain unavailable.
+A single observation cannot establish repeatability. Reference-copy replays can
+expose assertion disagreements but do not replace independent semantic review.
+Both configurations detected the two seeded defects. B3 used more time and tokens;
+this pilot does not support a stronger fault-detection claim. Its recorded diagnoses,
+retained failures and mutation decisions demonstrate workflow differences only.
+The separate five-project benchmark remains paused.

@@ -1,5 +1,34 @@
 # Implementation status
 
+## Code cleanup and Evaluation simplification: 2026-10-27
+
+Import-graph and TypeScript unused-symbol checks identified an unreferenced table
+component; it was removed. Evaluation now uses four status filters, a compact
+SVG outcome ring, an expandable test list and native requirement progress instead of
+two repeated charts. Removing the unused chart dependency removed 37 installed
+packages. Downloads and reference-copy probes share their existing implementations.
+Agent admission, state computation, account ownership and evidence checks remain.
+Browser checks cover zero execution, mixed outcomes, skipped cases, interrupted
+or untrusted records, exports and expanded layouts at 320/390/768/1440 px.
+The running view shows only the current step, input count, waiting message and
+Stop action; worker and document details are collapsed. Interim zero counts and
+repeated unresolved totals are hidden until the run finishes.
+No model experiment was repeated. The six-run pilot below identifies its own
+frozen source; it predates this UI/dependency cleanup and probe refactoring.
+
+## Current-source experiment pilot: 2026-10-27
+
+The authorized six-run pilot completed on policy v6: three development projects,
+B0/B3, one observation each. Both configurations completed 3/3 runs and detected
+2/2 seeded faults; every final generated suite passed on its witness-validated
+reference copy. Median agent time was 8.298 seconds for B0 and 30.818 for B3;
+provider-reported totals were 9393 and 49749 tokens. This gives no detection
+advantage to B3 on these inputs. B3 adds model admission review, diagnoses and
+mutation observations; B0 bypasses model review. No improvement was applied.
+See [actual inputs, records, figures and limits](../experiments/results/2026-10-27-current-pilot/README.md).
+One observation cannot assess repeatability. No independent semantic accuracy is
+claimed. Old benchmark outputs were removed; the five-project study remains paused.
+
 ## Local version-2 conflict resolution: 2026-10-27
 
 Integrated remote `0d03a50` with the main-based local implementation. Production
@@ -44,8 +73,10 @@ uncommitted implementation files. This is a capability audit, not an independent
 measurement of model accuracy or a production-readiness certification.
 
 Historical trials below describe earlier runs. Ignored local scratch evidence may
-have been cleared; retained portable experiments are under experiments/results,
-and current full-SRS acceptance evidence is under experiments/acceptance.
+have been cleared. Old experiment outputs were removed on 2026-10-27 because
+they used earlier agent implementations. Historical sections are development
+chronology, not current benchmark evidence. Separate versioned acceptance
+evidence remains under experiments/acceptance.
 
 ## Source language
 
@@ -137,16 +168,11 @@ continues to mean workflow termination, not successful verification of every beh
 
 ### P1: Independent evaluation is not finished
 
-The retained post-fix pilot completed 12 real-model runs: three synthetic projects
-across B0–B3. Reference/output reviews remain pending. These cases were used during
-development, so they are not a held-out benchmark. The pilot does not establish
-that B3 outperforms the other variants or that semantic coverage is exhaustive.
-
-Complete independent reference/output annotation, then evaluate held-out projects
-with repeated runs and all relevant failure classes. Pending or insufficient evidence
-must continue to produce null accuracy/coverage/mutation metrics. Historical pilot
-mutation reports with missing killed-mutant differences cannot establish a fully
-reviewed mutation score; the updated sandbox retains these differences for new runs.
+Old model experiment outputs were removed because their frozen source differs
+from the current implementation. A replacement six-run pilot uses three existing
+projects and B0/B3 once each. It is not held-out evidence and cannot establish
+repeatability. Independent semantic, diagnosis and reviewed mutation metrics remain
+unavailable without independent reference/output annotation.
 
 ### Document and project limits
 
@@ -463,35 +489,13 @@ Docker regression. The earlier real-model citation failure remains saved separat
 Regression: 69 tests, 66 passed, three optional tests skipped, zero failures; types,
 lint, English check and production build passed. Independent review remains pending.
 
-## Controlled automated experiments: 2026-10-26
+## Experiment evidence reset: 2026-10-27
 
-Three synthetic development projects ran across B0–B3, three repetitions each:
-36 completed runs and 96 real model requests. Model, source, requirements and Docker
-image were fixed within the experiment. External contract witnesses validated the
-original/corrected reference copies without entering model context. Per-request
-latency, usage, input archives, source snapshots and failure traces are retained.
-
-All configurations completed 9/9 runs. On six seeded-fault runs per configuration,
-B0, B1 and B3 detected 6/6; B2 detected 5/6. All initially detected faults remained
-detected. B2 inventory repetition 1 blocked the equality test's exact return-class
-assertion, leaving the explicit boundary defect unexecuted. B3 shipping repetition
-3 retained a weak suite with only 1/9 raw mutants killed, compared with 7/9 in the
-other shipping measurements. These are failure observations, not independently
-reviewed error classifications. No run produced two comparable complete mutation
-measurements, so no mutation-improvement delta is claimed.
-
-Standalone CSV/JSON results, PNG/SVG figures and a portable evidence subset are in
-`experiments/results/2026-10-26`. Re-scoring the exported evidence reproduces the
-same metrics without model calls. Independent semantic/diagnosis/mutation-quality
-metrics remain unavailable as requested; this is not held-out evidence or proof that
-B3 outperforms direct generation. No final academic report was authored.
-
-Next.js and matching tooling were updated to 16.4.3, Zod to 4.6.7, and vulnerable
-transitive dependencies patched. The current npm audit reports zero known
-vulnerabilities. Regression: 83 passed, three optional tests skipped, zero failed;
-lint, types, English checks and production build passed. The post-run API-key
-non-null type assertion emits identical JavaScript, verified against the frozen
-runner and recorded in its source-equivalence artifact.
+Older experiment and partial benchmark outputs have been removed. Source comparison
+confirmed that their frozen agent implementations differ from the current code.
+Reusable projects, requirements, labels and fixed witnesses remain. A six-run
+current-source pilot is authorized; the five-project benchmark is not running.
+No old scores are carried forward as evidence of the current implementation.
 
 ## Code-side corrections: 2026-10-27
 
@@ -501,16 +505,9 @@ still apply. Existing approved tests, valid failures and source files are preser
 Correction prompts now receive the same value/semantic-type policy as generation
 and review. Reviewed improvement proposals, including rejections, remain auditable.
 
-Three controlled replays used the published shipping fixture and six real
-gpt-5.6-luna requests in total. The first two attempts made no accepted improvement;
-the second trace exposed value-only replacements missing the promised integer type.
-After passing the shared assertion policy into correction, the third attempt
-corrected both blocked tests in one action: four generated tests were approved,
-all five existing/generated cases passed, and complete same-scope raw mutant kills
-changed from 1/9 to 7/9. Integrity checks passed. These are reused development inputs,
-not fresh extraction, held-out accuracy or independent semantic review. The original
-2026-10-26 experiment remains unchanged. All attempt summaries and recorded
-candidate reviews are in `experiments/results/2026-10-27-review-recovery/summary.json`.
+Older correction-replay summaries were removed with the obsolete experiment
+outputs. Current behavior must be supported by the retained deterministic
+regressions and a fresh frozen model run, not those historical counts.
 
 Startup now reports the failing phase/service, checks the configured port before
 launching, and routes start:all through the checked launcher. Test commands load
