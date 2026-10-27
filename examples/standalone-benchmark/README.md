@@ -1,8 +1,7 @@
 # Standalone benchmark protocol
 
 Status: draft and paused at the user's request. The experimental protocol is not
-confirmed. Do not start further benchmark runs until it is confirmed. Existing
-partial attempts are incomplete development data, not final benchmark results.
+confirmed. Do not start further benchmark runs until it is confirmed. Old partial outputs have been removed; no final benchmark result is available.
 
 This benchmark is outside the website. It contains five small, synthetic projects
 written after the current contract-policy change. They were not used to tune that
@@ -29,10 +28,10 @@ product performance comparison is claimed. Both share the current assertion poli
 the study compares workflow configurations, not model quality. The full workflow
 has more model requests and time available; token and latency trade-offs are shown.
 
-A partial version-3 attempt was stopped when a separate teammate report exposed
-mutation/behavior review cardinality. Its first results remain under
-experiments/development-failures/2026-10-26/interrupted-benchmark-v3. The final
-version-4 run uses a fresh frozen implementation and does not merge those attempts.
+Previous partial outputs were removed on 2026-10-27 because they used obsolete
+agent sources. No final benchmark result is available. The authorized replacement
+is the six-run pilot in examples/experiments-pilot.json; this five-project study
+remains paused until its scope is confirmed.
 
 Three repetitions per configuration produce 30 planned runs and nine seeded-fault
 runs per configuration (three defects repeated, not nine independent defects).

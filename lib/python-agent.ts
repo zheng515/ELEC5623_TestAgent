@@ -3,7 +3,7 @@ import { z } from "zod";
 import MiniSearch from "minisearch";
 import { sourceFile, testFile } from "./runtime";
 import { createHash } from "node:crypto";
-import { options } from "./model";
+import { options, modelError } from "./model";
 import { analysisSchema, groundedAnalysisSchema, groundedTestsSchema, groundedDiagnosisSchema, groundedRelevanceSchema, originalQuoteSchema, diagnosisSchema, relevanceSchema, reviewTestsSchema, testsSchema, type Analysis, type PythonReport, type PythonTest, type TestAttempt, type Measurement, type DiagnosisPhase } from "./python-types";
 import { inspectProject, measureProject, mutateProject, writeTests, sandboxImage, dockerTool, verifySavedSource, type Inspection } from "./python-tools";
 import { groundedMutationDecision, mutationBehaviorReviews, type MutationReviewPair } from './mutation-review';
@@ -130,7 +130,7 @@ export async function runPython(report: PythonReport, root: string, signal: Abor
     catch (error) {
       const attempt = report.testAttempts?.at(-1);
       if (attempt?.status === 'proposed' && ['Generate and review targeted tests', 'Improve tests once'].includes(name)) {
-        attempt.status = 'failed'; attempt.error = (error instanceof Error ? error.message : 'Proposal request failed.').replaceAll(process.env.OPENAI_API_KEY || '\0', '[redacted]');
+        attempt.status = 'failed'; attempt.error = modelError(error);
       }
       throw error;
     }
@@ -187,7 +187,7 @@ export async function runPython(report: PythonReport, root: string, signal: Abor
     }
     let review: z.infer<typeof reviewTestsSchema>;
     try { review = proposals.length ? await ask(reviewTestsSchema, testReviewTask, { ...context, analysis: report.analysis, tests: proposals }, report.model, signal) : { decisions: [] }; }
-    catch (error) { attempt.status = 'failed'; attempt.error = (error instanceof Error ? error.message : 'Review request failed.').replaceAll(process.env.OPENAI_API_KEY || '\0', '[redacted]'); throw error; }
+    catch (error) { attempt.status = 'failed'; attempt.error = modelError(error); throw error; }
     attempt.decisions = structuredClone(review.decisions);
     for (const test of proposals) {
       const decisions = review.decisions.filter((decision) => decision.testId === test.id);

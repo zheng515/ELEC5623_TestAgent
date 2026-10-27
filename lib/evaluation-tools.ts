@@ -28,8 +28,23 @@ export async function validateReference(root: string, archive: Buffer, gold: Gol
   return { valid: !!valid, sourceFingerprint, faultHash: createHash('sha256').update(JSON.stringify(gold.fault || null)).digest('hex'), oracleHash: createHash('sha256').update(oracle).digest('hex'), original, corrected, scope: 'Fixed executable contract witnesses only; not independent semantic review or complete specification coverage.' };
 }
 
+/** Replay the final approved suite on a separate reference copy, without model calls. */
+export async function probeReferenceSuite(root: string, archive: Buffer, gold: Gold, report: PythonReport, signal: AbortSignal) {
+  const snapshot = await importProject(root, archive, report.runtime || 'python');
+  if (snapshot.fingerprint !== report.fingerprint) throw new Error('Reference replay source differs from the measured project.');
+  if (gold.fault) {
+    const { file, before, after } = gold.fault;
+    if (snapshot.files[file]?.split(before).length !== 2) throw new Error('Reference patch must match exactly once.');
+    await writeFile(join(root, 'source', file), snapshot.files[file].replace(before, after));
+  }
+  await writeTests(root, report.tests);
+  const measured = await measureProject(root, [], true, signal);
+  return { ...measured, sourceFingerprint: snapshot.fingerprint,
+    suiteHash: createHash('sha256').update(JSON.stringify(report.tests.filter(test => test.approved).map(test => ({ id: test.id, code: test.code })))).digest('hex') };
+}
+
 /** Check generated failures on a separate corrected copy; never change agent inputs. */
-export async function probeFault(root: string, archive: Buffer, gold: Gold, report: PythonReport, signal: AbortSignal): Promise<FaultProbe | undefined> {
+export async function probeFault(root: string, archive: Buffer, gold: Gold, report: PythonReport, signal: AbortSignal, finalReference?: Measurement): Promise<FaultProbe | undefined> {
   if (!gold.fault) return;
   const fault = gold.fault, corrected: Measurement[] = [], results: (boolean | null)[] = [];
   const suites = [report.improvements[0]?.before || report.tests, report.tests];
@@ -38,13 +53,7 @@ export async function probeFault(root: string, archive: Buffer, gold: Gold, repo
     if (!measured || !measured.integrity || measured.timedOut) { results.push(null); continue; }
     const failed = measured.outcomes.filter((outcome) => outcome.status === 'failed' && tests.some((test) => test.approved && outcome.file === testFile(test.id, report.runtime) && outcome.name.split('[')[0] === test.functionName));
     if (!failed.length) { results.push(false); continue; }
-    const reference = join(root, `reference-${index}`);
-    const snapshot = await importProject(reference, archive, report.runtime || "python");
-    const source = snapshot.files[fault.file];
-    if (!source || source.split(fault.before).length !== 2) throw new Error('Reference patch must match exactly once in a retained project file.');
-    await writeFile(join(reference, 'source', fault.file), source.replace(fault.before, fault.after));
-    await writeTests(reference, tests);
-    const checked = await measureProject(reference, [], true, signal);
+    const checked = index === 1 && finalReference || await probeReferenceSuite(join(root, `reference-${index}`), archive, gold, { ...report, tests }, signal);
     corrected.push(checked);
     results.push(!checked.integrity || checked.timedOut ? null : failed.some((before) => checked.outcomes.some((after) => after.node === before.node && after.status === 'passed')));
   }

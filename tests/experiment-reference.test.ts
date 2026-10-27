@@ -4,8 +4,9 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import JSZip from 'jszip';
-import { validateReference } from '../lib/evaluation-tools';
+import { probeReferenceSuite, validateReference } from '../lib/evaluation-tools';
 import type { Gold } from '../lib/evaluation';
+import { report, artifact } from './fixtures/python-agent';
 
 test('external contract witnesses reject invalid references and preserve the original project', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 45000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), 'reqtest-reference-'));
@@ -19,6 +20,11 @@ test('external contract witnesses reject invalid references and preserve the ori
     assert.match(await readFile(join(root, 'valid/original/source/booking.py'), 'utf8'), /hours > 24/);
     assert.match(checked.sourceFingerprint, /^[a-f0-9]{64}$/); assert.match(checked.oracleHash, /^[a-f0-9]{64}$/);
     assert.equal(gold.reviewed, false, 'Automatic validation must not impersonate a human reviewer.');
+    const candidate = report(); candidate.fingerprint = checked.sourceFingerprint; candidate.tests = [{ ...artifact, approved: true, code: 'from booking import fee\ndef test_fee():\n    assert fee(24) == 0\n    assert fee(23) == 0\n', functionName: 'test_fee' }];
+    const replay = await probeReferenceSuite(join(root, 'replay'), archive, gold, candidate, new AbortController().signal);
+    assert.equal(replay.exitCode, 1, 'An unsupported interior assertion must remain visible on the corrected copy.');
+    assert.equal(replay.outcomes[0].status, 'failed');
+    assert.match(await readFile(join(root, 'valid/original/source/booking.py'), 'utf8'), /hours > 24/);
     const invalid = await validateReference(join(root, 'invalid'), archive, { ...gold, fault: undefined }, oracle, new AbortController().signal);
     assert.equal(invalid.valid, false, 'An unlabelled fault must fail the no-fault reference check.');
   } finally { await rm(root, { recursive: true, force: true }); }
