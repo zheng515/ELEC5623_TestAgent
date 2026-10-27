@@ -6,22 +6,18 @@ contain the final academic report.
 
 ## Protocol
 
-The completed pilot used `examples/experiments-pilot.json`: three existing
-projects, B0/B3, one observation per project/configuration, six model-backed runs.
-It checks the experiment machinery and gives case-level observations only. It
-cannot assess repeatability, population reliability or component-level causality.
-The five-project standalone benchmark remains paused. Old result directories were
-removed on 2026-10-27 because their frozen sources differ from the current code;
-old scores must not be carried forward as measurements of this implementation.
-
-The next scope and decision rules are in
-[the repeated workflow protocol](REPEAT_PROTOCOL.md). Its B0/B3 manifest has 18
-planned runs, authorized on 2026-10-27. The fixture
-preflight can run independently with `--validate-only` and makes no model requests.
+The completed study uses `examples/experiments-repeat.json`: three development
+projects, B0/B3 and three repetitions, giving 18 model-backed runs. Its inputs,
+results and figures are under
+[the repeated study](../../experiments/results/2026-10-27-repeated-workflow/README.md).
+Decision rules are in [the protocol](REPEAT_PROTOCOL.md). Fixture preflight uses
+`--validate-only` and makes no model requests. The earlier six-run result export
+and obsolete five-case synthetic benchmark draft were removed on 2026-10-27.
+A replacement five-project benchmark has not been selected or run.
 
 `examples/experiments.json` fixes three synthetic development projects, four
 configurations and three repetitions: 36 complete-agent runs for a later study.
-The six-run pilot does not start that configuration. These projects were
+The completed B0/B3 study does not start that configuration. These projects were
 used during development; they are not a held-out or representative industry sample.
 
 | Project | Known condition | External reference check |
@@ -64,12 +60,12 @@ Requires the normal Node.js, Docker and sandbox setup in the root README.
 
 ```sh
 # No model calls: validate original/corrected reference witnesses.
-npm run evaluate -- examples/experiments-pilot.json --validate-only
+npm run evaluate -- examples/experiments-repeat.json --validate-only
 
-# Six pilot runs. Configure OPENAI_API_KEY in .env.local first.
-npm run experiment:pilot
+# Start 18 new paid runs only when needed; configure OPENAI_API_KEY first.
+npm run evaluate -- examples/experiments-repeat.json
 
-# Later repeated study only after its scope is confirmed; not part of the pilot.
+# Optional four-configuration study; separate scope from the completed study.
 # npm run experiment:run
 
 # Use the index.json path printed by the runner.

@@ -1,0 +1,37 @@
+{
+  "scope": "Automatic observations for a development pilot, not a final report or external product benchmark.",
+  "repeatability": "Repeated development cases; inspect per-case observations, not population accuracy.",
+  "comparison": "B0 uses schema/original-quote checks without model admission review. B3 adds decomposition, retrieval, model review, diagnosis and optional mutation/improvement. Model and case inputs are shared, but this bundled comparison cannot isolate the causal contribution of each component.",
+  "constraints": [
+    "Development cases are not held out.",
+    "Reference witnesses cover specified examples, not all possible inputs.",
+    "No independent semantic or diagnosis labels are available.",
+    "Model alias, API time drift and caching are not frozen.",
+    "More tests or higher pass counts do not establish higher requirement coverage."
+  ],
+  "observations": [
+    {
+      "variant": "B0",
+      "completed": "9/9",
+      "usableExecutionRate": 1,
+      "faultDetectionRate": 1,
+      "unresolvedFaultRuns": 0,
+      "referenceFailureRuns": 0,
+      "referenceObservedRuns": 9,
+      "medianSeconds": 10.229,
+      "totalTokens": 26264
+    },
+    {
+      "variant": "B3",
+      "completed": "9/9",
+      "usableExecutionRate": 1,
+      "faultDetectionRate": 1,
+      "unresolvedFaultRuns": 0,
+      "referenceFailureRuns": 0,
+      "referenceObservedRuns": 9,
+      "medianSeconds": 34.76,
+      "totalTokens": 137281
+    }
+  ],
+  "nextDecision": "Inspect every blocked proposal, reference disagreement and unresolved probe before choosing a larger repeated experiment. Do not tune on a future held-out case set."
+}

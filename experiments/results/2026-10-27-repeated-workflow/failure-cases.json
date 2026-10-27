@@ -1,0 +1,1652 @@
+[
+  {
+    "caseId": "booking",
+    "variant": "B0",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/booking-B0-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-B0-1/report.json"
+  },
+  {
+    "caseId": "booking",
+    "variant": "B0",
+    "repeat": 2,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/booking-B0-2/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-B0-2/report.json"
+  },
+  {
+    "caseId": "booking",
+    "variant": "B0",
+    "repeat": 3,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_least_24_hours_returns_integer_zero"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_least_24_hours_returns_integer_zero"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/booking-B0-3/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-B0-3/report.json"
+  },
+  {
+    "caseId": "booking",
+    "variant": "B3",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_24_returns_zero"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_24_returns_zero"
+    ],
+    "diagnoses": [
+      {
+        "testId": "T1",
+        "category": "potential_implementation_defect",
+        "reason": "The generated test checks the explicitly required boundary case: at 24 hours the fee must be integer 0 cents. The return type check passed, but the value assertion failed because the function returned 2500, violating that contract.",
+        "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+        "executionQuote": "E       assert 2500 == 0",
+        "evidence": [
+          {
+            "file": "booking.py",
+            "quote": "    return 0 if hours > 24 else 2500",
+            "line": 6
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "quote": "    assert result == 0",
+            "line": 7
+          }
+        ],
+        "phase": "execution"
+      }
+    ],
+    "improvements": 0,
+    "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_cancellation_fee_at_24_returns_zero",
+            "gapIndexes": [
+              0
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_24_returns_zero():\n    result = cancellation_fee(24)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check the explicitly included threshold value returns zero cents with an integer, non-bool result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "Checks the explicitly included threshold input 24 for both the required zero value and an integer, non-bool result.",
+              "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+            },
+            "review": "Checks the explicitly included threshold input 24 for both the required zero value and an integer, non-bool result."
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B1",
+            "functionName": "test_cancellation_fee_at_least_24_returns_integer",
+            "gapIndexes": [
+              1
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_least_24_returns_integer():\n    result = cancellation_fee(48)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check an input above the threshold returns zero cents with an integer, non-bool result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T2",
+              "supported": true,
+              "reason": "Checks an input above 24 for the required zero value and an integer, non-bool result, covering the assigned type gap.",
+              "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+            },
+            "review": "Checks an input above 24 for the required zero value and an integer, non-bool result, covering the assigned type gap."
+          },
+          {
+            "id": "T3",
+            "behaviorId": "B2",
+            "functionName": "test_cancellation_fee_at_zero_returns_2500",
+            "gapIndexes": [
+              0
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_zero_returns_2500():\n    result = cancellation_fee(0)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 2500\n",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "purpose": "Check the lower endpoint returns 2500 cents with an integer, non-bool result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T3",
+              "supported": true,
+              "reason": "Checks the lower endpoint, 0, for the required 2500 value and an integer, non-bool result.",
+              "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+            },
+            "review": "Checks the lower endpoint, 0, for the required 2500 value and an integer, non-bool result."
+          },
+          {
+            "id": "T4",
+            "behaviorId": "B2",
+            "functionName": "test_cancellation_fee_at_23_returns_2500",
+            "gapIndexes": [
+              1
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_23_returns_2500():\n    result = cancellation_fee(23)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 2500\n",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "purpose": "Check the upper endpoint of the stated range returns 2500 cents with an integer, non-bool result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T4",
+              "supported": true,
+              "reason": "Checks the upper endpoint, 23, for the required 2500 value and an integer, non-bool result.",
+              "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+            },
+            "review": "Checks the upper endpoint, 23, for the required 2500 value and an integer, non-bool result."
+          },
+          {
+            "id": "T5",
+            "behaviorId": "B2",
+            "functionName": "test_cancellation_fee_interior_hour_returns_integer",
+            "gapIndexes": [
+              2
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_interior_hour_returns_integer():\n    result = cancellation_fee(12)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 2500\n",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "purpose": "Check an interior input in the stated range returns 2500 cents with an integer, non-bool result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T5",
+              "supported": true,
+              "reason": "Checks an interior input in the stated range for the required 2500 value and an integer, non-bool result.",
+              "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+            },
+            "review": "Checks an interior input in the stated range for the required 2500 value and an integer, non-bool result."
+          },
+          {
+            "id": "T6",
+            "behaviorId": "B3",
+            "functionName": "test_negative_hours_raise_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nfrom booking import cancellation_fee\n\n\ndef test_negative_hours_raise_value_error():\n    with pytest.raises(ValueError):\n        cancellation_fee(-1)\n",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+            "purpose": "Check a negative built-in integer input raises the required exception.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T6",
+              "supported": true,
+              "reason": "Checks that a negative built-in integer input raises the required ValueError.",
+              "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError."
+            },
+            "review": "Checks that a negative built-in integer input raises the required ValueError."
+          },
+          {
+            "id": "T7",
+            "behaviorId": "B4",
+            "functionName": "test_bool_hours_raise_type_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nfrom booking import cancellation_fee\n\n\ndef test_bool_hours_raise_type_error():\n    with pytest.raises(TypeError):\n        cancellation_fee(True)\n",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "purpose": "Check the explicitly mentioned bool input raises the required exception.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T7",
+              "supported": true,
+              "reason": "Checks the explicitly included bool input raises the required TypeError.",
+              "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+            },
+            "review": "Checks the explicitly included bool input raises the required TypeError."
+          },
+          {
+            "id": "T8",
+            "behaviorId": "B4",
+            "functionName": "test_float_hours_raise_type_error",
+            "gapIndexes": [
+              1
+            ],
+            "code": "import pytest\nfrom booking import cancellation_fee\n\n\ndef test_float_hours_raise_type_error():\n    with pytest.raises(TypeError):\n        cancellation_fee(1.0)\n",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "purpose": "Check a non-bool, non-integer argument raises the required exception.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T8",
+              "supported": true,
+              "reason": "Checks a float argument, which is not a built-in int, raises the required TypeError.",
+              "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+            },
+            "review": "Checks a float argument, which is not a built-in int, raises the required TypeError."
+          }
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "Checks the explicitly included threshold input 24 for both the required zero value and an integer, non-bool result.",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+          },
+          {
+            "testId": "T2",
+            "supported": true,
+            "reason": "Checks an input above 24 for the required zero value and an integer, non-bool result, covering the assigned type gap.",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+          },
+          {
+            "testId": "T3",
+            "supported": true,
+            "reason": "Checks the lower endpoint, 0, for the required 2500 value and an integer, non-bool result.",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+          },
+          {
+            "testId": "T4",
+            "supported": true,
+            "reason": "Checks the upper endpoint, 23, for the required 2500 value and an integer, non-bool result.",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+          },
+          {
+            "testId": "T5",
+            "supported": true,
+            "reason": "Checks an interior input in the stated range for the required 2500 value and an integer, non-bool result.",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+          },
+          {
+            "testId": "T6",
+            "supported": true,
+            "reason": "Checks that a negative built-in integer input raises the required ValueError.",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError."
+          },
+          {
+            "testId": "T7",
+            "supported": true,
+            "reason": "Checks the explicitly included bool input raises the required TypeError.",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+          },
+          {
+            "testId": "T8",
+            "supported": true,
+            "reason": "Checks a float argument, which is not a built-in int, raises the required TypeError.",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/booking-B3-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-B3-1/report.json"
+  },
+  {
+    "caseId": "booking",
+    "variant": "B3",
+    "repeat": 2,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_24"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_24"
+    ],
+    "diagnoses": [
+      {
+        "testId": "T1",
+        "category": "potential_implementation_defect",
+        "reason": "The generated test checks the explicitly required threshold input and promised integer result type. The implementation returns 2500 for 24, contradicting the requirement that exactly 24 returns 0 cents.",
+        "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+        "executionQuote": "E       assert 2500 == 0",
+        "evidence": [
+          {
+            "file": "booking.py",
+            "quote": "    return 0 if hours > 24 else 2500",
+            "line": 6
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "quote": "    assert result == 0",
+            "line": 7
+          }
+        ],
+        "phase": "execution"
+      }
+    ],
+    "improvements": 0,
+    "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_cancellation_fee_at_24",
+            "gapIndexes": [
+              0
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_24():\n    result = cancellation_fee(24)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check the explicitly included threshold value and the promised integer result type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "Checks the explicitly included boundary value 24, the required zero-cent result, and the promised integer return type excluding bool.",
+              "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+            },
+            "review": "Checks the explicitly included boundary value 24, the required zero-cent result, and the promised integer return type excluding bool."
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B1",
+            "functionName": "test_cancellation_fee_above_24",
+            "gapIndexes": [
+              1
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_above_24():\n    result = cancellation_fee(25)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check a witness above the threshold, including the promised integer result type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T2",
+              "supported": true,
+              "reason": "Checks a built-in integer above 24, the required zero-cent result, and the promised integer return type excluding bool.",
+              "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+            },
+            "review": "Checks a built-in integer above 24, the required zero-cent result, and the promised integer return type excluding bool."
+          },
+          {
+            "id": "T3",
+            "behaviorId": "B2",
+            "functionName": "test_cancellation_fee_at_0",
+            "gapIndexes": [
+              0
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_0():\n    result = cancellation_fee(0)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 2500\n",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "purpose": "Check the lower endpoint of the specified range and the promised integer result type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T3",
+              "supported": true,
+              "reason": "Checks the lower endpoint 0, the required 2500-cent result, and the promised integer return type excluding bool.",
+              "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+            },
+            "review": "Checks the lower endpoint 0, the required 2500-cent result, and the promised integer return type excluding bool."
+          },
+          {
+            "id": "T4",
+            "behaviorId": "B2",
+            "functionName": "test_cancellation_fee_at_12",
+            "gapIndexes": [
+              1
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_12():\n    result = cancellation_fee(12)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 2500\n",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "purpose": "Check an interior witness in the specified range and the promised integer result type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T4",
+              "supported": true,
+              "reason": "Checks an interior built-in integer in the specified range, the required 2500-cent result, and the promised integer return type excluding bool.",
+              "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+            },
+            "review": "Checks an interior built-in integer in the specified range, the required 2500-cent result, and the promised integer return type excluding bool."
+          },
+          {
+            "id": "T5",
+            "behaviorId": "B2",
+            "functionName": "test_cancellation_fee_at_23",
+            "gapIndexes": [
+              2
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_23():\n    result = cancellation_fee(23)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 2500\n",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "purpose": "Check the upper endpoint of the specified range and the promised integer result type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T5",
+              "supported": true,
+              "reason": "Checks the upper endpoint 23, the required 2500-cent result, and the promised integer return type excluding bool.",
+              "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+            },
+            "review": "Checks the upper endpoint 23, the required 2500-cent result, and the promised integer return type excluding bool."
+          },
+          {
+            "id": "T6",
+            "behaviorId": "B3",
+            "functionName": "test_negative_hours_raise_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_negative_hours_raise_value_error():\n    import pytest\n\n    with pytest.raises(ValueError):\n        cancellation_fee(-1)\n",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+            "purpose": "Check that a negative built-in integer input raises the required exception.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T6",
+              "supported": true,
+              "reason": "The input -1 is a negative built-in integer, and the test checks the required ValueError.",
+              "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError."
+            },
+            "review": "The input -1 is a negative built-in integer, and the test checks the required ValueError."
+          },
+          {
+            "id": "T7",
+            "behaviorId": "B4",
+            "functionName": "test_bool_hours_raise_type_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_bool_hours_raise_type_error():\n    import pytest\n\n    with pytest.raises(TypeError):\n        cancellation_fee(True)\n",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "purpose": "Check the explicitly named bool input raises the required exception.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T7",
+              "supported": true,
+              "reason": "The test checks the explicitly included bool input raises the required TypeError.",
+              "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+            },
+            "review": "The test checks the explicitly included bool input raises the required TypeError."
+          },
+          {
+            "id": "T8",
+            "behaviorId": "B4",
+            "functionName": "test_string_hours_raise_type_error",
+            "gapIndexes": [
+              1
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_string_hours_raise_type_error():\n    import pytest\n\n    with pytest.raises(TypeError):\n        cancellation_fee(\"12\")\n",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "purpose": "Check a string argument, whose type is not built-in int, raises the required exception.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T8",
+              "supported": true,
+              "reason": "A string is not a built-in int, and the test checks the required TypeError.",
+              "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+            },
+            "review": "A string is not a built-in int, and the test checks the required TypeError."
+          }
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "Checks the explicitly included boundary value 24, the required zero-cent result, and the promised integer return type excluding bool.",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+          },
+          {
+            "testId": "T2",
+            "supported": true,
+            "reason": "Checks a built-in integer above 24, the required zero-cent result, and the promised integer return type excluding bool.",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+          },
+          {
+            "testId": "T3",
+            "supported": true,
+            "reason": "Checks the lower endpoint 0, the required 2500-cent result, and the promised integer return type excluding bool.",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+          },
+          {
+            "testId": "T4",
+            "supported": true,
+            "reason": "Checks an interior built-in integer in the specified range, the required 2500-cent result, and the promised integer return type excluding bool.",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+          },
+          {
+            "testId": "T5",
+            "supported": true,
+            "reason": "Checks the upper endpoint 23, the required 2500-cent result, and the promised integer return type excluding bool.",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+          },
+          {
+            "testId": "T6",
+            "supported": true,
+            "reason": "The input -1 is a negative built-in integer, and the test checks the required ValueError.",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError."
+          },
+          {
+            "testId": "T7",
+            "supported": true,
+            "reason": "The test checks the explicitly included bool input raises the required TypeError.",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+          },
+          {
+            "testId": "T8",
+            "supported": true,
+            "reason": "A string is not a built-in int, and the test checks the required TypeError.",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/booking-B3-2/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-B3-2/report.json"
+  },
+  {
+    "caseId": "booking",
+    "variant": "B3",
+    "repeat": 3,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_threshold"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_threshold"
+    ],
+    "diagnoses": [
+      {
+        "testId": "T1",
+        "category": "potential_implementation_defect",
+        "reason": "The failure is at the assertion for the explicitly specified threshold input 24. The requirement says that 24 returns integer 0 cents, while the implementation returns 2500. The generated test’s type and value expectations are supported by the contract.",
+        "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+        "executionQuote": "E       assert 2500 == 0",
+        "evidence": [
+          {
+            "file": "booking.py",
+            "quote": "    return 0 if hours > 24 else 2500",
+            "line": 6
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "quote": "    assert result_at_threshold == 0",
+            "line": 7
+          }
+        ],
+        "phase": "execution"
+      }
+    ],
+    "improvements": 0,
+    "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_cancellation_fee_at_and_above_threshold",
+            "gapIndexes": [
+              0,
+              1,
+              2
+            ],
+            "code": "import booking\n\n\ndef test_cancellation_fee_at_and_above_threshold():\n    result_at_threshold = booking.cancellation_fee(24)\n    assert isinstance(result_at_threshold, int) and not isinstance(result_at_threshold, bool)\n    assert result_at_threshold == 0\n\n    result_above_threshold = booking.cancellation_fee(25)\n    assert isinstance(result_above_threshold, int) and not isinstance(result_above_threshold, bool)\n    assert result_above_threshold == 0",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check the exact threshold and a value above it, including the promised integer return type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test checks the required integer, non-bool result and value for both the exact threshold (24) and an input above it (25), covering all assigned gaps.",
+              "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+            },
+            "review": "The test checks the required integer, non-bool result and value for both the exact threshold (24) and an input above it (25), covering all assigned gaps."
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B2",
+            "functionName": "test_cancellation_fee_within_24_hours",
+            "gapIndexes": [
+              0,
+              1,
+              2
+            ],
+            "code": "import booking\n\n\ndef test_cancellation_fee_within_24_hours():\n    for hours in (0, 23, 12):\n        result = booking.cancellation_fee(hours)\n        assert isinstance(result, int) and not isinstance(result, bool)\n        assert result == 2500",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "purpose": "Check the lower endpoint, upper endpoint, and an interior value in the specified range, with the promised integer return type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T2",
+              "supported": true,
+              "reason": "The test checks the required integer, non-bool result and value at 0, 23, and an interior value, covering all assigned gaps.",
+              "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+            },
+            "review": "The test checks the required integer, non-bool result and value at 0, 23, and an interior value, covering all assigned gaps."
+          },
+          {
+            "id": "T3",
+            "behaviorId": "B3",
+            "functionName": "test_negative_hours_raise_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import booking\nimport pytest\n\n\ndef test_negative_hours_raise_value_error():\n    with pytest.raises(ValueError):\n        booking.cancellation_fee(-1)",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+            "purpose": "Check that a negative built-in integer input raises the required exception.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T3",
+              "supported": true,
+              "reason": "The test passes a negative built-in integer and checks that the required ValueError is raised.",
+              "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError."
+            },
+            "review": "The test passes a negative built-in integer and checks that the required ValueError is raised."
+          },
+          {
+            "id": "T4",
+            "behaviorId": "B4",
+            "functionName": "test_non_builtin_integer_arguments_raise_type_error",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "import booking\nimport pytest\n\n\ndef test_non_builtin_integer_arguments_raise_type_error():\n    for hours in (True, 1.5):\n        with pytest.raises(TypeError):\n            booking.cancellation_fee(hours)",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "purpose": "Check that bool and a non-bool value whose type is not built-in int raise TypeError.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T4",
+              "supported": true,
+              "reason": "The test checks TypeError for both bool and a non-bool argument whose type is not built-in int, covering both assigned gaps.",
+              "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+            },
+            "review": "The test checks TypeError for both bool and a non-bool argument whose type is not built-in int, covering both assigned gaps."
+          }
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test checks the required integer, non-bool result and value for both the exact threshold (24) and an input above it (25), covering all assigned gaps.",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24."
+          },
+          {
+            "testId": "T2",
+            "supported": true,
+            "reason": "The test checks the required integer, non-bool result and value at 0, 23, and an interior value, covering all assigned gaps.",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents."
+          },
+          {
+            "testId": "T3",
+            "supported": true,
+            "reason": "The test passes a negative built-in integer and checks that the required ValueError is raised.",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError."
+          },
+          {
+            "testId": "T4",
+            "supported": true,
+            "reason": "The test checks TypeError for both bool and a non-bool argument whose type is not built-in int, covering both assigned gaps.",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/booking-B3-3/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-B3-3/report.json"
+  },
+  {
+    "caseId": "inventory",
+    "variant": "B0",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_remaining_returns_integer_difference_and_zero"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_remaining_returns_integer_difference_and_zero"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/inventory-B0-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/inventory-B0-1/report.json"
+  },
+  {
+    "caseId": "inventory",
+    "variant": "B0",
+    "repeat": 2,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T2.py::test_remaining_returns_zero_when_request_equals_stock"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T2.py::test_remaining_returns_zero_when_request_equals_stock"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/inventory-B0-2/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/inventory-B0-2/report.json"
+  },
+  {
+    "caseId": "inventory",
+    "variant": "B0",
+    "repeat": 3,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_remaining_returns_integer_remainder_including_zero"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_remaining_returns_integer_remainder_including_zero"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/inventory-B0-3/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/inventory-B0-3/report.json"
+  },
+  {
+    "caseId": "inventory",
+    "variant": "B3",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T2.py::test_equal_inputs_return_integer_zero"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T2.py::test_equal_inputs_return_integer_zero"
+    ],
+    "diagnoses": [
+      {
+        "testId": "T2",
+        "category": "potential_implementation_defect",
+        "reason": "The test checks the explicitly specified equality boundary: for nonnegative built-in integers with requested equal to stock, the function must return integer zero. Instead, the call raises ValueError before the return assertions are reached.",
+        "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+        "executionQuote": "E           ValueError: invalid stock or request",
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    if stock < 0 or requested < 0 or requested >= stock:",
+            "line": 4
+          },
+          {
+            "file": "inventory.py",
+            "quote": "        raise ValueError(\"invalid stock or request\")",
+            "line": 5
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T2.py",
+            "quote": "    result = remaining(5, 5)",
+            "line": 5
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T2.py",
+            "quote": "    assert result == 0",
+            "line": 8
+          }
+        ],
+        "phase": "execution"
+      }
+    ],
+    "improvements": 0,
+    "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_partial_reservation_returns_integer",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "from inventory import remaining\n\n\ndef test_partial_reservation_returns_integer():\n    result = remaining(12, 4)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 8\n",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+            "purpose": "Check a distinct partial-reservation input and verify both the promised integer return type and value.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "Checks a distinct nonnegative built-in-int partial reservation and verifies the promised integer (excluding bool) and exact subtraction value.",
+              "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+            },
+            "review": "Checks a distinct nonnegative built-in-int partial reservation and verifies the promised integer (excluding bool) and exact subtraction value."
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B2",
+            "functionName": "test_equal_inputs_return_integer_zero",
+            "gapIndexes": [
+              0
+            ],
+            "code": "from inventory import remaining\n\n\ndef test_equal_inputs_return_integer_zero():\n    result = remaining(5, 5)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+            "purpose": "Check the specified equality boundary returns integer zero.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T2",
+              "supported": true,
+              "reason": "Checks the explicitly specified equality boundary, including integer return type excluding bool and zero value. The implementation may fail this test, but that does not make its assertions unsupported.",
+              "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+            },
+            "review": "Checks the explicitly specified equality boundary, including integer return type excluding bool and zero value. The implementation may fail this test, but that does not make its assertions unsupported."
+          },
+          {
+            "id": "T3",
+            "behaviorId": "B3",
+            "functionName": "test_request_exceeding_stock_raises_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nfrom inventory import remaining\n\n\ndef test_request_exceeding_stock_raises_value_error():\n    with pytest.raises(ValueError):\n        remaining(3, 4)\n",
+            "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError.",
+            "purpose": "Check ValueError when a nonnegative request exceeds nonnegative stock.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T3",
+              "supported": true,
+              "reason": "Uses nonnegative built-in integer inputs with requested greater than stock and asserts the required ValueError.",
+              "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError."
+            },
+            "review": "Uses nonnegative built-in integer inputs with requested greater than stock and asserts the required ValueError."
+          },
+          {
+            "id": "T4",
+            "behaviorId": "B4",
+            "functionName": "test_negative_stock_raises_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nfrom inventory import remaining\n\n\ndef test_negative_stock_raises_value_error():\n    with pytest.raises(ValueError):\n        remaining(-1, 0)\n",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+            "purpose": "Check the negative-stock case raises ValueError.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T4",
+              "supported": true,
+              "reason": "Uses a negative built-in integer stock and nonnegative built-in integer requested value, and asserts the required ValueError.",
+              "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+            },
+            "review": "Uses a negative built-in integer stock and nonnegative built-in integer requested value, and asserts the required ValueError."
+          },
+          {
+            "id": "T5",
+            "behaviorId": "B5",
+            "functionName": "test_negative_requested_raises_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nfrom inventory import remaining\n\n\ndef test_negative_requested_raises_value_error():\n    with pytest.raises(ValueError):\n        remaining(3, -1)\n",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+            "purpose": "Check the negative-request case raises ValueError.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T5",
+              "supported": true,
+              "reason": "Uses a nonnegative built-in integer stock and negative built-in integer requested value, and asserts the required ValueError.",
+              "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+            },
+            "review": "Uses a nonnegative built-in integer stock and negative built-in integer requested value, and asserts the required ValueError."
+          },
+          {
+            "id": "T6",
+            "behaviorId": "B6",
+            "functionName": "test_non_integer_stock_raises_type_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nfrom inventory import remaining\n\n\ndef test_non_integer_stock_raises_type_error():\n    with pytest.raises(TypeError):\n        remaining(2.5, 1)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check a non-built-in-int stock argument raises TypeError.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T6",
+              "supported": true,
+              "reason": "Uses a non-built-in-int stock value with a built-in-int requested value and asserts the required TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "Uses a non-built-in-int stock value with a built-in-int requested value and asserts the required TypeError."
+          },
+          {
+            "id": "T7",
+            "behaviorId": "B6",
+            "functionName": "test_boolean_stock_raises_type_error",
+            "gapIndexes": [
+              1
+            ],
+            "code": "import pytest\nfrom inventory import remaining\n\n\ndef test_boolean_stock_raises_type_error():\n    with pytest.raises(TypeError):\n        remaining(True, 0)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check bool stock raises TypeError.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T7",
+              "supported": true,
+              "reason": "Uses bool as stock and a built-in-int requested value; bool is explicitly included among values requiring TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "Uses bool as stock and a built-in-int requested value; bool is explicitly included among values requiring TypeError."
+          },
+          {
+            "id": "T8",
+            "behaviorId": "B7",
+            "functionName": "test_non_integer_requested_raises_type_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nfrom inventory import remaining\n\n\ndef test_non_integer_requested_raises_type_error():\n    with pytest.raises(TypeError):\n        remaining(3, 1.5)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check a non-built-in-int requested argument raises TypeError.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T8",
+              "supported": true,
+              "reason": "Uses a non-built-in-int requested value with a built-in-int stock value and asserts the required TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "Uses a non-built-in-int requested value with a built-in-int stock value and asserts the required TypeError."
+          },
+          {
+            "id": "T9",
+            "behaviorId": "B7",
+            "functionName": "test_boolean_requested_raises_type_error",
+            "gapIndexes": [
+              1
+            ],
+            "code": "import pytest\nfrom inventory import remaining\n\n\ndef test_boolean_requested_raises_type_error():\n    with pytest.raises(TypeError):\n        remaining(3, False)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check bool requested raises TypeError.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T9",
+              "supported": true,
+              "reason": "Uses bool as requested and a built-in-int stock value; bool is explicitly included among values requiring TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "Uses bool as requested and a built-in-int stock value; bool is explicitly included among values requiring TypeError."
+          }
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "Checks a distinct nonnegative built-in-int partial reservation and verifies the promised integer (excluding bool) and exact subtraction value.",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+          },
+          {
+            "testId": "T2",
+            "supported": true,
+            "reason": "Checks the explicitly specified equality boundary, including integer return type excluding bool and zero value. The implementation may fail this test, but that does not make its assertions unsupported.",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+          },
+          {
+            "testId": "T3",
+            "supported": true,
+            "reason": "Uses nonnegative built-in integer inputs with requested greater than stock and asserts the required ValueError.",
+            "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError."
+          },
+          {
+            "testId": "T4",
+            "supported": true,
+            "reason": "Uses a negative built-in integer stock and nonnegative built-in integer requested value, and asserts the required ValueError.",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+          },
+          {
+            "testId": "T5",
+            "supported": true,
+            "reason": "Uses a nonnegative built-in integer stock and negative built-in integer requested value, and asserts the required ValueError.",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+          },
+          {
+            "testId": "T6",
+            "supported": true,
+            "reason": "Uses a non-built-in-int stock value with a built-in-int requested value and asserts the required TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          {
+            "testId": "T7",
+            "supported": true,
+            "reason": "Uses bool as stock and a built-in-int requested value; bool is explicitly included among values requiring TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          {
+            "testId": "T8",
+            "supported": true,
+            "reason": "Uses a non-built-in-int requested value with a built-in-int stock value and asserts the required TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          {
+            "testId": "T9",
+            "supported": true,
+            "reason": "Uses bool as requested and a built-in-int stock value; bool is explicitly included among values requiring TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/inventory-B3-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/inventory-B3-1/report.json"
+  },
+  {
+    "caseId": "inventory",
+    "variant": "B3",
+    "repeat": 2,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T3.py::test_equal_stock_returns_zero"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T3.py::test_equal_stock_returns_zero"
+    ],
+    "diagnoses": [
+      {
+        "testId": "T3",
+        "category": "potential_implementation_defect",
+        "reason": "The generated test calls the equality boundary explicitly required by R1. The call raises ValueError before the result assertions, contradicting the requirement that equal stock and requested return zero. Existing test expectations do not override the original requirement.",
+        "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+        "executionQuote": "E           ValueError: invalid stock or request",
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    if stock < 0 or requested < 0 or requested >= stock:",
+            "line": 4
+          },
+          {
+            "file": "inventory.py",
+            "quote": "        raise ValueError(\"invalid stock or request\")",
+            "line": 5
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T3.py",
+            "quote": "    result = inventory.remaining(5, 5)",
+            "line": 5
+          }
+        ],
+        "phase": "execution"
+      }
+    ],
+    "improvements": 0,
+    "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_partial_result_is_integer_not_bool",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import inventory\n\n\ndef test_partial_result_is_integer_not_bool():\n    result = inventory.remaining(10, 3)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 7\n",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+            "purpose": "Check the promised result type as well as the value for a partial reservation.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The inputs satisfy the stated nonnegative built-in integer conditions with requested <= stock. The assertions check the promised integer result, exclude bool, and verify the specified subtraction value.",
+              "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+            },
+            "review": "The inputs satisfy the stated nonnegative built-in integer conditions with requested <= stock. The assertions check the promised integer result, exclude bool, and verify the specified subtraction value."
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B1",
+            "functionName": "test_different_valid_partial_reservation",
+            "gapIndexes": [
+              1
+            ],
+            "code": "import inventory\n\n\ndef test_different_valid_partial_reservation():\n    result = inventory.remaining(12, 5)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 7\n",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+            "purpose": "Check another valid partial-reservation input against the specified subtraction result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T2",
+              "supported": true,
+              "reason": "The inputs are a different valid partial-reservation case. The test checks the promised integer result, excludes bool, and verifies 12 - 5 = 7.",
+              "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+            },
+            "review": "The inputs are a different valid partial-reservation case. The test checks the promised integer result, excludes bool, and verifies 12 - 5 = 7."
+          },
+          {
+            "id": "T3",
+            "behaviorId": "B2",
+            "functionName": "test_equal_stock_returns_zero",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import inventory\n\n\ndef test_equal_stock_returns_zero():\n    result = inventory.remaining(5, 5)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+            "purpose": "Check the specified equality boundary, including its zero result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T3",
+              "supported": true,
+              "reason": "The equal, nonnegative built-in integer inputs meet the stated boundary condition. The assertions check an integer result, exclude bool, and verify the specified zero value.",
+              "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+            },
+            "review": "The equal, nonnegative built-in integer inputs meet the stated boundary condition. The assertions check an integer result, exclude bool, and verify the specified zero value."
+          },
+          {
+            "id": "T4",
+            "behaviorId": "B3",
+            "functionName": "test_request_greater_than_stock_raises_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import inventory\nimport pytest\n\n\ndef test_request_greater_than_stock_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(4, 6)\n",
+            "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError.",
+            "purpose": "Check the specified exception for a nonnegative request exceeding stock.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T4",
+              "supported": true,
+              "reason": "Both arguments are nonnegative built-in integers and requested exceeds stock; the test asserts the required ValueError.",
+              "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError."
+            },
+            "review": "Both arguments are nonnegative built-in integers and requested exceeds stock; the test asserts the required ValueError."
+          },
+          {
+            "id": "T5",
+            "behaviorId": "B4",
+            "functionName": "test_negative_stock_raises_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import inventory\nimport pytest\n\n\ndef test_negative_stock_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(-1, 0)\n",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+            "purpose": "Check the negative-stock case with a nonnegative requested count.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T5",
+              "supported": true,
+              "reason": "The stock is a negative built-in integer and requested is nonnegative; the test asserts the required ValueError.",
+              "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+            },
+            "review": "The stock is a negative built-in integer and requested is nonnegative; the test asserts the required ValueError."
+          },
+          {
+            "id": "T6",
+            "behaviorId": "B5",
+            "functionName": "test_negative_requested_raises_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import inventory\nimport pytest\n\n\ndef test_negative_requested_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(4, -1)\n",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+            "purpose": "Check the negative-request case with a nonnegative stock count.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T6",
+              "supported": true,
+              "reason": "The requested value is a negative built-in integer and stock is nonnegative; the test asserts the required ValueError.",
+              "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+            },
+            "review": "The requested value is a negative built-in integer and stock is nonnegative; the test asserts the required ValueError."
+          },
+          {
+            "id": "T7",
+            "behaviorId": "B6",
+            "functionName": "test_non_int_stock_raises_type_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import inventory\nimport pytest\n\n\ndef test_non_int_stock_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(2.5, 1)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check that a non-int stock argument raises the specified exception.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T7",
+              "supported": true,
+              "reason": "The stock argument is not a built-in int and requested is a built-in int; the test asserts the required TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "The stock argument is not a built-in int and requested is a built-in int; the test asserts the required TypeError."
+          },
+          {
+            "id": "T8",
+            "behaviorId": "B6",
+            "functionName": "test_bool_stock_raises_type_error",
+            "gapIndexes": [
+              1
+            ],
+            "code": "import inventory\nimport pytest\n\n\ndef test_bool_stock_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(True, 0)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check the explicitly excluded bool type for the stock argument.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T8",
+              "supported": true,
+              "reason": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as stock and asserts TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as stock and asserts TypeError."
+          },
+          {
+            "id": "T9",
+            "behaviorId": "B7",
+            "functionName": "test_non_int_requested_raises_type_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import inventory\nimport pytest\n\n\ndef test_non_int_requested_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(4, 1.5)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check that a non-int requested argument raises the specified exception.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T9",
+              "supported": true,
+              "reason": "The requested argument is not a built-in int and stock is a built-in int; the test asserts the required TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "The requested argument is not a built-in int and stock is a built-in int; the test asserts the required TypeError."
+          },
+          {
+            "id": "T10",
+            "behaviorId": "B7",
+            "functionName": "test_bool_requested_raises_type_error",
+            "gapIndexes": [
+              1
+            ],
+            "code": "import inventory\nimport pytest\n\n\ndef test_bool_requested_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(4, False)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check the explicitly excluded bool type for the requested argument.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T10",
+              "supported": true,
+              "reason": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as requested and asserts TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as requested and asserts TypeError."
+          }
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The inputs satisfy the stated nonnegative built-in integer conditions with requested <= stock. The assertions check the promised integer result, exclude bool, and verify the specified subtraction value.",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+          },
+          {
+            "testId": "T2",
+            "supported": true,
+            "reason": "The inputs are a different valid partial-reservation case. The test checks the promised integer result, excludes bool, and verifies 12 - 5 = 7.",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+          },
+          {
+            "testId": "T3",
+            "supported": true,
+            "reason": "The equal, nonnegative built-in integer inputs meet the stated boundary condition. The assertions check an integer result, exclude bool, and verify the specified zero value.",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+          },
+          {
+            "testId": "T4",
+            "supported": true,
+            "reason": "Both arguments are nonnegative built-in integers and requested exceeds stock; the test asserts the required ValueError.",
+            "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError."
+          },
+          {
+            "testId": "T5",
+            "supported": true,
+            "reason": "The stock is a negative built-in integer and requested is nonnegative; the test asserts the required ValueError.",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+          },
+          {
+            "testId": "T6",
+            "supported": true,
+            "reason": "The requested value is a negative built-in integer and stock is nonnegative; the test asserts the required ValueError.",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+          },
+          {
+            "testId": "T7",
+            "supported": true,
+            "reason": "The stock argument is not a built-in int and requested is a built-in int; the test asserts the required TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          {
+            "testId": "T8",
+            "supported": true,
+            "reason": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as stock and asserts TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          {
+            "testId": "T9",
+            "supported": true,
+            "reason": "The requested argument is not a built-in int and stock is a built-in int; the test asserts the required TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          {
+            "testId": "T10",
+            "supported": true,
+            "reason": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as requested and asserts TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/inventory-B3-2/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/inventory-B3-2/report.json"
+  },
+  {
+    "caseId": "inventory",
+    "variant": "B3",
+    "repeat": 3,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T2.py::test_equal_stock_returns_integer_zero"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T2.py::test_equal_stock_returns_integer_zero"
+    ],
+    "diagnoses": [
+      {
+        "testId": "T2",
+        "category": "potential_implementation_defect",
+        "reason": "The test calls `remaining(5, 5)`, which is covered by R1: for nonnegative built-in integers where requested equals stock, the function must return integer zero. The recorded traceback shows the implementation instead raises `ValueError` before reaching the assertions. The generated assertion is supported by the requirement; the failure is an implementation defect.",
+        "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+        "executionQuote": "E           ValueError: invalid stock or request",
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    if stock < 0 or requested < 0 or requested >= stock:",
+            "line": 4
+          },
+          {
+            "file": "inventory.py",
+            "quote": "        raise ValueError(\"invalid stock or request\")",
+            "line": 5
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T2.py",
+            "quote": "    result = inventory.remaining(5, 5)",
+            "line": 5
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T2.py",
+            "quote": "    assert isinstance(result, int) and not isinstance(result, bool)",
+            "line": 6
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T2.py",
+            "quote": "    assert result == 0",
+            "line": 7
+          }
+        ],
+        "phase": "execution"
+      }
+    ],
+    "improvements": 0,
+    "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_interior_remaining_is_integer",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import inventory\n\n\ndef test_interior_remaining_is_integer():\n    result = inventory.remaining(10, 3)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 7\n",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+            "purpose": "Check an interior case returns the required value with integer semantic type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "Uses nonnegative built-in integer inputs with requested less than stock, then checks both the required value and semantic integer return type excluding bool.",
+              "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+            },
+            "review": "Uses nonnegative built-in integer inputs with requested less than stock, then checks both the required value and semantic integer return type excluding bool."
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B2",
+            "functionName": "test_equal_stock_returns_integer_zero",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import inventory\n\n\ndef test_equal_stock_returns_integer_zero():\n    result = inventory.remaining(5, 5)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+            "purpose": "Check the explicitly specified equality boundary returns integer zero.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T2",
+              "supported": true,
+              "reason": "Checks the explicitly specified equality case, including zero and semantic integer type excluding bool.",
+              "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+            },
+            "review": "Checks the explicitly specified equality case, including zero and semantic integer type excluding bool."
+          },
+          {
+            "id": "T3",
+            "behaviorId": "B3",
+            "functionName": "test_request_greater_than_stock_raises_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nimport inventory\n\n\ndef test_request_greater_than_stock_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(4, 5)\n",
+            "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError.",
+            "purpose": "Check ValueError for a nonnegative request exceeding stock.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T3",
+              "supported": true,
+              "reason": "Both inputs are nonnegative built-in ints and requested exceeds stock; the test asserts the required ValueError.",
+              "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError."
+            },
+            "review": "Both inputs are nonnegative built-in ints and requested exceeds stock; the test asserts the required ValueError."
+          },
+          {
+            "id": "T4",
+            "behaviorId": "B4",
+            "functionName": "test_negative_stock_raises_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nimport inventory\n\n\ndef test_negative_stock_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(-1, 0)\n",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+            "purpose": "Check ValueError for a negative built-in int stock.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T4",
+              "supported": true,
+              "reason": "Uses a negative built-in int stock and asserts the required ValueError.",
+              "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+            },
+            "review": "Uses a negative built-in int stock and asserts the required ValueError."
+          },
+          {
+            "id": "T5",
+            "behaviorId": "B5",
+            "functionName": "test_negative_requested_raises_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nimport inventory\n\n\ndef test_negative_requested_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(1, -1)\n",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+            "purpose": "Check ValueError for a negative built-in int requested count.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T5",
+              "supported": true,
+              "reason": "Uses a negative built-in int requested value and asserts the required ValueError.",
+              "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+            },
+            "review": "Uses a negative built-in int requested value and asserts the required ValueError."
+          },
+          {
+            "id": "T6",
+            "behaviorId": "B6",
+            "functionName": "test_noninteger_stock_raises_type_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nimport inventory\n\n\ndef test_noninteger_stock_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(1.5, 0)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check TypeError when stock is not a built-in int.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T6",
+              "supported": true,
+              "reason": "Uses a non-built-in-int stock value and asserts the required TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "Uses a non-built-in-int stock value and asserts the required TypeError."
+          },
+          {
+            "id": "T7",
+            "behaviorId": "B6",
+            "functionName": "test_bool_stock_raises_type_error",
+            "gapIndexes": [
+              1
+            ],
+            "code": "import pytest\nimport inventory\n\n\ndef test_bool_stock_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(True, 0)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check the explicitly called-out bool stock case raises TypeError.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T7",
+              "supported": true,
+              "reason": "Uses bool for stock, an explicitly included non-built-in-int case, and asserts the required TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "Uses bool for stock, an explicitly included non-built-in-int case, and asserts the required TypeError."
+          },
+          {
+            "id": "T8",
+            "behaviorId": "B7",
+            "functionName": "test_noninteger_requested_raises_type_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\nimport inventory\n\n\ndef test_noninteger_requested_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(1, 0.5)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check TypeError when requested is not a built-in int.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T8",
+              "supported": true,
+              "reason": "Uses a non-built-in-int requested value and asserts the required TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "Uses a non-built-in-int requested value and asserts the required TypeError."
+          },
+          {
+            "id": "T9",
+            "behaviorId": "B7",
+            "functionName": "test_bool_requested_raises_type_error",
+            "gapIndexes": [
+              1
+            ],
+            "code": "import pytest\nimport inventory\n\n\ndef test_bool_requested_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(1, False)\n",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+            "purpose": "Check the explicitly called-out bool requested case raises TypeError.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T9",
+              "supported": true,
+              "reason": "Uses bool for requested, an explicitly included non-built-in-int case, and asserts the required TypeError.",
+              "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+            },
+            "review": "Uses bool for requested, an explicitly included non-built-in-int case, and asserts the required TypeError."
+          }
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "Uses nonnegative built-in integer inputs with requested less than stock, then checks both the required value and semantic integer return type excluding bool.",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+          },
+          {
+            "testId": "T2",
+            "supported": true,
+            "reason": "Checks the explicitly specified equality case, including zero and semantic integer type excluding bool.",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+          },
+          {
+            "testId": "T3",
+            "supported": true,
+            "reason": "Both inputs are nonnegative built-in ints and requested exceeds stock; the test asserts the required ValueError.",
+            "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError."
+          },
+          {
+            "testId": "T4",
+            "supported": true,
+            "reason": "Uses a negative built-in int stock and asserts the required ValueError.",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+          },
+          {
+            "testId": "T5",
+            "supported": true,
+            "reason": "Uses a negative built-in int requested value and asserts the required ValueError.",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+          },
+          {
+            "testId": "T6",
+            "supported": true,
+            "reason": "Uses a non-built-in-int stock value and asserts the required TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          {
+            "testId": "T7",
+            "supported": true,
+            "reason": "Uses bool for stock, an explicitly included non-built-in-int case, and asserts the required TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          {
+            "testId": "T8",
+            "supported": true,
+            "reason": "Uses a non-built-in-int requested value and asserts the required TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          {
+            "testId": "T9",
+            "supported": true,
+            "reason": "Uses bool for requested, an explicitly included non-built-in-int case, and asserts the required TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/inventory-B3-3/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/inventory-B3-3/report.json"
+  }
+]

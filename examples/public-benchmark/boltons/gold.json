@@ -1,0 +1,32 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "contract-1",
+      "ruleId": "R1",
+      "description": "mathutils.ceil(x, options) returns the smallest number in options greater than or equal to x; ceil(4, options=[1.5,2.5,4,6]) returns 4.",
+      "initialGap": true
+    },
+    {
+      "id": "contract-2",
+      "ruleId": "R2",
+      "description": "mathutils.floor(x, options) returns the largest number in options less than or equal to x; floor(2.5, options=[1.5,2.5,4,6]) returns 2.5.",
+      "initialGap": true
+    },
+    {
+      "id": "contract-3",
+      "ruleId": "R3",
+      "description": "Without options, mathutils.ceil returns the mathematical ceiling of x and mathutils.floor returns its mathematical floor.",
+      "initialGap": true
+    }
+  ],
+  "fault": {
+    "id": "injected-exclusive-ceiling",
+    "file": "mathutils.py",
+    "before": "    i = bisect.bisect_right(options, x)\n    if i == len(options):",
+    "after": "    i = bisect.bisect_left(options, x)\n    if i == len(options):"
+  }
+}

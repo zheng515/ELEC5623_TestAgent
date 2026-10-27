@@ -69,17 +69,18 @@ Old benchmark and experiment outputs were removed on 2026-10-27 because their
 frozen agent sources differ from the current implementation. Their scores and
 latency comparisons must not be presented as current results.
 
-The replacement [six-run development pilot](../experiments/results/2026-10-27-current-pilot/README.md)
+The [18-run development study](../experiments/results/2026-10-27-repeated-workflow/README.md)
 completed: three existing projects,
-B0 and B3, one observation per project/configuration. B0 is local direct generation
+B0 and B3, three observations per project/configuration. B0 is local direct generation
 with schema/original-quote checks but no model admission review; it is not Codex,
 Claude or a paper implementation. B3 adds model review and the full workflow. Both
 configurations share model, input archives, requirements and sandbox image.
 See [the experiment protocol](../examples/experiments/README.md).
 
-A single observation cannot establish repeatability. Reference-copy replays can
-expose assertion disagreements but do not replace independent semantic review.
-Both configurations detected the two seeded defects. B3 used more time and tokens;
-this pilot does not support a stronger fault-detection claim. Its recorded diagnoses,
+Reference-copy replays can expose assertion disagreements but do not replace
+independent semantic review. Both configurations detected the two seeded defects
+in every repetition (6/6 observations each). B3 used more time and tokens;
+this study does not support a stronger fault-detection claim. Its recorded diagnoses,
 retained failures and mutation decisions demonstrate workflow differences only.
-The separate five-project benchmark remains paused.
+The obsolete five-case synthetic benchmark draft was deleted. A replacement
+five-project benchmark has not been selected or run.

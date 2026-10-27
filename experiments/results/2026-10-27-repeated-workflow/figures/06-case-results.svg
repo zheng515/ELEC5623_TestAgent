@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="492.92pt" height="297.880594pt" viewBox="0 0 492.92 297.880594" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-27T17:58:14.923865</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 297.880594 
+L 492.92 297.880594 
+L 492.92 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 74.36 215.125937 
+L 485.72 215.125937 
+L 485.72 23.229938 
+L 74.36 23.229938 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 80.5304 28.347164 
+L 273.8696 28.347164 
+L 273.8696 82.078044 
+L 80.5304 82.078044 
+z
+" clip-path="url(#p05fcb29ee1)" style="fill: #f1f5f9; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 286.2104 28.347164 
+L 479.5496 28.347164 
+L 479.5496 82.078044 
+L 286.2104 82.078044 
+z
+" clip-path="url(#p05fcb29ee1)" style="fill: #f1f5f9; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 80.5304 92.312497 
+L 273.8696 92.312497 
+L 273.8696 146.043377 
+L 80.5304 146.043377 
+z
+" clip-path="url(#p05fcb29ee1)" style="fill: #dbeafe; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 286.2104 92.312497 
+L 479.5496 92.312497 
+L 479.5496 146.043377 
+L 286.2104 146.043377 
+z
+" clip-path="url(#p05fcb29ee1)" style="fill: #dbeafe; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 80.5304 156.277831 
+L 273.8696 156.277831 
+L 273.8696 210.008711 
+L 80.5304 210.008711 
+z
+" clip-path="url(#p05fcb29ee1)" style="fill: #dbeafe; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 286.2104 156.277831 
+L 479.5496 156.277831 
+L 479.5496 210.008711 
+L 286.2104 210.008711 
+z
+" clip-path="url(#p05fcb29ee1)" style="fill: #dbeafe; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1"/>
+     <g id="text_1">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="177.2" y="233.483359" transform="rotate(-0 177.2 233.483359)">B0</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_2"/>
+     <g id="text_2">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="382.88" y="233.483359" transform="rotate(-0 382.88 233.483359)">B3</text>
+     </g>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_3"/>
+     <g id="text_3">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end" x="64.36" y="59.391745" transform="rotate(-0 64.36 59.391745)">shipping</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_4"/>
+     <g id="text_4">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end" x="64.36" y="123.357078" transform="rotate(-0 64.36 123.357078)">booking</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_5"/>
+     <g id="text_5">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end" x="64.36" y="187.322411" transform="rotate(-0 64.36 187.322411)">inventory</text>
+     </g>
+    </g>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(144.39375 51.809284)">Executed 3/3</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(137.696875 63.812018)">No seeded fault</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(350.07375 51.809284)">Executed 3/3</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(343.376875 63.812018)">No seeded fault</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #0f172a" x="177.2" y="121.775984" transform="rotate(-0 177.2 121.775984)">Detected 3/3</text>
+   </g>
+   <g id="text_9">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #0f172a" x="382.88" y="121.775984" transform="rotate(-0 382.88 121.775984)">Detected 3/3</text>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #0f172a" x="177.2" y="185.741318" transform="rotate(-0 177.2 185.741318)">Detected 3/3</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #0f172a" x="382.88" y="185.741318" transform="rotate(-0 382.88 185.741318)">Detected 3/3</text>
+   </g>
+   <g id="text_12">
+    <text style="font-weight: 700; font-size: 13.2px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #0f172a" x="280.04" y="17.229938" transform="rotate(-0 280.04 17.229938)">Per-case seeded-fault detection and execution</text>
+   </g>
+  </g>
+  <g id="text_13">
+   <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #475569" transform="translate(7.2 268.753562)">Denominators include every planned repeat. No seeded fault does not mean no possible</text>
+   <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #475569" transform="translate(7.2 278.35575)">bug. Detection requires the original failure and a matching pass on the corrected</text>
+   <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #475569" transform="translate(7.2 287.957937)">copy; this is not overall semantic accuracy.</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p05fcb29ee1">
+   <rect x="74.36" y="23.229938" width="411.36" height="191.896"/>
+  </clipPath>
+ </defs>
+</svg>

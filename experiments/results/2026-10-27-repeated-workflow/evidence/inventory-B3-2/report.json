@@ -1,0 +1,1139 @@
+{
+  "id": "6d35f8e7-04f6-440c-b9be-24815f9396a6",
+  "variant": "B3",
+  "title": "inventory",
+  "createdAt": "2026-10-27T06:55:34.168Z",
+  "model": "gpt-6-luna",
+  "source": "examples/benchmark/inventory/project",
+  "fingerprint": "3fe290f5cc55b6a0ef7e81791cb91312ec91e9e2fc715f18fafd8a1730028115",
+  "requirementInput": {
+    "mode": "text",
+    "text": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.\nFor requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError.\nFor a negative built-in int stock or requested, inventory.remaining raises ValueError.\nIf either argument is not a built-in int, including bool, inventory.remaining raises TypeError.\nThe system shall quickly notify users when stock is low.",
+    "context": ""
+  },
+  "status": "completed",
+  "stage": "Complete",
+  "rules": [
+    {
+      "id": "R1",
+      "text": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+    },
+    {
+      "id": "R2",
+      "text": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError."
+    },
+    {
+      "id": "R3",
+      "text": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+    },
+    {
+      "id": "R4",
+      "text": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+    },
+    {
+      "id": "R5",
+      "text": "The system shall quickly notify users when stock is low."
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_partial_result_is_integer_not_bool",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import inventory\n\n\ndef test_partial_result_is_integer_not_bool():\n    result = inventory.remaining(10, 3)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 7\n",
+      "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+      "purpose": "Check the promised result type as well as the value for a partial reservation.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T1",
+        "supported": true,
+        "reason": "The inputs satisfy the stated nonnegative built-in integer conditions with requested <= stock. The assertions check the promised integer result, exclude bool, and verify the specified subtraction value.",
+        "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+      },
+      "review": "The inputs satisfy the stated nonnegative built-in integer conditions with requested <= stock. The assertions check the promised integer result, exclude bool, and verify the specified subtraction value."
+    },
+    {
+      "id": "T2",
+      "behaviorId": "B1",
+      "functionName": "test_different_valid_partial_reservation",
+      "gapIndexes": [
+        1
+      ],
+      "code": "import inventory\n\n\ndef test_different_valid_partial_reservation():\n    result = inventory.remaining(12, 5)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 7\n",
+      "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+      "purpose": "Check another valid partial-reservation input against the specified subtraction result.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T2",
+        "supported": true,
+        "reason": "The inputs are a different valid partial-reservation case. The test checks the promised integer result, excludes bool, and verifies 12 - 5 = 7.",
+        "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+      },
+      "review": "The inputs are a different valid partial-reservation case. The test checks the promised integer result, excludes bool, and verifies 12 - 5 = 7."
+    },
+    {
+      "id": "T3",
+      "behaviorId": "B2",
+      "functionName": "test_equal_stock_returns_zero",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import inventory\n\n\ndef test_equal_stock_returns_zero():\n    result = inventory.remaining(5, 5)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+      "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+      "purpose": "Check the specified equality boundary, including its zero result.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T3",
+        "supported": true,
+        "reason": "The equal, nonnegative built-in integer inputs meet the stated boundary condition. The assertions check an integer result, exclude bool, and verify the specified zero value.",
+        "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+      },
+      "review": "The equal, nonnegative built-in integer inputs meet the stated boundary condition. The assertions check an integer result, exclude bool, and verify the specified zero value."
+    },
+    {
+      "id": "T4",
+      "behaviorId": "B3",
+      "functionName": "test_request_greater_than_stock_raises_value_error",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import inventory\nimport pytest\n\n\ndef test_request_greater_than_stock_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(4, 6)\n",
+      "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError.",
+      "purpose": "Check the specified exception for a nonnegative request exceeding stock.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T4",
+        "supported": true,
+        "reason": "Both arguments are nonnegative built-in integers and requested exceeds stock; the test asserts the required ValueError.",
+        "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError."
+      },
+      "review": "Both arguments are nonnegative built-in integers and requested exceeds stock; the test asserts the required ValueError."
+    },
+    {
+      "id": "T5",
+      "behaviorId": "B4",
+      "functionName": "test_negative_stock_raises_value_error",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import inventory\nimport pytest\n\n\ndef test_negative_stock_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(-1, 0)\n",
+      "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+      "purpose": "Check the negative-stock case with a nonnegative requested count.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T5",
+        "supported": true,
+        "reason": "The stock is a negative built-in integer and requested is nonnegative; the test asserts the required ValueError.",
+        "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+      },
+      "review": "The stock is a negative built-in integer and requested is nonnegative; the test asserts the required ValueError."
+    },
+    {
+      "id": "T6",
+      "behaviorId": "B5",
+      "functionName": "test_negative_requested_raises_value_error",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import inventory\nimport pytest\n\n\ndef test_negative_requested_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(4, -1)\n",
+      "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+      "purpose": "Check the negative-request case with a nonnegative stock count.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T6",
+        "supported": true,
+        "reason": "The requested value is a negative built-in integer and stock is nonnegative; the test asserts the required ValueError.",
+        "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+      },
+      "review": "The requested value is a negative built-in integer and stock is nonnegative; the test asserts the required ValueError."
+    },
+    {
+      "id": "T7",
+      "behaviorId": "B6",
+      "functionName": "test_non_int_stock_raises_type_error",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import inventory\nimport pytest\n\n\ndef test_non_int_stock_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(2.5, 1)\n",
+      "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+      "purpose": "Check that a non-int stock argument raises the specified exception.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T7",
+        "supported": true,
+        "reason": "The stock argument is not a built-in int and requested is a built-in int; the test asserts the required TypeError.",
+        "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+      },
+      "review": "The stock argument is not a built-in int and requested is a built-in int; the test asserts the required TypeError."
+    },
+    {
+      "id": "T8",
+      "behaviorId": "B6",
+      "functionName": "test_bool_stock_raises_type_error",
+      "gapIndexes": [
+        1
+      ],
+      "code": "import inventory\nimport pytest\n\n\ndef test_bool_stock_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(True, 0)\n",
+      "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+      "purpose": "Check the explicitly excluded bool type for the stock argument.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T8",
+        "supported": true,
+        "reason": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as stock and asserts TypeError.",
+        "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+      },
+      "review": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as stock and asserts TypeError."
+    },
+    {
+      "id": "T9",
+      "behaviorId": "B7",
+      "functionName": "test_non_int_requested_raises_type_error",
+      "gapIndexes": [
+        0
+      ],
+      "code": "import inventory\nimport pytest\n\n\ndef test_non_int_requested_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(4, 1.5)\n",
+      "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+      "purpose": "Check that a non-int requested argument raises the specified exception.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T9",
+        "supported": true,
+        "reason": "The requested argument is not a built-in int and stock is a built-in int; the test asserts the required TypeError.",
+        "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+      },
+      "review": "The requested argument is not a built-in int and stock is a built-in int; the test asserts the required TypeError."
+    },
+    {
+      "id": "T10",
+      "behaviorId": "B7",
+      "functionName": "test_bool_requested_raises_type_error",
+      "gapIndexes": [
+        1
+      ],
+      "code": "import inventory\nimport pytest\n\n\ndef test_bool_requested_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(4, False)\n",
+      "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+      "purpose": "Check the explicitly excluded bool type for the requested argument.",
+      "approved": true,
+      "reviewDecision": {
+        "testId": "T10",
+        "supported": true,
+        "reason": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as requested and asserts TypeError.",
+        "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+      },
+      "review": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as requested and asserts TypeError."
+    }
+  ],
+  "measurements": [
+    {
+      "outcomes": [
+        {
+          "node": "tests/test_inventory.py::test_partial_reservation",
+          "file": "tests/test_inventory.py",
+          "name": "test_partial_reservation",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "tests/test_inventory.py::test_equal_stock_is_rejected",
+          "file": "tests/test_inventory.py",
+          "name": "test_equal_stock_is_rejected",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_partial_result_is_integer_not_bool",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_partial_result_is_integer_not_bool",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T10.py::test_bool_requested_raises_type_error",
+          "file": "reqtest_generated/test_reqtest_T10.py",
+          "name": "test_bool_requested_raises_type_error",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T2.py::test_different_valid_partial_reservation",
+          "file": "reqtest_generated/test_reqtest_T2.py",
+          "name": "test_different_valid_partial_reservation",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T3.py::test_equal_stock_returns_zero",
+          "file": "reqtest_generated/test_reqtest_T3.py",
+          "name": "test_equal_stock_returns_zero",
+          "status": "failed",
+          "message": "def test_equal_stock_returns_zero():\n>       result = inventory.remaining(5, 5)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^\n\nreqtest_generated/test_reqtest_T3.py:5: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nstock = 5, requested = 5\n\n    def remaining(stock, requested):\n        if type(stock) is not int or type(requested) is not int:\n            raise TypeError(\"stock and requested must be integers\")\n        if stock < 0 or requested < 0 or requested >= stock:\n>           raise ValueError(\"invalid stock or request\")\nE           ValueError: invalid stock or request\n\ninventory.py:5: ValueError"
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T4.py::test_request_greater_than_stock_raises_value_error",
+          "file": "reqtest_generated/test_reqtest_T4.py",
+          "name": "test_request_greater_than_stock_raises_value_error",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T5.py::test_negative_stock_raises_value_error",
+          "file": "reqtest_generated/test_reqtest_T5.py",
+          "name": "test_negative_stock_raises_value_error",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T6.py::test_negative_requested_raises_value_error",
+          "file": "reqtest_generated/test_reqtest_T6.py",
+          "name": "test_negative_requested_raises_value_error",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T7.py::test_non_int_stock_raises_type_error",
+          "file": "reqtest_generated/test_reqtest_T7.py",
+          "name": "test_non_int_stock_raises_type_error",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T8.py::test_bool_stock_raises_type_error",
+          "file": "reqtest_generated/test_reqtest_T8.py",
+          "name": "test_bool_stock_raises_type_error",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "node": "reqtest_generated/test_reqtest_T9.py::test_non_int_requested_raises_type_error",
+          "file": "reqtest_generated/test_reqtest_T9.py",
+          "name": "test_non_int_requested_raises_type_error",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 1,
+      "log": ".....F......                                                             [100%]\n=================================== FAILURES ===================================\n________________________ test_equal_stock_returns_zero _________________________\n\n    def test_equal_stock_returns_zero():\n>       result = inventory.remaining(5, 5)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^\n\nreqtest_generated/test_reqtest_T3.py:5: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nstock = 5, requested = 5\n\n    def remaining(stock, requested):\n        if type(stock) is not int or type(requested) is not int:\n            raise TypeError(\"stock and requested must be integers\")\n        if stock < 0 or requested < 0 or requested >= stock:\n>           raise ValueError(\"invalid stock or request\")\nE           ValueError: invalid stock or request\n\ninventory.py:5: ValueError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T3.py::test_equal_stock_returns_zero - ...\n1 failed, 11 passed in 0.04s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  ],
+  "mutations": [],
+  "diagnoses": [
+    {
+      "testId": "T3",
+      "category": "potential_implementation_defect",
+      "reason": "The generated test calls the equality boundary explicitly required by R1. The call raises ValueError before the result assertions, contradicting the requirement that equal stock and requested return zero. Existing test expectations do not override the original requirement.",
+      "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+      "executionQuote": "E           ValueError: invalid stock or request",
+      "evidence": [
+        {
+          "file": "inventory.py",
+          "quote": "    if stock < 0 or requested < 0 or requested >= stock:",
+          "line": 4
+        },
+        {
+          "file": "inventory.py",
+          "quote": "        raise ValueError(\"invalid stock or request\")",
+          "line": 5
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T3.py",
+          "quote": "    result = inventory.remaining(5, 5)",
+          "line": 5
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "relevance": [],
+  "improvements": [],
+  "states": [
+    {
+      "id": "B1",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "tests/test_inventory.py::test_partial_reservation",
+        "reqtest_generated/test_reqtest_T1.py::test_partial_result_is_integer_not_bool",
+        "reqtest_generated/test_reqtest_T2.py::test_different_valid_partial_reservation"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_equal_stock_returns_zero"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_request_greater_than_stock_raises_value_error"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T5.py::test_negative_stock_raises_value_error"
+      ]
+    },
+    {
+      "id": "B5",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T6.py::test_negative_requested_raises_value_error"
+      ]
+    },
+    {
+      "id": "B6",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T7.py::test_non_int_stock_raises_type_error",
+        "reqtest_generated/test_reqtest_T8.py::test_bool_stock_raises_type_error"
+      ]
+    },
+    {
+      "id": "B7",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T10.py::test_bool_requested_raises_type_error",
+        "reqtest_generated/test_reqtest_T9.py::test_non_int_requested_raises_type_error"
+      ]
+    },
+    {
+      "id": "B8",
+      "status": "Uncertain",
+      "reason": "The notification condition and timing are not specified precisely enough to define a testable contract. The README also says the module has no notification client; this does not resolve the requirement's intended scope.",
+      "nodes": []
+    }
+  ],
+  "limitations": [
+    "Dataset purpose: pilot. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis."
+  ],
+  "configuration": {
+    "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+    "improvementLimit": 1,
+    "mutationSeconds": 75,
+    "policyVersion": "contract-witness-v8-source-lines",
+    "mode": "regenerate"
+  },
+  "environment": {
+    "python": "3.11.17",
+    "pytest": "8.4.2",
+    "mutmut": "2.5.1"
+  },
+  "collection": {
+    "exitCode": 0,
+    "log": "tests/test_inventory.py::test_partial_reservation\ntests/test_inventory.py::test_equal_stock_is_rejected\n\n2 tests collected in 0.00s\n",
+    "timedOut": false
+  },
+  "retrieval": {
+    "query": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock. For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError. For a negative built-in int stock or requested, inventory.remaining raises ValueError. If either argument is not a built-in int, including bool, inventory.remaining raises TypeError. The system shall quickly notify users when stock is low.",
+    "documents": [
+      {
+        "file": "README.md",
+        "text": "# Inventory API\n\nImport `remaining` from `inventory`. It accepts stock and requested item counts\nand returns a remaining count. This module has no network or notification client.\nRun the existing tests with `python -m pytest`.\n",
+        "score": 180.07552313664561,
+        "sha256": "84fb72a6f94574ad10e58d5d6a3e2af5f7e9c1f84fbd1a46255989919f8ee7fc"
+      }
+    ]
+  },
+  "analysis": {
+    "behaviors": [
+      {
+        "id": "B1",
+        "ruleId": "R1",
+        "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+        "text": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "The return value and input conditions are specified. The equality case is separately represented as a boundary behavior.",
+        "files": [
+          "inventory.py",
+          "tests/test_inventory.py"
+        ],
+        "existingTests": [
+          "tests/test_inventory.py::test_partial_reservation"
+        ],
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    return stock - requested",
+            "line": 6
+          },
+          {
+            "file": "tests/test_inventory.py",
+            "quote": "    assert remaining(10, 3) == 7",
+            "line": 6
+          }
+        ],
+        "gaps": [
+          "Check that a partial reservation result is an integer and not a bool.",
+          "Check a different valid partial-reservation input."
+        ]
+      },
+      {
+        "id": "B2",
+        "ruleId": "R1",
+        "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+        "text": "When requested equals stock, the function returns zero.",
+        "category": "boundary",
+        "issue": "none",
+        "reason": "The requirement explicitly includes equality and specifies the result.",
+        "files": [
+          "inventory.py",
+          "tests/test_inventory.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    if stock < 0 or requested < 0 or requested >= stock:",
+            "line": 4
+          },
+          {
+            "file": "inventory.py",
+            "quote": "        raise ValueError(\"invalid stock or request\")",
+            "line": 5
+          },
+          {
+            "file": "tests/test_inventory.py",
+            "quote": "def test_equal_stock_is_rejected():",
+            "line": 9
+          },
+          {
+            "file": "tests/test_inventory.py",
+            "quote": "    with pytest.raises(ValueError):",
+            "line": 10
+          },
+          {
+            "file": "tests/test_inventory.py",
+            "quote": "        remaining(5, 5)",
+            "line": 11
+          }
+        ],
+        "gaps": [
+          "Check that equal stock and requested returns zero."
+        ]
+      },
+      {
+        "id": "B3",
+        "ruleId": "R2",
+        "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError.",
+        "text": "When both arguments are nonnegative built-in ints and requested is greater than stock, the function raises ValueError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The triggering condition and exception are specified.",
+        "files": [
+          "inventory.py",
+          "tests/test_inventory.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    if stock < 0 or requested < 0 or requested >= stock:",
+            "line": 4
+          },
+          {
+            "file": "inventory.py",
+            "quote": "        raise ValueError(\"invalid stock or request\")",
+            "line": 5
+          }
+        ],
+        "gaps": [
+          "Check a nonnegative input pair where requested is greater than stock and assert ValueError."
+        ]
+      },
+      {
+        "id": "B4",
+        "ruleId": "R3",
+        "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+        "text": "When stock is a negative built-in int, the function raises ValueError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The requirement specifies the negative-stock condition and exception.",
+        "files": [
+          "inventory.py",
+          "tests/test_inventory.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    if stock < 0 or requested < 0 or requested >= stock:",
+            "line": 4
+          },
+          {
+            "file": "inventory.py",
+            "quote": "        raise ValueError(\"invalid stock or request\")",
+            "line": 5
+          }
+        ],
+        "gaps": [
+          "Check negative built-in int stock with nonnegative requested and assert ValueError."
+        ]
+      },
+      {
+        "id": "B5",
+        "ruleId": "R3",
+        "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+        "text": "When requested is a negative built-in int, the function raises ValueError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The requirement specifies the negative-request condition and exception.",
+        "files": [
+          "inventory.py",
+          "tests/test_inventory.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    if stock < 0 or requested < 0 or requested >= stock:",
+            "line": 4
+          },
+          {
+            "file": "inventory.py",
+            "quote": "        raise ValueError(\"invalid stock or request\")",
+            "line": 5
+          }
+        ],
+        "gaps": [
+          "Check nonnegative built-in int stock with negative requested and assert ValueError."
+        ]
+      },
+      {
+        "id": "B6",
+        "ruleId": "R4",
+        "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+        "text": "If stock is not a built-in int, including bool, the function raises TypeError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The requirement specifies the accepted input type boundary and exception.",
+        "files": [
+          "inventory.py",
+          "tests/test_inventory.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    if type(stock) is not int or type(requested) is not int:",
+            "line": 2
+          },
+          {
+            "file": "inventory.py",
+            "quote": "        raise TypeError(\"stock and requested must be integers\")",
+            "line": 3
+          }
+        ],
+        "gaps": [
+          "Check a non-int stock value and assert TypeError.",
+          "Check bool as stock and assert TypeError."
+        ]
+      },
+      {
+        "id": "B7",
+        "ruleId": "R4",
+        "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+        "text": "If requested is not a built-in int, including bool, the function raises TypeError.",
+        "category": "exception",
+        "issue": "none",
+        "reason": "The requirement specifies the accepted input type boundary and exception.",
+        "files": [
+          "inventory.py",
+          "tests/test_inventory.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    if type(stock) is not int or type(requested) is not int:",
+            "line": 2
+          },
+          {
+            "file": "inventory.py",
+            "quote": "        raise TypeError(\"stock and requested must be integers\")",
+            "line": 3
+          }
+        ],
+        "gaps": [
+          "Check a non-int requested value and assert TypeError.",
+          "Check bool as requested and assert TypeError."
+        ]
+      },
+      {
+        "id": "B8",
+        "ruleId": "R5",
+        "quote": "The system shall quickly notify users when stock is low.",
+        "text": "The system shall notify users when stock is low, but the requirement does not define what stock level counts as low or how quickly notification must occur.",
+        "category": "condition",
+        "issue": "incomplete",
+        "reason": "The notification condition and timing are not specified precisely enough to define a testable contract. The README also says the module has no notification client; this does not resolve the requirement's intended scope.",
+        "files": [
+          "inventory.py"
+        ],
+        "existingTests": [],
+        "evidence": [
+          {
+            "file": "README.md",
+            "quote": "and returns a remaining count. This module has no network or notification client.",
+            "line": 4
+          }
+        ],
+        "gaps": [
+          "Define the low-stock condition or threshold.",
+          "Define what timing qualifies as quickly.",
+          "Specify the expected notification behavior and its scope."
+        ]
+      }
+    ],
+    "inconsistencies": [
+      {
+        "ruleId": "R1",
+        "behaviorIds": [
+          "B2"
+        ],
+        "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+        "description": "The requirement specifies zero when requested equals stock, but the implementation raises ValueError for that case and the existing test expects rejection.",
+        "evidence": [
+          {
+            "file": "inventory.py",
+            "quote": "    if stock < 0 or requested < 0 or requested >= stock:",
+            "line": 4
+          },
+          {
+            "file": "inventory.py",
+            "quote": "        raise ValueError(\"invalid stock or request\")",
+            "line": 5
+          },
+          {
+            "file": "tests/test_inventory.py",
+            "quote": "def test_equal_stock_is_rejected():",
+            "line": 9
+          },
+          {
+            "file": "tests/test_inventory.py",
+            "quote": "    with pytest.raises(ValueError):",
+            "line": 10
+          },
+          {
+            "file": "tests/test_inventory.py",
+            "quote": "        remaining(5, 5)",
+            "line": 11
+          }
+        ]
+      },
+      {
+        "ruleId": "R5",
+        "behaviorIds": [
+          "B8"
+        ],
+        "quote": "The system shall quickly notify users when stock is low.",
+        "description": "The requirement calls for user notifications, while the README states that this module has no network or notification client. The intended scope of the requirement is unclear, so this is a potential conflict rather than a determination of which artifact is correct.",
+        "evidence": [
+          {
+            "file": "README.md",
+            "quote": "and returns a remaining count. This module has no network or notification client.",
+            "line": 4
+          }
+        ]
+      }
+    ]
+  },
+  "baseline": {
+    "outcomes": [
+      {
+        "node": "tests/test_inventory.py::test_partial_reservation",
+        "file": "tests/test_inventory.py",
+        "name": "test_partial_reservation",
+        "status": "passed",
+        "message": ""
+      },
+      {
+        "node": "tests/test_inventory.py::test_equal_stock_is_rejected",
+        "file": "tests/test_inventory.py",
+        "name": "test_equal_stock_is_rejected",
+        "status": "passed",
+        "message": ""
+      }
+    ],
+    "exitCode": 0,
+    "log": "..                                                                       [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n2 passed in 0.01s\n",
+    "timedOut": false,
+    "integrity": true,
+    "runtimeArtifacts": []
+  },
+  "testAttempts": [
+    {
+      "phase": "generation",
+      "reason": "Generate checks from the original requirements and identified gaps.",
+      "status": "applied",
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_partial_result_is_integer_not_bool",
+          "gapIndexes": [
+            0
+          ],
+          "code": "import inventory\n\n\ndef test_partial_result_is_integer_not_bool():\n    result = inventory.remaining(10, 3)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 7\n",
+          "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+          "purpose": "Check the promised result type as well as the value for a partial reservation.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The inputs satisfy the stated nonnegative built-in integer conditions with requested <= stock. The assertions check the promised integer result, exclude bool, and verify the specified subtraction value.",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+          },
+          "review": "The inputs satisfy the stated nonnegative built-in integer conditions with requested <= stock. The assertions check the promised integer result, exclude bool, and verify the specified subtraction value."
+        },
+        {
+          "id": "T2",
+          "behaviorId": "B1",
+          "functionName": "test_different_valid_partial_reservation",
+          "gapIndexes": [
+            1
+          ],
+          "code": "import inventory\n\n\ndef test_different_valid_partial_reservation():\n    result = inventory.remaining(12, 5)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 7\n",
+          "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+          "purpose": "Check another valid partial-reservation input against the specified subtraction result.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T2",
+            "supported": true,
+            "reason": "The inputs are a different valid partial-reservation case. The test checks the promised integer result, excludes bool, and verifies 12 - 5 = 7.",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+          },
+          "review": "The inputs are a different valid partial-reservation case. The test checks the promised integer result, excludes bool, and verifies 12 - 5 = 7."
+        },
+        {
+          "id": "T3",
+          "behaviorId": "B2",
+          "functionName": "test_equal_stock_returns_zero",
+          "gapIndexes": [
+            0
+          ],
+          "code": "import inventory\n\n\ndef test_equal_stock_returns_zero():\n    result = inventory.remaining(5, 5)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+          "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+          "purpose": "Check the specified equality boundary, including its zero result.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T3",
+            "supported": true,
+            "reason": "The equal, nonnegative built-in integer inputs meet the stated boundary condition. The assertions check an integer result, exclude bool, and verify the specified zero value.",
+            "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+          },
+          "review": "The equal, nonnegative built-in integer inputs meet the stated boundary condition. The assertions check an integer result, exclude bool, and verify the specified zero value."
+        },
+        {
+          "id": "T4",
+          "behaviorId": "B3",
+          "functionName": "test_request_greater_than_stock_raises_value_error",
+          "gapIndexes": [
+            0
+          ],
+          "code": "import inventory\nimport pytest\n\n\ndef test_request_greater_than_stock_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(4, 6)\n",
+          "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError.",
+          "purpose": "Check the specified exception for a nonnegative request exceeding stock.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T4",
+            "supported": true,
+            "reason": "Both arguments are nonnegative built-in integers and requested exceeds stock; the test asserts the required ValueError.",
+            "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError."
+          },
+          "review": "Both arguments are nonnegative built-in integers and requested exceeds stock; the test asserts the required ValueError."
+        },
+        {
+          "id": "T5",
+          "behaviorId": "B4",
+          "functionName": "test_negative_stock_raises_value_error",
+          "gapIndexes": [
+            0
+          ],
+          "code": "import inventory\nimport pytest\n\n\ndef test_negative_stock_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(-1, 0)\n",
+          "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+          "purpose": "Check the negative-stock case with a nonnegative requested count.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T5",
+            "supported": true,
+            "reason": "The stock is a negative built-in integer and requested is nonnegative; the test asserts the required ValueError.",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+          },
+          "review": "The stock is a negative built-in integer and requested is nonnegative; the test asserts the required ValueError."
+        },
+        {
+          "id": "T6",
+          "behaviorId": "B5",
+          "functionName": "test_negative_requested_raises_value_error",
+          "gapIndexes": [
+            0
+          ],
+          "code": "import inventory\nimport pytest\n\n\ndef test_negative_requested_raises_value_error():\n    with pytest.raises(ValueError):\n        inventory.remaining(4, -1)\n",
+          "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError.",
+          "purpose": "Check the negative-request case with a nonnegative stock count.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T6",
+            "supported": true,
+            "reason": "The requested value is a negative built-in integer and stock is nonnegative; the test asserts the required ValueError.",
+            "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+          },
+          "review": "The requested value is a negative built-in integer and stock is nonnegative; the test asserts the required ValueError."
+        },
+        {
+          "id": "T7",
+          "behaviorId": "B6",
+          "functionName": "test_non_int_stock_raises_type_error",
+          "gapIndexes": [
+            0
+          ],
+          "code": "import inventory\nimport pytest\n\n\ndef test_non_int_stock_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(2.5, 1)\n",
+          "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+          "purpose": "Check that a non-int stock argument raises the specified exception.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T7",
+            "supported": true,
+            "reason": "The stock argument is not a built-in int and requested is a built-in int; the test asserts the required TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          "review": "The stock argument is not a built-in int and requested is a built-in int; the test asserts the required TypeError."
+        },
+        {
+          "id": "T8",
+          "behaviorId": "B6",
+          "functionName": "test_bool_stock_raises_type_error",
+          "gapIndexes": [
+            1
+          ],
+          "code": "import inventory\nimport pytest\n\n\ndef test_bool_stock_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(True, 0)\n",
+          "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+          "purpose": "Check the explicitly excluded bool type for the stock argument.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T8",
+            "supported": true,
+            "reason": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as stock and asserts TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          "review": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as stock and asserts TypeError."
+        },
+        {
+          "id": "T9",
+          "behaviorId": "B7",
+          "functionName": "test_non_int_requested_raises_type_error",
+          "gapIndexes": [
+            0
+          ],
+          "code": "import inventory\nimport pytest\n\n\ndef test_non_int_requested_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(4, 1.5)\n",
+          "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+          "purpose": "Check that a non-int requested argument raises the specified exception.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T9",
+            "supported": true,
+            "reason": "The requested argument is not a built-in int and stock is a built-in int; the test asserts the required TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          "review": "The requested argument is not a built-in int and stock is a built-in int; the test asserts the required TypeError."
+        },
+        {
+          "id": "T10",
+          "behaviorId": "B7",
+          "functionName": "test_bool_requested_raises_type_error",
+          "gapIndexes": [
+            1
+          ],
+          "code": "import inventory\nimport pytest\n\n\ndef test_bool_requested_raises_type_error():\n    with pytest.raises(TypeError):\n        inventory.remaining(4, False)\n",
+          "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError.",
+          "purpose": "Check the explicitly excluded bool type for the requested argument.",
+          "approved": true,
+          "reviewDecision": {
+            "testId": "T10",
+            "supported": true,
+            "reason": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as requested and asserts TypeError.",
+            "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+          },
+          "review": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as requested and asserts TypeError."
+        }
+      ],
+      "decisions": [
+        {
+          "testId": "T1",
+          "supported": true,
+          "reason": "The inputs satisfy the stated nonnegative built-in integer conditions with requested <= stock. The assertions check the promised integer result, exclude bool, and verify the specified subtraction value.",
+          "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+        },
+        {
+          "testId": "T2",
+          "supported": true,
+          "reason": "The inputs are a different valid partial-reservation case. The test checks the promised integer result, excludes bool, and verifies 12 - 5 = 7.",
+          "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+        },
+        {
+          "testId": "T3",
+          "supported": true,
+          "reason": "The equal, nonnegative built-in integer inputs meet the stated boundary condition. The assertions check an integer result, exclude bool, and verify the specified zero value.",
+          "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock."
+        },
+        {
+          "testId": "T4",
+          "supported": true,
+          "reason": "Both arguments are nonnegative built-in integers and requested exceeds stock; the test asserts the required ValueError.",
+          "quote": "For requested > stock with both arguments nonnegative built-in ints, inventory.remaining raises ValueError."
+        },
+        {
+          "testId": "T5",
+          "supported": true,
+          "reason": "The stock is a negative built-in integer and requested is nonnegative; the test asserts the required ValueError.",
+          "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+        },
+        {
+          "testId": "T6",
+          "supported": true,
+          "reason": "The requested value is a negative built-in integer and stock is nonnegative; the test asserts the required ValueError.",
+          "quote": "For a negative built-in int stock or requested, inventory.remaining raises ValueError."
+        },
+        {
+          "testId": "T7",
+          "supported": true,
+          "reason": "The stock argument is not a built-in int and requested is a built-in int; the test asserts the required TypeError.",
+          "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+        },
+        {
+          "testId": "T8",
+          "supported": true,
+          "reason": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as stock and asserts TypeError.",
+          "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+        },
+        {
+          "testId": "T9",
+          "supported": true,
+          "reason": "The requested argument is not a built-in int and stock is a built-in int; the test asserts the required TypeError.",
+          "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+        },
+        {
+          "testId": "T10",
+          "supported": true,
+          "reason": "Bool is explicitly included among arguments that are not a built-in int; the test supplies bool as requested and asserts TypeError.",
+          "quote": "If either argument is not a built-in int, including bool, inventory.remaining raises TypeError."
+        }
+      ]
+    }
+  ],
+  "initialStates": [
+    {
+      "id": "B1",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "tests/test_inventory.py::test_partial_reservation",
+        "reqtest_generated/test_reqtest_T1.py::test_partial_result_is_integer_not_bool",
+        "reqtest_generated/test_reqtest_T2.py::test_different_valid_partial_reservation"
+      ]
+    },
+    {
+      "id": "B2",
+      "status": "Uncertain",
+      "reason": "Conflicting execution or environment evidence requires diagnosis/review.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T3.py::test_equal_stock_returns_zero"
+      ]
+    },
+    {
+      "id": "B3",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T4.py::test_request_greater_than_stock_raises_value_error"
+      ]
+    },
+    {
+      "id": "B4",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T5.py::test_negative_stock_raises_value_error"
+      ]
+    },
+    {
+      "id": "B5",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T6.py::test_negative_requested_raises_value_error"
+      ]
+    },
+    {
+      "id": "B6",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T7.py::test_non_int_stock_raises_type_error",
+        "reqtest_generated/test_reqtest_T8.py::test_bool_stock_raises_type_error"
+      ]
+    },
+    {
+      "id": "B7",
+      "status": "Verified",
+      "reason": "Recorded checks passed for the mapped, reviewed behavior cases; this is not exhaustive correctness.",
+      "nodes": [
+        "reqtest_generated/test_reqtest_T10.py::test_bool_requested_raises_type_error",
+        "reqtest_generated/test_reqtest_T9.py::test_non_int_requested_raises_type_error"
+      ]
+    },
+    {
+      "id": "B8",
+      "status": "Uncertain",
+      "reason": "The notification condition and timing are not specified precisely enough to define a testable contract. The README also says the module has no notification client; this does not resolve the requirement's intended scope.",
+      "nodes": []
+    }
+  ],
+  "proposedDiagnoses": [
+    {
+      "testId": "T3",
+      "category": "potential_implementation_defect",
+      "reason": "The generated test calls the equality boundary explicitly required by R1. The call raises ValueError before the result assertions, contradicting the requirement that equal stock and requested return zero. Existing test expectations do not override the original requirement.",
+      "quote": "For nonnegative built-in int stock and requested where requested <= stock, inventory.remaining(stock, requested) returns the integer stock - requested, including zero when requested equals stock.",
+      "executionQuote": "E           ValueError: invalid stock or request",
+      "evidence": [
+        {
+          "file": "inventory.py",
+          "quote": "    if stock < 0 or requested < 0 or requested >= stock:",
+          "line": 4
+        },
+        {
+          "file": "inventory.py",
+          "quote": "        raise ValueError(\"invalid stock or request\")",
+          "line": 5
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T3.py",
+          "quote": "    result = inventory.remaining(5, 5)",
+          "line": 5
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+  "elapsedMs": 49151
+}

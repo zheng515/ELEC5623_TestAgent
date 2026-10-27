@@ -11,7 +11,7 @@ is a known development regression, not a blind benchmark or novel discovery clai
 Three fresh B3 runs measure variation on the pinned source and full SRS. Corrected
 copy probes test whether generated failures disappear after the external threshold
 patch. Source and requirements remain unchanged between repeats. No website run
-history or account credentials are exported. The independent standalone benchmark
-uses different projects without demo-result hints.
+history or account credentials are exported. This fixture is retained for regression
+checks; a replacement five-project benchmark has not been selected.
 
 npm run evaluate -- examples/experiments/github-demo/manifest.json

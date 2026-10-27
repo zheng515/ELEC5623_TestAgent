@@ -1,0 +1,45 @@
+{
+  "purpose": "pilot",
+  "repeat": 3,
+  "variants": [
+    "B0",
+    "B3"
+  ],
+  "cases": [
+    {
+      "id": "more-itertools",
+      "project": "examples/public-benchmark/more-itertools/project",
+      "requirements": "examples/public-benchmark/more-itertools/SRS.md",
+      "gold": "examples/public-benchmark/more-itertools/gold.json",
+      "oracle": "examples/public-benchmark/more-itertools/oracle.py"
+    },
+    {
+      "id": "boltons",
+      "project": "examples/public-benchmark/boltons/project",
+      "requirements": "examples/public-benchmark/boltons/SRS.md",
+      "gold": "examples/public-benchmark/boltons/gold.json",
+      "oracle": "examples/public-benchmark/boltons/oracle.py"
+    },
+    {
+      "id": "python-slugify",
+      "project": "examples/public-benchmark/python-slugify/project",
+      "requirements": "examples/public-benchmark/python-slugify/SRS.md",
+      "gold": "examples/public-benchmark/python-slugify/gold.json",
+      "oracle": "examples/public-benchmark/python-slugify/oracle.py"
+    },
+    {
+      "id": "humanize",
+      "project": "examples/public-benchmark/humanize/project",
+      "requirements": "examples/public-benchmark/humanize/SRS.md",
+      "gold": "examples/public-benchmark/humanize/gold.json",
+      "oracle": "examples/public-benchmark/humanize/oracle.py"
+    },
+    {
+      "id": "pathspec",
+      "project": "examples/public-benchmark/pathspec/project",
+      "requirements": "examples/public-benchmark/pathspec/SRS.md",
+      "gold": "examples/public-benchmark/pathspec/gold.json",
+      "oracle": "examples/public-benchmark/pathspec/oracle.py"
+    }
+  ]
+}

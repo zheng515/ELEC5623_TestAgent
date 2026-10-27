@@ -1,0 +1,81 @@
+{
+  "outcomes": [
+    {
+      "node": "reqtest_generated/test_reqtest_T1.py::test_partial_result_is_integer_not_bool",
+      "file": "reqtest_generated/test_reqtest_T1.py",
+      "name": "test_partial_result_is_integer_not_bool",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T10.py::test_bool_requested_raises_type_error",
+      "file": "reqtest_generated/test_reqtest_T10.py",
+      "name": "test_bool_requested_raises_type_error",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T2.py::test_different_valid_partial_reservation",
+      "file": "reqtest_generated/test_reqtest_T2.py",
+      "name": "test_different_valid_partial_reservation",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T3.py::test_equal_stock_returns_zero",
+      "file": "reqtest_generated/test_reqtest_T3.py",
+      "name": "test_equal_stock_returns_zero",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T4.py::test_request_greater_than_stock_raises_value_error",
+      "file": "reqtest_generated/test_reqtest_T4.py",
+      "name": "test_request_greater_than_stock_raises_value_error",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T5.py::test_negative_stock_raises_value_error",
+      "file": "reqtest_generated/test_reqtest_T5.py",
+      "name": "test_negative_stock_raises_value_error",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T6.py::test_negative_requested_raises_value_error",
+      "file": "reqtest_generated/test_reqtest_T6.py",
+      "name": "test_negative_requested_raises_value_error",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T7.py::test_non_int_stock_raises_type_error",
+      "file": "reqtest_generated/test_reqtest_T7.py",
+      "name": "test_non_int_stock_raises_type_error",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T8.py::test_bool_stock_raises_type_error",
+      "file": "reqtest_generated/test_reqtest_T8.py",
+      "name": "test_bool_stock_raises_type_error",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T9.py::test_non_int_requested_raises_type_error",
+      "file": "reqtest_generated/test_reqtest_T9.py",
+      "name": "test_non_int_requested_raises_type_error",
+      "status": "passed",
+      "message": ""
+    }
+  ],
+  "exitCode": 0,
+  "log": "..........                                                               [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n10 passed in 0.02s\n",
+  "timedOut": false,
+  "integrity": true,
+  "runtimeArtifacts": [],
+  "sourceFingerprint": "3fe290f5cc55b6a0ef7e81791cb91312ec91e9e2fc715f18fafd8a1730028115",
+  "suiteHash": "539206eb304b961d794f0c8d06ea0becc6d354c4943c18cb0fd4412a110ae515"
+}

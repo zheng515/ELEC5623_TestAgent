@@ -70,7 +70,7 @@ threshold cannot earn verification credit. Input-size checks use a controlled
 fixture containing unrelated documentation. These are orchestration safeguards,
 not evidence that the model always recognizes hallucinations or that model quality,
 latency or billed cost improved. No new model experiment or benchmark was run.
-The earlier six-run pilot keeps its frozen v6 source and original measurements.
+The earlier six-run pilot used v6; its obsolete export was later removed.
 
 ## Code cleanup and Evaluation simplification: 2026-10-27
 
@@ -85,21 +85,21 @@ or untrusted records, exports and expanded layouts at 320/390/768/1440 px.
 The running view shows only the current step, input count, waiting message and
 Stop action; worker and document details are collapsed. Interim zero counts and
 repeated unresolved totals are hidden until the run finishes.
-No model experiment was repeated. The six-run pilot below identifies its own
-frozen source; it predates this UI/dependency cleanup and probe refactoring.
+No model experiment was repeated for that cleanup. The later 18-run study below
+records its own frozen source; the older six-run export has been removed.
 
-## Current-source experiment pilot: 2026-10-27
+## Repeated development experiment: 2026-10-27
 
-The authorized six-run pilot completed on policy v6: three development projects,
-B0/B3, one observation each. Both configurations completed 3/3 runs and detected
-2/2 seeded faults; every final generated suite passed on its witness-validated
-reference copy. Median agent time was 8.298 seconds for B0 and 30.818 for B3;
-provider-reported totals were 9393 and 49749 tokens. This gives no detection
-advantage to B3 on these inputs. B3 adds model admission review, diagnoses and
-mutation observations; B0 bypasses model review. No improvement was applied.
-See [actual inputs, records, figures and limits](../experiments/results/2026-10-27-current-pilot/README.md).
-One observation cannot assess repeatability. No independent semantic accuracy is
-claimed. Old benchmark outputs were removed; the five-project study remains paused.
+The authorized 18-run study completed on policy v8: three development projects,
+B0/B3, three observations each. Both configurations completed 9/9 runs and detected
+6/6 repeated seeded-fault observations; all final generated suites passed on their
+reference copies. Median times were 10.229 and 34.760 seconds; token totals were
+26264 and 137281 for B0/B3. No improvement was applied and no detection advantage
+was observed for B3. Independent semantic accuracy remains unavailable.
+See [inputs, records, figures and limits](../experiments/results/2026-10-27-repeated-workflow/README.md).
+The obsolete five-case synthetic benchmark draft and older six-run result export
+were deleted. Current fixtures and separate functional acceptance records remain.
+A replacement five-project benchmark has not been selected or run.
 
 ## Local version-2 conflict resolution: 2026-10-27
 

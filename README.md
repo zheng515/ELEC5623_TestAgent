@@ -626,26 +626,27 @@ pilot is not a completed independent evaluation or a real-world effectiveness cl
 
 ### Controlled project experiments
 
-The current small pilot uses three development projects and B0/B3 once each
-(six runs): `npm run experiment:pilot`. It cannot assess repeatability. The larger
-B0–B3 configuration remains available but is not started by the pilot. Older
-experiment outputs were removed because their frozen sources differed from the
-current implementation. External executable contract witnesses
+The completed repeated study uses three development projects, B0/B3 and three
+repetitions (18 runs): `npm run evaluate -- examples/experiments-repeat.json`.
+This command starts new paid runs; use the analysis command to inspect existing
+evidence without model calls. Older experiment outputs and the obsolete five-case
+synthetic benchmark draft were removed. External executable contract witnesses
 validate original/corrected reference copies without entering model context.
 The runner preserves frozen inputs, image/source/dependency fingerprints, request
 usage, errors and timing. Objective measurements export to CSV/JSON and standalone
 PNG/SVG figures. Independent semantic metrics remain unavailable without human
 review. See [the experiment protocol](examples/experiments/README.md) for commands,
 denominators and limitations. This workflow is separate from the website.
-The [current-source six-run pilot](experiments/results/2026-10-27-current-pilot/README.md)
-contains actual records and standalone figures. Both configurations detected the
-two seeded defects; the full Agent consumed more time and tokens. One observation
-per case/configuration does not assess repeatability or independent semantic accuracy.
+The [18-run study](experiments/results/2026-10-27-repeated-workflow/README.md)
+contains actual records and seven figure pairs. Both configurations completed 9/9
+runs and detected 6/6 repeated seeded-fault observations. B3 used 137281 tokens
+versus B0's 26264, with median durations of 34.760 and 10.229 seconds. No test
+improvement was applied. These development cases show no fault-detection advantage
+for B3 and do not establish independent semantic accuracy.
 
-The five-project standalone comparison is configured separately in
-[the standalone benchmark protocol](examples/standalone-benchmark/README.md).
-It compares B0 and B3 on newly authored synthetic fixtures; it is not a named
-commercial-product comparison or independent semantic accuracy assessment.
+A replacement five-project benchmark has not been selected or run. Freeze its
+project versions, documentation-derived requirements and reference witnesses
+before collecting model outputs. The benchmark remains separate from the website.
 
 ### Repeated decision consistency
 

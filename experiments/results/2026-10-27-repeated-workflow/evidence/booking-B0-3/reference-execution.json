@@ -1,0 +1,39 @@
+{
+  "outcomes": [
+    {
+      "node": "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_least_24_hours_returns_integer_zero",
+      "file": "reqtest_generated/test_reqtest_T1.py",
+      "name": "test_cancellation_fee_at_least_24_hours_returns_integer_zero",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T2.py::test_cancellation_fee_from_zero_through_23_returns_integer_2500",
+      "file": "reqtest_generated/test_reqtest_T2.py",
+      "name": "test_cancellation_fee_from_zero_through_23_returns_integer_2500",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T3.py::test_negative_builtin_int_hours_raise_value_error",
+      "file": "reqtest_generated/test_reqtest_T3.py",
+      "name": "test_negative_builtin_int_hours_raise_value_error",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T4.py::test_non_builtin_int_arguments_raise_type_error",
+      "file": "reqtest_generated/test_reqtest_T4.py",
+      "name": "test_non_builtin_int_arguments_raise_type_error",
+      "status": "passed",
+      "message": ""
+    }
+  ],
+  "exitCode": 0,
+  "log": "....                                                                     [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n4 passed in 0.01s\n",
+  "timedOut": false,
+  "integrity": true,
+  "runtimeArtifacts": [],
+  "sourceFingerprint": "0f46fe3838df7af05e25238d85e735b9e592cbbceb481f423eaeb311ee38dd13",
+  "suiteHash": "b4f86f5f1c9f4b9f53cba75f973c9d5e6fc7f5c69f45eeb8e7b12f749fbd0bfa"
+}

@@ -1,0 +1,39 @@
+{
+  "outcomes": [
+    {
+      "node": "reqtest_generated/test_reqtest_T1.py::test_fee_below_free_shipping_threshold",
+      "file": "reqtest_generated/test_reqtest_T1.py",
+      "name": "test_fee_below_free_shipping_threshold",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T2.py::test_fee_at_and_above_free_shipping_threshold",
+      "file": "reqtest_generated/test_reqtest_T2.py",
+      "name": "test_fee_at_and_above_free_shipping_threshold",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T3.py::test_fee_rejects_negative_amount",
+      "file": "reqtest_generated/test_reqtest_T3.py",
+      "name": "test_fee_rejects_negative_amount",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T4.py::test_fee_rejects_non_builtin_int_arguments",
+      "file": "reqtest_generated/test_reqtest_T4.py",
+      "name": "test_fee_rejects_non_builtin_int_arguments",
+      "status": "passed",
+      "message": ""
+    }
+  ],
+  "exitCode": 0,
+  "log": "....                                                                     [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n4 passed in 0.01s\n",
+  "timedOut": false,
+  "integrity": true,
+  "runtimeArtifacts": [],
+  "sourceFingerprint": "1cb700c032c7fef64e8fc6bb618b829a8c61237d0de721c52fa71291c58569fe",
+  "suiteHash": "6c7529f0f6f2eeb11abb00bf8bac5d929149d1ab3b42c5f20ba3a7e43c176b31"
+}

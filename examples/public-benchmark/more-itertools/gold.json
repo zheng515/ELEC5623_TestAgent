@@ -1,0 +1,38 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "contract-1",
+      "ruleId": "R1",
+      "description": "recipes.grouper(iterable, n) groups items into tuples of length n; for positive n the default incomplete='fill' pads the final group with None.",
+      "initialGap": true
+    },
+    {
+      "id": "contract-2",
+      "ruleId": "R2",
+      "description": "With incomplete='fill', recipes.grouper pads an incomplete final group with the supplied fillvalue.",
+      "initialGap": true
+    },
+    {
+      "id": "contract-3",
+      "ruleId": "R3",
+      "description": "With incomplete='ignore', recipes.grouper does not emit an incomplete final group.",
+      "initialGap": true
+    },
+    {
+      "id": "contract-4",
+      "ruleId": "R4",
+      "description": "With incomplete='strict', consuming recipes.grouper raises a ValueError subclass for an incomplete final group; complete groups remain valid.",
+      "initialGap": true
+    },
+    {
+      "id": "contract-5",
+      "ruleId": "R5",
+      "description": "recipes.roundrobin yields one item from each iterable in turn, continuing with the remaining iterables when an input is exhausted.",
+      "initialGap": true
+    }
+  ]
+}

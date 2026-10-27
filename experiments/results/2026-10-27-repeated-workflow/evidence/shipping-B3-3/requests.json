@@ -1,0 +1,142 @@
+[
+  {
+    "stage": "Analyze requirements and consistency",
+    "taskHash": "e060b434eda11938fce2f7ec11a28fee53e6045f57fda5c2e34d34e5ffd23b74",
+    "contextHash": "012842935c310b9447af538a010cd3fdc9259dc17bb4d989cdb22bbd820fd8ed",
+    "contextBytes": 2125,
+    "elapsedMs": 9813,
+    "usage": {
+      "inputTokens": 2337,
+      "inputTokenDetails": {
+        "noCacheTokens": 3,
+        "cacheReadTokens": 2334,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 991,
+      "outputTokenDetails": {
+        "textTokens": 705,
+        "reasoningTokens": 286
+      },
+      "totalTokens": 3328,
+      "raw": {
+        "input_tokens": 2337,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 2334
+        },
+        "output_tokens": 991,
+        "output_tokens_details": {
+          "reasoning_tokens": 286
+        },
+        "total_tokens": 3328
+      },
+      "promptBytes": 2179,
+      "promptHash": "9f533b7e53084b9a015e9ff4c8847530ec7270bb1141b718ff6eccae43740774"
+    }
+  },
+  {
+    "stage": "Generate and review targeted tests",
+    "taskHash": "c907b42416db64daba892a6fb1b95422a91f50a27ce143f3a8525ce85bdaa52d",
+    "contextHash": "15ea94fc27e7ac19ceda5b7ffb44b3a2ade0b5d06365347df0d11412b5fb6418",
+    "contextBytes": 6199,
+    "elapsedMs": 10038,
+    "usage": {
+      "inputTokens": 2901,
+      "inputTokenDetails": {
+        "noCacheTokens": 3,
+        "cacheReadTokens": 1306,
+        "cacheWriteTokens": 1592
+      },
+      "outputTokens": 752,
+      "outputTokenDetails": {
+        "textTokens": 578,
+        "reasoningTokens": 174
+      },
+      "totalTokens": 3653,
+      "raw": {
+        "input_tokens": 2901,
+        "input_tokens_details": {
+          "cache_write_tokens": 1592,
+          "cached_tokens": 1306
+        },
+        "output_tokens": 752,
+        "output_tokens_details": {
+          "reasoning_tokens": 174
+        },
+        "total_tokens": 3653
+      },
+      "promptBytes": 6199,
+      "promptHash": "15ea94fc27e7ac19ceda5b7ffb44b3a2ade0b5d06365347df0d11412b5fb6418"
+    }
+  },
+  {
+    "stage": "Generate and review targeted tests",
+    "taskHash": "4e4e05f37f790ec71d8bd6b59656d94a808ffa0e80b0de9576bee068efd64fe9",
+    "contextHash": "3c16174634de2d6671ffbec9047cd2db3dd6797c1eae8d9d1310eca30da3eba9",
+    "contextBytes": 8015,
+    "elapsedMs": 3684,
+    "usage": {
+      "inputTokens": 2857,
+      "inputTokenDetails": {
+        "noCacheTokens": 3,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 2854
+      },
+      "outputTokens": 290,
+      "outputTokenDetails": {
+        "textTokens": 290,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 3147,
+      "raw": {
+        "input_tokens": 2857,
+        "input_tokens_details": {
+          "cache_write_tokens": 2854,
+          "cached_tokens": 0
+        },
+        "output_tokens": 290,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 3147
+      },
+      "promptBytes": 8015,
+      "promptHash": "3c16174634de2d6671ffbec9047cd2db3dd6797c1eae8d9d1310eca30da3eba9"
+    }
+  },
+  {
+    "stage": "Review surviving mutation relevance batch 1",
+    "taskHash": "c87269a5738a7e09af0899c430d80831656d656ba7066da7980fb1c871506573",
+    "contextHash": "c3336917aa308bbd87a92ec99f969d215ff795914957b9e1b7432560ecf7e3d5",
+    "contextBytes": 9571,
+    "elapsedMs": 7166,
+    "usage": {
+      "inputTokens": 4671,
+      "inputTokenDetails": {
+        "noCacheTokens": 3,
+        "cacheReadTokens": 2029,
+        "cacheWriteTokens": 2639
+      },
+      "outputTokens": 816,
+      "outputTokenDetails": {
+        "textTokens": 729,
+        "reasoningTokens": 87
+      },
+      "totalTokens": 5487,
+      "raw": {
+        "input_tokens": 4671,
+        "input_tokens_details": {
+          "cache_write_tokens": 2639,
+          "cached_tokens": 2029
+        },
+        "output_tokens": 816,
+        "output_tokens_details": {
+          "reasoning_tokens": 87
+        },
+        "total_tokens": 5487
+      },
+      "promptBytes": 9571,
+      "promptHash": "c3336917aa308bbd87a92ec99f969d215ff795914957b9e1b7432560ecf7e3d5"
+    }
+  }
+]
