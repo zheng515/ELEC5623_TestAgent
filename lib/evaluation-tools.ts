@@ -6,6 +6,13 @@ import { importProject, measureProject, writeTests } from './python-tools';
 import type { Gold, FaultProbe } from './evaluation';
 import type { Measurement, PythonReport } from './python-types';
 
+async function patchReference(root: string, files: Record<string, string>, fault: Gold['fault']) {
+  if (!fault) return;
+  const { file, before, after } = fault;
+  if (files[file]?.split(before).length !== 2) throw new Error('Reference patch must match exactly once.');
+  await writeFile(join(root, 'source', file), files[file].replace(before, after));
+}
+
 /** Independently execute fixed contract witnesses; never expose them to the agent. */
 export async function validateReference(root: string, archive: Buffer, gold: Gold, oracle: string, signal: AbortSignal) {
   let sourceFingerprint = '';
@@ -13,11 +20,7 @@ export async function validateReference(root: string, archive: Buffer, gold: Gol
     const directory = join(root, name);
     const snapshot = await importProject(directory, archive);
     if (!corrected) sourceFingerprint = snapshot.fingerprint;
-    if (corrected && gold.fault) {
-      const { file, before, after } = gold.fault;
-      if (snapshot.files[file]?.split(before).length !== 2) throw new Error('Reference patch must match exactly once.');
-      await writeFile(join(directory, 'source', file), snapshot.files[file].replace(before, after));
-    }
+    if (corrected) await patchReference(directory, snapshot.files, gold.fault);
     await writeTests(directory, [{ id: 'T1', behaviorId: 'oracle', functionName: 'test_contract', gapIndexes: [], code: oracle, quote: 'External fixed contract witnesses.', purpose: 'Validate the reference fixture outside model context.', approved: true }]);
     return measureProject(directory, [], true, signal);
   };
@@ -32,11 +35,7 @@ export async function validateReference(root: string, archive: Buffer, gold: Gol
 export async function probeReferenceSuite(root: string, archive: Buffer, gold: Gold, report: PythonReport, signal: AbortSignal) {
   const snapshot = await importProject(root, archive, report.runtime || 'python');
   if (snapshot.fingerprint !== report.fingerprint) throw new Error('Reference replay source differs from the measured project.');
-  if (gold.fault) {
-    const { file, before, after } = gold.fault;
-    if (snapshot.files[file]?.split(before).length !== 2) throw new Error('Reference patch must match exactly once.');
-    await writeFile(join(root, 'source', file), snapshot.files[file].replace(before, after));
-  }
+  await patchReference(root, snapshot.files, gold.fault);
   await writeTests(root, report.tests);
   const measured = await measureProject(root, [], true, signal);
   return { ...measured, sourceFingerprint: snapshot.fingerprint,

@@ -1,5 +1,19 @@
 # Implementation status
 
+## Redundancy cleanup: 2026-10-27
+
+The shared assertion policy is now sent once per model request. Model timeout and
+output limits are configured in one place with the existing values preserved.
+Reference-copy patching and experiment-context serialization no longer duplicate
+work. Unused UI variants, an unused select group and an obsolete mutation-review
+debug driver were removed; active packages and evidence safeguards remain.
+
+The environment template was removed. The README explains how to create a private
+.env.local; existing local configuration and saved data were not changed. Docker
+regression passed 121 checks with two optional skips. No paid model request,
+experiment rerun or academic report was produced; model quality and billed savings
+are not established by this cleanup.
+
 ## Source-line citations: 2026-10-27
 
 Policy v8 replaces copied file quotations in model analysis and diagnosis outputs
