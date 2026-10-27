@@ -7,7 +7,7 @@ const forbidden = /[\p{Script=Han}\u3000-\u303f\uff00-\uffef]/u;
 const findings = [];
 let checked = 0;
 for (const path of paths) {
-  if (path.split('/').some((part) => part.startsWith('.env') && part !== '.env.example')) continue;
+  if (path.split('/').some((part) => part.startsWith('.env'))) continue;
   let metadata;
   try { metadata = await lstat(path); }
   catch (error) { if (error.code === 'ENOENT') continue; throw error; }

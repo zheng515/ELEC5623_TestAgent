@@ -6,8 +6,8 @@ It does not publish the website or replace a hosted deployment plan.
 ## Configure and start
 
 1. Install Node.js 22.22.2 or newer and start Docker. Run npm ci in the repository.
-2. On a new checkout, copy .env.example to .env.local. On an existing checkout,
-   preserve the existing file. Configure DATABASE_URL, OPENAI_API_KEY and
+2. On a new checkout, create .env.local using the [README configuration](../README.md#start).
+   On an existing checkout, preserve the existing file. Configure DATABASE_URL, OPENAI_API_KEY and
    BETTER_AUTH_URL. The default application URL is http://127.0.0.1:3001.
 3. Run npm run db:up and npm run sandbox:build. Run npm run db:migrate:production once on
    a new installation to initialize tables and a persistent local signing secret.

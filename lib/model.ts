@@ -9,14 +9,14 @@ export function modelError(error: unknown) {
   return (error instanceof Error ? error.message : 'Model request failed.').replaceAll(process.env.OPENAI_API_KEY || '\0', '[redacted]').replace(/sk-[A-Za-z0-9_*.-]+/g, '[redacted]');
 }
 
-export function options(input: { model: string }, signal: AbortSignal) {
+export function options(input: { model: string; timeoutMs?: number; maxOutputTokens?: number }, signal: AbortSignal) {
   if (!process.env.OPENAI_API_KEY) throw new Error("Fill OPENAI_API_KEY in the root .env or this app's .env.local.");
   if (process.env.OPENAI_API_KEY.startsWith('sk-or-')) throw new Error('Use an OpenAI API key from platform.openai.com. Third-party API keys are not supported.');
   return {
     model: createOpenAI({ apiKey: process.env.OPENAI_API_KEY, baseURL: 'https://api.openai.com/v1' }).responses(input.model),
-    abortSignal: AbortSignal.any([signal, AbortSignal.timeout(90000)]),
+    abortSignal: AbortSignal.any([signal, AbortSignal.timeout(input.timeoutMs ?? 90000)]),
     maxRetries: 0,
-    maxOutputTokens: 6000,
+    maxOutputTokens: input.maxOutputTokens ?? 6000,
     providerOptions: { openai: { store: false } },
   };
 }

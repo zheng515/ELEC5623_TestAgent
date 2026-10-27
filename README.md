@@ -36,9 +36,20 @@ Requires Node.js 22.22.2+ and Docker.
 
 ```sh
 npm ci
-# New checkout only: preserve an existing .env.local and signing secret.
-cp .env.example .env.local
-# Set OPENAI_API_KEY and DATABASE_URL in .env.local.
+```
+
+On a new checkout, create `.env.local` with the configuration below and replace
+the API key placeholder. Preserve an existing configuration and signing secret.
+
+```dotenv
+DATABASE_URL=postgresql://reqtest:reqtest@127.0.0.1:5433/reqtest
+OPENAI_API_KEY=your-openai-api-key
+BETTER_AUTH_URL=http://127.0.0.1:3001
+```
+
+Then start the local services:
+
+```sh
 npm run db:up
 npm run db:migrate
 npm run sandbox:build
@@ -222,7 +233,7 @@ retains partial evidence; a cancelled task is not automatically resumed.
 ## PostgreSQL
 
 `npm run db:up` starts PostgreSQL 17 at `127.0.0.1:5433`, using a dedicated Docker
-volume. The default DATABASE_URL in `.env.example` matches this local service.
+volume. The DATABASE_URL shown in the start instructions matches this local service.
 Port 5432 is left available for other projects. To use an existing PostgreSQL server,
 set DATABASE_URL and skip the Compose command. `npm run db:migrate` creates the
 Better Auth tables and the indexed JSONB verification-report table. Startup also

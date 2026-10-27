@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   recent.set(account.user.id, Date.now());
   if (recent.size > 1000) for (const [id, time] of recent) if (Date.now() - time > 60000) recent.delete(id);
   try {
-    const result = await generateText({ ...options(input.data, request.signal), prompt: "Return ok as true.", maxOutputTokens: 256, providerOptions: { openai: { store: false, reasoningEffort: "low" } }, output: Output.object({ schema: z.object({ ok: z.boolean() }) }) });
+    const result = await generateText({ ...options({ ...input.data, maxOutputTokens: 256 }, request.signal), prompt: "Return ok as true.", providerOptions: { openai: { store: false, reasoningEffort: "low" } }, output: Output.object({ schema: z.object({ ok: z.boolean() }) }) });
     if (!result.output.ok) throw new Error("Unexpected response.");
     return Response.json({ connected: true, model: input.data.model });
   } catch (error) {

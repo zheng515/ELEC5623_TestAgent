@@ -20,6 +20,7 @@ test('model requests use official Responses API even with a stale gateway settin
     assert.equal(String(input), 'https://api.openai.com/v1/responses');
     const body = JSON.parse(String(init?.body));
     assert.equal(body.model, 'gpt-6-luna');
+    assert.equal(body.max_output_tokens, 6000);
     assert.equal(body.store, false);
     assert.equal(body.text.format.type, 'json_schema');
     assert.equal(body.text.format.strict, true);
