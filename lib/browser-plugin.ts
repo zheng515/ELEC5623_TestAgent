@@ -83,20 +83,15 @@ def live_server():
         stop()
 
 
-@pytest.fixture(scope='session')
-def _reqtest_browser():
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(args=['--no-sandbox', '--disable-gpu'])
-        yield browser
-        browser.close()
-
-
 @pytest.fixture
-def page(_reqtest_browser, request):
-    from playwright.sync_api import expect
+def page(request):
+    # Playwright runs an event loop on this thread while it is active; starting and stopping it
+    # per test keeps that loop from leaking into later tests that use asyncio themselves.
+    from playwright.sync_api import expect, sync_playwright
     expect.set_options(timeout=TIMEOUT_MS)
-    context = _reqtest_browser.new_context(viewport={'width': 1280, 'height': 800})
+    playwright = sync_playwright().start()
+    browser = playwright.chromium.launch(args=['--no-sandbox', '--disable-gpu'])
+    context = browser.new_context(viewport={'width': 1280, 'height': 800})
     browser_page = context.new_page()
     browser_page.set_default_timeout(TIMEOUT_MS)
     yield browser_page
@@ -110,6 +105,8 @@ def page(_reqtest_browser, request):
         except Exception:
             pass
     context.close()
+    browser.close()
+    playwright.stop()
 
 
 @pytest.hookimpl(wrapper=True, tryfirst=True)

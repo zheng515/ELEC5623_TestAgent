@@ -160,9 +160,11 @@ test("run directories execute whole-project browser checks and keep failure scre
     const browser = (name: string, state: string) => `from app import application\nfrom playwright.sync_api import expect\n\n\ndef ${name}(live_server, page):\n    page.goto(live_server(application))\n    expect(page.locator('#buy')).to_be_${state}()\n`;
     await writeFile(join(destination, "generated", "test_reqtest_T1.py"), browser("test_buy_starts_disabled", "disabled"));
     await writeFile(join(destination, "generated", "test_reqtest_T2.py"), browser("test_buy_starts_enabled", "enabled"));
+    // A later non-browser test must not inherit an event loop from an earlier browser test.
+    await writeFile(join(destination, "generated", "test_reqtest_T3.py"), "import asyncio\n\n\ndef test_async_helper_runs():\n    assert asyncio.run(asyncio.sleep(0, 'done')) == 'done'\n");
     const measured = await measureProject(destination, inspection.nodes, true, AbortSignal.timeout(120000), setup.sandboxImage);
     const status = Object.fromEntries(measured.outcomes.map(outcome => [outcome.node, outcome.status]));
-    assert.deepEqual(status, { "server/tests/test_app.py::test_page": "passed", "reqtest_generated/test_reqtest_T1.py::test_buy_starts_disabled": "passed", "reqtest_generated/test_reqtest_T2.py::test_buy_starts_enabled": "failed" });
+    assert.deepEqual(status, { "server/tests/test_app.py::test_page": "passed", "reqtest_generated/test_reqtest_T1.py::test_buy_starts_disabled": "passed", "reqtest_generated/test_reqtest_T2.py::test_buy_starts_enabled": "failed", "reqtest_generated/test_reqtest_T3.py::test_async_helper_runs": "passed" });
     assert.equal(measured.integrity, true);
     const failed = measured.outcomes.find(outcome => outcome.status === "failed")!;
     assert.match(failed.screenshot || "", /^[a-f0-9]{64}\.jpg$/);
