@@ -12,6 +12,18 @@ export function sourceEvidenceSchema(files: Record<string, string>) {
     })
     .transform(reference => ({ ...reference, quote: lines[reference.file][reference.line - 1] }));
 }
+// A list of line references keeps the ones that resolve to a nonblank source line and drops the rest.
+// One mistyped line number in a large response must not reject every other finding; a dropped
+// reference is never replaced by a nearby line or a model-copied quotation.
+export function sourceEvidenceListSchema(files: Record<string, string>, min = 0) {
+  const single = sourceEvidenceSchema(files);
+  const lines = Math.max(1, ...Object.values(files).map(text => text.split('\n').length));
+  const reference = z.object({ file: z.enum(Object.keys(files)), line: z.number().int().min(1).max(lines) });
+  return z.array(reference).min(min).transform(references => references.flatMap(item => {
+    const resolved = single.safeParse(item);
+    return resolved.success ? [resolved.data] : [];
+  }));
+}
 export const analysisSchema = z.object({
   behaviors: z.array(z.object({
     id: z.string().regex(/^B[1-9]\d*$/), ruleId: z.string(), quote: z.string().min(1),
@@ -28,19 +40,20 @@ export function originalQuoteSchema(quotes: string[], references?: string[]) {
   return z.enum(quotes);
 }
 export function groundedAnalysisSchema(files: Record<string, string>, nodes: string[], quotes: string[], references?: string[], lineReferences = false) {
-  const evidence = lineReferences ? sourceEvidenceSchema(files) : analysisSchema.shape.behaviors.element.shape.evidence.element.extend({ file: z.enum(Object.keys(files)) });
+  const evidence = analysisSchema.shape.behaviors.element.shape.evidence.element.extend({ file: z.enum(Object.keys(files)) });
+  const evidenceList = (min = 0) => lineReferences ? sourceEvidenceListSchema(files, min) : min ? z.array(evidence).min(min) : z.array(evidence);
   const quote = originalQuoteSchema(quotes, references);
   const behavior = analysisSchema.shape.behaviors.element.extend({
     quote, files: z.array(z.enum(Object.keys(files).filter(sourceFile))),
     existingTests: nodes.length ? z.array(z.enum(nodes)) : z.array(z.string()).max(0),
-    evidence: z.array(evidence),
+    evidence: evidenceList(),
   });
   return analysisSchema.extend({
     behaviors: z.array(z.union([
-      behavior.extend({ evidence: z.array(evidence).min(1) }),
+      behavior.extend({ evidence: evidenceList(1) }),
       behavior.extend({ files: behavior.shape.files.max(0), existingTests: behavior.shape.existingTests.max(0) }),
     ])),
-    inconsistencies: z.array(analysisSchema.shape.inconsistencies.element.extend({ quote, evidence: z.array(evidence).min(1) })),
+    inconsistencies: z.array(analysisSchema.shape.inconsistencies.element.extend({ quote, evidence: evidenceList(1) })),
   });
 }
 export const testsSchema = z.object({ tests: z.array(z.object({
@@ -64,7 +77,7 @@ export function groundedDiagnosisSchema(ids: string[], quote: z.ZodType<string>,
   const decision = diagnosisSchema.shape.decisions.element.extend({
     testId: ids.length ? z.enum(ids) : z.string(), quote,
   });
-  return diagnosisSchema.extend({ decisions: z.array(files ? decision.extend({ evidence: z.array(sourceEvidenceSchema(files)) }) : decision) });
+  return diagnosisSchema.extend({ decisions: z.array(files ? decision.extend({ evidence: sourceEvidenceListSchema(files) }) : decision) });
 }
 export const coverageReviewSchema = z.object({
   ruleId: z.string(), quote: z.string(), complete: z.boolean(), reason: z.string(),

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { asSchema } from 'ai';
 import { createHash } from 'node:crypto';
-import { sourceEvidenceSchema, groundedAnalysisSchema, groundedDiagnosisSchema, originalQuoteSchema, analysisSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema } from '../lib/python-types';
+import { sourceEvidenceSchema, sourceEvidenceListSchema, groundedAnalysisSchema, groundedDiagnosisSchema, originalQuoteSchema, analysisSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema } from '../lib/python-types';
 import { reason, validateAnalysis, assertionPolicy, testReviewTask, mutationReviewTask, type ReasonUsage } from '../lib/python-agent';
 import { analysis, artifact, code, rule, report } from './fixtures/python-agent';
 
@@ -100,4 +100,18 @@ test('mocked official SDK requests send numbered files, restore originals and fa
   assert.equal(shared.mutants.length, 1);
   assert.deepEqual(shared.pairs, mutationContext.pairs);
   assert.deepEqual(context, before, 'Saved source and caller input remain unchanged.');
+});
+
+test('a response keeps resolvable line references and drops blank or out-of-file ones without replacement', async () => {
+  const files = { 'shipping.py': code, 'README.md': 'Heading\n\nOriginal wording.\n' };
+  const list = sourceEvidenceListSchema(files);
+  // README.md line 2 is blank; shipping.py has fewer lines than README.md.
+  assert.deepEqual(list.parse([{ file: 'shipping.py', line: 1 }, { file: 'README.md', line: 2 }, { file: 'shipping.py', line: 4 }, { file: 'README.md', line: 3 }]),
+    [{ file: 'shipping.py', line: 1, quote: 'def fee(amount):' }, { file: 'README.md', line: 3, quote: 'Original wording.' }]);
+  assert.equal(list.safeParse([{ file: 'invented.py', line: 1 }]).success, false, 'Unknown files are still rejected by the provider schema');
+  const source = analysis();
+  const encoded = { ...source, behaviors: source.behaviors.map(behavior => ({ ...behavior, quote: 'R1', evidence: [{ file: 'shipping.py', line: 1 }, { file: 'README.md', line: 2 }] })) };
+  const accepted = await asSchema(groundedAnalysisSchema(files, [], ['R1\n' + rule], ['R1'], true)).validate!(encoded);
+  assert.equal(accepted.success, true, 'One unresolvable reference does not reject the whole analysis');
+  if (accepted.success) assert.deepEqual(accepted.value.behaviors[0].evidence, [{ file: 'shipping.py', line: 1, quote: 'def fee(amount):' }]);
 });
