@@ -3,6 +3,8 @@
 @theme inline {
   --font-sans: Arial, Helvetica, sans-serif;
   --color-background: var(--background);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: #ffffff;
@@ -12,8 +14,8 @@
   --color-muted-foreground: #b5b5b5;
   --color-accent: #18203a;
   --color-accent-foreground: #ffffff;
-  --color-border: #404040;
-  --color-input: #606060;
+  --color-border: #2c2e35;
+  --color-input: #42444c;
   --color-ring: var(--primary);
   --color-destructive: #b42318;
   --radius-sm: calc(var(--radius) - 4px);
@@ -25,6 +27,7 @@
 
 :root {
   --background: #000000;
+  --card: #101115;
   --foreground: #ffffff;
   --primary: #0f4beb;
   --radius: 1rem;

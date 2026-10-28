@@ -8,7 +8,7 @@ const labels: Record<TestAttempt['status'], string> = {
 
 export function AgentDecisions({ report }: { report: PythonReport }) {
   const rounds = report.testAttempts?.length || 0;
-  return <details id="agent-decisions" className="border rounded-xl p-5">
+  return <details id="agent-decisions" className="border border-border bg-card rounded-xl p-5">
     <summary className="cursor-pointer font-semibold">Agent decisions · {rounds} recorded {rounds === 1 ? 'round' : 'rounds'}</summary>
     <div className="mt-4 space-y-4 text-sm">
       <p><strong>{report.status === 'running' ? 'Current action: ' : 'Why the Agent stopped: '}</strong>{agentStopReason(report)}</p>
@@ -20,7 +20,7 @@ export function AgentDecisions({ report }: { report: PythonReport }) {
         <p>{attempt.reason}</p>
         {attempt.error && <p role="status">Request error: {attempt.error}</p>}
         {!attempt.tests.length && <p>No test proposal was returned in this round.</p>}
-        {attempt.tests.map((test, testIndex) => <details key={testIndex} className="border rounded-lg p-3">
+        {attempt.tests.map((test, testIndex) => <details key={testIndex} className="border border-border rounded-lg p-3">
           <summary className="cursor-pointer">{test.id} · {test.behaviorId} · {test.approved ? 'Approved' : test.review ? 'Not admitted' : 'No approval recorded'}</summary>
           <div className="mt-2 space-y-2"><p>{test.purpose}</p><p>{test.review || 'No completed admission review was recorded.'}</p>
             <details><summary>Proposed code</summary><pre className="mt-2 text-xs">{test.code}</pre></details>

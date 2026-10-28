@@ -1,26 +1,30 @@
-export function VerificationGuide({ firstRun }: { firstRun: boolean }) {
-  return <details open={firstRun} className="border rounded-xl p-5 space-y-3">
-    <summary className="cursor-pointer font-semibold">Quick start</summary>
-    <ol className="list-decimal pl-5 space-y-2 text-sm">
-      <li>Add a GitHub repository or project ZIP. Choose the branch or commit separately; select a project directory for a larger repository.</li>
-      <li>Upload the requirement document or paste its text. Uploaded text fills Requirements automatically. Review extraction warnings, then check project setup and run verification.</li>
-      <li>Open Evaluation for passed and failed tests, unresolved requirements and Agent decisions. Follow a requirement to its test and recorded outcome, then export the evidence.</li>
-    </ol>
-    <details className="text-sm"><summary className="cursor-pointer">Supported projects and documents</summary>
-      <ul className="list-disc pl-5 mt-3 space-y-2 text-muted-foreground">
-        <li>Focused Python / pytest and JavaScript or TypeScript / node:test projects. Jest, Vitest, nested Node test suites and browser automation are outside the current scope.</li>
-        <li>PDF, DOC, DOCX, TXT and Markdown files up to 10 MB. Requirements support 12,000 characters and 24 input items. Larger specifications must be split; text is not silently shortened.</li>
-        <li>Scanned PDFs use English OCR. Check uncertain text against the original. Word references identify paragraphs or converted body blocks, not Word page numbers; complex layouts, headers and drawings are not fully extracted.</li>
-        <li>Advanced settings can install compatible Python wheels or locked npm dependencies and start temporary PostgreSQL or Redis services. Native builds and install scripts need a prepared image. Setup checks do not prove application startup readiness.</li>
-      </ul>
+import { Card, CardContent } from "@/components/ui/card";
+
+export function VerificationGuide() {
+  return <Card className="gap-0 py-0"><CardContent className="px-5 py-4">
+    <details>
+      <summary className="cursor-pointer font-medium">Quick start</summary>
+      <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm">
+        <li>Add a GitHub repository or ZIP. Set its branch or commit and project directory.</li>
+        <li>Upload or paste requirements. Review extraction warnings and check project setup.</li>
+        <li>Run verification. Open Evaluation to inspect results and export evidence.</li>
+      </ol>
+      <details className="mt-4 text-sm"><summary className="cursor-pointer">Support and limits</summary>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">
+          <li>Python / pytest and JavaScript or TypeScript / node:test. Jest, Vitest, nested Node suites and browser automation are unsupported.</li>
+          <li>PDF, DOC, DOCX, TXT and Markdown: up to 10 MB, 12,000 requirement characters and 24 input items. Split larger specifications; text is never silently shortened.</li>
+          <li>Scans use English OCR; review uncertain text. Word references identify paragraphs or converted body blocks, not pages. Complex layouts, headers and drawings may be missing.</li>
+          <li>Advanced setup supports compatible Python wheels, locked npm dependencies and temporary PostgreSQL or Redis. Native builds and install scripts need a prepared image. Setup checks do not prove application startup readiness.</li>
+        </ul>
+      </details>
+      <details className="mt-4 text-sm"><summary className="cursor-pointer">Results and next steps</summary>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">
+          <li>Passed applies to the tested inputs. Verified applies to mapped checks under the recorded policy. Neither proves correctness for every input.</li>
+          <li>Failed: compare the requirement, assertion and diagnosis. Valid failing assertions remain visible.</li>
+          <li>Blocked proposals are not executed. Review the reason before clarifying or regenerating.</li>
+          <li>Re-run saved tests makes no model calls. Regenerate / clarify starts fresh analysis and may produce different tests.</li>
+        </ul>
+      </details>
     </details>
-    <details className="text-sm"><summary className="cursor-pointer">Understand the result and choose a next step</summary>
-      <ul className="list-disc pl-5 mt-3 space-y-2 text-muted-foreground">
-        <li>Passed: a recorded test passed for its inputs. Verified: the mapped checks support a stated behavior under the recorded verification policy. Neither establishes correctness for every possible input.</li>
-        <li>Failed: compare the original requirement, assertion and diagnosis. A valid failing assertion is kept so a suspected implementation defect remains visible.</li>
-        <li>Blocked: the proposal has no admission approval and is not executed. Inspect its review reason before clarifying requirements or regenerating.</li>
-        <li>Re-run saved tests repeats the same checks without model calls. Regenerate / clarify starts fresh analysis and may generate different tests.</li>
-      </ul>
-    </details>
-  </details>;
+  </CardContent></Card>;
 }

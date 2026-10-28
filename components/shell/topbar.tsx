@@ -24,7 +24,7 @@ export function Topbar({ currentModel, onSelectModel, isRunning, configured }: {
   }
   return (
     <header className="bg-white text-black scheme-light">
-      <div className="max-w-6xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-5">
+      <div className="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-5">
         <strong className="text-2xl tracking-tight">REQTEST<span className="text-primary">.</span></strong>
         <div className="flex items-center gap-3 text-sm">
           {isRunning && <span role="status">Running</span>}
