@@ -697,6 +697,11 @@ Prepare an independent reviewer pack with actual Docker executions and no model
 calls using `npm run evaluate:decisions -- prepare /tmp/reqtest-independent-review`.
 It contains a blank reference template and no predictions or draft labels. Use a
 completed independent reference with `--reference /absolute/path/reference.json`.
+The accepted AI-assisted reference is also usable via
+`--reference experiments/annotations/2026-10-28-contract-decisions/reference.ai-assisted.json`.
+It enables explicitly labelled referenceComparison agreement and reference-relative
+metrics while independent-human accuracy fields remain unavailable. Source and
+exact annotation evidence are preserved in frozen references.
 Reviewed complete results also expose admission Precision/Recall/F1 and diagnosis
 confusion/Macro-F1. Pending references and missing decisions keep accuracy metrics
 unavailable. See the evaluation protocol for denominators and review instructions.

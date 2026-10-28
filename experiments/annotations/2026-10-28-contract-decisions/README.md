@@ -35,5 +35,13 @@ All 16 cases are annotated. reviewed remains false, reviewer remains blank and i
 ## Reuse and next step
 
 The blank reviewer pack is unchanged. For independent review, give a teammate the original blank pack before showing these annotations or draft answers. They must check/correct decisions and document their own evidence and name. Do not simply relabel these AI annotations as human-reviewed.
-The existing component runner can accept this JSON via --reference for development data collection, but reviewed=false intentionally keeps accuracy, Precision/Recall/F1 and diagnosis confusion/Macro-F1 unavailable. Agreement with these labels would be AI-reference development agreement, not independent human accuracy.
+These annotations are now accepted as development reference answers at the project owner's request. The source remains AI-assisted and reviewed=false. The runner reports referenceComparison agreement, admission Precision/Recall/F1 and diagnosis confusion/Macro-F1 against these specific labels. Independent-human accuracy fields remain unavailable. Missing/invalid planned decisions still prevent scoring.
+
+Run a new component study with this reference (paid model calls, not started by this change):
+
+```sh
+npm run evaluate:decisions -- 3 --reference experiments/annotations/2026-10-28-contract-decisions/reference.ai-assisted.json
+```
+
+Frozen references preserve AI authorship, acceptance and exact evidence. Changing reviewed=true alone cannot upgrade an AI reference whose independentHumanReviewed flag is false.
 No model outputs were invented to compute scores. No annotation is supplied to the application Agent as an operational instruction.
