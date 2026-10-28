@@ -64,7 +64,7 @@ export function Account({ children, settings = false }: { children?: (userId: st
     {localMailbox && (forgot || register) && <p className="text-sm">Development emails stay on this machine. <a className="underline" href="http://127.0.0.1:8025" target="_blank" rel="noreferrer">Open local mailbox</a></p>}
   </main>;
   return <div key={data.user.id}>
-    <div className="flex justify-end gap-3 items-center border-b border-neutral-200 bg-white px-6 py-1 text-xs text-black [&_button]:h-7 [&_button]:text-xs [&_button]:hover:bg-neutral-100 [&_button]:hover:text-black">
+    <div className="flex justify-end gap-3 items-center border-b border-border bg-background px-4 py-1 text-xs text-muted-foreground sm:px-6 [&_button]:h-7 [&_button]:text-xs">
       <Link href="/account" className="rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-4" aria-label={"Account settings for " + data.user.name} aria-current={settings ? "page" : undefined}>{data.user.name}</Link>
       <Button variant="ghost" onClick={async () => { await authClient.signOut(); }}>Sign out</Button>
     </div>

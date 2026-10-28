@@ -1,11 +1,10 @@
 "use client";
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Activity, ArrowRight, ArrowUpRight, CircleAlert, Download, Files, LayoutDashboard, ListChecks, RefreshCw } from 'lucide-react';
+import { CircleAlert, Download, Files, LayoutDashboard, ListChecks, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { DocumentExtraction, OcrConfidence, OriginalPageLink } from './document-extraction';
@@ -13,43 +12,14 @@ import { outcomeCounts, requirementStates, verificationSummary } from '@/lib/run
 import type { PythonReport } from '@/lib/python-types';
 import { ruleSources } from '@/lib/requirement-input';
 import { testFile } from '@/lib/runtime';
-import { requestUsage, usageNotice } from '@/lib/verification-policy';
 import { testArchive } from '@/lib/test-export';
 import { survivorLabels, survivorReviews } from '@/lib/mutation-review';
 import { AgentDecisions } from './agent-decisions';
+import { ResultOverview } from './result-overview';
+import { FindingEvidence } from './finding-evidence';
 
 const screenshotUrl = (run: string, file: string) => '/api/python/screenshot?run=' + encodeURIComponent(run) + '&file=' + encodeURIComponent(file);
 const resultTypes = [['passed', 'Passed', '#22c55e'], ['failed', 'Failed', '#ef4444'], ['error', 'Errors', '#f59e0b'], ['skipped', 'Skipped', '#71717a']] as const;
-
-function Distribution({ title, description, data, centerValue, centerLabel = 'recorded' }: { title: string; description: string; data: { name: string; value: number }[]; centerValue?: string; centerLabel?: string }) {
-  const colors: Record<string, string> = { Passed: '#22c55e', Verified: '#22c55e', Failed: '#ef4444', Errors: '#ef4444', Uncertain: '#f59e0b', 'Partially Verified': '#3b82f6', Skipped: '#71717a', Unverified: '#71717a', Pending: '#a78bfa' };
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-  const segments = total > 0 ? data : [{ name: 'No records', value: 1 }];
-  return <Card className="min-w-0">
-    <CardHeader className="pb-3"><CardTitle role="heading" aria-level={2}>{title}</CardTitle><p className="text-xs text-muted-foreground">{description}</p></CardHeader>
-    <CardContent className="grid items-center gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <div className="relative mx-auto aspect-square w-44 max-w-full" aria-hidden="true">
-        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 176, height: 176 }}>
-          <PieChart>
-            <Pie data={segments} dataKey="value" nameKey="name" innerRadius="68%" outerRadius="90%" paddingAngle={total > 0 ? 2 : 0} stroke="var(--card)" isAnimationActive={false}>
-              {segments.map(item => <Cell key={item.name} fill={total > 0 ? colors[item.name] || '#71717a' : '#52525b'} />)}
-            </Pie>
-            {total > 0 && <Tooltip formatter={value => [value, 'Count']} contentStyle={{ background: 'var(--card)', borderColor: 'var(--color-border)', borderRadius: 8 }} itemStyle={{ color: 'var(--foreground)' }} />}
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 grid content-center text-center">
-          <span className="text-3xl font-semibold tabular-nums">{centerValue ?? total}</span><span className="text-xs text-muted-foreground">{centerLabel}</span>
-        </div>
-      </div>
-      <ul aria-label={`${title}: ${total} recorded`} className="grid min-w-0 grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-1">
-        {data.map(item => <li key={item.name} className="flex min-w-0 items-center gap-2 text-xs">
-          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: colors[item.name] || '#71717a' }} aria-hidden="true" />
-          <span className="min-w-0 flex-1 break-words text-muted-foreground">{item.name}</span><span className="font-medium tabular-nums">{item.value}</span>
-        </li>)}
-      </ul>
-    </CardContent>
-  </Card>;
-}
 
 function MutationReview({ report }: { report: PythonReport }) {
   const rows = survivorReviews(report);
@@ -70,6 +40,7 @@ export function EvaluationWorkspace({ initialRunId = '' }: { initialRunId?: stri
   const [selectedId, setSelectedId] = useState(initialRunId);
   const [filter, setFilter] = useState('All');
   const [testFilter, setTestFilter] = useState('All');
+  const [findingNode, setFindingNode] = useState('');
   const [panel, setPanel] = useState('overview');
   const [revision, setRevision] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -126,9 +97,24 @@ export function EvaluationWorkspace({ initialRunId = '' }: { initialRunId?: stri
   }, [report?.parentRunId]);
   const evaluation = report && verificationSummary(report);
   const outcomes = evaluation?.latest?.outcomes || [];
-  const matchesRequirement = (rule: NonNullable<typeof evaluation>['requirements'][number]) => filter === 'All' ||
-    filter === 'Needs attention' && !!evaluation?.needsAttention.some(item => item.id === rule.id) ||
-    filter === 'Checks passed' && !!evaluation?.requirementChecks.items.some(item => item.id === rule.id && item.checked && !item.investigate) || rule.status === filter;
+  const checkByRule = new Map(evaluation?.requirementChecks.items.map(item => [item.id, item]));
+  const attentionIds = new Set(evaluation?.needsAttention.map(rule => rule.id));
+  const filterCounts: Record<string, number> = {
+    'Needs attention': evaluation?.needsAttention.length || 0,
+    'Checks passed': evaluation?.requirementChecks.passed || 0,
+    'Needs investigation': evaluation?.requirementChecks.investigate || 0,
+    'Incomplete checks': evaluation?.requirementChecks.remaining || 0,
+    ...Object.fromEntries(evaluation?.distribution.map(item => [item.name, item.value]) || []),
+  };
+  const matchesRequirement = (rule: NonNullable<typeof evaluation>['requirements'][number]) => {
+    const check = checkByRule.get(rule.id);
+    if (filter === 'All') return true;
+    if (filter === 'Needs attention') return attentionIds.has(rule.id);
+    if (filter === 'Checks passed') return !!check?.checked && !check.investigate;
+    if (filter === 'Needs investigation') return !!check?.investigate;
+    if (filter === 'Incomplete checks') return !!check && !check.checked;
+    return rule.status === filter;
+  };
   function download() {
     const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
     const link = document.createElement('a'); link.href = url; link.download = 'verification.json'; link.click(); URL.revokeObjectURL(url);
@@ -144,11 +130,10 @@ export function EvaluationWorkspace({ initialRunId = '' }: { initialRunId?: stri
     if (id) requestAnimationFrame(() => { const target = document.getElementById(id); if (target instanceof HTMLDetailsElement) target.open = true; target?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   }
   return <section className="min-w-0 space-y-5 [overflow-wrap:anywhere] [&_details]:min-w-0 [&_pre]:max-w-full [&_pre]:max-h-80 [&_pre]:overflow-auto [&_pre]:whitespace-pre-wrap [&_[data-slot=native-select-wrapper]]:max-w-full">
-    <header className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-3xl font-semibold tracking-tight">Evaluation</h1><p className="mt-1 text-sm text-muted-foreground">Results, requirements and supporting evidence.</p></div><Button variant="outline" disabled={loading} onClick={() => setRevision(value => value + 1)}><RefreshCw aria-hidden="true" className="size-4" />{loading ? 'Loading…' : 'Refresh'}</Button></header>
+    <header className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-2xl font-semibold tracking-tight">Evaluation</h1><p className="mt-1 text-xs text-muted-foreground">{report?.source.startsWith('https://github.com/') ? report.source.split('/').slice(3, 5).join('/') : 'Findings, verification scope and saved evidence.'}</p></div><div className="flex min-w-0 flex-wrap items-center gap-2">{report && <><label className="block min-w-0 [&>div]:max-w-full"><span className="sr-only">Selected run</span><NativeSelect aria-label="Project run" value={report.id} className="max-w-64 text-xs" onChange={event => { setSelectedId(event.target.value); setFilter('All'); setTestFilter('All'); setFindingNode(''); setPanel('overview'); }}>{reports.map(item => <NativeSelectOption key={item.id} value={item.id}>{item.title} · {new Date(item.createdAt).toLocaleString('en-AU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · {item.status}</NativeSelectOption>)}</NativeSelect></label><Button variant="outline" size="sm" disabled={report.status === 'running' || !report.tests.some(test => test.approved)} onClick={downloadTests}><Download aria-hidden="true" className="size-4" />Download tests</Button><Button variant="outline" size="sm" onClick={download}>Export evidence</Button></>}<Button variant="ghost" size="icon" aria-label="Refresh evaluation" disabled={loading} onClick={() => setRevision(value => value + 1)}><RefreshCw aria-hidden="true" className={'size-4 ' + (loading ? 'animate-spin' : '')} /></Button></div></header>
     {error && <p role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm">{error} Saved results may be out of date.</p>}
     {!report && !loading && !error && <Card><CardHeader><CardTitle role="heading" aria-level={2}>No runs yet</CardTitle></CardHeader><CardContent className="text-muted-foreground">Start a run in Project verification.</CardContent></Card>}
     {report && evaluation && <>
-      <div className="flex flex-wrap items-end justify-between gap-3"><label className="block min-w-0 flex-1 space-y-2 [&>div]:max-w-full sm:max-w-md"><span className="text-xs text-muted-foreground">Selected run</span><NativeSelect aria-label="Project run" value={report.id} onChange={event => { setSelectedId(event.target.value); setFilter('All'); setTestFilter('All'); setPanel('overview'); }}>{reports.map(item => <NativeSelectOption key={item.id} value={item.id}>{item.title} · {new Date(item.createdAt).toLocaleDateString()} · {item.status}</NativeSelectOption>)}</NativeSelect></label><div className="flex flex-wrap gap-2"><Button disabled={report.status === 'running' || !report.tests.some(test => test.approved)} onClick={downloadTests}><Download aria-hidden="true" className="size-4" />Download tests</Button><Button variant="outline" onClick={download}>Export evidence</Button></div></div>
       <Tabs value={panel} onValueChange={setPanel} className="min-w-0">
         <TabsList aria-label="Evaluation sections" className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border border-border bg-card p-1 sm:grid-cols-4">
           <TabsTrigger value="overview" className="gap-2 py-2"><LayoutDashboard aria-hidden="true" className="size-4" />Overview</TabsTrigger>
@@ -157,33 +142,11 @@ export function EvaluationWorkspace({ initialRunId = '' }: { initialRunId?: stri
           <TabsTrigger value="evidence" className="gap-2 py-2"><Files aria-hidden="true" className="size-4" />Evidence</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="mt-5 space-y-5 data-[state=inactive]:hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-5 py-4"><h2 className="text-xl font-semibold tracking-tight">{evaluation.title}</h2><Badge variant={report.status === 'failed' ? 'destructive' : 'outline'}>{report.status}</Badge></div>
-          <p className="text-xs text-muted-foreground">{report.stage}</p>
-          {report.resources && <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3 text-sm"><p>Model requests: {requestUsage(report).used} / {report.resources.limit ?? 'no limit'}{report.resources.exhausted && ' · budget exhausted; evidence is partial'}</p><Button variant="link" onClick={() => openPanel('findings', 'agent-decisions')}>Inspect request records</Button></div>}
-          {usageNotice(report) && <p role="status" className="rounded-lg border border-amber-500/40 p-3 text-sm text-amber-300">{usageNotice(report)}</p>}
-          {report.error && <p role="alert" className="text-sm text-red-400">{report.error}</p>}
-          {report.status !== 'completed' && <p role="status" className="text-sm text-amber-300">This run is {report.status}. Recorded results are provisional or partial.</p>}
-          {(report.collection?.timedOut || report.collection && ![0, 5].includes(report.collection.exitCode) || report.baseline && (report.baseline.timedOut || !report.baseline.integrity || ![0, 5].includes(report.baseline.exitCode) || report.baseline.outcomes.some(item => ['failed', 'error'].includes(item.status)))) && <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm"><span>Initial test checks need attention.</span><Button variant="link" onClick={() => openPanel('evidence', 'execution-records')}>Inspect execution records</Button></div>}
-          {evaluation.latest && (evaluation.latest.timedOut || evaluation.latest.integrity !== true) && <p role="status" className="text-sm text-amber-300">Execution evidence is incomplete. Review time limits and integrity checks in Evidence.</p>}
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <Distribution title="Test outcomes" description="Existing and generated tests; errors and skips included. Not requirement coverage." data={evaluation.outcomes} centerValue={outcomes.length ? `${Math.floor(evaluation.passed / outcomes.length * 1000) / 10}%` : '—'} centerLabel={outcomes.length ? 'Recorded pass rate' : 'Not run yet'} />
-            <Distribution title="Requirement states" description="Input requirement items" data={evaluation.distribution} />
-            <Card className="md:col-span-2 xl:col-span-1"><CardHeader className="pb-3"><CardTitle role="heading" aria-level={2} className="flex items-center gap-2"><ArrowUpRight aria-hidden="true" className="size-5 text-primary" />Next action</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm leading-relaxed text-muted-foreground">{evaluation.next}</p><Button variant="outline" className="w-full" onClick={() => openPanel('findings')}>Review findings<ArrowRight aria-hidden="true" className="size-4" /></Button>{!evaluation.latest?.outcomes.length && <p className="text-xs text-amber-300">No tests executed. No pass rate is available.</p>}</CardContent></Card>
-          </div>
-          <div className="space-y-2 rounded-xl border border-border bg-card p-4 text-sm" aria-label="Requirement check progress"><p>{evaluation.requirementChecks.checked} of {evaluation.requirements.length} requirement items checked · {evaluation.requirementChecks.passed} passed recorded checks · {evaluation.requirementChecks.investigate} need investigation{evaluation.requirementChecks.remaining > 0 && ` · ${evaluation.requirementChecks.remaining} incomplete or not checked`}</p><progress aria-label="Checked requirement items" value={evaluation.requirementChecks.checked} max={Math.max(1, report.rules.length)} className="block h-2 w-full overflow-hidden rounded-full appearance-none bg-muted [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:bg-primary" /><p className="text-xs text-muted-foreground">Checked means every mapped behavior has a recorded passing or failing check. It does not mean the requirement passed or all possible cases were covered.</p></div>
-          {evaluation.checksPassedAwaitingAssurance.length > 0 && <p className="text-xs text-muted-foreground">{evaluation.checksPassedAwaitingAssurance.length} items passed recorded checks with limited assurance. Mutation assessment: {evaluation.mutationAssessment}. Open Requirements for their verification scope.</p>}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card><CardContent className="flex items-center justify-between gap-3 p-4"><div><p className="text-3xl font-semibold tabular-nums">{evaluation.needsAttention.length}<span className="text-base font-normal text-muted-foreground"> / {report.rules.length}</span></p><p className="mt-1 text-xs text-muted-foreground">Requirements needing attention</p></div><Button variant="ghost" size="icon" aria-label="View requirements needing attention" onClick={() => { setFilter('Needs attention'); openPanel('requirements'); }}><ListChecks aria-hidden="true" /></Button></CardContent></Card>
-            <Card><CardContent className="flex items-center justify-between gap-3 p-4"><div><p className="text-3xl font-semibold tabular-nums">{evaluation.blocked}</p><p className="mt-1 text-xs text-muted-foreground">Blocked / unreviewed test files</p></div><Button variant="ghost" size="icon" aria-label="View blocked tests" onClick={() => openPanel('findings', 'blocked-tests')}><CircleAlert aria-hidden="true" /></Button></CardContent></Card>
-            <Card><CardContent className="flex items-center justify-between gap-3 p-4"><div><p className="text-3xl font-semibold tabular-nums">{evaluation.approved}</p><p className="mt-1 text-xs text-muted-foreground">Approved test files</p></div><Button variant="ghost" size="icon" aria-label="Inspect Agent decisions" onClick={() => openPanel('findings', 'agent-decisions')}><Activity aria-hidden="true" /></Button></CardContent></Card>
-          </div>
-          {!!evaluation.unmapped.length && <p role="status" className="text-sm text-amber-300">Not analyzed: {evaluation.unmapped.map(rule => rule.originalId || rule.id).join(', ')}. These items remain unverified.</p>}
-          {!!evaluation.preserved.length && <p className="text-xs text-muted-foreground">{evaluation.preserved.length} failing {evaluation.preserved.length === 1 ? 'check' : 'checks'} retained unchanged after a potential-defect diagnosis. Inspect the original assertions in Findings.</p>}
-          {report.replay && <p className="text-xs text-muted-foreground">Saved-suite replay: no model calls. Original analysis and reviews were reused; diagnoses and mutations were not refreshed.</p>}
-          <p className="text-xs text-muted-foreground">Recorded cases only. Completed means processing ended; it does not establish full specification correctness.</p>
+          <ResultOverview report={report} onNavigate={openPanel} onFinding={node => { setFindingNode(node); openPanel('findings', 'finding-evidence'); }} onRequirements={state => { setFilter(state); openPanel('requirements'); }} onTests={status => { setTestFilter(status); openPanel('findings', 'test-results'); }} />
+
         </TabsContent>
         <TabsContent value="requirements" forceMount className="mt-5 space-y-5 data-[state=inactive]:hidden">
-          <Card><CardHeader><CardTitle role="heading" aria-level={2}>Requirement map</CardTitle><p className="text-xs text-muted-foreground">{report.rules.length} input items · {report.analysis?.behaviors.length || 0} mapped behaviors. Expand a card for its original contract and evidence.</p></CardHeader><CardContent className="space-y-4"><div className="flex flex-wrap justify-end gap-3"><NativeSelect aria-label="Filter requirement state" value={filter} onChange={event => setFilter(event.target.value)}>{['All', 'Needs attention', 'Checks passed', ...requirementStates].map(state => <NativeSelectOption key={state} value={state}>{state}{state !== 'All' && ` (${state === 'Needs attention' ? evaluation.needsAttention.length : state === 'Checks passed' ? evaluation.requirementChecks.passed : evaluation.distribution.find(item => item.name === state)?.value || 0})`}</NativeSelectOption>)}</NativeSelect></div><p className="text-sm text-muted-foreground">Verified applies to the recorded cases only. It does not establish complete specification coverage.</p>
+          <Card><CardHeader><CardTitle role="heading" aria-level={2}>Requirement map</CardTitle><p className="text-xs text-muted-foreground">{report.rules.length} input items · {report.analysis?.behaviors.length || 0} mapped behaviors. Expand a card for its original contract and evidence.</p></CardHeader><CardContent className="space-y-4"><div className="flex flex-wrap justify-end gap-3"><NativeSelect aria-label="Filter requirement state" value={filter} onChange={event => setFilter(event.target.value)}>{['All', 'Needs attention', 'Checks passed', 'Needs investigation', 'Incomplete checks', ...requirementStates].map(state => <NativeSelectOption key={state} value={state}>{state}{state !== 'All' && ` (${filterCounts[state] || 0})`}</NativeSelectOption>)}</NativeSelect></div><p className="text-sm text-muted-foreground">Verified applies to the recorded cases only. It does not establish complete specification coverage.</p>
 <div className="rounded-lg border border-border p-4 space-y-2 text-sm"><p>{evaluation.requirementChecks.checked} of {evaluation.requirements.length} requirement items checked · {evaluation.requirementChecks.passed} passed recorded checks · {evaluation.requirementChecks.investigate} need investigation · {evaluation.requirementChecks.remaining} incomplete or not checked</p><p className="text-xs text-muted-foreground">Missing, skipped or erroneous mapped checks remain incomplete. Execution progress is not complete specification coverage.</p><p><strong>Mutation assessment:</strong> {evaluation.mutationAssessment}{report.replay && ' · Reused from original run'}</p><p className="text-xs text-muted-foreground">Mutation checks assess selected test strength separately. Verified requires recorded coverage and adequacy gates; passing checks without mutation assessment remain Partially Verified.</p></div>
 <div className="grid gap-4 md:grid-cols-2">
         {evaluation.requirements.filter(matchesRequirement).map(rule => <details key={rule.id} className="border border-border rounded-lg p-4"><summary className="cursor-pointer list-none space-y-3"><span className="flex flex-wrap items-center justify-between gap-2"><strong>{rule.originalId && rule.originalId !== rule.id ? rule.originalId + " (" + rule.id + ")" : rule.id}</strong><Badge variant="outline" className={stateTone[rule.status]}>{rule.status}</Badge></span><span className="block text-sm text-muted-foreground line-clamp-2">{rule.behaviors.map(behavior => behavior.text).join(" · ") || rule.text}</span><span className="block text-xs text-muted-foreground">{evaluation.requirementChecks.items.find(item => item.id === rule.id)?.label} · {rule.behaviors.length} {rule.behaviors.length === 1 ? 'behavior' : 'behaviors'} · Expand details</span></summary><div className="mt-4 space-y-4">
@@ -199,6 +162,7 @@ export function EvaluationWorkspace({ initialRunId = '' }: { initialRunId?: stri
       </CardContent></Card>
         </TabsContent>
         <TabsContent value="findings" forceMount className="mt-5 space-y-5 data-[state=inactive]:hidden">
+          <FindingEvidence report={report} selectedNode={findingNode} onSelect={setFindingNode} />
           <div className="space-y-5">
   <Card id="test-results">
     <CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle role="heading" aria-level={2}>Test results</CardTitle><Badge variant="outline">{outcomes.length} recorded</Badge></div><p className="text-sm text-muted-foreground">{evaluation.failedCount} failed · {evaluation.errors} errors in the latest execution. A failure is not automatically an implementation defect.</p></CardHeader>

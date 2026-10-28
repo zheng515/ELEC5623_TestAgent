@@ -19,6 +19,8 @@ import Link from "next/link";
 import type { GitHubConnectionStatus } from "@/lib/github-config";
 import { RuntimeStatus, useRuntimeHealth } from "./runtime-health";
 import { VerificationGuide } from './verification-guide';
+import { AgentProgress } from './agent-progress';
+import { verificationSummary } from '@/lib/run-evaluation';
 import { interactivePolicy, requestUsage, defaultModelResponseSeconds, usageNotice } from '@/lib/verification-policy';
 
 export function PythonWorkspace({ model, configured, onRunningChange, onOpenEvaluation }: { model: string; configured: boolean; onRunningChange: (running: boolean) => void; onOpenEvaluation: (runId: string) => void }) {
@@ -132,19 +134,22 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
     } catch (error) { setError(controller.signal.aborted ? 'Disconnected. Open the run in history to reconnect.' : error instanceof Error ? error.message : 'Verification failed.'); }
     finally { execution.current = null; setBusy(false); onRunningChange(false); history().catch(() => {}); }
   }
+  const latestSaved = runs.find(run => run.status === 'completed');
+  const selectedSummary = selected && verificationSummary(selected);
   let inputPreview: ReturnType<typeof parseRequirementInput> | undefined;
   if (requirements.trim()) inputPreview = parseRequirementInput(requirements);
   return <section className="min-w-0 space-y-5 [overflow-wrap:anywhere] [&_details]:min-w-0 [&_pre]:max-w-full [&_pre]:max-h-80 [&_pre]:overflow-auto [&_pre]:whitespace-pre-wrap [&_[data-slot=native-select-wrapper]]:max-w-full">
-    <header className="space-y-2"><h1 className="text-3xl font-semibold tracking-tight">Project verification</h1><p className="text-muted-foreground">Check your project against its requirements.</p></header>
+    <header className="flex flex-wrap items-start justify-between gap-5 py-2"><div className="max-w-2xl space-y-3"><p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">Requirement-aware testing agent</p><h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Project verification</h1><p className="text-sm leading-relaxed text-muted-foreground">Turn requirements into executable checks. Trace failures to their source and review the evidence behind each Agent assessment.</p></div>{latestSaved && !busy && <Button variant="outline" className="h-10" onClick={() => onOpenEvaluation(latestSaved.id)}>Open latest saved result<ArrowRight aria-hidden="true" /></Button>}</header>
     <RuntimeStatus {...runtimeStatus} />
     <form noValidate ref={formRef} key={parent?.id || 'new'} onSubmit={run} className="space-y-4" hidden={busy || Boolean(selected)}>
       <div className={parent ? '' : 'grid items-stretch gap-5 lg:grid-cols-2'}>
         <Card>
-          <CardHeader className="p-5 pb-4"><CardTitle role="heading" aria-level={2} className="flex items-center gap-3 text-lg"><FolderGit2 aria-hidden="true" className="size-5 text-primary" /><span>01 <span className="ml-2">Project</span></span></CardTitle></CardHeader>
+          <CardHeader className="p-5 pb-4"><CardTitle role="heading" aria-level={2} className="flex items-center gap-3 text-lg"><FolderGit2 aria-hidden="true" className="size-5 text-primary" /><span>01 <span className="ml-2">Project</span></span></CardTitle><p className="mt-2 text-sm text-muted-foreground">Connect the source you want to verify.</p></CardHeader>
           <CardContent className="space-y-4 p-5 pt-0">
             {parent ? <div className="space-y-3"><p className="text-sm text-muted-foreground">Reusing the saved source snapshot. The original run stays unchanged.</p><p className="text-sm">{parent.source}</p><details className="text-sm"><summary className="cursor-pointer">Previous requirements</summary><div className="mt-3 max-h-64 overflow-auto">{parent.rules.map(rule => <blockquote key={rule.id}>{rule.id}: {rule.text}</blockquote>)}</div></details><label className="block space-y-2 text-sm">Clarification<Textarea name="clarification" rows={4} placeholder="Add requirements that clarify the earlier result, one per line." /></label></div> : <fieldset aria-label="Project configuration" className="space-y-4" disabled={checking} onChange={() => setSetup(undefined)}>
               <label className="block space-y-2 text-sm">GitHub repository<Input name="repository" type="url" placeholder="https://github.com/owner/repository" /></label>
               <details className="text-sm"><summary className="cursor-pointer text-muted-foreground">Upload a project ZIP instead</summary><div className="mt-3"><FileInput name="project" accept=".zip" /></div></details>
+              <details className="rounded-lg border border-border px-3 py-3 text-sm"><summary className="cursor-pointer font-medium">Advanced project setup</summary><div className="mt-4 space-y-4">
               <details className="rounded-lg border border-border border-dashed px-3 py-3 text-sm">
                 <summary className="cursor-pointer font-medium">Project options</summary>
                 <div className="mt-4 space-y-4">
@@ -167,6 +172,7 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
                 </div>
               </details>
               <Button type="button" variant="outline" className="w-full" onClick={checkSetup}>{checking ? 'Checking project…' : 'Check project setup'}</Button>
+              </div></details>
             </fieldset>}
             {!parent && setup && <div className="rounded-lg border p-3 space-y-2 text-sm"><p>Setup: {setup.setup.status} · {setup.runtime === 'node' ? 'Node.js' : 'Python'} {setup.setup.python}{setup.runDirectory ? ' · runs in ' + setup.runDirectory + '/' : ''}</p>{setup.setup.checks.filter(check => check.status === 'failed').map((check, index) => <p role="alert" className="text-red-400" key={index}>{check.label}: {check.detail}</p>)}<details><summary className="cursor-pointer">Setup details</summary><div className="mt-3 space-y-2">{setup.setup.checks.map((check, i) => <p key={i} className={check.status === 'failed' ? 'text-red-400' : 'text-muted-foreground'}>{check.status} · {check.label}: {check.detail}</p>)}{setup.automaticSetup && <details><summary>Installed versions ({setup.installed.length})</summary>{setup.installed.map(dependency => <p className="text-xs" key={dependency}>{dependency}</p>)}{!setup.installed.length && <p>No additional dependencies installed.</p>}</details>}{setup.setup.limitations.map(limit => <p className="text-xs text-muted-foreground" key={limit}>{limit}</p>)}</div></details>{setup.setup.status === 'needs_setup' && <label className="flex gap-2 text-red-400"><input type="checkbox" name="allowEnvironmentFailure" value="true" />Run anyway to diagnose environment failures</label>}</div>}
             <details className="rounded-lg border border-border border-dashed px-3 py-3 text-sm">
@@ -175,13 +181,14 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
                 <label className="block space-y-2">Verification depth<NativeSelect name="mutationChecks" defaultValue={String(parent?.policy?.mutationChecks ?? interactivePolicy.mutationChecks)}><NativeSelectOption value="false">Requirement checks</NativeSelectOption><NativeSelectOption value="true">Requirement and mutation checks</NativeSelectOption></NativeSelect><span className="text-xs text-muted-foreground">Both review requirements and execute approved tests. Mutation checks assess test strength and may take longer; without them, passing cases remain partially verified.</span></label>
                 <label className="block space-y-2">Maximum model requests (optional)<Input name="modelRequestLimit" type="number" min={1} step={1} placeholder="No limit" defaultValue={parent?.policy?.modelRequestLimit ?? ''} /><span className="text-xs text-muted-foreground">Blank means no limit. Failed and interrupted requests count. A limit stops the run with partial evidence; it is not a spending cap.</span></label>
                 <label className="block space-y-2">Model response timeout (seconds)<Input name="modelTimeoutSeconds" type="number" min={0} max={86400} step={1} defaultValue={parent?.policy?.modelTimeoutSeconds ?? defaultModelResponseSeconds} /><span className="text-xs text-muted-foreground">Per model request, not the whole run. Use 0 for no response timeout. Stopping a timed-out run retains its evidence and consumed request.</span></label>
+                <label className="block space-y-2">Run name<Input name="title" required maxLength={120} defaultValue={parent ? parent.title + ' — re-run' : 'Project verification'} /></label>
               </div>
             </details>
-            <details className="text-sm text-muted-foreground"><summary className="cursor-pointer">Run name</summary><label className="mt-3 block space-y-2"><span className="sr-only">Run name</span><Input name="title" required maxLength={120} defaultValue={parent ? parent.title + ' — re-run' : 'Project verification'} /></label></details>
+
           </CardContent>
         </Card>
         {!parent && <Card>
-          <CardHeader className="p-5 pb-4"><CardTitle role="heading" aria-level={2} className="flex items-center gap-3 text-lg"><FileText aria-hidden="true" className="size-5 text-primary" /><span>02 <span className="ml-2">Requirements</span></span></CardTitle></CardHeader>
+          <CardHeader className="p-5 pb-4"><CardTitle role="heading" aria-level={2} className="flex items-center gap-3 text-lg"><FileText aria-hidden="true" className="size-5 text-primary" /><span>02 <span className="ml-2">Requirements</span></span></CardTitle><p className="mt-2 text-sm text-muted-foreground">Define the behavior the implementation must satisfy.</p></CardHeader>
           <CardContent className="space-y-4 p-5 pt-0">
             <label className="block space-y-2 text-sm">Upload a document<FileInput accept=".pdf,.doc,.docx,.txt,.md" disabled={extracting} onChange={event => extract(event.target.files?.[0])} /></label>
             {extracting && <p role="status" className="text-sm">Extracting text…</p>}
@@ -200,7 +207,7 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
       {!modelReady && <p role="status" className="text-sm text-red-400">Set OPENAI_API_KEY on the server, then restart.</p>}
     </form>
     {!busy && !selected && <VerificationGuide />}
-    <div className="flex flex-wrap items-center gap-3 border-t pt-5 text-sm">
+    <div className="flex flex-wrap items-center gap-3 border-t border-border pt-5 text-sm">
       <label htmlFor="python-history" className="font-medium">Recent runs</label><NativeSelect id="python-history" className="max-w-full sm:max-w-md" disabled={busy} value={selected?.id || ''} onChange={event => setSelected(runs.find(run => run.id === event.target.value))}><NativeSelectOption value="">New verification</NativeSelectOption>{runs.map(run => <NativeSelectOption key={run.id} value={run.id}>{run.title} · {run.status === 'running' && !busy ? 'Running / incomplete' : run.status}</NativeSelectOption>)}</NativeSelect>
       {selected && !busy && <Button variant="outline" onClick={() => newVerification()}>New verification</Button>}
       {selected && !busy && <Button variant="outline" onClick={() => newVerification(selected)}>Regenerate / clarify</Button>}
@@ -217,9 +224,10 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
             <Button variant="destructive" disabled={!selected || stage === 'Stopping' || selected.stage === 'Stopping'} onClick={stop}>{stage === 'Stopping' || selected?.stage === 'Stopping' ? 'Stopping…' : 'Stop'}</Button>
           </div>
           {selected && <p className="text-xs text-muted-foreground">{selected.rules.length} requirement items{selected.resources && <> · {requestUsage(selected).used} model requests / {selected.resources.limit ?? 'no limit'}</>}</p>}
-          {selected && usageNotice(selected) && <p role="status" className="text-sm text-amber-300">{usageNotice(selected)}</p>}
+          {selected && usageNotice(selected) && <p role="status" className="text-sm text-amber-200">{usageNotice(selected)}</p>}
+          {selected && <AgentProgress report={selected} />}
         </div> : selected && <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">Test results and evidence are available in Evaluation.</p>
+          <div className="space-y-2"><p className="font-medium">{selectedSummary?.title}</p><p className="text-sm text-muted-foreground">{selectedSummary?.requirementChecks.checked} / {selected.rules.length} requirements checked · {selectedSummary?.needsAttention.length} need attention. Open the evidence before deciding what to change.</p></div>
           <Button className="h-11 w-full sm:w-auto" onClick={() => onOpenEvaluation(selected.id)}>View results<ArrowRight aria-hidden="true" /></Button>
         </div>}
       </CardContent>

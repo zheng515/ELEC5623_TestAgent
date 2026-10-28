@@ -8,28 +8,38 @@
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: #ffffff;
-  --color-secondary: #202020;
-  --color-secondary-foreground: #ffffff;
+  --color-link: #9ab3ff;
+  --color-secondary: #1b2639;
+  --color-secondary-foreground: #eef2fa;
   --color-destructive-foreground: #ffffff;
-  --color-muted: #202020;
-  --color-muted-foreground: #b5b5b5;
-  --color-accent: #18203a;
-  --color-accent-foreground: #ffffff;
-  --color-border: #2c2e35;
-  --color-input: #42444c;
+  --color-muted: #1b2639;
+  --color-muted-foreground: #a6b3c8;
+  --color-accent: #1f2d46;
+  --color-accent-foreground: #eef2fa;
+  --color-border: #2a364d;
+  --color-input: #43536e;
   --color-ring: var(--primary);
   --color-destructive: #b42318;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --text-sm: 1rem;
-  --text-base: 1.125rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
 }
 
 :root {
-  --background: #000000;
-  --card: #101115;
-  --foreground: #ffffff;
-  --primary: #0f4beb;
-  --radius: 1rem;
+  color-scheme: dark;
+  --background: #0b101a;
+  --card: #141c2a;
+  --foreground: #eef2fa;
+  --primary: #4169e1;
+  --chart-passed: #4ade80;
+  --chart-failed: #fb7185;
+  --chart-warning: #fbbf24;
+  --chart-partial: #85a6ff;
+  --chart-muted: #8999b4;
+  --chart-pending: #c4a1ff;
+  --radius: 0.75rem;
 }
+
+body { background: var(--background); color: var(--foreground); }
