@@ -1,7 +1,7 @@
 # Evaluation protocol and evidence boundaries
 
-Status: implementation and offline validation protocol. This is not the academic
-report or a completed independent/model-quality study. Previous old-version results were removed at the user's request on 2026-10-28. Policy v12 introduces request accounting and optional mutation
+Status: protocol with a [completed scoped development study](../experiments/results/2026-10-28-v12/README.md).
+This is not the academic report or an independent validation study. Previous old-version results were removed at the user's request on 2026-10-28. Policy v12 introduces request accounting and optional mutation
 checks; no old score is carried forward as current evidence.
 
 ## Questions
@@ -38,14 +38,33 @@ before inspecting model outputs. Record requirement/file/trace evidence for each
 label, discuss disagreements and retain the initial annotations. The tool cannot
 verify that a named reviewer is independent; that is a team responsibility.
 
-After review, save a complete reference.json with reviewed=true and the reviewer
-name. Do not change inputs or silently correct results after observing outputs.
+After review, save a separate complete reference.json with reviewed=true and the
+reviewer name, retaining AI provenance if that file began as AI annotations.
+Do not change inputs or silently correct results after observing outputs.
 
 ```sh
 # Paid calls: 16 cases x 3 repeats, at most 48 requests, no automatic retries.
 npm run evaluate:decisions -- 3 --reference /absolute/path/reference.json
 # Re-score a frozen result without model calls.
 npm run evaluate:decisions -- score .evidence/decision-evaluation/RUN
+```
+
+New decision studies seal the case data, parsed reference, task text and Agent
+snapshot with hashes. Offline scoring rejects a changed sealed reference, changed
+task text or missing/changed snapshot. Older studies are explicitly labelled
+legacy_reference_not_sealed; re-scoring cannot retroactively establish their
+original reference integrity. Hashes detect inconsistencies within recorded
+artifacts; they are not externally signed timestamps or tamper-proof storage.
+
+Later review must create a separate reference revision rather than overwrite the
+baseline. The command below makes no model calls. It writes a new directory under
+reference-revisions/ containing the revised labels, reason, changed labels, original
+and revised reference hashes, exact attempts hash, metrics and disagreements.
+The original reference and baseline metrics remain unchanged. Such revisions are
+post-hoc analyses and must not be described as predeclared independent labels.
+
+```sh
+npm run evaluate:decisions -- score .evidence/decision-evaluation/RUN --reference /absolute/path/reviewed-reference.json --reason "Reviewer name, evidence checked and reason for revision"
 ```
 
 The runner freezes sources, production task text, cases and references. Case
@@ -58,6 +77,14 @@ reported. Multiple acceptable diagnosis labels support accuracy but prevent
 single-label confusion/Macro-F1. These are raw decision metrics, not independently
 verified whole-Agent repair safety or a population reliability estimate.
 
+Each attempt retains elapsed time and provider-reported input/output/total tokens,
+prompt byte count and prompt hash when returned. Resource summaries show attempted,
+failed and missing requests, nearest-rank latency p50/p95, known token subtotals and usage
+availability separately. Complete token totals require every planned request to
+have reported that token field; unknown usage is never zero. No currency cost is
+inferred. disagreements.json retains every reference disagreement or incomplete
+case with raw attempts and reference rationale, without selectively rerunning it.
+
 ## Accepted AI development reference
 
 The project owner accepted the 16 AI-assisted annotations as reference answers.
@@ -67,7 +94,7 @@ This supports a model experiment without waiting for human labels, but measures
 agreement with these labels rather than independent human accuracy.
 
 ```sh
-# Paid component calls; no study has been launched by accepting the reference.
+# Starts a new paid component study; accepting a reference alone makes no calls.
 npm run evaluate:decisions -- 3 --reference experiments/annotations/2026-10-28-contract-decisions/reference.ai-assisted.json
 ```
 

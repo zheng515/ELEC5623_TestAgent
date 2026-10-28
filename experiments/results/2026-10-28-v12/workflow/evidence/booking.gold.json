@@ -1,0 +1,68 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [
+    {
+      "id": "threshold-code",
+      "ruleId": "R1",
+      "description": "The implementation excludes exactly 24 hours from the free cancellation rule."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "early",
+      "ruleId": "R1",
+      "description": "More than 24 hours returns 0 cents.",
+      "initialGap": false
+    },
+    {
+      "id": "threshold",
+      "ruleId": "R1",
+      "description": "Exactly 24 hours returns 0 cents.",
+      "initialGap": true
+    },
+    {
+      "id": "late",
+      "ruleId": "R2",
+      "description": "An interior value below 24 hours returns 2500 cents.",
+      "initialGap": true
+    },
+    {
+      "id": "zero",
+      "ruleId": "R2",
+      "description": "Zero hours returns 2500 cents.",
+      "initialGap": true
+    },
+    {
+      "id": "below-threshold",
+      "ruleId": "R2",
+      "description": "23 hours returns 2500 cents.",
+      "initialGap": true
+    },
+    {
+      "id": "negative",
+      "ruleId": "R3",
+      "description": "Negative integers raise ValueError.",
+      "initialGap": true
+    },
+    {
+      "id": "boolean",
+      "ruleId": "R4",
+      "description": "Boolean input raises TypeError.",
+      "initialGap": true
+    },
+    {
+      "id": "other-types",
+      "ruleId": "R4",
+      "description": "Other non-int inputs raise TypeError.",
+      "initialGap": true
+    }
+  ],
+  "fault": {
+    "id": "exclusive-threshold",
+    "file": "booking.py",
+    "before": "hours > 24",
+    "after": "hours >= 24"
+  }
+}

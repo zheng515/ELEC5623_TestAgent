@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ratio } from './evaluation';
 import { diagnosisSchema, reviewTestsSchema } from './python-types';
 import type { DecisionCase } from '../examples/benchmark/decision-cases';
+import type { ReasonUsage } from './python-agent';
 
 export const decisionHash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export const decisionReferenceSchema = z.object({
@@ -14,7 +15,29 @@ export const decisionReferenceSchema = z.object({
   labels: z.array(z.object({ id: z.string(), allowed: z.array(z.string()).min(1), rationale: z.string().min(1) }).passthrough()),
 }).passthrough();
 export type DecisionReference = z.infer<typeof decisionReferenceSchema>;
-export type DecisionAttempt = { caseId: string; repeat: number; inputHash: string; agentFingerprint: string; elapsedMs: number; output?: unknown; error?: string };
+export type DecisionAttempt = { caseId: string; repeat: number; inputHash: string; agentFingerprint: string; elapsedMs: number; usage?: ReasonUsage; output?: unknown; error?: string };
+
+export function decisionResources(attempts: DecisionAttempt[], expectedRequests: number) {
+  const times = attempts.map(item => item.elapsedMs).filter(value => Number.isFinite(value) && value >= 0).sort((a, b) => a - b);
+  const percentile = (p: number) => times.length ? times[Math.max(0, Math.ceil(times.length * p) - 1)] : null;
+  const tokens = (key: 'inputTokens' | 'outputTokens' | 'totalTokens') => {
+    const values = attempts.flatMap(item => {
+      const value = item.usage?.[key];
+      return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? [value] : [];
+    });
+    return { knownSubtotal: values.length ? values.reduce((sum, value) => sum + value, 0) : null,
+      reportedRequests: values.length, unavailableRequests: attempts.length - values.length,
+      completeTotal: attempts.length === expectedRequests && values.length === expectedRequests && expectedRequests > 0 ? values.reduce((sum, value) => sum + value, 0) : null };
+  };
+  return {
+    expectedRequests, attemptedRequests: attempts.length, missingRequests: expectedRequests - attempts.length,
+    failedRequests: attempts.filter(item => !!item.error).length,
+    latencyMs: { measuredRequests: times.length, total: times.length ? times.reduce((sum, value) => sum + value, 0) : null,
+      median: percentile(0.5), p95: percentile(0.95), maximum: times.at(-1) ?? null },
+    inputTokens: tokens('inputTokens'), outputTokens: tokens('outputTokens'), totalTokens: tokens('totalTokens'),
+    scope: 'Provider-reported usage only. Unknown usage is not zero; known subtotals are not complete bills. Latency includes failed attempts and excludes offline scoring. No currency cost is inferred.',
+  };
+}
 export function decisionLabel(item: DecisionCase, attempt: DecisionAttempt) {
   if (attempt.error || attempt.output === undefined) return null;
   try {
@@ -81,6 +104,7 @@ export function scoreDecisions(cases: DecisionCase[], reference: DecisionReferen
   return {
     referenceStatus: reviewed ? 'reviewed' : aiReference ? 'ai_assisted_reference' : 'pending_independent_review', cases: cases.length, repeat, expectedDecisions: total,
     validDecisions: valid, missingOrInvalid: total - valid, completionRate: ratio(valid, total),
+    resources: decisionResources(attempts, total),
     unanimousCaseRate: ratio(rows.filter(row => row.unanimous).length, rows.length),
     classificationAccuracy: independentReady ? ratio(rows.reduce((count, row) => count + matches(row), 0), total) : null,
     diagnosisAccuracy: independentReady ? ratio(diagnoses.reduce((count, row) => count + matches(row), 0), diagnoses.length * repeat) : null,

@@ -1,0 +1,404 @@
+{
+  "referenceStatus": "ai_assisted_reference",
+  "cases": 16,
+  "repeat": 3,
+  "expectedDecisions": 48,
+  "validDecisions": 48,
+  "missingOrInvalid": 0,
+  "completionRate": 1,
+  "resources": {
+    "expectedRequests": 48,
+    "attemptedRequests": 48,
+    "missingRequests": 0,
+    "failedRequests": 0,
+    "latencyMs": {
+      "measuredRequests": 48,
+      "total": 186055,
+      "median": 3610,
+      "p95": 5369,
+      "maximum": 6934
+    },
+    "inputTokens": {
+      "knownSubtotal": 69204,
+      "reportedRequests": 48,
+      "unavailableRequests": 0,
+      "completeTotal": 69204
+    },
+    "outputTokens": {
+      "knownSubtotal": 12454,
+      "reportedRequests": 48,
+      "unavailableRequests": 0,
+      "completeTotal": 12454
+    },
+    "totalTokens": {
+      "knownSubtotal": 81658,
+      "reportedRequests": 48,
+      "unavailableRequests": 0,
+      "completeTotal": 81658
+    },
+    "scope": "Provider-reported usage only. Unknown usage is not zero; known subtotals are not complete bills. Latency includes failed attempts and excludes offline scoring. No currency cost is inferred."
+  },
+  "unanimousCaseRate": 0.9375,
+  "classificationAccuracy": null,
+  "diagnosisAccuracy": null,
+  "falseSupportRate": null,
+  "testAdmission": null,
+  "diagnosisConfusion": null,
+  "diagnosisClasses": null,
+  "diagnosisMacroF1": null,
+  "diagnosisScoredClasses": 0,
+  "referenceComparison": {
+    "basis": "ai_assisted",
+    "expectedDecisions": 48,
+    "validDecisions": 48,
+    "agreementRate": 0.9791666666666666,
+    "diagnosisAgreementRate": 1,
+    "falseSupportRate": 0.05555555555555555,
+    "testAdmission": {
+      "tp": 9,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.9,
+      "recall": 1,
+      "f1": 0.9473684210526315
+    },
+    "diagnosisConfusion": [
+      {
+        "expected": "generated_test_error",
+        "predicted": {
+          "generated_test_error": 12,
+          "requirement_ambiguity": 0,
+          "potential_implementation_defect": 0,
+          "environment_failure": 0,
+          "uncertain": 0
+        }
+      },
+      {
+        "expected": "requirement_ambiguity",
+        "predicted": {
+          "generated_test_error": 0,
+          "requirement_ambiguity": 3,
+          "potential_implementation_defect": 0,
+          "environment_failure": 0,
+          "uncertain": 0
+        }
+      },
+      {
+        "expected": "potential_implementation_defect",
+        "predicted": {
+          "generated_test_error": 0,
+          "requirement_ambiguity": 0,
+          "potential_implementation_defect": 3,
+          "environment_failure": 0,
+          "uncertain": 0
+        }
+      },
+      {
+        "expected": "environment_failure",
+        "predicted": {
+          "generated_test_error": 0,
+          "requirement_ambiguity": 0,
+          "potential_implementation_defect": 0,
+          "environment_failure": 3,
+          "uncertain": 0
+        }
+      },
+      {
+        "expected": "uncertain",
+        "predicted": {
+          "generated_test_error": 0,
+          "requirement_ambiguity": 0,
+          "potential_implementation_defect": 0,
+          "environment_failure": 0,
+          "uncertain": 0
+        }
+      }
+    ],
+    "diagnosisClasses": [
+      {
+        "label": "generated_test_error",
+        "tp": 12,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "label": "requirement_ambiguity",
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "label": "potential_implementation_defect",
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "label": "environment_failure",
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1
+      },
+      {
+        "label": "uncertain",
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      }
+    ],
+    "diagnosisMacroF1": 1,
+    "diagnosisScoredClasses": 4
+  },
+  "metricScope": "Raw component classifications only. AI-assisted referenceComparison measures agreement with the specified development labels, not independent human accuracy. Independent accuracy fields require human-reviewed references. Missing/invalid attempts prevent scoring; confusion/Macro-F1 require single-label references and exclude absent classes.",
+  "rows": [
+    {
+      "id": "C01",
+      "kind": "test_review",
+      "predictions": [
+        "blocked",
+        "blocked",
+        "blocked"
+      ],
+      "draftAllowed": [
+        "blocked"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C02",
+      "kind": "test_review",
+      "predictions": [
+        "blocked",
+        "blocked",
+        "blocked"
+      ],
+      "draftAllowed": [
+        "blocked"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C03",
+      "kind": "test_review",
+      "predictions": [
+        "supported",
+        "blocked",
+        "blocked"
+      ],
+      "draftAllowed": [
+        "blocked"
+      ],
+      "complete": true,
+      "unanimous": false
+    },
+    {
+      "id": "C04",
+      "kind": "test_review",
+      "predictions": [
+        "blocked",
+        "blocked",
+        "blocked"
+      ],
+      "draftAllowed": [
+        "blocked"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C05",
+      "kind": "diagnosis",
+      "predictions": [
+        "generated_test_error",
+        "generated_test_error",
+        "generated_test_error"
+      ],
+      "draftAllowed": [
+        "generated_test_error"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C06",
+      "kind": "diagnosis",
+      "predictions": [
+        "potential_implementation_defect",
+        "potential_implementation_defect",
+        "potential_implementation_defect"
+      ],
+      "draftAllowed": [
+        "potential_implementation_defect"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C07",
+      "kind": "diagnosis",
+      "predictions": [
+        "generated_test_error",
+        "generated_test_error",
+        "generated_test_error"
+      ],
+      "draftAllowed": [
+        "generated_test_error"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C08",
+      "kind": "diagnosis",
+      "predictions": [
+        "generated_test_error",
+        "generated_test_error",
+        "generated_test_error"
+      ],
+      "draftAllowed": [
+        "generated_test_error"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C09",
+      "kind": "diagnosis",
+      "predictions": [
+        "environment_failure",
+        "environment_failure",
+        "environment_failure"
+      ],
+      "draftAllowed": [
+        "environment_failure"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C10",
+      "kind": "test_review",
+      "predictions": [
+        "supported",
+        "supported",
+        "supported"
+      ],
+      "draftAllowed": [
+        "supported"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C11",
+      "kind": "test_review",
+      "predictions": [
+        "supported",
+        "supported",
+        "supported"
+      ],
+      "draftAllowed": [
+        "supported"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C12",
+      "kind": "test_review",
+      "predictions": [
+        "supported",
+        "supported",
+        "supported"
+      ],
+      "draftAllowed": [
+        "supported"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C13",
+      "kind": "test_review",
+      "predictions": [
+        "blocked",
+        "blocked",
+        "blocked"
+      ],
+      "draftAllowed": [
+        "blocked"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C14",
+      "kind": "diagnosis",
+      "predictions": [
+        "generated_test_error",
+        "generated_test_error",
+        "generated_test_error"
+      ],
+      "draftAllowed": [
+        "generated_test_error"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C15",
+      "kind": "diagnosis",
+      "predictions": [
+        "requirement_ambiguity",
+        "requirement_ambiguity",
+        "requirement_ambiguity"
+      ],
+      "draftAllowed": [
+        "requirement_ambiguity"
+      ],
+      "complete": true,
+      "unanimous": true
+    },
+    {
+      "id": "C16",
+      "kind": "test_review",
+      "predictions": [
+        "blocked",
+        "blocked",
+        "blocked"
+      ],
+      "draftAllowed": [
+        "blocked"
+      ],
+      "complete": true,
+      "unanimous": true
+    }
+  ],
+  "provenance": {
+    "schemaVersion": 2,
+    "integrity": "hashed_inputs_reference_tasks_and_agent",
+    "datasetHash": "7c79de91aed7d1ef3a05972826f9441c744c39f9bc87fd3addf69dfd20e77480",
+    "agentFingerprint": "5efcbef09ad7e2f9dc07964a5e629b9c9becaef6b1f6539ce5b4be58d7b3b9cf",
+    "originalReferenceHash": "ba3886c2118b51994ef591fa79c5c401220a629b31c9d9aecba15fa1a574c807",
+    "scoredReferenceHash": "ba3886c2118b51994ef591fa79c5c401220a629b31c9d9aecba15fa1a574c807",
+    "attemptsHash": "95b26229ab9deae0fe4b089db1f065ed6cb59f41d6fa30c3abec0f144fb2af72",
+    "revised": false
+  }
+}

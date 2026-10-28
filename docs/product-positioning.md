@@ -74,8 +74,14 @@ semantic coverage, user benefit or an advantage over other products.
 
 The independent reviewer pack under experiments/reviews contains 16 development
 cases with actual Docker outcomes, no predictions and a blank reference template.
-There are zero completed independent labels and zero v12 model-quality calls.
-The budgeted three-project workflow manifest has passed fixed-witness preflight
-only. Accuracy, diagnosis F1 and comparative effectiveness remain unavailable.
+There are zero completed independent labels. The [v12 development study](../experiments/results/2026-10-28-v12/README.md)
+completed 48 component decisions and 18 paired workflows. Component agreement with
+the AI reference was 47/48, with one false-support observation. Both workflow
+configurations detected 6/6 seeded-fault observations. B3 retained six diagnosed
+valid failures and added no detections while using 5.04 times B1's tokens including
+the shared initial prefix. This supports inspectable diagnosis/retention examples,
+not an incremental detection, repair-success or efficiency advantage. No accepted
+repair or rejected initial proposal occurred in the workflow study.
+Independent human accuracy and user-task benefit remain unmeasured.
 See [current experiment status](../experiments/README.md) and the
 [evaluation protocol](evaluation-protocol.md). No academic report was written.

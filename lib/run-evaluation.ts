@@ -30,6 +30,23 @@ export function verificationSummary(report: PythonReport) {
   const unmapped = evaluation.requirements.filter(rule => !rule.behaviors.length || rule.behaviors.every(behavior =>
     behavior.issue === 'not_testable' && behavior.gaps.includes('Behavior extraction incomplete.')));
   const unresolved = evaluation.requirements.filter(rule => rule.status !== 'Verified');
+  // Execution progress is separate from the stricter verification policy.
+  const trustedChecks = report.status === 'completed' && !report.resources?.exhausted && latest?.integrity === true && !latest.timedOut && [0, 1].includes(latest.exitCode) &&
+    !report.collection?.timedOut && (!report.collection || [0, 5].includes(report.collection.exitCode));
+  const checkItems = evaluation.requirements.map(rule => {
+    const checked = !!trustedChecks && rule.behaviors.length > 0 && rule.behaviors.every(behavior => behavior.nodes.length > 0 && behavior.outcomes.every(outcome => ['passed', 'failed'].includes(outcome.status)) && behavior.nodes.every(node =>
+      latest!.outcomes.some(outcome => outcome.node === node && ['passed', 'failed'].includes(outcome.status))));
+    const investigate = checked && (rule.status === 'Uncertain' || rule.behaviors.some(behavior => behavior.outcomes.some(outcome => outcome.status === 'failed')));
+    const label = report.status === 'running' ? 'In progress' : investigate ? 'Needs investigation' : checked ? 'Recorded checks passed' : rule.behaviors.some(behavior => behavior.outcomes.length) ? 'Checks incomplete' : 'Not checked';
+    return { id: rule.id, checked, investigate, label };
+  });
+  const requirementChecks = { items: checkItems, checked: checkItems.filter(item => item.checked).length,
+    passed: checkItems.filter(item => item.checked && !item.investigate).length,
+    investigate: checkItems.filter(item => item.investigate).length,
+    remaining: checkItems.filter(item => !item.checked).length };
+  const mutation = report.mutations.at(-1);
+  const mutationAssessment = !mutation ? report.policy?.mutationChecks === false ? 'Not performed (not requested)' : 'Not performed'
+    : mutation.incomplete || mutation.timedOut || mutation.mutants.some(item => item.status === 'unknown') ? 'Incomplete' : `Execution recorded (${mutation.mutants.length} mutants)`;
   const phase = report.measurements.length > 1 ? 'remeasurement' : 'execution';
   const initialFailure = report.collection && (report.collection.timedOut || ![0, 5].includes(report.collection.exitCode)) ||
     report.baseline && (report.baseline.timedOut || report.baseline.integrity !== true || ![0, 5].includes(report.baseline.exitCode) || report.baseline.outcomes.some(outcome => ['failed', 'error'].includes(outcome.status)));
@@ -48,7 +65,7 @@ export function verificationSummary(report: PythonReport) {
   else { title = `${passed} ${passed === 1 ? 'test' : 'tests'} passed${skipped ? `; ${skipped} skipped` : ''}`; next = 'Review unresolved behavior states and blocked tests. Passing cases do not establish complete specification coverage.'; }
   if (report.status === 'completed' && evaluation.blocked) next = `${evaluation.blocked} blocked test proposals need attention. Inspect their review reasons and uncovered requirements before regenerating. ` + next;
   if (report.replay) next += ' Saved-test execution does not regenerate analysis or diagnoses.';
-  return { ...evaluation, passed, failedCount: failed, errors, skipped, unmapped, unresolved, preserved, title, next };
+  return { ...evaluation, passed, failedCount: failed, errors, skipped, unmapped, unresolved, preserved, requirementChecks, mutationAssessment, title, next };
 }
 
 // Summarize saved assessments conservatively; this does not independently grade the agent.

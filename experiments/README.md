@@ -8,9 +8,9 @@ Updated 2026-10-28. This is an experiment inventory, not the final report.
 | Decision cases | 16 development cases prepared and executed in Docker | [Reviewer pack](reviews/2026-10-27-contract-decisions/README.md), [actual execution records](reviews/2026-10-27-contract-decisions/cases.json) and its manifest |
 | AI-assisted annotations | 16 of 16 completed and accepted as development references; not independent human review | [Labels and evidence](annotations/2026-10-28-contract-decisions/reference.ai-assisted.json), [annotation rationale](annotations/2026-10-28-contract-decisions/README.md); reviewed=false |
 | Independent human references | 0 of 16 completed | [Blank reference template](reviews/2026-10-27-contract-decisions/reference.template.json); reviewed=false |
-| Current-policy decision model evaluation | Not started; zero model calls | With the accepted AI reference, the proposed run is 16 cases x three repetitions, at most 48 requests. This is a plan, not a result. |
-| Current-policy workflow comparison | Reference preflight completed; no model workflows started | examples/experiments-budgeted.json plans three projects x B1/B3 x three repeats (18 workflows). Preflight validates fixtures only. |
-| Accuracy, diagnosis F1 and comparative benefit | Unavailable | No independent current-policy model-quality study or user study is complete. |
+| Current-policy decision model evaluation | 48/48 valid responses; zero failed requests | [Recorded results](results/2026-10-28-v12/README.md): 47/48 agreement with AI reference; admission F1 0.947; one false-support observation retained. |
+| Current-policy workflow comparison | 18/18 workflows completed; nine shared-suite pairs verified | [Paired evidence](results/2026-10-28-v12/workflow/paired-comparison.json): B1/B3 each detected 6/6 seeded-fault observations; B3 added six diagnoses and no detections, with higher prefix-inclusive resource usage. |
+| Independent accuracy and comparative benefit | Independent accuracy unavailable; no incremental detection advantage observed | AI-reference metrics and fixed-witness detection are scoped development evidence. No independent human review or user study is complete; no accepted repair was exercised. |
 
 ## What a human reference label means
 
@@ -38,7 +38,8 @@ The project owner accepted the AI annotations as development reference answers.
 The component scorer can report agreement and reference-relative admission/F1
 metrics under referenceComparison.basis=ai_assisted. Root independent accuracy
 fields remain unavailable. This acceptance does not change the annotator into a
-human or establish independent review. No model responses have been collected.
+human or establish independent review. Actual model responses are now retained in
+the separate 2026-10-28-v12 results. No old-version scores were restored.
 
 ## Old experiment cleanup
 

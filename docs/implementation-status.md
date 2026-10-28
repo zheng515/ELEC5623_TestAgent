@@ -45,8 +45,9 @@ These are engineering checks, not model-quality or independent semantic scores.
 The decision-evaluation tool supports 16 development cases, independently reviewed
 admission Precision/Recall/F1, diagnosis confusion and Macro-F1. The reviewer pack
 contains actual Docker execution and a blank reference template. No independent
-labels have been completed. The current policy has no model-quality evaluation
-results; workflow preflight has run without model calls.
+labels have been completed. The current development study completed 48 component
+decisions and 18 B1/B3 workflows; all raw observations and frozen inputs are
+exported under experiments/results/2026-10-28-v12.
 
 The project owner has accepted the separate AI-assisted annotations as development
 reference answers. The component scorer now exposes a clearly labelled
@@ -54,7 +55,33 @@ referenceComparison for agreement, reference-relative admission metrics and
 diagnosis confusion/F1 once all planned model outputs exist. It preserves AI
 authorship and exact evidence, keeps independent-human accuracy unavailable and
 does not treat a reviewed flag alone as overriding pending human-review metadata.
-Acceptance has not started a paid study or generated actual comparison scores.
+The completed component run agreed with the AI reference on 47/48 decisions;
+admission F1 was 0.947 and C03 contains the retained false-support observation.
+Both B1 and B3 detected 6/6 seeded-fault observations on two distinct defects.
+B3 added six grounded diagnoses, retained those failures and added no detections;
+its prefix-inclusive token usage was 138,905 versus B1's 27,579. All nine pairs
+preserved the shared initial suite. No accepted improvement was exercised.
+
+New component studies hash references and task text, retain provider token usage
+and latency, and export disagreements. Later label changes require a separate
+justified reference revision; baseline labels and metrics are preserved. Legacy
+studies without reference hashes are explicitly labelled. Resource plots include
+the shared B1 prefix in B3 totals. Latest targeted validation: 30 tests passed,
+three optional Docker skips; a separate Docker component run passed all 12 tests.
+Typecheck, lint and English-source checks passed. The complete regression above
+predates these evaluation-tool changes; it was not rerun for this update.
+
+The Evaluation dashboard now separates execution progress, recorded-check results,
+mutation scope and strict verification states. Its screenshot regression displays
+4/4 checked, three passed recorded checks and one investigation, while preserving
+the original six passes, one failure and conservative assurance states. Missing,
+skipped, erroneous or untrusted mapped checks do not complete progress. This update
+passed 17 summary/policy tests with one optional Docker skip, typecheck, lint,
+English-source checks and a new production build. Browser validation used a
+read-only copy of the saved report with mocked API responses, covered desktop and
+320/390-pixel layouts, state filtering and unfinished runs, and made no model calls.
+The local production website and worker were restarted after confirming no active
+verification jobs.
 
 ## Experiment cleanup
 

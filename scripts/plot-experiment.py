@@ -13,6 +13,21 @@ import numpy as np
 root = Path(sys.argv[1])
 data = json.loads((root / "metrics.json").read_text())
 rows, summary = data["rows"], data["summary"]
+paired_resources = data.get("protocol", {}).get("sharedInitialSuite", False)
+if paired_resources:
+    # The raw B3 rows measure follow-up only. Resource figures must include B1.
+    pairs = json.loads((root / "paired-comparison.json").read_text())["rows"]
+    rows = [dict(row) for row in rows]
+    for row in rows:
+        if row["variant"] != "B3":
+            continue
+        matches = [pair for pair in pairs if pair["caseId"] == row["caseId"] and pair["repeat"] == row["repeat"]]
+        if len(matches) != 1:
+            raise ValueError("Every B3 resource row requires exactly one paired comparison")
+        pair = matches[0]
+        row.update(elapsedSeconds=pair["endToEndSeconds"], totalTokens=pair["endToEndTokens"],
+                   modelRequests=pair["endToEndRequests"])
+resource_scope = ("B3 resources include the shared B1 prefix plus follow-up. " if paired_resources else "")
 labels = [item["variant"] for item in summary]
 colors = ["#94a3b8", "#93c5fd", "#3b82f6", "#1d4ed8"][:len(labels)]
 plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 11, "axes.spines.top": False,
@@ -27,6 +42,8 @@ def save(fig, name, caption):
     fig.tight_layout(rect=(0, .13, 1, .95), pad=1.4)
     fig.savefig(figures / (name + ".png"), dpi=200, facecolor="white", bbox_inches="tight")
     fig.savefig(figures / (name + ".svg"), facecolor="white", bbox_inches="tight")
+    svg_path = figures / (name + ".svg")
+    svg_path.write_text("\n".join(line.rstrip() for line in svg_path.read_text().splitlines()) + "\n")
     plt.close(fig)
 
 
@@ -72,7 +89,7 @@ for ax, title, ylabel in [(axes[0], "End-to-end latency", "Seconds per run"), (a
     ax.set(title=title, ylabel=ylabel, xlim=(-.6, len(labels)-.4))
     ax.set_ylim(bottom=0)
     ax.grid(axis="y", alpha=.15)
-save(fig, "03-latency-and-tokens", "Dots are recorded runs, grouped across the frozen case set. Whiskers show min/max; no population inference. Failed calls with unknown tokens are omitted and counted in n.")
+save(fig, "03-latency-and-tokens", resource_scope + "Dots are recorded runs, grouped across the frozen case set. Whiskers show min/max; no population inference. Failed calls with unknown tokens are omitted and counted in n.")
 
 paired = [row for row in rows if row["mutationTotal"] is not None]
 fig, ax = plt.subplots(figsize=(10, max(4, len(paired) * .45 + 1.8)))
@@ -176,6 +193,6 @@ if len(labels) == 2 and len(cases) > 1:
         ax.margins(x=.35, y=.15)
         ax.grid(axis="x", alpha=.15)
         ax.legend(frameon=False)
-    save(fig, "08-project-resource-tradeoffs", "Each project retains every repeat. Ratios compare the second configuration to the first. Unknown measurements are omitted, never treated as zero. Different workflow budgets prevent an equal-cost or isolated-component claim.")
+    save(fig, "08-project-resource-tradeoffs", resource_scope + "Each project retains every repeat. Ratios compare the second configuration to the first. Unknown measurements are omitted, never treated as zero. Different workflow budgets prevent an equal-cost or isolated-component claim.")
 
 print(f"Saved PNG and SVG figures to {figures}")

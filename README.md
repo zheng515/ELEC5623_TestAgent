@@ -616,9 +616,10 @@ and supporting requirement context remain. Unmapped cases retain full file conte
 File contents are not truncated. Retrieval records keep original text, but model
 requests reference the text in files instead of duplicating it. Generated failure
 code is sent once under its artifact path. Smaller serialized inputs are not a
-measured token, latency or accuracy improvement. Current model-quality and
-resource comparisons remain pending; scripted Docker checks establish control
-flow rather than model accuracy.
+measured token, latency or accuracy improvement. The [current development study](experiments/results/2026-10-28-v12/README.md)
+records component decisions and paired workflow resources. It does not isolate
+retrieval/context compression. Scripted Docker checks establish control flow
+rather than model accuracy.
 
 The queue integration test uses isolated PostgreSQL schemas and real Docker
 execution. It forcibly kills a worker during a task, starts a replacement, checks
@@ -702,6 +703,11 @@ The accepted AI-assisted reference is also usable via
 It enables explicitly labelled referenceComparison agreement and reference-relative
 metrics while independent-human accuracy fields remain unavailable. Source and
 exact annotation evidence are preserved in frozen references.
+The completed v12 run has 48/48 valid outputs and 47/48 agreement with this
+reference. Its false-support case, scoped F1, raw responses and token usage are
+retained in the linked development results. New runs hash the frozen reference
+and task text; offline scoring rejects inconsistent artifacts. Later label review
+uses `score ROOT --reference PATH --reason TEXT` to create a separate revision.
 Reviewed complete results also expose admission Precision/Recall/F1 and diagnosis
 confusion/Macro-F1. Pending references and missing decisions keep accuracy metrics
 unavailable. See the evaluation protocol for denominators and review instructions.
@@ -721,6 +727,14 @@ metrics stay unavailable until every copied reference label has been independent
 reviewed and all repetitions are valid. See the benchmark README for review steps.
 
 ## Project evaluation dashboard
+
+Requirement progress counts items whose mapped behaviors all have passing or
+failing recorded checks, separately from the stricter verification states. The
+summary distinguishes passed recorded checks, items needing investigation and
+incomplete/unexecuted checks. A failed assertion can complete a check while still
+requiring investigation. Skips, errors, missing mappings, interrupted runs and
+untrusted execution do not earn completed-check progress. Mutation assessment is
+shown separately; original verification states and CI gates are unchanged.
 
 Open **Evaluation** after signing in and choose one of your latest 20 project
 verification runs. Refresh reloads saved results without making a model request;
