@@ -162,9 +162,11 @@ test("run directories execute whole-project browser checks and keep failure scre
     await writeFile(join(destination, "generated", "test_reqtest_T2.py"), browser("test_buy_starts_enabled", "enabled"));
     // A later non-browser test must not inherit an event loop from an earlier browser test.
     await writeFile(join(destination, "generated", "test_reqtest_T3.py"), "import asyncio\n\n\ndef test_async_helper_runs():\n    assert asyncio.run(asyncio.sleep(0, 'done')) == 'done'\n");
+    // Closed browsers must leave no zombie processes, which would exhaust the sandbox PID limit.
+    await writeFile(join(destination, "generated", "test_reqtest_T4.py"), "from pathlib import Path\n\n\ndef test_no_zombie_processes():\n    states = [path.read_text().split(')')[-1].split()[0] for path in Path('/proc').glob('[0-9]*/stat')]\n    assert states.count('Z') == 0, states\n");
     const measured = await measureProject(destination, inspection.nodes, true, AbortSignal.timeout(120000), setup.sandboxImage);
     const status = Object.fromEntries(measured.outcomes.map(outcome => [outcome.node, outcome.status]));
-    assert.deepEqual(status, { "server/tests/test_app.py::test_page": "passed", "reqtest_generated/test_reqtest_T1.py::test_buy_starts_disabled": "passed", "reqtest_generated/test_reqtest_T2.py::test_buy_starts_enabled": "failed", "reqtest_generated/test_reqtest_T3.py::test_async_helper_runs": "passed" });
+    assert.deepEqual(status, { "server/tests/test_app.py::test_page": "passed", "reqtest_generated/test_reqtest_T1.py::test_buy_starts_disabled": "passed", "reqtest_generated/test_reqtest_T2.py::test_buy_starts_enabled": "failed", "reqtest_generated/test_reqtest_T3.py::test_async_helper_runs": "passed", "reqtest_generated/test_reqtest_T4.py::test_no_zombie_processes": "passed" });
     assert.equal(measured.integrity, true);
     const failed = measured.outcomes.find(outcome => outcome.status === "failed")!;
     assert.match(failed.screenshot || "", /^[a-f0-9]{64}\.jpg$/);

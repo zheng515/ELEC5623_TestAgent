@@ -129,7 +129,6 @@ def preflight():
     return {'status': status, 'python': platform.python_version(), 'checks': checks, 'limitations': ['Static checks do not import the project, start services or validate native runtime dependencies.', 'Automatic setup installs declared compatible wheels in a pinned image; project build hooks and native system packages are not installed.']}
 
 
-MEASURE_SECONDS = 300
 
 
 def command(args, timeout=60):
@@ -192,7 +191,7 @@ def measure(job):
     execution_fingerprint = fingerprint()
     original_files = {str(path.relative_to(PROJECT)) for path in project_files()}
     # One unloadable test module is recorded as its own error instead of stopping every other test.
-    code, log, timed = command([sys.executable, '-m', 'pytest', '-q', *pytest_args(), '--continue-on-collection-errors', '-o', 'junit_family=legacy', '--junitxml=/tmp/results.xml', '--', *paths], MEASURE_SECONDS)
+    code, log, timed = command([sys.executable, '-m', 'pytest', '-q', *pytest_args(), '--continue-on-collection-errors', '-o', 'junit_family=legacy', '--junitxml=/tmp/results.xml', '--', *paths], int(job['seconds']))
     outcomes = []
     # Failed browser tests leave a screenshot keyed by their pytest node ID.
     screenshots = {}

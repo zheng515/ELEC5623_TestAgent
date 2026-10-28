@@ -109,12 +109,15 @@ export async function dockerTool<T>(root: string, job: object, signal: AbortSign
   const service = !buildName && ["inspect", "measure", "mutate"].includes((job as {action?:string}).action || "") ? await testServices(config.services || [], signal, basename(root)) : await testServices([], signal);
   const runDirectory = typeof config.runDirectory === "string" ? config.runDirectory : "";
   if (signal.aborted) { await service.cleanup(); signal.throwIfAborted(); }
-  const child = spawn('docker', ['run', ...(buildName ? [] : ['--rm']), '-i', '--name', name, '--label', 'reqtest.role=sandbox', '--label', 'reqtest.scope=' + basename(root), '--network', buildName ? 'bridge' : service.network, ...(buildName ? [] : ['--read-only']), '--cap-drop=ALL', '--security-opt=no-new-privileges', '--pids-limit', '128', '--cpus', '1', '--memory', '512m', ...service.env.flatMap(value => ['--env', value]), '--tmpfs', '/work:rw,exec,size=256m,mode=1777', '--tmpfs', '/tmp:rw,exec,size=' + (buildName ? '256m' : '32m') + ',mode=1777', '--mount', `type=bind,src=${join(root, 'source')},dst=/project,readonly`, '--mount', `type=bind,src=${join(root, 'generated')},dst=/generated,readonly`, image], { stdio: ['pipe', 'pipe', 'pipe'] });
+  // --init reaps orphaned processes, such as the helpers of each closed browser, so they cannot exhaust the PID limit.
+  const child = spawn('docker', ['run', ...(buildName ? [] : ['--rm']), '-i', '--init', '--name', name, '--label', 'reqtest.role=sandbox', '--label', 'reqtest.scope=' + basename(root), '--network', buildName ? 'bridge' : service.network, ...(buildName ? [] : ['--read-only']), '--cap-drop=ALL', '--security-opt=no-new-privileges', '--pids-limit', '128', '--cpus', '1', '--memory', '512m', ...service.env.flatMap(value => ['--env', value]), '--tmpfs', '/work:rw,exec,size=256m,mode=1777', '--tmpfs', '/tmp:rw,exec,size=' + (buildName ? '256m' : '32m') + ',mode=1777', '--mount', `type=bind,src=${join(root, 'source')},dst=/project,readonly`, '--mount', `type=bind,src=${join(root, 'generated')},dst=/generated,readonly`, image], { stdio: ['pipe', 'pipe', 'pipe'] });
   let stdout = '', stderr = '', stopReason = '';
   let removal: Promise<unknown> | undefined;
   const stop = () => { removal ||= promisify(execFile)('docker', ['rm', '-f', name], { timeout: 10000 }).catch(() => {}); child.kill(); };
   // Requirement extraction runs until the request ends; project commands keep their time limits.
-  const timeout = (job as {action?:string}).action === 'document' ? undefined : setTimeout(() => { stopReason = 'Sandbox execution exceeded its time limit.'; stop(); }, buildName ? 240000 : 110000);
+  // A job with its own time budget stops itself first and reports partial results; this is the backstop.
+  const seconds = (job as { seconds?: number }).seconds;
+  const timeout = (job as {action?:string}).action === 'document' ? undefined : setTimeout(() => { stopReason = 'Sandbox execution exceeded its time limit.'; stop(); }, seconds ? (seconds + 60) * 1000 : buildName ? 240000 : 110000);
   signal.addEventListener('abort', stop, { once: true });
   child.stdin.on('error', () => {}); child.stdin.end(JSON.stringify({ ...job, runtime, runDirectory }));
   try {
@@ -148,8 +151,11 @@ export const inspectProject = async (root: string, signal: AbortSignal, image?: 
   snapshot.files = Object.fromEntries(Object.entries(snapshot.files).filter(([name]) => !dependencyLockFile(name)));
   return snapshot;
 };
+// Execution time grows with the suite: browser tests start an application and Chromium each.
+export const measureSeconds = (tests: number) => 120 + 15 * tests;
 export async function measureProject(root: string, nodes: string[], generated: boolean, signal: AbortSignal, image?: string) {
-  const measurement = await dockerTool<Measurement>(root, { action: 'measure', nodes, generated }, signal, image);
+  const files = generated ? (await readdir(join(root, 'generated'))).length : 0;
+  const measurement = await dockerTool<Measurement>(root, { action: 'measure', nodes, generated, seconds: measureSeconds(nodes.length + files) }, signal, image);
   // Store failure screenshots beside the run; the report keeps only their content-addressed names.
   for (const outcome of measurement.outcomes) {
     if (!outcome.screenshot) continue;

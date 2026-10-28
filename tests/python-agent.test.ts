@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId, quoteReferences, mergeAnalyses, chunks, pool, pruneAnalysis } from '../lib/python-agent';
 import { survivorReviews, type MutationReviewPair } from '../lib/mutation-review';
 import { verificationGate } from '../lib/run-evaluation';
-import { importProject, measureProject, mutateProject, dockerTool, type Inspection } from '../lib/python-tools';
+import { importProject, measureProject, measureSeconds, mutateProject, dockerTool, type Inspection } from '../lib/python-tools';
 import { analysisSchema, groundedAnalysisSchema, groundedTestsSchema, groundedDiagnosisSchema, groundedRelevanceSchema, originalQuoteSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema, testsSchema, type PythonReport, type Measurement, type DiagnosisPhase } from '../lib/python-types';
 import { rule, code, artifact, report, analysis } from './fixtures/python-agent';
 
@@ -319,6 +319,10 @@ test('batched analyses get run-wide behavior IDs and keep their conflict links',
   assert.deepEqual(merged.inconsistencies.map(item => item.description + ':' + item.behaviorIds.join()), ['first:B2', 'second:B4']);
   assert.equal(mergeAnalyses([first]), first, 'A single batch is unchanged');
   assert.deepEqual(chunks([1, 2, 3, 4, 5, 6, 7], 3), [[1, 2, 3], [4, 5, 6], [7]]);
+});
+test('the execution time budget grows with the number of selected tests', () => {
+  assert.equal(measureSeconds(0), 120);
+  assert.equal(measureSeconds(92), 1500, 'A 92-test full-stack suite is not cut off at a fixed limit');
 });
 test('the model call pool bounds concurrency and keeps input order', async () => {
   let active = 0, peak = 0;
