@@ -21,13 +21,28 @@ test('stable raw classifications cannot manufacture accuracy from draft labels',
   assert.equal(reference.reviewed, false); assert.equal(result.unanimousCaseRate, 1);
   assert.equal(result.classificationAccuracy, null); assert.equal(result.falseSupportRate, null);
   assert.equal(result.referenceStatus, 'pending_independent_review');
+  assert.equal(result.testAdmission, null); assert.equal(result.diagnosisMacroF1, null); assert.equal(result.diagnosisConfusion, null);
 });
 test('consistent false support is exposed separately from classification agreement', () => {
   const wrong = attempts();
   for (const attempt of wrong.filter(item => item.caseId === 'C04')) (attempt.output as { decisions: { supported: boolean }[] }).decisions[0].supported = true;
   const result = scoreDecisions(decisionCases, { ...reference, reviewed: true, reviewer: 'Independent scoring fixture reviewer' }, wrong, 3, 'fixture-v1');
-  assert.equal(result.unanimousCaseRate, 1); assert.equal(result.falseSupportRate, 1 / 4);
-  assert.equal(result.classificationAccuracy, 30 / 33);
+  assert.equal(result.unanimousCaseRate, 1); assert.equal(result.falseSupportRate, 1 / 6);
+  assert.equal(result.classificationAccuracy, 45 / 48);
+  assert.equal(result.testAdmission!.precision, 3 / 4); assert.equal(result.testAdmission!.recall, 1);
+  assert.equal(result.testAdmission!.f1, 6 / 7);
+  assert.equal(result.diagnosisMacroF1, 1); assert.equal(result.diagnosisScoredClasses, 4);
+});
+test('diagnosis confusion exposes wrong causes; set-valued references cannot manufacture Macro-F1', () => {
+  const data = attempts();
+  for (const item of data.filter(item => item.caseId === 'C06')) (item.output as { decisions: { category: string }[] }).decisions[0].category = 'generated_test_error';
+  const reviewed = { ...reference, reviewed: true, reviewer: 'Independent scoring fixture reviewer' };
+  const result = scoreDecisions(decisionCases, reviewed, data, 3, 'fixture-v1');
+  assert.equal(result.diagnosisConfusion!.find(row => row.expected === 'potential_implementation_defect')!.predicted.generated_test_error, 3);
+  assert.ok(result.diagnosisMacroF1! < 1);
+  const multiple = structuredClone(reviewed); multiple.labels.find(item => item.id === 'C06')!.allowed.push('uncertain');
+  const setValued = scoreDecisions(decisionCases, multiple, attempts(), 3, 'fixture-v1');
+  assert.equal(setValued.diagnosisAccuracy, 1); assert.equal(setValued.diagnosisConfusion, null); assert.equal(setValued.diagnosisMacroF1, null);
 });
 test('missing, failed and invalid repeats stay in the denominator and prevent accuracy scoring', () => {
   for (const mode of ['missing', 'error', 'invalid'] as const) {
@@ -36,8 +51,8 @@ test('missing, failed and invalid repeats stay in the denominator and prevent ac
     else if (mode === 'error') data[data.length - 1].error = 'Request timed out.';
     else data[data.length - 1].output = { decisions: [] };
     const result = scoreDecisions(decisionCases, { ...reference, reviewed: true, reviewer: 'Independent scoring fixture reviewer' }, data, 3, 'fixture-v1');
-    assert.equal(result.expectedDecisions, 33); assert.equal(result.missingOrInvalid, 1);
-    assert.equal(result.completionRate, 32 / 33); assert.equal(result.unanimousCaseRate, 10 / 11);
+    assert.equal(result.expectedDecisions, 48); assert.equal(result.missingOrInvalid, 1);
+    assert.equal(result.completionRate, 47 / 48); assert.equal(result.unanimousCaseRate, 15 / 16);
     assert.equal(result.classificationAccuracy, null);
   }
 });
@@ -66,7 +81,7 @@ test('wrong IDs, invented quotes and duplicate model decisions are invalid rathe
   assert.equal(decisionLabel(other, { ...attempt, output: { decisions: [{ testId: 'T2', supported: true, quote: other.context.rules[0].text, reason: 'Exact contract.' }] } }), 'supported');
 });
 
-test('decision challenge snippets reproduce their stated execution scenarios in Docker', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 45000 }, async () => {
+test('decision challenge snippets reproduce their stated execution scenarios in Docker', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 90000 }, async () => {
   for (const item of decisionCases) {
     const root = await mkdtemp(join(tmpdir(), 'reqtest-decision-case-'));
     try {
@@ -75,7 +90,7 @@ test('decision challenge snippets reproduce their stated execution scenarios in 
       await writeTests(root, item.context.tests.map(test => ({ ...test, approved: true })));
       const result = await measureProject(root, [], true, AbortSignal.timeout(15000));
       assert.ok(result.integrity);
-      assert.ok(result.outcomes.some(outcome => outcome.status === (['C01', 'C03', 'C10', 'C11'].includes(item.id) ? 'passed' : item.id === 'C09' ? 'error' : 'failed')), item.id + ': ' + result.log);
+      assert.ok(result.outcomes.some(outcome => outcome.status === (['C01', 'C03', 'C10', 'C11', 'C12', 'C16'].includes(item.id) ? 'passed' : ['C09', 'C14'].includes(item.id) ? 'error' : 'failed')), item.id + ': ' + result.log);
     } finally { await rm(root, { recursive: true, force: true }); }
   }
 });

@@ -2,13 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { agentStopReason, runEvaluation, verificationSummary } from '../lib/run-evaluation';
 import type { PythonReport } from '../lib/python-types';
+import { recordCoverage } from './fixtures/python-agent';
 
 function fixture(): PythonReport {
   return {
     id: 'run', title: 'Evaluation fixture', createdAt: '2026-10-22', model: 'fixture', source: 'fixture', fingerprint: 'snapshot', status: 'completed', stage: 'done',
     rules: [{ id: 'R1', text: 'A fee is returned.' }, { id: 'R2', text: 'Negative values are rejected.' }, { id: 'R3', text: 'An unmapped requirement.' }],
     analysis: { behaviors: ['R1', 'R1', 'R2'].map((ruleId, index) => ({ id: `B${index + 1}`, ruleId, quote: 'A fee is returned.', text: 'Fixture behavior', category: 'rule', issue: 'none', reason: '', files: [], existingTests: [], evidence: [], gaps: [] })), inconsistencies: [] },
-    tests: [], measurements: [{ outcomes: ['passed', 'skipped', 'failed'].map((status, index) => ({ node: `test_${index + 1}`, file: 'tests.py', name: `test_${index + 1}`, status: status as 'passed' | 'skipped' | 'failed', message: '' })), exitCode: 1, integrity: true, timedOut: false, log: '' }],
+    tests: [{ id: 'T1', behaviorId: 'B1', code: 'def test_1():\n    assert fee() == 1', functionName: 'test_1', gapIndexes: [], quote: 'A fee is returned.', purpose: 'Controlled behavior fixture.', approved: true }], measurements: [{ outcomes: ['passed', 'skipped', 'failed'].map((status, index) => ({ node: `test_${index + 1}`, file: index ? 'tests.py' : 'reqtest_generated/test_reqtest_T1.py', name: `test_${index + 1}`, status: status as 'passed' | 'skipped' | 'failed', message: '' })), exitCode: 1, integrity: true, timedOut: false, log: '' }],
     states: [{ id: 'B1', status: 'Verified', reason: 'Passed.', nodes: ['test_1'] }, { id: 'B2', status: 'Partially Verified', reason: 'Skipped.', nodes: ['test_2'] }, { id: 'B3', status: 'Uncertain', reason: 'Failed.', nodes: ['test_3'] }],
     mutations: [], diagnoses: [], relevance: [], improvements: [], limitations: [],
   };
@@ -80,6 +81,7 @@ test('retained-failure summaries exclude changed assertions, stale phases and un
 });
 test('all mapped behaviors must pass before a requirement is verified; unrelated failures stay visible', () => {
   const report = fixture(); report.measurements[0].outcomes[1].status = 'passed'; report.states[1].status = 'Verified';
+  recordCoverage(report);
   const result = runEvaluation(report);
   assert.equal(result.requirements[0].status, 'Verified');
   assert.equal(result.failed.length, 1);
@@ -87,6 +89,7 @@ test('all mapped behaviors must pass before a requirement is verified; unrelated
 });
 test('pytest no-existing-tests exit is not a collection failure and does not hide generated evidence', () => {
   const report = fixture(); report.collection = { exitCode: 5, log: 'no tests collected' };
+  recordCoverage(report);
   const result = runEvaluation(report);
   assert.equal(result.requirements[0].behaviors[0].status, 'Verified');
   assert.equal(result.requirements[1].status, 'Uncertain');

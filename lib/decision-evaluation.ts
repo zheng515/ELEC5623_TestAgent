@@ -53,6 +53,23 @@ export function scoreDecisions(cases: DecisionCase[], reference: DecisionReferen
   const matches = (row: typeof rows[number]) => row.predictions.filter(label => label !== null && row.draftAllowed.includes(label)).length;
   const diagnoses = rows.filter(row => row.kind === 'diagnosis');
   const blocked = rows.filter(row => row.kind === 'test_review' && !row.draftAllowed.includes('supported'));
+  const reviews = rows.filter(row => row.kind === 'test_review');
+  const tp = reviews.filter(row => row.draftAllowed[0] === 'supported').reduce((sum, row) => sum + row.predictions.filter(label => label === 'supported').length, 0);
+  const fp = blocked.reduce((sum, row) => sum + row.predictions.filter(label => label === 'supported').length, 0);
+  const fn = reviews.filter(row => row.draftAllowed[0] === 'supported').reduce((sum, row) => sum + row.predictions.filter(label => label === 'blocked').length, 0);
+  // A set-valued acceptable diagnosis supports accuracy, but has no unique confusion-matrix row.
+  const diagnosisReady = ready && diagnoses.every(row => row.draftAllowed.length === 1);
+  const classes = diagnosisSchema.shape.decisions.element.shape.category.options;
+  const confusion = classes.map(expected => ({ expected, predicted: Object.fromEntries(classes.map(predicted => [predicted,
+    diagnoses.filter(row => row.draftAllowed[0] === expected).reduce((sum, row) => sum + row.predictions.filter(label => label === predicted).length, 0),
+  ])) }));
+  const diagnosisClasses = classes.map(label => {
+    const truePositive = confusion.find(row => row.expected === label)!.predicted[label];
+    const falsePositive = confusion.filter(row => row.expected !== label).reduce((sum, row) => sum + row.predicted[label], 0);
+    const falseNegative = Object.entries(confusion.find(row => row.expected === label)!.predicted).filter(([name]) => name !== label).reduce((sum, [, value]) => sum + value, 0);
+    return { label, tp: truePositive, fp: falsePositive, fn: falseNegative, precision: ratio(truePositive, truePositive + falsePositive), recall: ratio(truePositive, truePositive + falseNegative), f1: ratio(2 * truePositive, 2 * truePositive + falsePositive + falseNegative) };
+  });
+  const f1 = diagnosisClasses.flatMap(item => item.f1 === null ? [] : [item.f1]);
   return {
     referenceStatus: reviewed ? 'reviewed' : 'pending_independent_review', cases: cases.length, repeat, expectedDecisions: total,
     validDecisions: valid, missingOrInvalid: total - valid, completionRate: ratio(valid, total),
@@ -60,6 +77,12 @@ export function scoreDecisions(cases: DecisionCase[], reference: DecisionReferen
     classificationAccuracy: ready ? ratio(rows.reduce((count, row) => count + matches(row), 0), total) : null,
     diagnosisAccuracy: ready ? ratio(diagnoses.reduce((count, row) => count + matches(row), 0), diagnoses.length * repeat) : null,
     falseSupportRate: ready ? ratio(blocked.reduce((count, row) => count + row.predictions.filter(label => label === 'supported').length, 0), blocked.length * repeat) : null,
+    testAdmission: ready ? { tp, fp, fn, precision: ratio(tp, tp + fp), recall: ratio(tp, tp + fn), f1: ratio(2 * tp, 2 * tp + fp + fn) } : null,
+    diagnosisConfusion: diagnosisReady ? confusion : null,
+    diagnosisClasses: diagnosisReady ? diagnosisClasses : null,
+    diagnosisMacroF1: diagnosisReady && f1.length ? f1.reduce((sum, value) => sum + value, 0) / f1.length : null,
+    diagnosisScoredClasses: diagnosisReady ? f1.length : 0,
+    metricScope: 'Raw component classifications only. Confusion and Macro-F1 require single-label references; absent classes have unavailable F1 and are excluded. Missing/invalid attempts or unreviewed references prevent accuracy metrics.',
     rows,
   };
 }

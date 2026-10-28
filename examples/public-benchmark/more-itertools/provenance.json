@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/more-itertools/more-itertools",
+  "tag": "v10.5.0",
+  "commit": "4998a257373f36e91edef7324572ed8df10f39d1",
+  "sourceFiles": [
+    {
+      "upstreamPath": "more_itertools/recipes.py",
+      "fixturePath": "recipes.py",
+      "sha256": "dc33e9349626dda80a2c4b8a7bee422a7fb016be13ee2353cba0b9a74ce3bb28"
+    }
+  ],
+  "condition": "no injected mutation",
+  "fault": null,
+  "requirementsOrigin": "Selected public docstrings and README excerpts; author-derived SRS, not an upstream SRS or independently reviewed labels.",
+  "heldOut": false
+}

@@ -7,6 +7,7 @@ import { decisionCases, type DecisionCase } from '../examples/benchmark/decision
 import { decisionHash, decisionReferenceSchema, scoreDecisions, type DecisionAttempt } from '../lib/decision-evaluation';
 import { reason, testReviewTask, diagnosisTask } from '../lib/python-agent';
 import { diagnosisSchema, reviewTestsSchema } from '../lib/python-types';
+import { prepareDecisionReview } from '../lib/decision-review';
 
 async function summarize(root: string) {
   const index = JSON.parse(await readFile(join(root, 'index.json'), 'utf8'));
@@ -14,6 +15,8 @@ async function summarize(root: string) {
   const reference = decisionReferenceSchema.parse(JSON.parse(await readFile(join(root, 'reference.json'), 'utf8')));
   const attempts: DecisionAttempt[] = JSON.parse(await readFile(join(root, 'attempts.json'), 'utf8'));
   if (decisionHash(cases) !== index.datasetHash) throw new Error('Frozen input cases changed. Start a new evaluation.');
+  const snapshot = await readFile(join(root, 'agent-snapshot.json'), 'utf8').catch(error => { if (error.code === 'ENOENT') return null; throw error; });
+  if (snapshot !== null && decisionHash(JSON.parse(snapshot)) !== index.agentFingerprint) throw new Error('Frozen Agent snapshot changed.');
   const metrics = scoreDecisions(cases, reference, attempts, index.repeat, index.agentFingerprint);
   await writeFile(join(root, 'metrics.json'), JSON.stringify(metrics, null, 2));
   await writeFile(join(root, 'summary.md'), [
@@ -23,6 +26,8 @@ async function summarize(root: string) {
     'Consistency is agreement on identical inputs, not correctness. Errors and missing repeats remain in the denominator.',
     'Reference status: ' + metrics.referenceStatus + '. Accuracy and false-support metrics remain unavailable until every label is independently reviewed and every attempt is valid.', '',
     `Classification accuracy: ${metrics.classificationAccuracy ?? 'unavailable'}; diagnosis accuracy: ${metrics.diagnosisAccuracy ?? 'unavailable'}; false-support rate: ${metrics.falseSupportRate ?? 'unavailable'}.`, '',
+    `Test-admission precision / recall / F1: ${metrics.testAdmission?.precision ?? 'unavailable'} / ${metrics.testAdmission?.recall ?? 'unavailable'} / ${metrics.testAdmission?.f1 ?? 'unavailable'}.`,
+    `Diagnosis Macro-F1: ${metrics.diagnosisMacroF1 ?? 'unavailable'} across ${metrics.diagnosisScoredClasses} represented classes. Inspect diagnosisConfusion in metrics.json.`, metrics.metricScope, '',
     '| Case | Component | Repeated labels | Draft allowed labels |', '| --- | --- | --- | --- |',
     ...metrics.rows.map(row => `| ${row.id} | ${row.kind} | ${row.predictions.map(label => label || 'missing/invalid').join(', ')} | ${row.draftAllowed.join(', ')} |`), '',
     'Inspect cases.json and attempts.json. Independently check reference.json against original requirements, source, test and trace, then set reviewed=true and enter the reviewer name. Do not copy predictions into reference labels.',
@@ -31,6 +36,12 @@ async function summarize(root: string) {
   return metrics;
 }
 async function main() {
+  if (process.argv[2] === 'prepare') {
+    if (!process.argv[3]) throw new Error('Supply a new reviewer-pack directory; existing directories are never overwritten.');
+    const controller = new AbortController(); process.once('SIGINT', () => controller.abort());
+    await prepareDecisionReview(resolve(process.argv[3]), decisionCases, controller.signal);
+    console.log('Prepared independent review pack with actual Docker evidence; no model calls: ' + resolve(process.argv[3])); return;
+  }
   if (process.argv[2] === 'score') {
     if (!process.argv[3]) throw new Error('Supply an evaluation directory.');
     const root = resolve(process.argv[3]); await summarize(root); console.log('Scored: ' + join(root, 'summary.md')); return;
@@ -39,9 +50,12 @@ async function main() {
   if (!process.env.OPENAI_API_KEY) throw new Error('Configure OPENAI_API_KEY. This command makes paid model requests.');
   const repeat = Number(process.argv[2] || 3);
   if (!Number.isInteger(repeat) || repeat < 2 || repeat > 5) throw new Error('Use 2–5 repetitions.');
-  const reference = decisionReferenceSchema.parse(JSON.parse(await readFile('examples/benchmark/decision-reference.json', 'utf8')));
+  const referenceFlag = process.argv.indexOf('--reference');
+  if (referenceFlag >= 0 && !process.argv[referenceFlag + 1]) throw new Error('Supply a reviewed reference path after --reference.');
+  const reference = decisionReferenceSchema.parse(JSON.parse(await readFile(referenceFlag >= 0 ? process.argv[referenceFlag + 1] : 'examples/benchmark/decision-reference.json', 'utf8')));
   const agentFiles = ['lib/python-agent.ts', 'lib/python-types.ts', 'lib/model.ts', 'package-lock.json'];
-  const agentFingerprint = decisionHash(await Promise.all(agentFiles.map(async file => [file, await readFile(file, 'utf8')])));
+  const agentSnapshot = await Promise.all(agentFiles.map(async file => [file, await readFile(file, 'utf8')]));
+  const agentFingerprint = decisionHash(agentSnapshot);
   scoreDecisions(decisionCases, reference, [], repeat, agentFingerprint);
   const root = resolve('.evidence/decision-evaluation', new Date().toISOString().replaceAll(/[:.]/g, '-') + '-' + randomUUID().slice(0, 8));
   const index = { createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', repeat, datasetHash: decisionHash(decisionCases), agentFingerprint, status: 'running' };
@@ -50,11 +64,14 @@ async function main() {
   await writeFile(join(root, 'cases.json'), JSON.stringify(decisionCases, null, 2));
   await writeFile(join(root, 'reference.json'), JSON.stringify(reference, null, 2));
   await writeFile(join(root, 'tasks.json'), JSON.stringify({ testReviewTask, diagnosisTask }, null, 2));
+  await writeFile(join(root, 'agent-snapshot.json'), JSON.stringify(agentSnapshot));
   const attempts: DecisionAttempt[] = [], cancelled = new AbortController();
   process.once('SIGINT', () => cancelled.abort());
   console.log(`${decisionCases.length} cases × ${repeat} repetitions; up to ${decisionCases.length * repeat} paid model calls. No automatic retries.`);
-  for (let repetition = 1; repetition <= repeat; repetition++) for (const item of decisionCases) {
+  for (let repetition = 1; repetition <= repeat; repetition++) for (const item of [...decisionCases.slice(repetition - 1), ...decisionCases.slice(0, repetition - 1)]) {
     if (cancelled.signal.aborted) break;
+    const currentSnapshot = await Promise.all(agentFiles.map(async file => [file, await readFile(file, 'utf8')]));
+    if (decisionHash(currentSnapshot) !== agentFingerprint) throw new Error('Agent source changed during evaluation. Retain partial results and start a new frozen evaluation.');
     const started = Date.now();
     const attempt: DecisionAttempt = { caseId: item.id, repeat: repetition, inputHash: decisionHash(item.context), agentFingerprint, elapsedMs: 0 };
     try {

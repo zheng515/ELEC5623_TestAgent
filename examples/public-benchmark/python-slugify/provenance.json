@@ -1,0 +1,36 @@
+{
+  "repository": "https://github.com/un33k/python-slugify",
+  "tag": "v8.0.4",
+  "commit": "f85f9488520148d5f6899b5639199882b605e30a",
+  "sourceFiles": [
+    {
+      "upstreamPath": "slugify/__init__.py",
+      "fixturePath": "slugify/__init__.py",
+      "sha256": "43ef5b28242ff3db9fddb26bff21f130f84159737c602ce5c50c0afe476979f2"
+    },
+    {
+      "upstreamPath": "slugify/__version__.py",
+      "fixturePath": "slugify/__version__.py",
+      "sha256": "0e1df2e0c9d602334919b6a8466ddd7e2cadc85fa20f977edce09f1b297ffd8f"
+    },
+    {
+      "upstreamPath": "slugify/special.py",
+      "fixturePath": "slugify/special.py",
+      "sha256": "f1b1c03c69d9fb591eb96e31d9665d15755bf4b1684bb8bd268e2dcbfd83f210"
+    },
+    {
+      "upstreamPath": "slugify/slugify.py",
+      "fixturePath": "slugify/slugify.py",
+      "sha256": "3103ecc34bb68362d4fbc0414fb2b40ce946b40848c68287403e1f5a5b4a9656"
+    }
+  ],
+  "condition": "controlled injected mutation",
+  "fault": {
+    "id": "injected-lowercase-condition",
+    "file": "slugify/slugify.py",
+    "before": "    # make the text lowercase (optional)\n    if not lowercase:\n        text = text.lower()",
+    "after": "    # make the text lowercase (optional)\n    if lowercase:\n        text = text.lower()"
+  },
+  "requirementsOrigin": "Selected public docstrings and README excerpts; author-derived SRS, not an upstream SRS or independently reviewed labels.",
+  "heldOut": false
+}

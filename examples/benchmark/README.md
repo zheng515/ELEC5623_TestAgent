@@ -29,7 +29,8 @@ reference-probe results and output-review templates. The final log prints the
 The runner pins the Docker image ID and records the agent source fingerprint. All
 variants receive the same project snapshot, requirements and model for a case. B0 receives requirements
 and Python context; B1 also receives documentation. B2 includes analysis, execution
-feedback and unconditional generated-test repair. B3 requires failure diagnosis
+feedback and repair selection without failure diagnosis. The same original-contract
+admission gates still apply; unsupported replacements remain blocked. B3 requires failure diagnosis
 before repair. Existing tests are measured for reporting in every variant, but
 B0/B1 generation receives no execution feedback. Their behavior IDs are scaffolding;
 they are not credited as gap-detection findings or semantic verification claims.
@@ -122,7 +123,7 @@ npm run evaluate:decisions -- 3
 npm run evaluate:decisions -- score .evidence/decision-evaluation/<directory>
 ```
 
-The first command makes 33 paid model calls: eleven small development cases, three
+The first command makes 48 paid model calls: sixteen small development cases, three
 identical-input repetitions each, without retries. It uses the production review
 and diagnosis tasks and reasoning function. The second command only re-scores saved
 evidence and needs no API key. It does not execute the complete verification agent.
@@ -156,4 +157,27 @@ a generated test is a test-generation error, while the vague requirement remains
 context requiring clarification. These are revised development labels, not independent
 review. Earlier evidence retains its copied input cases, task text and draft labels.
 Compare unchanged overlapping input hashes when dataset versions differ; do not
-compare the eleven-case aggregate directly with the older nine-case aggregate.
+compare the sixteen-case aggregate directly with earlier eleven- or nine-case aggregates.
+
+## Independent review pack and current policy
+
+Run `npm run evaluate:decisions -- prepare /tmp/reqtest-independent-review` before
+viewing predictions. It executes the 16 candidate snippets in Docker and exports
+actual outcomes, original artifacts and a blank reference template. No model calls,
+model predictions or draft reference answers are included. Complete the template
+independently, record evidence and a reviewer name, then use the completed file
+with `npm run evaluate:decisions -- 3 --reference /absolute/path/reference.json`.
+The software cannot establish reviewer independence. Review is still pending.
+
+Admission Precision/Recall/F1, diagnosis confusion and Macro-F1 require complete
+reviewed references and all planned valid decisions. A class absent from both
+reference and predictions has unavailable F1 and is excluded with a reported
+class count. Set-valued diagnosis references prevent single-label Macro-F1 while
+retaining acceptable-label accuracy. Classification remains separate from actual
+Agent admission/grounding and complete workflow outcomes.
+
+Policy v12 adds a request budget and optional mutation depth. Use
+[the evaluation protocol](../../docs/evaluation-protocol.md) for current boundaries.
+C12–C16 add supported/unsupported exception assertions, a generated bad import,
+contradictory equality clauses and an undefined threshold. Their labels are
+unreviewed development drafts, not human ground truth.

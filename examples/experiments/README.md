@@ -6,18 +6,17 @@ contain the final academic report.
 
 ## Protocol
 
-The approved current run is `examples/experiments-pilot.json`: three existing
-projects, B0/B3, one observation per project/configuration, six model-backed runs.
-It checks the experiment machinery and gives case-level observations only. It
-cannot assess repeatability, population reliability or component-level causality.
-The five-project standalone benchmark remains paused. Old result directories were
-removed on 2026-10-27 because their frozen sources differ from the current code;
-old scores must not be carried forward as measurements of this implementation.
+These are reusable development inputs and runnable manifests. Previous
+old-version outputs were deleted at the user's request on 2026-10-28; none is a
+current result. See [current experiment status](../../experiments/README.md).
 
-`examples/experiments.json` fixes three synthetic development projects, four
-configurations and three repetitions: 36 complete-agent runs for a later study.
-The six-run pilot does not start that configuration. These projects were
-used during development; they are not a held-out or representative industry sample.
+The current v12 plan is `examples/experiments-budgeted.json`: three development
+projects, shared-initial B1/B3 pairs and three repeats (18 planned workflows).
+Only reference preflight has completed; no model-backed workflow has started.
+`examples/experiments-shared-initial.json` is the smaller one-repeat input, and
+`examples/experiments-repeat.json` is an alternative B0/B3 configuration.
+`examples/experiments.json` supplies a four-configuration study template. These
+projects were used during development, not as a held-out industry sample.
 
 | Project | Known condition | External reference check |
 | --- | --- | --- |
@@ -34,6 +33,30 @@ B0/B1 use schema and original-quote checks but bypass model admission review;
 their approved flag means eligible for baseline execution, not reviewed approval.
 Thus B0/B3 differ in review as well as context, analysis and feedback. This is a
 workflow comparison, not an isolated diagnosis ablation or equal-token comparison.
+
+For the small shared-initial study template, use `examples/experiments-shared-initial.json`.
+It runs B1 first for each case/repeat, then supplies those unchanged executable
+candidates to B3. B3 enriches the same behavior/rule links, audits the candidates
+and may make one targeted improvement; it does not regenerate the initial suite.
+Review and gap metadata can change, and rejected candidates remain recorded.
+This holds initial generation fixed but still bundles analysis, admission review
+and feedback, so it does not isolate diagnosis alone. The website's normal
+verification workflow is unchanged by this CLI-only experiment option.
+
+The small manifest uses three development cases, one pair each and at most six
+additional model requests per B3 continuation. Budget exhaustion retains a failed
+workflow with partial evidence; it cannot earn verification. B1 prefix failures
+remain in the denominator and never trigger a replacement initial generation.
+`paired-comparison.json` verifies initial code identity and records prefix,
+additional and end-to-end resources. Ordinary B3 rows count additional work only
+in this mode; use the paired totals for comparisons. One repeat is not stability
+evidence. Reference witnesses and correction patches remain outside model inputs.
+
+```sh
+npm run evaluate -- examples/experiments-shared-initial.json --validate-only
+# Paid model calls; three initial requests plus at most eighteen follow-up requests.
+npm run evaluate -- examples/experiments-shared-initial.json
+```
 
 Before any model request, every case's fixed contract witnesses run on separate original/corrected
 copies, outside model context. Their hashes, source fingerprints and patch hashes
@@ -59,12 +82,12 @@ Requires the normal Node.js, Docker and sandbox setup in the root README.
 
 ```sh
 # No model calls: validate original/corrected reference witnesses.
-npm run evaluate -- examples/experiments-pilot.json --validate-only
+npm run evaluate -- examples/experiments-repeat.json --validate-only
 
-# Six pilot runs. Configure OPENAI_API_KEY in .env.local first.
-npm run experiment:pilot
+# Start 18 new paid runs only when needed; configure OPENAI_API_KEY first.
+npm run evaluate -- examples/experiments-repeat.json
 
-# Later repeated study only after its scope is confirmed; not part of the pilot.
+# Optional four-configuration study; separate from the current plan.
 # npm run experiment:run
 
 # Use the index.json path printed by the runner.
@@ -126,3 +149,17 @@ recorded counts and distributions rather than an overall product-quality score.
 
 The recorded model name is a provider alias, not a frozen set of model weights.
 Pinning source and Docker inputs does not guarantee identical future API outputs.
+
+## Budgeted verification policy (v12)
+
+New runs accept a manifest `policy` with `mutationChecks` and
+`modelRequestLimit` (1–24, default 12). CLI defaults retain mutation checks;
+the website defaults to requirement checks. Admission and original-contract
+coverage audits remain mandatory. Skipping mutation leaves passing cases partially
+verified and must not be interpreted as an improvement in assurance.
+
+`examples/experiments-budgeted.json` prepares a three-repeat shared-initial
+B1/B3 development study with mutation checks disabled and six allowed follow-up
+requests. Use `--validate-only` to check fixed witnesses without model calls.
+No new model outcomes for this policy are claimed. Deleted old runs are not a simultaneous or equal-budget comparison. See
+[the evaluation protocol](../../docs/evaluation-protocol.md) before paid execution.

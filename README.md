@@ -30,6 +30,29 @@ The application uses Next.js, React, TypeScript, Tailwind and shadcn/ui. Better 
 and PostgreSQL provide accounts and report storage; the Vercel AI SDK connects to
 OpenAI. Python/pytest/mutmut and Node.js/node:test/Stryker run inside Docker.
 
+## Verification depth and request budget
+
+The website defaults to **Requirement checks** with a limit of 12 model requests.
+Both depths retain original-contract admission, suite coverage review, execution,
+failure diagnosis and at most one eligible improvement. Choose **Requirement and
+mutation checks** to investigate additional test strength. Without mutation
+assessment, passing cases remain Partially Verified; strict CI still requires
+Verified. No check depth establishes exhaustive correctness.
+
+The request limit accepts 1–24 requests and covers all stages and worker retries.
+Failed/interrupted attempts consume slots; cached responses do not. Each
+reservation is saved before provider dispatch. Exhaustion retains an incomplete
+run and partial evidence. Run details and Agent decisions show consumed/remaining
+requests and reported tokens. Missing usage stays unavailable. This is a request
+count cap, not a token or monetary ceiling. Existing call/output/time limits apply.
+Saved-test replay makes no model calls. CLI verification and experiments accept
+`"policy": { "mutationChecks": true, "modelRequestLimit": 12 }`; their default
+keeps mutation checks enabled. Historical reports keep their original evidence.
+
+See [architecture](docs/architecture.md), [evaluation protocol](docs/evaluation-protocol.md)
+and [contribution positioning](docs/product-positioning.md). The v12 policy is not
+covered by the old model-quality results; no new advantage is claimed.
+
 ## Start
 
 Requires Node.js 22.22.2+ and Docker.
@@ -363,7 +386,7 @@ document coverage.
   unchanged. A clear behavior with no proposal can also use the single budget to
   add a new reviewed check. Review-rejected replacements remain blocked and their proposals/reasons
   are retained in the evidence export and Evaluation technical details.
-  Otherwise passing tests trigger selected-file mutmut measurement, relevance review
+  When mutation checks are requested, passing tests can trigger selected-file mutmut measurement, relevance review
   and targeted additions for supported surviving mutants.
   Python mutation checks explicitly run approved generated tests. Static imports and
   calls select top-level functions in one mapped source file; unresolved calls fall
@@ -385,7 +408,7 @@ document coverage.
   other modules' side effects and module-local fixtures are not reproduced.
   The report records these setup files; exported instructions retain the same setup.
 - **Re-measure:** execute the changed suite and, where applicable, selected mutations
-  again. A repaired suite that now passes receives its first selected mutation
+  again. With mutation checks requested, a repaired suite that now passes receives its first selected mutation
   measurement and survivor review before it can earn Verified. Preserve original
   tests, measurements, diagnoses and before/after artifacts.
 
@@ -394,6 +417,23 @@ They describe the mapped, reviewed cases; they do not prove exhaustive correctne
 Gaps, unsupported tests, missing outcomes and unresolved mutants prevent an unsupported
 Verified state. Failed assertions remain visible; passing tests do not automatically
 establish that the requirement or its implementation is correct.
+
+Verification also requires a current suite review against the full original
+requirement, including every explicit example and equality boundary. The existing
+admission-review request records this assessment separately from individual test
+validity. A valid focused test can remain approved while coverage is incomplete.
+Missing verbatim examples can trigger the existing single improvement action;
+passing planned witnesses alone cannot establish verification. The assessment is
+still a model judgment, not independent proof. Older runs without this record
+display Partially Verified; regenerate to obtain a new review. Re-running saved
+tests preserves their recorded reviews and makes no model requests.
+
+Mutation review shares each diff once per request and retains one decision for
+every mutant/behavior pair. All original rules remain available for cross-cutting
+constraints. Unchanged unanswered pairs are attempted once per run and remain
+unreviewed; they cannot earn verification. Valid reviews are reused only for the
+same file, diff and full original requirement. Rule IDs in model responses are
+resolved to the unchanged original text before validation.
 
 A completed run has finished processing. Its report can still contain environment
 failures, failing tests and unresolved behaviors. Review the behavior states and
@@ -576,10 +616,9 @@ and supporting requirement context remain. Unmapped cases retain full file conte
 File contents are not truncated. Retrieval records keep original text, but model
 requests reference the text in files instead of duplicating it. Generated failure
 code is sent once under its artifact path. Smaller serialized inputs are not a
-measured token, latency or accuracy improvement. A [small real-model acceptance](experiments/acceptance/2026-10-27-focused-context/README.md)
-records four component observations and one full Booking run. One invalid source
-quotation required correction; this acceptance does not establish lower cost or
-independent semantic accuracy. Broader comparisons remain pending.
+measured token, latency or accuracy improvement. Current model-quality and
+resource comparisons remain pending; scripted Docker checks establish control
+flow rather than model accuracy.
 
 The queue integration test uses isolated PostgreSQL schemas and real Docker
 execution. It forcibly kills a worker during a task, starts a replacement, checks
@@ -601,8 +640,8 @@ npm run evaluate -- examples/evaluation.json
 
 - **B0:** direct generation from requirements/Python context; no independent review or refinement.
 - **B1:** adds retrieved project documentation; no generated-test feedback refinement.
-- **B2:** full loop with unconditional failed-generated-test repair as an evaluation baseline.
-- **B3:** full loop with evidence-based diagnosis before refinement; always used by the UI.
+- **B2:** full loop that selects failed generated tests for repair without evidence-based diagnosis; all original-contract admission gates still apply.
+- **B3:** evidence-based diagnosis before eligible refinement; the UI uses this policy with selectable mutation depth and a request limit.
 
 B0/B1 rule IDs are scaffolding, not semantic behavior decomposition or verification
 claims. B2 intentionally omits evidence-based diagnosis and is available only through the explicit
@@ -612,6 +651,13 @@ Results are saved in a new directory under `.evidence/evaluation/` on every invo
 Reference labels and correction patches stay outside the model-visible project.
 The benchmark independently probes whether generated failures detect seeded defects
 before and after refinement, using separate corrected disposable copies.
+
+For shared initial generation, use `examples/experiments-shared-initial.json`.
+B1 generates once per pair; B3 audits the unchanged candidates and continues with
+bounded feedback. This CLI mode does not change normal website verification.
+`paired-comparison.json` checks executable identity and includes the common prefix
+in B3 end-to-end costs. See [the experiment guide](examples/experiments/README.md)
+for the fixed small protocol and its limits; this is not a diagnosis-only ablation.
 
 Run `npm run score -- <run-directory>/index.json` to generate `summary.md` and
 `metrics.json`. Independent reviewers must first check the copied reference labels
@@ -626,35 +672,34 @@ pilot is not a completed independent evaluation or a real-world effectiveness cl
 
 ### Controlled project experiments
 
-The current small pilot uses three development projects and B0/B3 once each
-(six runs): `npm run experiment:pilot`. It cannot assess repeatability. The larger
-B0–B3 configuration remains available but is not started by the pilot. Older
-experiment outputs were removed because their frozen sources differed from the
-current implementation. External executable contract witnesses
-validate original/corrected reference copies without entering model context.
-The runner preserves frozen inputs, image/source/dependency fingerprints, request
-usage, errors and timing. Objective measurements export to CSV/JSON and standalone
-PNG/SVG figures. Independent semantic metrics remain unavailable without human
-review. See [the experiment protocol](examples/experiments/README.md) for commands,
-denominators and limitations. This workflow is separate from the website.
-The [current-source six-run pilot](experiments/results/2026-10-27-current-pilot/README.md)
-contains actual records and standalone figures. Both configurations detected the
-two seeded defects; the full Agent consumed more time and tokens. One observation
-per case/configuration does not assess repeatability or independent semantic accuracy.
+Current experiment status: 16 development decision cases have actual Docker
+execution evidence, but zero independently completed reference labels and no
+model calls for policy v12. The three-project budgeted workflow manifest passed
+reference preflight only. No current defect-detection, diagnosis F1 or resource
+improvement result is available. See [current experiment status](experiments/README.md).
 
-The five-project standalone comparison is configured separately in
-[the standalone benchmark protocol](examples/standalone-benchmark/README.md).
-It compares B0 and B3 on newly authored synthetic fixtures; it is not a named
-commercial-product comparison or independent semantic accuracy assessment.
+Old-version model experiments, acceptance exports, figures and private raw copies
+were removed at the user's request on 2026-10-28. Their scores are not carried
+forward. Reusable requirements, projects, witnesses, provenance and runnable
+manifests remain under examples/. Future model runs create new frozen evidence;
+setup or regression success must not be reported as model-quality success.
 
 ### Repeated decision consistency
 
-Run `npm run evaluate:decisions -- 3` for eleven focused test-review and diagnosis
-cases repeated three times (33 paid model requests). Production tasks and the same
+Run `npm run evaluate:decisions -- 3` for sixteen focused test-review and diagnosis
+cases repeated three times (48 paid model requests). Production tasks and the same
 reasoning function are reused. Frozen inputs, raw decisions, errors and fingerprints
 are saved under `.evidence/decision-evaluation/`. This checks raw classification
 consistency; it does not replace whole-agent evaluation or independent review.
 The small synthetic development set is not held out.
+
+Prepare an independent reviewer pack with actual Docker executions and no model
+calls using `npm run evaluate:decisions -- prepare /tmp/reqtest-independent-review`.
+It contains a blank reference template and no predictions or draft labels. Use a
+completed independent reference with `--reference /absolute/path/reference.json`.
+Reviewed complete results also expose admission Precision/Recall/F1 and diagnosis
+confusion/Macro-F1. Pending references and missing decisions keep accuracy metrics
+unavailable. See the evaluation protocol for denominators and review instructions.
 
 Test generation and review distinguish value checks from explicitly claimed return
 types. Every extra assertion needs its own requirement support; a timestamp offset
@@ -705,9 +750,6 @@ task page. Original text and excerpts are collapsed with bounded scroll areas.
   model review responses, admission results and the saved stopping reason. Applied
   means admitted into the active suite, not passed. Earlier reports without this
   metadata are identified explicitly. Evidence JSON and test exports retain it.
-- The [integrated local acceptance](experiments/acceptance/2026-10-27/README.md)
-  records fresh correct/defective Shipping checks, export replay and saved-suite
-  execution. These are development checks, not a benchmark or accuracy score.
 - Failure diagnoses, blocked tests, execution logs and limitations remain available
   in expandable sections. Retrieval and mutation records are under Technical
   details. Download run evidence or the approved generated tests from this page.

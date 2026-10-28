@@ -1,3 +1,0 @@
-"variant","plannedRuns","completed","failed","missing","completionRate","completedWithExecutionRate","medianSeconds","latencyObservedRuns","modelRequests","totalTokens","approvedArtifacts","blockedArtifacts","generatedPassed","generatedFailed","generatedErrors","referenceObservedRuns","referenceFailureRuns","referenceFailureRate","faultRuns","unresolvedFaultRuns","correctedCopyDetectionRate","initialDetections","preservedDetectionRate","independentSemanticAccuracy","independentDiagnosisMacroF1","independentlyReviewedMutationScore"
-"B0","3","3","0","0","1","1","8.298","3","3","9393","17","0","15","2","0","3","0","0","2","0","1","2","1",,,
-"B3","3","3","0","0","1","1","30.818","3","12","49749","15","0","13","2","0","3","0","0","2","0","1","2","1",,,

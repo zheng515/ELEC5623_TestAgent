@@ -29,3 +29,27 @@ test('external contract witnesses reject invalid references and preserve the ori
     assert.equal(invalid.valid, false, 'An unlabelled fault must fail the no-fault reference check.');
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test('experiment witnesses accept integer subclasses and reject boolean returns', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 90000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), 'reqtest-reference-types-'));
+  try {
+    for (const [name, directory, target] of [
+      ['shipping', 'examples/shipping', 'fee'],
+      ['booking', 'examples/benchmark/booking/project', 'cancellation_fee'],
+      ['inventory', 'examples/benchmark/inventory/project', 'remaining'],
+    ]) {
+      const labels = name === 'shipping' ? 'examples/benchmark/shipping.gold.json' : `examples/benchmark/${name}/gold.json`;
+      const gold: Gold = JSON.parse(await readFile(labels, 'utf8'));
+      let source = await readFile(join(directory, `${name}.py`), 'utf8');
+      if (gold.fault) source = source.replace(gold.fault.before, gold.fault.after);
+      const oracle = await readFile(`examples/experiments/oracles/${name}.py`, 'utf8');
+      for (const boolean of [false, true]) {
+        const zip = new JSZip();
+        zip.file(`${name}.py`, source + `\nclass ContractInt(int):\n    pass\n\n_contract_target = ${target}\ndef ${target}(*args, **kwargs):\n    result = _contract_target(*args, **kwargs)\n    return ${boolean ? 'False if result == 0 else result' : 'ContractInt(result)'}\n`);
+        const checked = await validateReference(join(root, `${name}-${boolean}`), await zip.generateAsync({ type: 'nodebuffer' }), { ...gold, fault: undefined }, oracle, new AbortController().signal);
+        assert.equal(checked.valid, !boolean, `${name}: integer subtypes are allowed, but bool is not an integer return contract.`);
+        assert.equal(checked.original.exitCode, boolean ? 1 : 0);
+      }
+    }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
