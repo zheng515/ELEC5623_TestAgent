@@ -33,7 +33,7 @@ OpenAI. Python/pytest/mutmut and Node.js/node:test/Stryker run inside Docker.
 
 ## Verification depth and request budget
 
-The website defaults to **Requirement checks** with a limit of 12 model requests.
+The website defaults to **Requirement checks**. The model-request limit is optional.
 Both depths retain original-contract admission, suite coverage review, execution,
 failure diagnosis and at most one eligible improvement. Choose **Requirement and
 mutation checks** to investigate additional test strength. Without mutation

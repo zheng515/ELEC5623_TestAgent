@@ -2,6 +2,8 @@
 import { useEffect, useReducer, useState } from "react";
 import type { RuntimeHealth } from "@/lib/runtime-health";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function useRuntimeHealth() {
   const [state, setState] = useState<{ health?: RuntimeHealth; error?: string }>({});
@@ -29,19 +31,29 @@ export function useRuntimeHealth() {
 }
 export function RuntimeStatus({ health, error, refresh }: ReturnType<typeof useRuntimeHealth>) {
   const ready = health?.worker === "online" && health.queue === "available" && health.sandbox === "available" && health.modelConfigured;
-  const title = error ? "Service status unavailable" : !health ? "Checking services…" : ready ? "Verification services available" : health.sandbox === "unavailable" ? "Test environment unavailable" : health.queue === "unavailable" ? "Queue status unavailable" : !health.modelConfigured ? "Model key missing" : "Waiting for a worker";
-  return <section aria-label="Runtime status" className="border rounded-lg p-4 space-y-2 text-sm">
-    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold" role="status">{title}</h2><Button type="button" variant="outline" size="sm" onClick={refresh}>Refresh status</Button></div>
+  const title = error ? "Service status unavailable" : !health ? "Checking services…" : ready ? "Services ready" : health.sandbox === "unavailable" ? "Test environment unavailable" : health.queue === "unavailable" ? "Queue status unavailable" : !health.modelConfigured ? "Model key missing" : "Waiting for a worker";
+  return <Card aria-label="Runtime status" className={ready ? "gap-0 border-0 bg-transparent py-0 shadow-none" : "gap-0 py-0"}><CardContent className={ready ? "space-y-3 p-0 text-sm" : "space-y-3 px-4 py-3 text-sm"}>
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+      <details className="min-w-0">
+        <summary className="flex min-h-8 cursor-pointer flex-wrap items-center gap-x-3 gap-y-1">
+          <h2 className="font-medium"><Badge variant={error || health && !ready ? "destructive" : "secondary"} role="status">{title}</Badge></h2>
+          {health?.tasks && <span className="text-xs text-muted-foreground">{health.tasks.queued} queued · {health.tasks.active} active · {health.tasks.retrying} awaiting retry</span>}
+          <span className="text-xs text-muted-foreground underline underline-offset-4">Details</span>
+        </summary>
+        {health && <div className="mt-3 space-y-3">
+          <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2"><div><dt className="inline">Database: </dt><dd className="inline">{health.database}</dd></div><div><dt className="inline">Queue: </dt><dd className="inline">{health.queue.replaceAll("_", " ")}</dd></div><div><dt className="inline">Verification worker: </dt><dd className="inline">{health.worker}</dd></div><div><dt className="inline">Default sandbox: </dt><dd className="inline">{health.sandbox}</dd></div><div><dt className="inline">Last worker heartbeat: </dt><dd className="inline">{health.lastHeartbeat ? new Date(health.lastHeartbeat).toLocaleString("en-AU") : "Not recorded"}</dd></div><div><dt className="inline">Checked: </dt><dd className="inline">{new Date(health.checkedAt).toLocaleString("en-AU")}</dd></div></dl>
+          {health.tasks && health.worker === "online" && health.tasks.queued > 0 && <p>Queued tasks wait for an available worker slot.</p>}
+          <p className="text-muted-foreground">Local setup: start PostgreSQL and Docker, build the sandbox image, then run <code>npm run production:start</code> or <code>npm run dev:all</code>. A heartbeat does not confirm model access or project readiness. Check those separately in Settings and project setup.</p>
+        </div>}
+      </details>
+      <Button type="button" variant="outline" size="sm" onClick={refresh}>Refresh</Button>
+    </div>
     {error && <p role="alert">{error}</p>}
     {health && <>
       {health.worker !== "online" && health.queue !== "unavailable" && <p>No active verification worker is registered. Tasks remain saved in the queue and wait for a worker. Active tasks may need recovery before retrying.</p>}
       {health.queue === "unavailable" && <p>Queue state could not be read. New submissions are paused; existing tasks and evidence are retained. Ask the administrator to check PostgreSQL and restart the services.</p>}
       {health.sandbox === "unavailable" && <p>Docker or the default sandbox image is unavailable. New submissions are paused until the test environment is restored.</p>}
       {!health.modelConfigured && <p>Configure the model API key on the server, then restart the website and worker.</p>}
-      {health.tasks && <p>Your tasks: {health.tasks.queued} queued · {health.tasks.active} active · {health.tasks.retrying} awaiting retry{health.worker === "online" && health.tasks.queued > 0 ? ". Queued tasks wait for an available worker slot." : ""}</p>}
-      <details><summary>Checks and troubleshooting</summary><dl className="mt-3 space-y-1"><div><dt className="inline">Database: </dt><dd className="inline">{health.database}</dd></div><div><dt className="inline">Queue: </dt><dd className="inline">{health.queue.replaceAll("_", " ")}</dd></div><div><dt className="inline">Verification worker: </dt><dd className="inline">{health.worker}</dd></div><div><dt className="inline">Default sandbox: </dt><dd className="inline">{health.sandbox}</dd></div><div><dt className="inline">Last worker heartbeat: </dt><dd className="inline">{health.lastHeartbeat ? new Date(health.lastHeartbeat).toLocaleString("en-AU") : "Not recorded"}</dd></div><div><dt className="inline">Checked: </dt><dd className="inline">{new Date(health.checkedAt).toLocaleString("en-AU")}</dd></div></dl>
-        <p className="mt-3 text-muted-foreground">Local setup: start the database and Docker, build the sandbox image, then run <code>npm run production:start</code> or <code>npm run dev:all</code>. A worker heartbeat does not confirm model access or project readiness. Use Settings → Check model connection and Check project setup for those checks.</p>
-      </details>
     </>}
-  </section>;
+  </CardContent></Card>;
 }

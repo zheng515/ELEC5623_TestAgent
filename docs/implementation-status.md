@@ -44,11 +44,13 @@ Budget exhaustion retains partial evidence and cannot pass verification gates.
 
 ## Available validation
 
-The most recent complete Docker regression passed 137 tests, with two optional
-integration skips and no failures. Type checks, lint, English-source checks and
-production build passed. A separate production UI check confirmed the depth
-selector and default 12-request limit; its temporary account/server were removed.
-These are engineering checks, not model-quality or independent semantic scores.
+The integrated main/version-2 Docker regression on 2026-10-28 passed 155 tests,
+with two optional integration skips (live model and email delivery) and no failures.
+A separate screenshot-route integration check passed ownership, authentication and
+path validation against an isolated database. Type checks, lint, English-source
+checks and the production build passed. No live model calls were made for this
+merge. These are engineering checks, not model-quality or independent semantic
+scores.
 
 The decision-evaluation tool supports 16 development cases, independently reviewed
 admission Precision/Recall/F1, diagnosis confusion and Macro-F1. The reviewer pack
@@ -74,10 +76,10 @@ New component studies hash references and task text, retain provider token usage
 and latency, and export disagreements. Later label changes require a separate
 justified reference revision; baseline labels and metrics are preserved. Legacy
 studies without reference hashes are explicitly labelled. Resource plots include
-the shared B1 prefix in B3 totals. Latest targeted validation: 30 tests passed,
-three optional Docker skips; a separate Docker component run passed all 12 tests.
-Typecheck, lint and English-source checks passed. The complete regression above
-predates these evaluation-tool changes; it was not rerun for this update.
+the shared B1 prefix in B3 totals. Earlier targeted tooling validation passed 30 tests
+with three optional Docker skips, plus a separate 12-test Docker component run.
+The complete integration regression above now includes these evaluation-tool
+changes.
 
 The Evaluation dashboard now separates execution progress, recorded-check results,
 mutation scope and strict verification states. Its screenshot regression displays
@@ -90,6 +92,18 @@ read-only copy of the saved report with mocked API responses, covered desktop an
 320/390-pixel layouts, state filtering and unfinished runs, and made no model calls.
 The local production website and worker were restarted after confirming no active
 verification jobs.
+
+
+The integrated UI retains the four Evaluation sections (Overview, Requirements,
+Findings and Evidence), charts and requirement matrix, while exposing main's
+request budget, recorded-check progress, mutation scope and browser screenshots.
+Project verification shows progress during execution and opens Evaluation for
+results. Isolated browser checks covered filters, empty/interrupted evidence,
+screenshots, cross-section links, parent comparison, downloads and 1440/768/390px
+layouts with no browser errors or warnings. Form checks preserved large inputs,
+Python run directories, optional unlimited request budgets and mutation selection.
+These checks used intercepted API responses; actual browser execution and
+screenshot access were covered separately by the Docker and route checks above.
 
 ## Experiment cleanup
 
