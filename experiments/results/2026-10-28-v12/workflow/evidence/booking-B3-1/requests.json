@@ -1,0 +1,107 @@
+[
+  {
+    "stage": "Analyze requirements and consistency",
+    "taskHash": "3aa6ea4ce2d1807d2ac8ceaed061c74c0c0032a7eaf3acdaed0dfd37b686dd69",
+    "contextHash": "668a2da313abfe46d13c197b2228de8e078c22101f91803e6becb79800bcc58c",
+    "contextBytes": 6257,
+    "elapsedMs": 14829,
+    "usage": {
+      "inputTokens": 3371,
+      "inputTokenDetails": {
+        "noCacheTokens": 3,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 3368
+      },
+      "outputTokens": 1330,
+      "outputTokenDetails": {
+        "textTokens": 736,
+        "reasoningTokens": 594
+      },
+      "totalTokens": 4701,
+      "raw": {
+        "input_tokens": 3371,
+        "input_tokens_details": {
+          "cache_write_tokens": 3368,
+          "cached_tokens": 0
+        },
+        "output_tokens": 1330,
+        "output_tokens_details": {
+          "reasoning_tokens": 594
+        },
+        "total_tokens": 4701
+      },
+      "promptBytes": 6314,
+      "promptHash": "fb1c336ad40311051447b6289be76d12f22d511949c33bec067e3173a581c67b"
+    }
+  },
+  {
+    "stage": "Review shared initial tests",
+    "taskHash": "42f069c6458b96244195c9dfa0481e4f5372121c001854c02c854e1b7277143b",
+    "contextHash": "a8e3beaad77e9cca7e90a8c9d290de0cdf32a320fb2e86319a4ed4edcb060611",
+    "contextBytes": 11892,
+    "elapsedMs": 7124,
+    "usage": {
+      "inputTokens": 3944,
+      "inputTokenDetails": {
+        "noCacheTokens": 3,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 3941
+      },
+      "outputTokens": 725,
+      "outputTokenDetails": {
+        "textTokens": 527,
+        "reasoningTokens": 198
+      },
+      "totalTokens": 4669,
+      "raw": {
+        "input_tokens": 3944,
+        "input_tokens_details": {
+          "cache_write_tokens": 3941,
+          "cached_tokens": 0
+        },
+        "output_tokens": 725,
+        "output_tokens_details": {
+          "reasoning_tokens": 198
+        },
+        "total_tokens": 4669
+      },
+      "promptBytes": 11892,
+      "promptHash": "a8e3beaad77e9cca7e90a8c9d290de0cdf32a320fb2e86319a4ed4edcb060611"
+    }
+  },
+  {
+    "stage": "Diagnose failures before refinement",
+    "taskHash": "a756a55f1c56fd7b24b85f0ec11ca9a5b3cfdb1fe6870d39cc4ef3ad5ed46b94",
+    "contextHash": "82ddb790b086c1ccbb329bacc8694297f6a8cf28f34804ae804b8f3930f76366",
+    "contextBytes": 9737,
+    "elapsedMs": 2608,
+    "usage": {
+      "inputTokens": 3649,
+      "inputTokenDetails": {
+        "noCacheTokens": 3,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 3646
+      },
+      "outputTokens": 170,
+      "outputTokenDetails": {
+        "textTokens": 170,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 3819,
+      "raw": {
+        "input_tokens": 3649,
+        "input_tokens_details": {
+          "cache_write_tokens": 3646,
+          "cached_tokens": 0
+        },
+        "output_tokens": 170,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 3819
+      },
+      "promptBytes": 9803,
+      "promptHash": "e08a2984d69436022a52f9cbabf66f49d8720d3424c1deb0a289a6b97e63e0b6"
+    }
+  }
+]

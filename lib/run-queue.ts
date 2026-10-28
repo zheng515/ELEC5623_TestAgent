@@ -7,6 +7,7 @@ import { interruptedReport } from "./python-jobs";
 import type { PythonReport } from "./python-types";
 import { readFile, readdir } from "node:fs/promises";
 import { queueName, queueSchema } from "./queue-config";
+import { modelError } from "./model";
 export { queueName, queueSchema } from "./queue-config";
 
 type RunJob = Pick<Job<{ runId: string; userId: string }>, "data" | "retryCount" | "signal">;
@@ -19,7 +20,9 @@ export function getQueue() {
     boss.on("error", () => console.error("Queue connection error. Check PostgreSQL."));
     try {
       await boss.start();
-      await boss.createQueue(queueName, { policy: "exclusive", retryLimit: 2, retryDelay: 2, expireInSeconds: 900, heartbeatSeconds: 10, retentionSeconds: 604800 });
+      // pg-boss caps job expiry at 24 hours; runs have no shorter time limit.
+      await boss.createQueue(queueName, { policy: "exclusive", retryLimit: 2, retryDelay: 2, expireInSeconds: 86400, heartbeatSeconds: 10, retentionSeconds: 604800 });
+      await boss.updateQueue(queueName, { expireInSeconds: 86400 });
     } catch (error) { await boss.stop({ graceful: false }); queue = undefined; throw error; }
     return boss;
   })();
@@ -65,7 +68,7 @@ export async function checkpointStore(runId: string, job: RunJob): Promise<Check
       return entry.isDirectory() ? sourceFiles(path) : [Buffer.from(path.slice(root.length)), await readFile(path)];
     }))).flat();
   }
-  const files: Buffer[] = await Promise.all(["python-agent.ts", "python-tools.ts", "python-types.ts", "mutation-review.ts", "runtime.ts", "test-services.ts"].map(file => readFile(join(process.cwd(), "lib", file))));
+  const files: Buffer[] = await Promise.all(["python-agent.ts", "python-tools.ts", "python-types.ts", "verification-policy.ts", "model.ts", "requirement-coverage.ts", "mutation-review.ts", "test-suite.ts", "runtime.ts", "test-services.ts"].map(file => readFile(join(process.cwd(), "lib", file))));
   files.push(...await sourceFiles(join(root, "source")), await readFile(join(root, "runtime.json")).catch(() => Buffer.from("python")));
   const hash = createHash("sha256");
   for (const file of files) hash.update(String(file.length) + ":").update(file);
@@ -90,9 +93,9 @@ export async function executeRun(job: RunJob, ask: Reason = reason) {
   const row = (await database.query("SELECT report,cancel_requested FROM runs WHERE id=$1 AND user_id=$2", [runId, userId])).rows[0];
   if (!row || row.cancel_requested || row.report.status !== "running") return;
   const original: PythonReport = row.report;
-  const report: PythonReport = { ...original, status: "running", stage: "Resuming", error: undefined, stopReason: undefined, testAttempts: undefined, improvementProposal: undefined, tests: original.replay ? original.tests : [], measurements: [], mutations: [], diagnoses: [], proposedDiagnoses: undefined, relevance: [], improvements: [], states: [], initialStates: undefined, analysis: original.replay ? original.analysis : undefined, analysisCorrection: undefined };
+  const report: PythonReport = { ...original, status: "running", stage: "Resuming", error: undefined, stopReason: undefined, testAttempts: original.replay ? original.testAttempts : undefined, improvementProposal: undefined, tests: original.replay ? original.tests : [], measurements: [], mutations: [], diagnoses: [], proposedDiagnoses: undefined, relevance: [], improvements: [], states: [], initialStates: undefined, analysis: original.replay ? original.analysis : undefined, analysisCorrection: undefined };
   report.execution = { ...original.execution!, attempt: job.retryCount + 1, recovered: job.retryCount > 0 };
-  const cancelled = new AbortController(), signal = AbortSignal.any([job.signal, cancelled.signal, AbortSignal.timeout(600000)]);
+  const cancelled = new AbortController(), signal = AbortSignal.any([job.signal, cancelled.signal]);
   const timer = setInterval(async () => {
     try { if ((await database.query("SELECT cancel_requested FROM runs WHERE id=$1", [runId])).rows[0]?.cancel_requested) cancelled.abort(); }
     catch { /* A transient database error is not an owner cancellation. */ }
@@ -109,7 +112,7 @@ export async function executeRun(job: RunJob, ask: Reason = reason) {
     if (job.signal.aborted && !cancelled.signal.aborted) throw error;
     const stopped = (await database.query("SELECT cancel_requested FROM runs WHERE id=$1", [runId])).rows[0]?.cancel_requested;
     report.status = stopped ? "cancelled" : "failed";
-    report.error = stopped ? "Run stopped by its owner." : (error instanceof Error ? error.message : "Verification failed.").replaceAll(process.env.OPENAI_API_KEY || "\0", "[redacted]");
+    report.error = stopped ? "Run stopped by its owner." : modelError(error);
     report.states = report.states.map(state => ({ ...state, status: "Uncertain" }));
     await database.query(`UPDATE runs SET report=$1 WHERE id=$2 AND user_id=$3 AND cancel_requested=false AND report->>'status'='running' AND ${heldLease}`, [JSON.stringify(report), runId, userId, job.retryCount]);
   } finally { clearInterval(timer); }

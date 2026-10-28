@@ -80,9 +80,9 @@ test('real fault probe detects a preserved defect and detects its concealment af
   const root=await mkdtemp(join(tmpdir(),'reqtest-fault-probe-'));
   try {
     const zip=new JSZip();zip.file('booking.py','def cancellation_fee(hours):\n    return 0 if hours > 24 else 2500\n');
-    const archive=await zip.generateAsync({type:'nodebuffer'});await importProject(root,archive);await mkdir(join(root,'generated'));await writeTests(root,[artifact]);
+    const archive=await zip.generateAsync({type:'nodebuffer'});const snapshot=await importProject(root,archive);await mkdir(join(root,'generated'));await writeTests(root,[artifact]);
     const item=fixture();item.gold.fault={id:'boundary',file:'booking.py',before:'hours > 24',after:'hours >= 24'};
-    item.report.measurements=[await measureProject(root,[],true,new AbortController().signal)];
+    item.report.fingerprint=snapshot.fingerprint;item.report.measurements=[await measureProject(root,[],true,new AbortController().signal)];
     const changed={...artifact,code:artifact.code.replace('== 0','== 2500')};await writeTests(root,[changed]);
     item.report.tests=[changed];item.report.improvements=[{reason:'Unsafe fixture repair',before:[artifact],after:[changed]}];
     item.report.measurements.push(await measureProject(root,[],true,new AbortController().signal));

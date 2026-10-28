@@ -11,10 +11,10 @@ export function VerificationGuide() {
       </ol>
       <details className="mt-4 text-sm"><summary className="cursor-pointer">Support and limits</summary>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">
-          <li>Python / pytest and JavaScript or TypeScript / node:test. Jest, Vitest, nested Node suites and browser automation are unsupported.</li>
-          <li>PDF, DOC, DOCX, TXT and Markdown: up to 10 MB, 12,000 requirement characters and 24 input items. Split larger specifications; text is never silently shortened.</li>
+          <li>Python / pytest and JavaScript or TypeScript / node:test. Python page checks use sandbox Chromium with your ASGI/WSGI app. Jest, Vitest and nested Node suites are unsupported.</li>
+          <li>PDF, DOC, DOCX, TXT and Markdown: up to 10 MB. Requirements have no fixed text or item cap; large specifications are processed in batches without truncation.</li>
           <li>Scans use English OCR; review uncertain text. Word references identify paragraphs or converted body blocks, not pages. Complex layouts, headers and drawings may be missing.</li>
-          <li>Advanced setup supports compatible Python wheels, locked npm dependencies and temporary PostgreSQL or Redis. Native builds and install scripts need a prepared image. Setup checks do not prove application startup readiness.</li>
+          <li>Advanced setup supports compatible Python wheels, locked npm dependencies and temporary PostgreSQL or Redis. For Python, an optional run directory controls dependency installation and pytest while the whole project is analyzed. Native builds and install scripts need a prepared image; setup checks do not prove application startup readiness.</li>
         </ul>
       </details>
       <details className="mt-4 text-sm"><summary className="cursor-pointer">Results and next steps</summary>
@@ -22,7 +22,8 @@ export function VerificationGuide() {
           <li>Passed applies to the tested inputs. Verified applies to mapped checks under the recorded policy. Neither proves correctness for every input.</li>
           <li>Failed: compare the requirement, assertion and diagnosis. Valid failing assertions remain visible.</li>
           <li>Blocked proposals are not executed. Review the reason before clarifying or regenerating.</li>
-          <li>Re-run saved tests makes no model calls. Regenerate / clarify starts fresh analysis and may produce different tests.</li>
+          <li>Re-run saved tests makes no model calls. Regenerate / clarify reuses the source snapshot for fresh analysis and may produce different tests.</li>
+          <li>Verification options select requirement or mutation checks and an optional request limit. Blank means unlimited requests; usage is still recorded. A limit includes failed or interrupted requests and does not cap monetary cost.</li>
         </ul>
       </details>
     </details>

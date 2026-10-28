@@ -7,12 +7,12 @@ import JSZip from 'jszip';
 import { execFileSync } from 'node:child_process';
 import { asSchema } from 'ai';
 import { createHash } from 'node:crypto';
-import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId } from '../lib/python-agent';
-import { survivorReviews, type MutationReviewPair } from '../lib/mutation-review';
+import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId, quoteReferences, mergeAnalyses, chunks, pool, pruneAnalysis } from '../lib/python-agent';
+import { survivorReviews, mutationReviewContext, type MutationReviewPair } from '../lib/mutation-review';
 import { verificationGate } from '../lib/run-evaluation';
-import { importProject, measureProject, mutateProject, dockerTool, type Inspection } from '../lib/python-tools';
+import { importProject, measureProject, measureSeconds, mutateProject, dockerTool, type Inspection } from '../lib/python-tools';
 import { analysisSchema, groundedAnalysisSchema, groundedTestsSchema, groundedDiagnosisSchema, groundedRelevanceSchema, originalQuoteSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema, testsSchema, type PythonReport, type Measurement, type DiagnosisPhase } from '../lib/python-types';
-import { rule, code, artifact, report, analysis } from './fixtures/python-agent';
+import { rule, code, artifact, report, analysis, recordCoverage } from './fixtures/python-agent';
 
 const snapshot: Inspection = {files:{'shipping.py':code},functions:[],nodes:[],collection:{exitCode:5,log:''},errors:[]};
 
@@ -86,6 +86,37 @@ function mutationReport(count = 1) {
 }
 const mutationDecision = (mutantId: string) => ({ mutantId, behaviorId: 'B1', relevant: true, quote: rule, reason: 'Changes the stated inclusive threshold.' });
 
+test('shared mutation context preserves every behavior pair and original constraint without repeating diffs', () => {
+  const r = mutationReport();
+  r.analysis!.behaviors.push({ ...r.analysis!.behaviors[0], id: 'B2' });
+  r.rules.push({ id: 'R2', text: 'Unrelated original requirement.' });
+  const pairs = r.analysis!.behaviors.map(behavior => ({ ...r.mutations[0].mutants[0], behaviorId: behavior.id }));
+  const context = mutationReviewContext(r, { 'shipping.py': code, 'unrelated.md': 'Unrelated context.' }, pairs);
+  assert.deepEqual(context.pairs, pairs.map(({ id, behaviorId }) => ({ id, behaviorId })));
+  assert.deepEqual(context.rules, r.rules);
+  assert.deepEqual(context.files, { 'shipping.py': code });
+  assert.equal(context.mutants.length, 1);
+  assert.equal(context.mutants[0].diff, pairs[0].diff);
+  assert.deepEqual(context.analysis.behaviors.map(behavior => behavior.id), ['B1', 'B2']);
+  assert.ok(Buffer.byteLength(JSON.stringify(context)) < Buffer.byteLength(JSON.stringify({ rules: r.rules, analysis: r.analysis, files: { 'shipping.py': code }, pairs })));
+});
+
+test('unchanged unanswered mutation pairs are attempted once per run and remain unresolved', async () => {
+  const r = mutationReport(), attempted = new Set<string>();
+  let calls = 0;
+  const review = async () => { calls++; return { decisions: [] }; };
+  await reviewSurvivingMutations(r, review, attempted);
+  await reviewSurvivingMutations(r, review, attempted);
+  assert.equal(calls, 1);
+  assert.equal(survivorReviews(r)[0].category, 'unreviewed');
+  r.mutations[0].mutants[0].diff += '\n+ changed';
+  await reviewSurvivingMutations(r, review, attempted);
+  assert.equal(calls, 2, 'Changed evidence permits a fresh attempt.');
+  r.rules[0].text += ' Additional contract.';
+  await reviewSurvivingMutations(r, review, attempted);
+  assert.equal(calls, 3, 'Changed requirements permit a fresh attempt.');
+});
+
 test('mutation provider schema permits repeated mutant IDs only with the supplied behavior pairs', async () => {
   const schema = asSchema(groundedRelevanceSchema([{ id: 'Mutant #2', behaviorId: 'B1' }, { id: 'Mutant #2', behaviorId: 'B2' }], originalQuoteSchema([rule])));
   const decisions = ['B1', 'B2'].map(behaviorId => ({ ...mutationDecision('Mutant #2'), behaviorId }));
@@ -103,6 +134,7 @@ test('complete mutant-by-behavior review permits strict CI; missing, duplicate a
   r.measurements = [{ outcomes: r.tests.map(test => ({ node: `reqtest_generated/test_reqtest_${test.id}.py::test_threshold`, file: `reqtest_generated/test_reqtest_${test.id}.py`, name: test.functionName, status: 'passed', message: '' })), exitCode: 0, timedOut: false, integrity: true, log: '' }];
   for (const mutant of r.mutations[0].mutants) mutant.diff = '- raise ValueError("old")\n+ raise ValueError("new")';
   const batches: MutationReviewPair[][] = [];
+  recordCoverage(r);
   const review = async (pairs: MutationReviewPair[]) => { batches.push(pairs); return { decisions: pairs.map(pair => ({ ...mutationDecision(pair.id), behaviorId: pair.behaviorId, relevant: false, reason: 'Only unspecified exception message wording changes.' })) }; };
   await reviewSurvivingMutations(r, review); updateStates(r);
   assert.equal(batches[0].length, 8); assert.equal(r.relevance.length, 8);
@@ -148,6 +180,8 @@ test('survivor review batches all retained mutants and reuses only exact diff-bo
   r.mutations[0].mutants[1].status = 'killed';
   await reviewSurvivingMutations(r, review); assert.deepEqual(sizes, [16, 16, 1, 1]);
   assert.equal(survivorReviews(r).length, 32, 'Historical killed mutants must not appear in the current survivor summary');
+  r.rules[0].text += ' Additional requirement.';
+  assert.ok(survivorReviews(r).every(row => row.category === 'unreviewed'), 'Changed original contracts invalidate old exclusions even when their quotes remain substrings.');
 });
 
 test('missing, duplicate, unrelated-file and legacy mutation reviews stay unresolved', async () => {
@@ -169,6 +203,7 @@ test('an irrelevant mutation decision cannot clear other behaviors in the same f
   const r = mutationReport();
   r.analysis!.behaviors.push({ ...r.analysis!.behaviors[0], id: 'B2' });
   r.tests = [artifact, { ...artifact, id: 'T2', behaviorId: 'B2' }];
+  recordCoverage(r);
   r.measurements = [{ outcomes: r.tests.map(test => ({ node: `reqtest_generated/test_reqtest_${test.id}.py::test_threshold`, file: `reqtest_generated/test_reqtest_${test.id}.py`, name: test.functionName, status: 'passed', message: '' })), exitCode: 0, log: '', timedOut: false, integrity: true }];
   await reviewSurvivingMutations(r, async () => ({ decisions: [{ ...mutationDecision('Mutant #1'), relevant: false, reason: 'Outside B1 only.' }] }));
   updateStates(r);
@@ -187,6 +222,7 @@ test('each behavior sharing a mutated file receives its own survivor review', as
   const r = mutationReport();
   r.analysis!.behaviors.push({ ...r.analysis!.behaviors[0], id: 'B2' });
   r.tests = [artifact, { ...artifact, id: 'T2', behaviorId: 'B2' }];
+  recordCoverage(r);
   r.measurements = [{ outcomes: r.tests.map(test => ({ node: `reqtest_generated/test_reqtest_${test.id}.py::test_threshold`, file: `reqtest_generated/test_reqtest_${test.id}.py`, name: test.functionName, status: 'passed', message: '' })), exitCode: 0, log: '', timedOut: false, integrity: true }];
   const requests: MutationReviewPair[][] = [];
   await reviewSurvivingMutations(r, async pairs => {
@@ -306,6 +342,43 @@ test('multiline document quotes produce compatible provider schemas while exact 
   assert.equal(quote.parse('R1'), original);
   assert.equal(quote.safeParse('invented').success, false);
 });
+test('quotes that strict provider enums reject travel as rule IDs', () => {
+  assert.equal(quoteReferences([{ id: 'R1', text: 'Fees are zero.' }]), undefined);
+  for (const text of ['Line one\nLine two', 'Show "Out of stock".', 'Paths use \\ separators.']) assert.deepEqual(quoteReferences([{ id: 'R1', text: 'Fees are zero.' }, { id: 'R2', text }]), ['R1', 'R2']);
+});
+test('batched analyses get run-wide behavior IDs and keep their conflict links', () => {
+  const behavior = (id: string, ruleId: string) => ({ ...analysis().behaviors[0], id, ruleId });
+  const first = { behaviors: [behavior('B1', 'R1'), behavior('B2', 'R1')], inconsistencies: [{ ruleId: 'R1', behaviorIds: ['B2'], quote: 'q', description: 'first', evidence: [] }] };
+  const second = { behaviors: [behavior('B1', 'R6'), behavior('B2', 'R7')], inconsistencies: [{ ruleId: 'R7', behaviorIds: ['B2'], quote: 'q', description: 'second', evidence: [] }] };
+  const merged = mergeAnalyses([first, second]);
+  assert.deepEqual(merged.behaviors.map(item => item.id + ':' + item.ruleId), ['B1:R1', 'B2:R1', 'B3:R6', 'B4:R7']);
+  assert.deepEqual(merged.inconsistencies.map(item => item.description + ':' + item.behaviorIds.join()), ['first:B2', 'second:B4']);
+  assert.equal(mergeAnalyses([first]), first, 'A single batch is unchanged');
+  assert.deepEqual(chunks([1, 2, 3, 4, 5, 6, 7], 3), [[1, 2, 3], [4, 5, 6], [7]]);
+});
+test('the execution time budget grows with the number of selected tests', () => {
+  assert.equal(measureSeconds(0), 120);
+  assert.equal(measureSeconds(92), 1500, 'A 92-test full-stack suite is not cut off at a fixed limit');
+});
+test('the model call pool bounds concurrency and keeps input order', async () => {
+  let active = 0, peak = 0;
+  const results = await pool([30, 5, 20, 1, 10], 2, async (delay, index) => { active++; peak = Math.max(peak, active); await new Promise(resolve => setTimeout(resolve, delay)); active--; return index; });
+  assert.deepEqual(results, [0, 1, 2, 3, 4]); assert.equal(peak, 2);
+});
+test('pruning keeps grounded claims, follows the quoted requirement and removes the rest', () => {
+  const r = { ...report(), rules: [{ id: 'R1', text: rule }, { id: 'R2', text: 'Prices use two decimals.' }] };
+  const a = analysis();
+  a.behaviors.push({ ...a.behaviors[0], id: 'B2', ruleId: 'R1', quote: 'Prices use two decimals.', evidence: [{ file: 'shipping.py', quote: 'invented line' }] });
+  a.behaviors.push({ ...a.behaviors[0], id: 'B3', quote: 'Not in any requirement.' });
+  a.inconsistencies.push({ ruleId: 'R1', behaviorIds: ['B1'], quote: rule, description: 'unsupported', evidence: [{ file: 'shipping.py', quote: 'invented line' }] });
+  const removed = pruneAnalysis(a, r, snapshot);
+  assert.deepEqual(a.behaviors.map(item => item.id + ':' + item.ruleId), ['B1:R1', 'B2:R2']);
+  assert.deepEqual(a.behaviors[1].evidence, []); assert.deepEqual(a.behaviors[1].files, [], 'Code links need remaining exact evidence');
+  assert.equal(a.behaviors[0].evidence[0].quote, 'def fee(amount):');
+  assert.deepEqual(a.inconsistencies, []);
+  assert.ok(removed.some(item => item.includes('replaced by R2')) && removed.some(item => item.startsWith('B3:')) && removed.some(item => item.includes('evidence not found verbatim')));
+  validateAnalysis(a, r, snapshot);
+});
 test('retains omitted requirements as explicit unresolved behaviors', () => {
   const omitted=analysisSchema.parse({behaviors:[],inconsistencies:[]});validateAnalysis(omitted,report(),snapshot);
   assert.equal(omitted.behaviors[0].issue,'not_testable');
@@ -341,6 +414,7 @@ test('a generated module loading failure makes its behavior uncertain without co
 });
 test('missing gap checks, mutations and failures prevent unsupported verification', () => {
   const r=report();r.analysis=analysis();r.tests=[artifact];r.measurements=[{outcomes:[{node:'reqtest_generated/test_reqtest_T1.py::test_threshold',file:'reqtest_generated/test_reqtest_T1.py',name:'test_threshold',status:'passed',message:''}],exitCode:0,log:'',timedOut:false,integrity:true}];
+  recordCoverage(r);
   updateStates(r);assert.equal(r.states[0].status,'Verified');
   r.analysis.behaviors[0].gaps.push('Above threshold');updateStates(r);assert.equal(r.states[0].status,'Partially Verified');
   r.analysis.behaviors[0].gaps.pop();r.mutations=[{mutants:[],incomplete:true,log:'timeout',timedOut:true}];updateStates(r);assert.equal(r.states[0].status,'Partially Verified');
@@ -505,8 +579,10 @@ test('collection and baseline dependency errors are diagnosed even with no gener
         return schema.parse({tests:[]});
       }
       if(Object.is(schema,diagnosisSchema)) {
-        const evidence=context as {phase:DiagnosisPhase;failedTestIds:string[];measurement:Measurement};
+        const evidence=context as {phase:DiagnosisPhase;failedTestIds:string[];measurement:Measurement;files:Record<string,string>;analysis:ReturnType<typeof analysis>};
         assert.ok(['collection','baseline'].includes(evidence.phase));
+        assert.equal(evidence.files['tests/test_missing.py'], 'import reqtest_missing_dependency\n', 'Unmapped environment failures retain full source context.');
+        assert.ok(evidence.analysis.behaviors.some(behavior => behavior.id === 'B1'), 'Fallback retains the original behavior analysis.');
         const executionQuote="ModuleNotFoundError: No module named 'reqtest_missing_dependency'";
         assert.ok(evidence.measurement.log.includes(executionQuote));
         return schema.parse({decisions:evidence.failedTestIds.map(testId=>({testId,category:'environment_failure',reason:'The sandbox is missing a dependency required by existing tests.',quote:'',executionQuote,evidence:[{file:'tests/test_missing.py',quote:'import reqtest_missing_dependency'}]}))});
@@ -514,7 +590,9 @@ test('collection and baseline dependency errors are diagnosed even with no gener
       throw new Error('Unexpected repair or mutation action');
     };
     await runPython(r,root,new AbortController().signal,()=>{},ask);
-    assert.equal(r.collection?.exitCode,2);assert.equal(r.baseline?.exitCode,2);assert.equal(r.measurements[0].exitCode,5);
+    assert.equal(r.collection?.exitCode,2);
+    // Collection errors no longer stop the session; the unloadable module is its own error outcome.
+    assert.equal(r.baseline?.exitCode,1);assert.ok(r.baseline?.outcomes.some(outcome=>outcome.status==='error'&&outcome.file==='tests/test_missing.py'));assert.equal(r.measurements[0].exitCode,5);
     assert.equal(r.diagnoses.length,2);assert.ok(r.diagnoses.every(item=>item.category==='environment_failure'&&item.executionQuote));
     assert.equal(r.tests.length,0);assert.equal(r.improvements.length,0);assert.equal(r.states[0].status,'Uncertain');
     assert.equal(await readFile(join(root,'source/shipping.py'),'utf8'),code);
@@ -566,8 +644,14 @@ test('real mutmut survivors trigger one targeted improvement and re-measurement'
         generation++;
         return schema.parse({tests:generation===1 ? [{...artifact,gapIndexes:[],functionName:'test_above',code:'from shipping import fee\ndef test_above():\n    assert fee(20000) == 0\n'}] : [{...artifact,id:'T2'}]});
       }
-      if(Object.is(schema,reviewTestsSchema)) return schema.parse({decisions:(context as {tests:{id:string}[]}).tests.map(test=>({testId:test.id,supported:true,reason:'Exact contract',quote:rule}))});
-      if(Object.is(schema,relevanceSchema)) return schema.parse({decisions:(context as {pairs:MutationReviewPair[]}).pairs.map(mutant=>({mutantId:mutant.id,behaviorId:mutant.behaviorId,relevant:/\+.*(?:amount > 10000|amount >= 10001)/.test(mutant.diff),reason:'Boundary mutations can violate the inclusive threshold; changing the below-threshold fee does not change the stated >=10000 contract.',quote:rule}))});
+      if(Object.is(schema,reviewTestsSchema)) {
+        const suite = context as { tests: { id: string }[]; retainedTests: { id: string }[] };
+        return schema.parse({ decisions: suite.tests.map(test => ({testId:test.id,supported:true,reason:'Scripted admission fixture.',quote:rule})), coverage: [{ruleId:'R1',quote:rule,complete:true,reason:'Scripted coverage assessment; mutation feedback still determines adequacy.',testIds:[...suite.tests,...suite.retainedTests].map(test=>test.id),missingExamples:[]}] });
+      }
+      if(Object.is(schema,relevanceSchema)) {
+        const shared = context as ReturnType<typeof mutationReviewContext>;
+        return schema.parse({decisions:shared.pairs.map(pair=>({mutantId:pair.id,behaviorId:pair.behaviorId,relevant:/\+.*(?:amount > 10000|amount >= 10001)/.test(shared.mutants.find(mutant=>mutant.id===pair.id)!.diff),reason:'Boundary mutations can violate the inclusive threshold; changing the below-threshold fee does not change the stated >=10000 contract.',quote:rule}))});
+      }
       throw new Error('Unexpected diagnosis for a passing fixture');
     };
     await runPython(r,root,new AbortController().signal,()=>{},ask);
@@ -600,7 +684,7 @@ test('sandbox evidence detects generated-code tampering and preserves original m
   }finally{await rm(root,{recursive:true,force:true});}
 });
 
-test('one analysis correction preserves the rejected response and cannot bypass evidence validation', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 30000 }, async () => {
+test('one analysis correction preserves the rejected response, and evidence it cannot ground is removed', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 30000 }, async () => {
   for (const corrected of [true, false]) {
     const root = await mkdtemp(join(tmpdir(), 'reqtest-analysis-correction-'));
     let calls = 0;
@@ -619,10 +703,16 @@ test('one analysis correction preserves the rejected response and cannot bypass 
         throw new Error('Unexpected reasoning stage.');
       }) as typeof import('../lib/python-agent').reason;
       const run = () => runPython(r, root, AbortSignal.timeout(12000), () => {}, ask);
+      await run(); assert.equal(r.status, 'completed');
       if (corrected) {
-        await run(); assert.equal(r.status, 'completed');
         assert.equal(r.analysis!.behaviors[0].evidence[0].quote, 'def fee(amount):');
-      } else await assert.rejects(run, /unsupported/);
+        assert.equal(r.analysisCorrection!.removed, undefined);
+      } else {
+        const behavior = r.analysis!.behaviors[0];
+        assert.ok(behavior.evidence.every(item => item.quote !== code.replaceAll('\n', '\\n')), 'Ungrounded evidence never reaches the report');
+        assert.ok(behavior.evidence.length || !behavior.files.length, 'Code links require remaining exact evidence');
+        assert.ok(r.analysisCorrection!.removed!.some(item => item.includes('evidence not found verbatim')));
+      }
       assert.equal(calls, 2, 'Only one correction request is allowed');
       assert.match(r.analysisCorrection!.error, /unsupported/);
       assert.equal(r.analysisCorrection!.original.behaviors[0].evidence[0].quote, code.replaceAll('\n', '\\n'));

@@ -1,0 +1,37 @@
+[
+  {
+    "stage": "Generate and review targeted tests",
+    "taskHash": "363f84f1e95d385253fb77cedf027aa1b283f56097c64533013ad89eb64c64c0",
+    "contextHash": "50ba88c189b2b308cdad621bed9b843d83be2e9d0b10372365cc29561040a348",
+    "contextBytes": 3540,
+    "elapsedMs": 7459,
+    "usage": {
+      "inputTokens": 2157,
+      "inputTokenDetails": {
+        "noCacheTokens": 3,
+        "cacheReadTokens": 2154,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 759,
+      "outputTokenDetails": {
+        "textTokens": 533,
+        "reasoningTokens": 226
+      },
+      "totalTokens": 2916,
+      "raw": {
+        "input_tokens": 2157,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 2154
+        },
+        "output_tokens": 759,
+        "output_tokens_details": {
+          "reasoning_tokens": 226
+        },
+        "total_tokens": 2916
+      },
+      "promptBytes": 3540,
+      "promptHash": "50ba88c189b2b308cdad621bed9b843d83be2e9d0b10372365cc29561040a348"
+    }
+  }
+]

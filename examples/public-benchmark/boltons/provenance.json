@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/mahmoud/boltons",
+  "tag": "24.0.0",
+  "commit": "992a58c1036fcf4d52cbf3313b6217b7c07b11d9",
+  "sourceFiles": [
+    {
+      "upstreamPath": "boltons/mathutils.py",
+      "fixturePath": "mathutils.py",
+      "sha256": "bd1807a44a36133bfc4f84af17d521f55b8ead78bf0c139fe60d1a87426162dc"
+    }
+  ],
+  "condition": "controlled injected mutation",
+  "fault": {
+    "id": "injected-exclusive-ceiling",
+    "file": "mathutils.py",
+    "before": "    i = bisect.bisect_right(options, x)\n    if i == len(options):",
+    "after": "    i = bisect.bisect_left(options, x)\n    if i == len(options):"
+  },
+  "requirementsOrigin": "Selected public docstrings and README excerpts; author-derived SRS, not an upstream SRS or independently reviewed labels.",
+  "heldOut": false
+}

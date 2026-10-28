@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     if (Number(request.headers.get("content-length")) > 11_000_000) throw new Error("Requirement upload exceeds 10 MB.");
     const file = (await request.formData()).get("document");
     if (!(file instanceof File)) throw new Error("Choose a requirement document.");
-    return Response.json(await extractRequirements(account.user.id, file, AbortSignal.any([request.signal, AbortSignal.timeout(90000)])));
+    return Response.json(await extractRequirements(account.user.id, file, request.signal));
   } catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Cannot extract this document." }, { status: 422 }); }
 }
 export async function GET(request: Request) {

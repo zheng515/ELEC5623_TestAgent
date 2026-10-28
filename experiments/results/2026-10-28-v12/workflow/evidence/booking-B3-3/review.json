@@ -1,0 +1,94 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "reportId": "c06ab126-7ec5-4188-9090-171591738686",
+  "sourceFingerprint": "0f46fe3838df7af05e25238d85e735b9e592cbbceb481f423eaeb311ee38dd13",
+  "requirementTexts": [
+    "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+    "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+    "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+    "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError."
+  ],
+  "validOutcome": null,
+  "issues": [],
+  "gaps": [
+    {
+      "id": "B1:0",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B2:0",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B3:0",
+      "match": null,
+      "evidenceSupported": null
+    },
+    {
+      "id": "B4:0",
+      "match": null,
+      "evidenceSupported": null
+    }
+  ],
+  "inconsistencies": [
+    {
+      "id": "C1",
+      "match": null,
+      "evidenceSupported": null
+    }
+  ],
+  "coverage": [
+    {
+      "id": "early",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "threshold",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "late",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "zero",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "below-threshold",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "negative",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "boolean",
+      "beforeNodes": [],
+      "afterNodes": []
+    },
+    {
+      "id": "other-types",
+      "beforeNodes": [],
+      "afterNodes": []
+    }
+  ],
+  "diagnoses": [
+    {
+      "testId": "T1",
+      "phase": "execution",
+      "expected": null,
+      "evidenceSupported": null
+    }
+  ],
+  "mutants": []
+}

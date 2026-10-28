@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { pairedMutationCounts, summarizeExperiment, experimentRow, type ExperimentItem } from '../lib/experiment-metrics';
+import { pairedMutationCounts, summarizeExperiment, experimentRow, compareSharedInitialSuites, type ExperimentItem } from '../lib/experiment-metrics';
+import { executableSuiteHash } from '../lib/test-suite';
 import type { PythonReport, Mutation } from '../lib/python-types';
 
 function fixture(): ExperimentItem {
@@ -48,9 +49,54 @@ test('unknown request usage stays unavailable rather than being billed as zero t
   const result = experimentRow(item);
   assert.equal(result.modelRequests, 2); assert.equal(result.requestErrors, 1); assert.equal(result.totalTokens, null);
 });
+test('zero paid requests cost zero tokens; missing usage remains unavailable', () => {
+  const item = fixture(); item.requests = [];
+  assert.equal(experimentRow(item).totalTokens, 0);
+  delete item.requests; assert.equal(experimentRow(item).totalTokens, null);
+});
+test('paired continuation charges its prefix and verifies unchanged initial executable artifacts', () => {
+  const prefix = fixture(), after = fixture(); prefix.entry.variant = 'B1'; prefix.entry.report = 'initial.json'; prefix.report!.variant = 'B1'; prefix.report!.id = 'prefix';
+  after.entry.initialReport = prefix.entry.report;
+  after.report!.initialSuite = { reportId: 'prefix', executableHash: executableSuiteHash(prefix.report!.tests) };
+  after.report!.testAttempts = [{ phase: 'generation', reason: 'Shared prefix audit.', status: 'applied', tests: structuredClone(prefix.report!.tests) }];
+  const row = compareSharedInitialSuites([prefix, after])[0];
+  assert.equal(row.sharedInitialVerified, true);
+  assert.equal(row.endToEndRequests, 2); assert.equal(row.additionalRequests, 1);
+  assert.equal(row.endToEndTokens, 60); assert.equal(row.endToEndSeconds, 4);
+  assert.equal(row.additionalFaultDetected, false); assert.equal(row.lostFaultDetection, false);
+  after.report!.testAttempts[0].tests[0].code = 'Replacement initial suite';
+  assert.throws(() => compareSharedInitialSuites([prefix, after]), /preserve/);
+  after.report!.status = 'failed'; after.report!.error = 'Follow-up model request budget exhausted. Saved evidence is retained.';
+  const stopped = compareSharedInitialSuites([prefix, after])[0];
+  assert.equal(stopped.budgetExhausted, true); assert.equal(stopped.finalFaultDetected, null);
+});
+test('reference disagreements require actual usable replay and never become semantic accuracy', () => {
+  const item = fixture();
+  assert.equal(experimentRow(item).referenceFailureObserved, null);
+  item.referenceExecution = { ...structuredClone(item.report!.measurements[0]), sourceFingerprint: item.report!.fingerprint, suiteHash: experimentRow(item).suiteHash! };
+  assert.equal(experimentRow(item).referenceFailureObserved, true);
+  assert.equal(summarizeExperiment([item]).summary[0].referenceFailureRate, 1);
+  item.referenceExecution.outcomes[0].status = 'passed'; item.referenceExecution.exitCode = 0;
+  assert.equal(experimentRow(item).referenceFailureObserved, false);
+  item.referenceExecution.outcomes[0].status = 'error'; item.referenceExecution.exitCode = 2;
+  assert.equal(experimentRow(item).referenceFailureObserved, null);
+  item.referenceExecution.outcomes = []; item.referenceExecution.exitCode = 5;
+  assert.equal(experimentRow(item).referenceFailureObserved, null);
+  assert.equal(summarizeExperiment([item]).summary[0].independentSemanticAccuracy, null);
+  item.referenceExecution.outcomes = structuredClone(item.report!.measurements[0].outcomes);
+  item.referenceExecution.exitCode = 1; item.referenceExecution.suiteHash = 'changed';
+  assert.equal(experimentRow(item).referenceFailureObserved, null);
+});
+test('a single pilot observation cannot establish repeatability', () => {
+  const item = fixture();
+  assert.equal(summarizeExperiment([item]).cases[0].stabilityAssessed, false);
+  const next = fixture(); next.entry.repeat = 2; next.report!.tests[0].code = 'different';
+  const result = summarizeExperiment([item, next]).cases[0];
+  assert.equal(result.stabilityAssessed, true); assert.equal(result.distinctApprovedSuites, 2);
+});
 test('duplicate runs, mixed source and mixed requirements are rejected', () => {
   assert.throws(() => summarizeExperiment([fixture(), fixture()]), /Duplicate/);
-  for (const change of [(report: PythonReport) => { report.fingerprint = 'other'; }, (report: PythonReport) => { report.rules[0].text = 'Other requirement'; }]) {
+  for (const change of [(report: PythonReport) => { report.fingerprint = 'other'; }, (report: PythonReport) => { report.rules[0].text = 'Other requirement'; }, (report: PythonReport) => { report.requirementInput = { context: 'Changed context' } as PythonReport['requirementInput']; }, (report: PythonReport) => { report.configuration = { sandboxImage: 'other', improvementLimit: 1, mutationSeconds: 1 }; }]) {
     const a = fixture(), b = fixture(); b.entry.repeat = 2; change(b.report!);
     assert.throws(() => summarizeExperiment([a, b]), /identical source/);
   }

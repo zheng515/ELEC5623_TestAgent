@@ -9,8 +9,7 @@ import tempfile
 import time
 import csv
 
-OCR_PAGE_LIMIT = 20
-OCR_SECONDS = 65
+OCR_PAGE_SECONDS = 24
 LOW_CONFIDENCE = 70
 
 
@@ -67,14 +66,11 @@ def extract_document(job):
     if len(data) > 10_000_000:
         raise ValueError("Requirement file exceeds 10 MB.")
     segments, warnings, pages = [], [], []
-    started, ocr_count = time.monotonic(), 0
 
     def add(text, location, **source):
         text = text.strip()
         if text:
             segments.append({"id": "S" + str(len(segments) + 1), "text": text, "location": location, **source})
-            if len(segments) > 1000 or sum(len(item["text"]) for item in segments) > 100_000:
-                raise ValueError("Extracted text exceeds 100 KB or 1000 blocks. Upload a focused requirements section.")
 
     def page_result(number, status, detail, **extra):
         pages.append({"page": number, "status": status, "detail": detail, **extra})
@@ -94,8 +90,6 @@ def extract_document(job):
             page_count = len(reader.pages)
         except Exception as error:
             raise ValueError("Cannot read the PDF pages. Export an unlocked PDF and upload it again.") from error
-        if page_count > 100:
-            raise ValueError("Use a requirement PDF with at most 100 pages.")
         for number in range(1, page_count + 1):
             text = ""
             try:
@@ -114,13 +108,8 @@ def extract_document(job):
             if text.strip() and not has_images:
                 page_result(number, "text", "Native text extracted.")
                 continue
-            remaining = OCR_SECONDS - (time.monotonic() - started)
-            if ocr_count >= OCR_PAGE_LIMIT or remaining < 4:
-                page_result(number, "partial" if text.strip() else "skipped", "OCR page/time limit reached; image content remains unextracted. Upload a smaller section.")
-                continue
-            ocr_count += 1
             try:
-                ocr, confidence = ocr_page(data, number, remaining)
+                ocr, confidence = ocr_page(data, number, OCR_PAGE_SECONDS)
             except (ValueError, OSError, subprocess.TimeoutExpired):
                 page_result(number, "partial" if text.strip() else "failed", "OCR failed or timed out; image content remains unextracted. Upload a clearer page or paste its text.")
                 continue
@@ -168,8 +157,15 @@ def extract_document(job):
             text = data.decode("utf-8-sig")
         except UnicodeDecodeError as error:
             raise ValueError("Text documents must use UTF-8. Save the file as UTF-8 and upload it again.") from error
-        for number, line in enumerate(text.splitlines(), 1):
-            add(line, f"Line {number}", line=number, extraction="text")
+        # Blank lines separate paragraphs; a requirement keeps its title, statement and list items together.
+        block, first = [], 0
+        for number, line in enumerate(text.splitlines() + [""], 1):
+            if line.strip():
+                block, first = block + [line], first or number
+            elif block:
+                last = number - 1
+                add("\n".join(block), f"Line {first}" if first == last else f"Lines {first}-{last}", line=first, extraction="text")
+                block, first = [], 0
     else:
         raise ValueError("Use PDF, DOC, DOCX, TXT or Markdown.")
     if not segments:

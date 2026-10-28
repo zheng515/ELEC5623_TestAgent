@@ -1,0 +1,51 @@
+{
+  "repository": "https://github.com/cpburnz/python-pathspec",
+  "tag": "v0.12.1",
+  "commit": "6485791e1b5cf2ef4e756ae392fa80f2c5045d4c",
+  "sourceFiles": [
+    {
+      "upstreamPath": "pathspec/_meta.py",
+      "fixturePath": "pathspec/_meta.py",
+      "sha256": "0da4931c5fb29e4925bc105b2884029cd6125b4c9725a2940d8124bd61c16161"
+    },
+    {
+      "upstreamPath": "pathspec/util.py",
+      "fixturePath": "pathspec/util.py",
+      "sha256": "1bedbab59070f29f790fd144ae66f96a5a50e209738c29a96e767570148a2fd9"
+    },
+    {
+      "upstreamPath": "pathspec/__init__.py",
+      "fixturePath": "pathspec/__init__.py",
+      "sha256": "ed25f2b264be15b1a77e89ea5ed6929ba69429d7a94025ddbdde00ad600c25a9"
+    },
+    {
+      "upstreamPath": "pathspec/pattern.py",
+      "fixturePath": "pathspec/pattern.py",
+      "sha256": "7dcbdc4e170be5cf8424fd969d8b85578b73a0bee6ce8390316d3d7ad0ab935e"
+    },
+    {
+      "upstreamPath": "pathspec/pathspec.py",
+      "fixturePath": "pathspec/pathspec.py",
+      "sha256": "9832e9603dff64409885eefbe2e8d234a14971accbd501355cf496939afbaefd"
+    },
+    {
+      "upstreamPath": "pathspec/gitignore.py",
+      "fixturePath": "pathspec/gitignore.py",
+      "sha256": "f3db15e7753d64c1f06a40b27f3e88484e5a43444dbd246415b57db5491621d7"
+    },
+    {
+      "upstreamPath": "pathspec/patterns/__init__.py",
+      "fixturePath": "pathspec/patterns/__init__.py",
+      "sha256": "bc0cc812a05cd8ab2f5ac8accec2c2798430415597207cdb1cd82ae5336b3dd9"
+    },
+    {
+      "upstreamPath": "pathspec/patterns/gitwildmatch.py",
+      "fixturePath": "pathspec/patterns/gitwildmatch.py",
+      "sha256": "ee0a5a2aca0b1fc0186c543832aca3db0c42108df35ce563d467bec7a46db116"
+    }
+  ],
+  "condition": "no injected mutation",
+  "fault": null,
+  "requirementsOrigin": "Selected public docstrings and README excerpts; author-derived SRS, not an upstream SRS or independently reviewed labels.",
+  "heldOut": false
+}

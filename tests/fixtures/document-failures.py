@@ -35,22 +35,24 @@ class ExtractionFailures(unittest.TestCase):
         self.assertEqual(result['segments'][1]['confidence'], 42.0)
         self.assertTrue(any('Page 3' in warning for warning in result['warnings']))
 
-    def test_page_limit_and_time_limit_do_not_discard_native_pages(self):
-        with patch.object(documents, 'OCR_PAGE_LIMIT', 2), patch.object(documents, 'ocr_page', return_value=('A requirement.', 90)) as ocr:
-            result = documents.extract_document(pdf_job(6))
-        self.assertEqual(ocr.call_count, 2)
-        self.assertEqual(len(result['pages']), 6)
-        self.assertEqual([page['status'] for page in result['pages'][3:]], ['skipped'] * 3)
-        with patch.object(documents, 'OCR_SECONDS', 0), patch.object(documents, 'ocr_page') as ocr:
-            result = documents.extract_document(pdf_job())
-        ocr.assert_not_called()
-        self.assertEqual(result['segments'][0]['page'], 1)
-        self.assertEqual([page['status'] for page in result['pages']], ['text', 'skipped', 'skipped'])
+    def test_every_image_page_is_attempted_without_a_page_or_time_budget(self):
+        with patch.object(documents, 'ocr_page', return_value=('A requirement.', 90)) as ocr:
+            result = documents.extract_document(pdf_job(30))
+        self.assertEqual(ocr.call_count, 29)
+        self.assertEqual(len(result['pages']), 30)
+        self.assertNotIn('skipped', [page['status'] for page in result['pages']])
 
     def test_all_failed_pages_explain_recovery_action(self):
         with patch.object(documents, 'ocr_page', side_effect=OSError('unavailable')):
             with self.assertRaisesRegex(ValueError, 'No readable requirement text.*Page 1'):
                 documents.extract_document(pdf_job(1, native=False))
+
+    def test_markdown_paragraphs_keep_titles_and_list_items_together(self):
+        text = '# Shop\n\n**FR1 - Login**  \nCustomers log in.\n- Wrong passwords show an error.\n\n\nPrices use two decimals.\n'
+        result = documents.extract_document({'format': 'md', 'data': base64.b64encode(text.encode()).decode()})
+        self.assertEqual([segment['text'] for segment in result['segments']], ['# Shop', '**FR1 - Login**  \nCustomers log in.\n- Wrong passwords show an error.', 'Prices use two decimals.'])
+        self.assertEqual([segment['location'] for segment in result['segments']], ['Line 1', 'Lines 3-5', 'Line 8'])
+        self.assertEqual([segment['line'] for segment in result['segments']], [1, 3, 8])
 
     def test_broken_text_layer_falls_back_to_ocr(self):
         with patch('pypdf._page.PageObject.extract_text', side_effect=ValueError('broken text')), patch.object(documents, 'ocr_page', return_value=('A recovered requirement.', 93)):

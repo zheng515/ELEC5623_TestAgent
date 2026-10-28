@@ -30,7 +30,7 @@ function Dashboard({ userId }: { userId: string }) {
       setConfigured(config.configured === true);
       let saved: string | null = null;
       try { saved = localStorage.getItem(modelKey); } catch { /* Browser storage may be disabled. */ }
-      if (saved) setModel(saved);
+      if (saved) setModel(saved.replace(/^openai\/(?=gpt-)/, ''));
       else if (typeof config.model === "string") setModel(config.model);
     }).catch(() => { if (active) setMessage("Unable to read server configuration."); });
     return () => { active = false; };

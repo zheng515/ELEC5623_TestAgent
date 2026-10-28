@@ -1,24 +1,33 @@
 import JSZip from 'jszip';
-import { testFile } from './runtime';
+import { browserTest, testFile } from './runtime';
+import { browserPlugin } from './browser-plugin';
 import type { PythonReport } from './python-types';
 
 export function testArchive(report: PythonReport, reportFile = 'verification.json') {
   const zip = new JSZip(), tests = report.tests.filter(test => test.approved), latest = report.measurements.at(-1);
   const setupFiles = report.mutations?.at(-1)?.scope?.setupFiles || [];
   const quote = (value: string) => /^[\w./=:-]+$/.test(value) ? value : "'" + value.replaceAll("'", "'\"'\"'") + "'";
-  const pythonCommand = setupFiles.length ? ['python', '-m', 'pytest', ...setupFiles.map(file => '--deselect=' + file), '--', ...setupFiles, 'reqtest_generated'].map(quote).join(' ') : 'python -m pytest reqtest_generated';
-  for (const test of tests) zip.file(testFile(test.id, report.runtime), test.code);
+  // Python tests run inside the run directory; setup paths are recorded relative to the project.
+  const runDirectory = report.runtime === 'node' ? '' : report.projectSetup?.runDirectory || '', prefix = runDirectory ? runDirectory + '/' : '';
+  const runPaths = setupFiles.map(file => file.startsWith(prefix) ? file.slice(prefix.length) : file);
+  const pythonCommand = runPaths.length ? ['python', '-m', 'pytest', ...runPaths.map(file => '--deselect=' + file), '--', ...runPaths, 'reqtest_generated'].map(quote).join(' ') : 'python -m pytest reqtest_generated';
+  const browser = report.runtime !== 'node' && tests.some(test => browserTest(test.code));
+  for (const test of tests) zip.file(prefix + testFile(test.id, report.runtime), test.code);
+  if (browser) zip.file(prefix + 'reqtest_generated/conftest.py', browserPlugin);
   zip.file(reportFile, JSON.stringify(report, null, 2));
   zip.file('README.md', [
     '# Generated requirement tests', '',
-    'Extract this archive at the root of the original project, so reqtest_generated sits beside the source files.',
+    'Extract this archive at the root of the original project, so reqtest_generated sits ' + (runDirectory ? 'inside ' + runDirectory + '/.' : 'beside the source files.'),
     'Use the exact source version below. Install your project dependencies and the test runner in your development environment.', '',
     'Source: ' + report.source,
     'Project directory within the original repository/archive: ' + (report.projectSetup?.projectDirectory || '(root)'),
+    ...(runDirectory ? ['Run directory within the project: ' + runDirectory] : []),
     'Source SHA-256: ' + report.fingerprint,
     'Runtime: ' + (report.runtime === 'node' ? 'Node.js 22 / node:test with tsx 4.23.0' : 'Python 3.11 / pytest 8.4.2'),
     'Approved generated test files: ' + tests.length, '',
-    'Run from the project root:', '', '```sh',
+    ...(browser ? ['Browser tests use the live_server and page fixtures in reqtest_generated/conftest.py. Install them once with: python -m pip install playwright==1.55.0 && python -m playwright install chromium', ''] : []),
+    'Run from the ' + (runDirectory ? runDirectory + ' directory' : 'project root') + ':', '', '```sh',
+    ...(runDirectory ? ['cd ' + quote(runDirectory)] : []),
     report.runtime === 'node' ? 'npx --yes tsx@4.23.0 --test reqtest_generated/*.test.ts' : pythonCommand,
     '```', '',
     ...(report.runtime !== 'node' && setupFiles.length ? ['Representative original test modules are collected for their saved directory setup, then their test functions are deselected. Only generated test functions execute. Collection hooks and module import effects remain part of raw outcomes. Their helper files and conftest configuration must remain available in the original project.', ''] : []),

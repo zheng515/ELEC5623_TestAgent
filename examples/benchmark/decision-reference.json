@@ -1,5 +1,5 @@
 {
-  "datasetHash": "4802e2a635c32f7ccaeb5eb7228ab3e6df1f4580fa67b249fe2f9725b2db8338",
+  "datasetHash": "7c79de91aed7d1ef3a05972826f9441c744c39f9bc87fd3addf69dfd20e77480",
   "reviewed": false,
   "reviewer": "",
   "labels": [
@@ -79,6 +79,41 @@
         "supported"
       ],
       "rationale": "Both datetime result types and their stated instants are checked without requiring a concrete timezone representation. Pending independent review."
+    },
+    {
+      "id": "C12",
+      "allowed": [
+        "supported"
+      ],
+      "rationale": "The contract requires ValueError for a negative input; the test checks that exception without inventing message text. Development draft; independent review is pending."
+    },
+    {
+      "id": "C13",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The exact exception message is absent from the original requirement. Development draft; independent review is pending."
+    },
+    {
+      "id": "C14",
+      "allowed": [
+        "generated_test_error"
+      ],
+      "rationale": "The generated artifact imports invented_shipping, contrary to the supplied shipping.py layout. Development draft; independent review is pending."
+    },
+    {
+      "id": "C15",
+      "allowed": [
+        "requirement_ambiguity"
+      ],
+      "rationale": "The original clauses require both 0 and 1000 at equality; neither clause resolves the contradictory boundary. Development draft; independent review is pending."
+    },
+    {
+      "id": "C16",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The requirement does not define large; the generated test invents 10000 as its threshold. Development draft; independent review is pending."
     }
   ]
 }

@@ -2,13 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { agentStopReason, runEvaluation, verificationSummary } from '../lib/run-evaluation';
 import type { PythonReport } from '../lib/python-types';
+import { recordCoverage } from './fixtures/python-agent';
 
 function fixture(): PythonReport {
   return {
     id: 'run', title: 'Evaluation fixture', createdAt: '2026-10-22', model: 'fixture', source: 'fixture', fingerprint: 'snapshot', status: 'completed', stage: 'done',
     rules: [{ id: 'R1', text: 'A fee is returned.' }, { id: 'R2', text: 'Negative values are rejected.' }, { id: 'R3', text: 'An unmapped requirement.' }],
     analysis: { behaviors: ['R1', 'R1', 'R2'].map((ruleId, index) => ({ id: `B${index + 1}`, ruleId, quote: 'A fee is returned.', text: 'Fixture behavior', category: 'rule', issue: 'none', reason: '', files: [], existingTests: [], evidence: [], gaps: [] })), inconsistencies: [] },
-    tests: [], measurements: [{ outcomes: ['passed', 'skipped', 'failed'].map((status, index) => ({ node: `test_${index + 1}`, file: 'tests.py', name: `test_${index + 1}`, status: status as 'passed' | 'skipped' | 'failed', message: '' })), exitCode: 1, integrity: true, timedOut: false, log: '' }],
+    tests: [{ id: 'T1', behaviorId: 'B1', code: 'def test_1():\n    assert fee() == 1', functionName: 'test_1', gapIndexes: [], quote: 'A fee is returned.', purpose: 'Controlled behavior fixture.', approved: true }], measurements: [{ outcomes: ['passed', 'skipped', 'failed'].map((status, index) => ({ node: `test_${index + 1}`, file: index ? 'tests.py' : 'reqtest_generated/test_reqtest_T1.py', name: `test_${index + 1}`, status: status as 'passed' | 'skipped' | 'failed', message: '' })), exitCode: 1, integrity: true, timedOut: false, log: '' }],
     states: [{ id: 'B1', status: 'Verified', reason: 'Passed.', nodes: ['test_1'] }, { id: 'B2', status: 'Partially Verified', reason: 'Skipped.', nodes: ['test_2'] }, { id: 'B3', status: 'Uncertain', reason: 'Failed.', nodes: ['test_3'] }],
     mutations: [], diagnoses: [], relevance: [], improvements: [], limitations: [],
   };
@@ -35,6 +36,56 @@ test('requirements aggregate behaviors without counting behaviors as requirement
   assert.deepEqual(result.requirements.map(item => item.status), ['Partially Verified', 'Uncertain', 'Unverified']);
   assert.equal(result.distribution.reduce((sum, item) => sum + item.value, 0), 3);
   assert.deepEqual(result.outcomes.map(item => item.value), [1, 1, 0, 1]);
+});
+
+test('default-depth progress counts checked requirements including a retained failure without granting verification', () => {
+  const report = fixture(); report.policy = { mutationChecks: false, modelRequestLimit: 12 };
+  report.rules = Array.from({ length: 4 }, (_, index) => ({ id: `R${index + 1}`, text: 'Recorded contract' }));
+  report.analysis!.behaviors = Array.from({ length: 7 }, (_, index) => ({ ...fixture().analysis!.behaviors[0], id: `B${index + 1}`, ruleId: index < 3 ? `R${index + 1}` : 'R4' }));
+  report.states = report.analysis!.behaviors.map((behavior, index) => ({ id: behavior.id, status: index === 1 ? 'Uncertain' : 'Partially Verified', reason: index === 1 ? 'Failure retained.' : 'Mutation not assessed.', nodes: [`test_${index + 1}`] }));
+  report.measurements[0].outcomes = report.analysis!.behaviors.map((_, index) => ({ node: `test_${index + 1}`, file: 'tests.py', name: `test_${index + 1}`, status: index === 1 ? 'failed' : 'passed', message: '' }));
+  const original = structuredClone(report);
+  const result = verificationSummary(report);
+  assert.equal(result.requirementChecks.checked, 4); assert.equal(result.requirementChecks.passed, 3);
+  assert.equal(result.requirementChecks.investigate, 1); assert.equal(result.requirementChecks.remaining, 0);
+  assert.deepEqual(result.requirementChecks.items.map(item => item.label), ['Recorded checks passed', 'Needs investigation', 'Recorded checks passed', 'Recorded checks passed']);
+  assert.equal(result.distribution.find(item => item.name === 'Verified')!.value, 0);
+  assert.equal(result.mutationAssessment, 'Not performed (not requested)');
+  assert.deepEqual(report, original, 'Display summaries must not rewrite saved assurance or execution.');
+});
+
+test('progress excludes skipped, erroneous, absent and untrusted mapped checks', () => {
+  for (const change of [
+    (report: PythonReport) => { report.status = 'running'; },
+    (report: PythonReport) => { report.status = 'failed'; },
+    (report: PythonReport) => { report.status = 'cancelled'; },
+    (report: PythonReport) => { report.measurements = []; },
+    (report: PythonReport) => { report.measurements[0].integrity = false; },
+    (report: PythonReport) => { report.measurements[0].timedOut = true; },
+    (report: PythonReport) => { report.measurements[0].exitCode = 2; },
+    (report: PythonReport) => { report.collection = { exitCode: 2, log: 'Failed' }; },
+    (report: PythonReport) => { report.resources = { limit: 1, exhausted: true, requests: [] }; },
+  ]) {
+    const report = fixture(); change(report);
+    assert.equal(verificationSummary(report).requirementChecks.checked, 0);
+  }
+  const report = fixture();
+  assert.equal(verificationSummary(report).requirementChecks.checked, 1, 'Skipped R1 and unmapped R3 remain incomplete; failed R2 was checked.');
+  report.measurements[0].outcomes[1].status = 'error';
+  assert.equal(verificationSummary(report).requirementChecks.checked, 1);
+  report.measurements[0].outcomes[1].status = 'passed';
+  assert.equal(verificationSummary(report).requirementChecks.checked, 2);
+  report.states[1].nodes = ['missing'];
+  assert.equal(verificationSummary(report).requirementChecks.checked, 1);
+});
+
+test('mutation scope distinguishes unperformed, incomplete and recorded execution', () => {
+  const report = fixture();
+  assert.equal(verificationSummary(report).mutationAssessment, 'Not performed');
+  report.mutations = [{ log: '', mutants: [], incomplete: true, timedOut: false }];
+  assert.equal(verificationSummary(report).mutationAssessment, 'Incomplete');
+  report.mutations[0].incomplete = false;
+  assert.equal(verificationSummary(report).mutationAssessment, 'Execution recorded (0 mutants)');
 });
 
 test('workflow completion, passing checks and verification remain separate in user summaries', () => {
@@ -80,6 +131,7 @@ test('retained-failure summaries exclude changed assertions, stale phases and un
 });
 test('all mapped behaviors must pass before a requirement is verified; unrelated failures stay visible', () => {
   const report = fixture(); report.measurements[0].outcomes[1].status = 'passed'; report.states[1].status = 'Verified';
+  recordCoverage(report);
   const result = runEvaluation(report);
   assert.equal(result.requirements[0].status, 'Verified');
   assert.equal(result.failed.length, 1);
@@ -87,6 +139,7 @@ test('all mapped behaviors must pass before a requirement is verified; unrelated
 });
 test('pytest no-existing-tests exit is not a collection failure and does not hide generated evidence', () => {
   const report = fixture(); report.collection = { exitCode: 5, log: 'no tests collected' };
+  recordCoverage(report);
   const result = runEvaluation(report);
   assert.equal(result.requirements[0].behaviors[0].status, 'Verified');
   assert.equal(result.requirements[1].status, 'Uncertain');

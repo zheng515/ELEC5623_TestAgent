@@ -1,88 +1,123 @@
 import { z } from "zod";
 import type { RequirementSource, DocumentPage, RequirementDocument } from "./requirements";
 import type { ProjectSetup } from "./project-setup";
+import type { VerificationPolicy } from './verification-policy';
 import { sourceFile, type ProjectRuntime } from "./runtime";
-const evidence = z.object({ file: z.string(), quote: z.string().min(1) });
+const evidence = z.object({ file: z.string(), quote: z.string().min(1), line: z.number().int().min(1).optional() });
+export function sourceEvidenceSchema(files: Record<string, string>) {
+  const lines = Object.fromEntries(Object.entries(files).map(([file, text]) => [file, text.split('\n')]));
+  return z.object({ file: z.enum(Object.keys(files)), line: z.number().int().min(1).max(Math.max(1, ...Object.values(lines).map(rows => rows.length))) })
+    .superRefine((reference, context) => {
+      if (!lines[reference.file]?.[reference.line - 1]?.trim()) context.addIssue({ code: 'custom', message: 'Source line is missing or blank.' });
+    })
+    .transform(reference => ({ ...reference, quote: lines[reference.file][reference.line - 1] }));
+}
+// A list of line references keeps the ones that resolve to a nonblank source line and drops the rest.
+// One mistyped line number in a large response must not reject every other finding; a dropped
+// reference is never replaced by a nearby line or a model-copied quotation.
+export function sourceEvidenceListSchema(files: Record<string, string>, min = 0) {
+  const single = sourceEvidenceSchema(files);
+  const lines = Math.max(1, ...Object.values(files).map(text => text.split('\n').length));
+  const reference = z.object({ file: z.enum(Object.keys(files)), line: z.number().int().min(1).max(lines) });
+  return z.array(reference).min(min).transform(references => references.flatMap(item => {
+    const resolved = single.safeParse(item);
+    return resolved.success ? [resolved.data] : [];
+  }));
+}
 export const analysisSchema = z.object({
   behaviors: z.array(z.object({
     id: z.string().regex(/^B[1-9]\d*$/), ruleId: z.string(), quote: z.string().min(1),
     text: z.string(), category: z.enum(["rule", "boundary", "condition", "exception"]),
     issue: z.enum(["none", "ambiguous", "incomplete", "not_testable"]).describe('Quality of the ORIGINAL REQUIREMENT, never test coverage or implementation status. Missing tests go in gaps with issue=none when the contract is clear. incomplete means a missing contract detail, not absent assertions.'), reason: z.string(),
-    files: z.array(z.string()).max(4), existingTests: z.array(z.string()).max(8),
-    evidence: z.array(evidence).max(8), gaps: z.array(z.string()).max(6),
-  })).max(24),
-  inconsistencies: z.array(z.object({ ruleId: z.string(), behaviorIds: z.array(z.string()).min(1).max(24), quote: z.string(), description: z.string(), evidence: z.array(evidence).min(1).max(6) })).max(12),
+    files: z.array(z.string()), existingTests: z.array(z.string()),
+    evidence: z.array(evidence), gaps: z.array(z.string()),
+  })),
+  inconsistencies: z.array(z.object({ ruleId: z.string(), behaviorIds: z.array(z.string()).min(1), quote: z.string(), description: z.string(), evidence: z.array(evidence).min(1) })),
 });
 export function originalQuoteSchema(quotes: string[], references?: string[]) {
   // Encode multiline originals as stable IDs at the provider boundary; never rewrite text.
   if (references) return z.enum(references).transform(reference => quotes[references.indexOf(reference)]);
   return z.enum(quotes);
 }
-export function groundedAnalysisSchema(files: Record<string, string>, nodes: string[], quotes: string[], references?: string[]) {
+export function groundedAnalysisSchema(files: Record<string, string>, nodes: string[], quotes: string[], references?: string[], lineReferences = false) {
   const evidence = analysisSchema.shape.behaviors.element.shape.evidence.element.extend({ file: z.enum(Object.keys(files)) });
+  const evidenceList = (min = 0) => lineReferences ? sourceEvidenceListSchema(files, min) : min ? z.array(evidence).min(min) : z.array(evidence);
   const quote = originalQuoteSchema(quotes, references);
   const behavior = analysisSchema.shape.behaviors.element.extend({
-    quote, files: z.array(z.enum(Object.keys(files).filter(sourceFile))).max(4),
-    existingTests: z.array(nodes.length ? z.enum(nodes) : z.string()).max(nodes.length ? 8 : 0),
-    evidence: z.array(evidence).max(8),
+    quote, files: z.array(z.enum(Object.keys(files).filter(sourceFile))),
+    existingTests: nodes.length ? z.array(z.enum(nodes)) : z.array(z.string()).max(0),
+    evidence: evidenceList(),
   });
   return analysisSchema.extend({
     behaviors: z.array(z.union([
-      behavior.extend({ evidence: z.array(evidence).min(1).max(8) }),
+      behavior.extend({ evidence: evidenceList(1) }),
       behavior.extend({ files: behavior.shape.files.max(0), existingTests: behavior.shape.existingTests.max(0) }),
-    ])).max(24),
-    inconsistencies: z.array(analysisSchema.shape.inconsistencies.element.extend({ quote, evidence: z.array(evidence).min(1).max(6) })).max(12),
+    ])),
+    inconsistencies: z.array(analysisSchema.shape.inconsistencies.element.extend({ quote, evidence: evidenceList(1) })),
   });
 }
 export const testsSchema = z.object({ tests: z.array(z.object({
   id: z.string().regex(/^T[1-9]\d*$/), behaviorId: z.string(), functionName: z.string().regex(/^test_[A-Za-z0-9_]+$/),
-  gapIndexes: z.array(z.number().int().min(0).max(5)).max(6),
-  code: z.string().max(6000), quote: z.string().min(1), purpose: z.string(),
-})).max(16) });
+  gapIndexes: z.array(z.number().int().min(0)),
+  code: z.string(), quote: z.string().min(1), purpose: z.string(),
+})) });
 export function groundedTestsSchema(behaviors: Pick<Analysis['behaviors'][number], 'id' | 'gaps'>[], quote: z.ZodType<string>) {
   const variants = behaviors.map(behavior => testsSchema.shape.tests.element.extend({
     behaviorId: z.literal(behavior.id), quote,
     gapIndexes: z.array(z.number().int().min(0).max(Math.max(0, behavior.gaps.length - 1))).max(behavior.gaps.length),
   }));
   const item = variants.length === 1 ? variants[0] : variants.length ? z.union(variants) : testsSchema.shape.tests.element.extend({ quote });
-  return testsSchema.extend({ tests: z.array(item).max(variants.length ? 16 : 0) });
+  return testsSchema.extend({ tests: variants.length ? z.array(item) : z.array(item).max(0) });
 }
 export const diagnosisSchema = z.object({ decisions: z.array(z.object({
   testId: z.string(), category: z.enum(["generated_test_error", "requirement_ambiguity", "potential_implementation_defect", "environment_failure", "uncertain"]),
-  reason: z.string(), quote: z.string(), executionQuote: z.string(), evidence: z.array(evidence).max(6),
-})).max(32) });
-export function groundedDiagnosisSchema(ids: string[], quote: z.ZodType<string>) {
-  return diagnosisSchema.extend({ decisions: z.array(diagnosisSchema.shape.decisions.element.extend({
+  reason: z.string(), quote: z.string(), executionQuote: z.string(), evidence: z.array(evidence),
+})) });
+export function groundedDiagnosisSchema(ids: string[], quote: z.ZodType<string>, files?: Record<string, string>) {
+  const decision = diagnosisSchema.shape.decisions.element.extend({
     testId: ids.length ? z.enum(ids) : z.string(), quote,
-  })).max(32) });
+  });
+  return diagnosisSchema.extend({ decisions: z.array(files ? decision.extend({ evidence: sourceEvidenceListSchema(files) }) : decision) });
 }
+export const coverageReviewSchema = z.object({
+  ruleId: z.string(), quote: z.string(), complete: z.boolean(), reason: z.string(),
+  testIds: z.array(z.string().regex(/^T[1-9]\d*$/)),
+  missingExamples: z.array(z.string().min(1)),
+});
 export const reviewTestsSchema = z.object({ decisions: z.array(z.object({
   testId: z.string(), supported: z.boolean(), reason: z.string(), quote: z.string(),
-})).max(16) });
+})), coverage: z.array(coverageReviewSchema).default([]) });
 export const relevanceSchema = z.object({ decisions: z.array(z.object({
   mutantId: z.string().regex(/^Mutant #[1-9]\d*$/), behaviorId: z.string().regex(/^B[1-9]\d*$/), relevant: z.boolean(), reason: z.string(), quote: z.string(),
-})).max(16) });
+})) });
 export function groundedRelevanceSchema(pairs: { id: string; behaviorId: string }[], quote: z.ZodType<string>) {
   const variants = pairs.map(pair => relevanceSchema.shape.decisions.element.extend({ mutantId: z.literal(pair.id), behaviorId: z.literal(pair.behaviorId), quote }));
   const item = variants.length === 1 ? variants[0] : variants.length ? z.union(variants) : relevanceSchema.shape.decisions.element;
-  return relevanceSchema.extend({ decisions: z.array(item).max(Math.min(16, pairs.length)) });
+  // At most one decision per supplied pair; mutation review batches bound how many pairs one request carries.
+  return relevanceSchema.extend({ decisions: z.array(item).max(pairs.length) });
 }
 export type Analysis = z.infer<typeof analysisSchema>;
 export type PythonTest = z.infer<typeof testsSchema>["tests"][number] & { approved?: boolean; review?: string; reviewDecision?: { supported: boolean; quote: string; reason: string } };
 export type TestAttempt = {
   phase: 'generation' | 'improvement'; reason: string;
   status: 'proposed' | 'reviewed' | 'applied' | 'rejected' | 'failed';
-  tests: PythonTest[]; decisions?: z.infer<typeof reviewTestsSchema>['decisions']; error?: string;
+  tests: PythonTest[]; decisions?: z.infer<typeof reviewTestsSchema>['decisions']; coverage?: z.infer<typeof coverageReviewSchema>[]; coverageRuleIds?: string[]; error?: string;
 };
-export type Outcome = { node: string; file: string; name: string; status: "passed" | "failed" | "error" | "skipped"; message: string };
+export type Outcome = { node: string; file: string; name: string; status: "passed" | "failed" | "error" | "skipped"; message: string; screenshot?: string };
 export type Measurement = { outcomes: Outcome[]; exitCode: number; log: string; timedOut: boolean; integrity: boolean; runtimeArtifacts?: { file: string; kind: 'sqlite'; sha256: string }[] };
 export type Mutation = { incomplete: boolean; mutants: { id: string; file: string; line: number; status: string; diff: string }[]; log: string; timedOut: boolean; scope?: { file: string; functions: string[]; lines: number[]; kind: 'functions' | 'file'; suite: 'approved_generated'; setupFiles?: string[] }; totalMutants?: number };
 export type DiagnosisPhase = 'collection' | 'baseline' | 'execution' | 'remeasurement';
 export type Diagnosis = z.infer<typeof diagnosisSchema>["decisions"][number] & { phase?: DiagnosisPhase };
 export type PythonReport = {
+  policy?: VerificationPolicy;
+  resources?: {
+    limit: number | null; exhausted?: boolean;
+    requests: { key: string; stage: string; status: 'started' | 'completed' | 'failed'; startedAt: string; elapsedMs?: number; inputTokens?: number; outputTokens?: number; totalTokens?: number; promptBytes?: number; promptHash?: string }[];
+  };
+  initialSuite?: { reportId: string; executableHash: string };
   testAttempts?: TestAttempt[];
   stopReason?: string;
-  analysisCorrection?: { original: Analysis; error: string };
+  analysisCorrection?: { original: Analysis; error: string; removed?: string[] };
   runtime?: ProjectRuntime;
   execution?: { queueId: string; image: string; attempt: number; recovered: boolean };
   variant?: "B0" | "B1" | "B2" | "B3";

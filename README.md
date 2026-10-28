@@ -16,6 +16,7 @@ work](docs/product-positioning.md) for overlap, differences and evidence limits.
 - Check project dependencies before model calls and reuse the checked code snapshot.
 - Analyze requirement quality, behavior-level test gaps and code/test conflicts.
 - Generate reviewed pytest or node:test artifacts and execute them in a disposable Docker sandbox.
+- Verify full-stack Python web projects: server rules get API or unit tests, and page behavior gets headless Chromium browser tests against the project's own application, with screenshots of failures.
 - Install compatible Python wheels or locked npm packages in a reusable, pinned image; inspect actual installed versions.
 - Run checks against disposable PostgreSQL and Redis services on a private network.
 - Diagnose collection, existing-test and generated-test failures with recorded evidence.
@@ -30,15 +31,50 @@ The application uses Next.js, React, TypeScript, Tailwind and shadcn/ui. Better 
 and PostgreSQL provide accounts and report storage; the Vercel AI SDK connects to
 OpenAI. Python/pytest/mutmut and Node.js/node:test/Stryker run inside Docker.
 
+## Verification depth and request budget
+
+The website defaults to **Requirement checks**. The model-request limit is optional.
+Both depths retain original-contract admission, suite coverage review, execution,
+failure diagnosis and at most one eligible improvement. Choose **Requirement and
+mutation checks** to investigate additional test strength. Without mutation
+assessment, passing cases remain Partially Verified; strict CI still requires
+Verified. No check depth establishes exhaustive correctness.
+
+The optional request limit is empty by default, which means no limit; when set, it
+covers all stages and worker retries. Benchmarks keep a 12-request budget.
+Failed/interrupted attempts consume slots; cached responses do not. Each
+reservation is saved before provider dispatch. Exhaustion retains an incomplete
+run and partial evidence. Run details and Agent decisions show consumed/remaining
+requests and reported tokens. Missing usage stays unavailable. This is a request
+count cap, not a token or monetary ceiling. Existing call/output/time limits apply.
+Saved-test replay makes no model calls. CLI verification and experiments accept
+`"policy": { "mutationChecks": true, "modelRequestLimit": 12 }`; their default
+keeps mutation checks enabled. Historical reports keep their original evidence.
+
+See [architecture](docs/architecture.md), [evaluation protocol](docs/evaluation-protocol.md)
+and [contribution positioning](docs/product-positioning.md). The v12 policy is not
+covered by the old model-quality results; no new advantage is claimed.
+
 ## Start
 
 Requires Node.js 22.22.2+ and Docker.
 
 ```sh
 npm ci
-# New checkout only: preserve an existing .env.local and signing secret.
-cp .env.example .env.local
-# Set OPENAI_API_KEY and DATABASE_URL in .env.local.
+```
+
+On a new checkout, create `.env.local` with the configuration below and replace
+the API key placeholder. Preserve an existing configuration and signing secret.
+
+```dotenv
+DATABASE_URL=postgresql://reqtest:reqtest@127.0.0.1:5433/reqtest
+OPENAI_API_KEY=your-openai-api-key
+BETTER_AUTH_URL=http://127.0.0.1:3001
+```
+
+Then start the local services:
+
+```sh
 npm run db:up
 npm run db:migrate
 npm run sandbox:build
@@ -212,8 +248,8 @@ have one queued or active task; the worker runs at most two tasks concurrently.
 Closing a browser tab detaches progress without cancelling the task. A worker
 interruption permits up to two retries after heartbeat expiry. Saved analysis,
 model responses and completed tool results are reused; a model request interrupted
-before its checkpoint was saved may be sent again. Each attempt has a ten-minute
-time limit. Recovery requires the same database, source files, runtime settings,
+before its checkpoint was saved may be sent again. Attempts have no run time limit
+beyond pg-boss's 24-hour job expiry. Recovery requires the same database, source files, runtime settings,
 agent code and sandbox image. Changed inputs fail explicitly instead of mixing
 old execution evidence with new code. Stopping a task cancels its queue job and
 retains partial evidence; a cancelled task is not automatically resumed.
@@ -222,7 +258,7 @@ retains partial evidence; a cancelled task is not automatically resumed.
 ## PostgreSQL
 
 `npm run db:up` starts PostgreSQL 17 at `127.0.0.1:5433`, using a dedicated Docker
-volume. The default DATABASE_URL in `.env.example` matches this local service.
+volume. The DATABASE_URL shown in the start instructions matches this local service.
 Port 5432 is left available for other projects. To use an existing PostgreSQL server,
 set DATABASE_URL and skip the Compose command. `npm run db:migrate` creates the
 Better Auth tables and the indexed JSONB verification-report table. Startup also
@@ -263,6 +299,13 @@ take precedence over both files.
    It becomes the project root for runtime detection, dependencies, imports and
    tests. Sibling directories are outside the analyzed scope; keep required shared
    code inside the selected project or select a broader root.
+   For a full-stack Python project whose server code, requirement files and pytest
+   configuration live in a subdirectory, leave **Project directory** at the root and
+   set **Advanced settings → Run directory** to that subdirectory, for example `backend`.
+   The whole project, including HTML, CSS and JavaScript, is analyzed and cited, while
+   dependencies are installed and pytest runs inside the run directory. Recorded paths
+   stay relative to the project root. Requirement files may include each other with
+   `-r other-requirements.txt` inside the run directory.
    Advanced settings are collapsed by default. Defaults detect the runtime and use
    the server sandbox without installing dependencies or starting test services.
    Collapsing the panel retains selections; changing project or environment inputs
@@ -270,17 +313,18 @@ take precedence over both files.
    services are separate from the PostgreSQL database that stores ReqTest accounts.
 2. Paste requirements, or upload PDF, DOC, DOCX, UTF-8 TXT or Markdown.
    All extracted text automatically fills the editable **Requirements** field;
-   no line or paragraph selection is required. The limit is 12,000 characters,
-   independent of line count. Oversized text remains visible and must be shortened
-   before running; it is never silently truncated. Original document hashes,
+   no line or paragraph selection is required. Requirement text has no length or
+   line-count limit and is never truncated. Original document hashes,
    page/paragraph locations and extraction warnings remain available under source
    details. Exact unchanged excerpts retain citations; edits are treated as
    user-provided text. Explicit IDs such as R1 and FR-CAL-02 are grouped
    automatically; repeated IDs share an input item. Other text is retained as
    supporting context and is not independently verified. Unnumbered text remains
-   available for behavior decomposition. A run supports at most 24 input items
-   and 24 analyzed behaviors; larger specifications need separate runs. All input
-   remains visible and no excess content is silently dropped.
+   available for behavior decomposition; each paragraph becomes one input item, and
+   paragraphs that are only Markdown headings become context. There is no limit on
+   input items or analyzed behaviors: large specifications are analyzed five items
+   at a time and tests are generated six behaviors at a time. All input remains
+   visible and no content is silently dropped.
 3. Select **Run verification**. Inspect behavior states, source quotes, mapped tests,
    recorded test outcomes, diagnoses, mutation results and improvements.
 4. Download the evidence JSON and generated-test ZIP. Extract the ZIP in the original
@@ -324,7 +368,10 @@ document coverage.
   uncertain just because another behavior in the same requirement has a conflict.
   Structured analysis limits implementation links to retained source files and
   existing-test links to discovered test IDs; documentation remains evidence.
-  Every evidence quote must appear verbatim in its file. A rejected analysis is sent
+  Analysis and diagnosis select a file and a one-based, nonblank source line; the
+  server restores its unchanged quotation and records the line number. Unknown
+  files, blank or invalid lines are rejected. Legacy quote-only records remain
+  readable. Source location does not prove semantic support. A rejected analysis is sent
   back once with the exact failure and invalid evidence; a second rejection fails the
   run. The report retains the original analysis and its error.
 - **Measure:** execute existing tests, generate targeted runtime-specific artifacts, independently
@@ -349,7 +396,7 @@ document coverage.
   unchanged. A clear behavior with no proposal can also use the single budget to
   add a new reviewed check. Review-rejected replacements remain blocked and their proposals/reasons
   are retained in the evidence export and Evaluation technical details.
-  Otherwise passing tests trigger selected-file mutmut measurement, relevance review
+  When mutation checks are requested, passing tests can trigger selected-file mutmut measurement, relevance review
   and targeted additions for supported surviving mutants.
   Python mutation checks explicitly run approved generated tests. Static imports and
   calls select top-level functions in one mapped source file; unresolved calls fall
@@ -371,7 +418,7 @@ document coverage.
   other modules' side effects and module-local fixtures are not reproduced.
   The report records these setup files; exported instructions retain the same setup.
 - **Re-measure:** execute the changed suite and, where applicable, selected mutations
-  again. A repaired suite that now passes receives its first selected mutation
+  again. With mutation checks requested, a repaired suite that now passes receives its first selected mutation
   measurement and survivor review before it can earn Verified. Preserve original
   tests, measurements, diagnoses and before/after artifacts.
 
@@ -380,6 +427,23 @@ They describe the mapped, reviewed cases; they do not prove exhaustive correctne
 Gaps, unsupported tests, missing outcomes and unresolved mutants prevent an unsupported
 Verified state. Failed assertions remain visible; passing tests do not automatically
 establish that the requirement or its implementation is correct.
+
+Verification also requires a current suite review against the full original
+requirement, including every explicit example and equality boundary. The existing
+admission-review request records this assessment separately from individual test
+validity. A valid focused test can remain approved while coverage is incomplete.
+Missing verbatim examples can trigger the existing single improvement action;
+passing planned witnesses alone cannot establish verification. The assessment is
+still a model judgment, not independent proof. Older runs without this record
+display Partially Verified; regenerate to obtain a new review. Re-running saved
+tests preserves their recorded reviews and makes no model requests.
+
+Mutation review shares each diff once per request and retains one decision for
+every mutant/behavior pair. All original rules remain available for cross-cutting
+constraints. Unchanged unanswered pairs are attempted once per run and remain
+unreviewed; they cannot earn verification. Valid reviews are reused only for the
+same file, diff and full original requirement. Rule IDs in model responses are
+resolved to the unchanged original text before validation.
 
 A completed run has finished processing. Its report can still contain environment
 failures, failing tests and unresolved behaviors. Review the behavior states and
@@ -410,10 +474,27 @@ Discovery executes existing test bodies in a disposable copy; it is not static
 collection. Assertion failures are retained for baseline diagnosis, while import,
 unsupported-suite, duplicate-name and integrity errors prevent unsupported
 verification. Selected existing test IDs are executed individually by file/name.
-Jest/Vitest, nested suites, browser automation and arbitrary project layouts are
-not supported. Generated artifacts are stored under reqtest_generated; file-load
+Jest/Vitest, nested suites and arbitrary project layouts are not supported. Generated artifacts are stored under reqtest_generated; file-load
 errors are associated with their artifact for evidence-based diagnosis/repair,
 while positive verification still requires the exact registered test name.
+
+### Browser tests
+
+Python projects can verify page behavior in headless Chromium (Playwright 1.55).
+The model chooses the test level per behavior: server rules, data, validation and
+access control are checked through direct calls or the project's own test client;
+what a user sees in pages (defaults, navigation, redirects, client-side validation and
+messages) is checked in a browser. Browser tests request two sandbox fixtures:
+`live_server(app)` serves the project's own ASGI application (with uvicorn from the
+project's dependencies) or WSGI application on a loopback port and stops it after the
+test, and `page` is a Chromium page with five-second waits. Tests build the
+application through the project's public factory with temporary storage, use
+selectors present in the submitted frontend files and never reach an external
+network. A failed browser test records a JPEG of the page, shown under its failure in
+Evaluation. Exported test archives include the fixtures as
+`reqtest_generated/conftest.py`. Mutation testing covers Python sources only;
+frontend JavaScript is exercised by browser tests but not mutated. Browser tests make
+mutation runs slower, so fewer mutants finish within the mutation time budget.
 
 Optional PostgreSQL 17 and Redis 7 services start fresh for each tool invocation,
 on an internal Docker network with no published ports. Only their generated
@@ -429,8 +510,8 @@ a development tag does not remove an in-use execution image. Keep images referen
 by saved reports when cleaning Docker storage.
 
 Limits: 500 archive entries, 10 MB compressed, 3 MB expanded, 200 KB per retained
-source/configuration file, 1 MB for uv.lock/package-lock.json, 200 KB model context,
-24 extracted behaviors and 16 initially generated tests. These lockfiles remain
+source/configuration file, 1 MB for uv.lock/package-lock.json and 200 KB model context.
+The number of extracted behaviors and generated tests is not limited. These lockfiles remain
 in the fingerprinted snapshot but are excluded from model reasoning. Automatic
 Python setup uses declared compatible wheels, not uv.lock resolution; exact
 installed versions and the resulting sandbox image are retained.
@@ -478,6 +559,11 @@ Time-dependent target code can still produce different execution outcomes.
 
 For multiline document requirements, model outputs reference stable requirement
 IDs; the SDK resolves these to unchanged original quotes before evidence validation.
+Source evidence uses a separate file/line encoding. Only model-facing file views
+receive line-number prefixes; saved code, requirement text and exported quotes are
+not rewritten. Provider usage includes promptBytes and promptHash for the actual
+encoded user prompt; experiment contextBytes describes the caller's pre-encoding
+context. Neither byte count includes system instructions or the output schema.
 Generated gap indexes are constrained to their referenced behavior's own gap list.
 New SQLite databases created during Python tests are recorded separately by path
 and SHA-256. Original files, generated test code and unexpected new files remain
@@ -498,8 +584,8 @@ The upload and report views show per-page extraction outcomes, with detailed
 warnings collapsed by default. Low-confidence OCR blocks (below 70, or with no
 confidence available) are retained in the editable text and flagged for review. This threshold
 is a transcription warning, not a calibrated accuracy or verification score.
-At most 20 pages are attempted within a bounded processing budget; unreadable,
-failed or unprocessed pages are listed in extraction warnings. OCR is not exact
+Every page is attempted, with no page-count, text-size or total OCR time limit;
+unreadable or failed pages are listed in extraction warnings. OCR is not exact
 transcription. PDF reading order and complex tables need visual review.
 DOCX citations retain body-block and table-row locations. Each table row stays
 together so requirement IDs, conditions and expected results are not separated.
@@ -542,6 +628,26 @@ ownership, source/evidence validation and verification-state safeguards. Docker 
 exercise real pytest/mutmut with deterministic model outputs: one preserves a genuine
 implementation defect, another detects surviving mutants and re-measures a targeted
 improvement. These are control-flow tests, **not measurements of model quality**.
+The focused safety check covers unsupported exception-message assertions, an invented
+generated import, a genuine boundary defect and an ambiguous threshold. It uses
+scripted model decisions with real Docker execution, makes no model requests and
+prints before/after serialized input sizes for its controlled context fixture:
+
+```sh
+REQTEST_DOCKER_TEST=1 node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx --test tests/agent-safety.test.ts
+```
+
+Initial analysis and generation retain project context. Follow-up review and
+diagnosis use mapped files, citations and traceback files; all original requirements
+and supporting requirement context remain. Unmapped cases retain full file context.
+File contents are not truncated. Retrieval records keep original text, but model
+requests reference the text in files instead of duplicating it. Generated failure
+code is sent once under its artifact path. Smaller serialized inputs are not a
+measured token, latency or accuracy improvement. The [current development study](experiments/results/2026-10-28-v12/README.md)
+records component decisions and paired workflow resources. It does not isolate
+retrieval/context compression. Scripted Docker checks establish control flow
+rather than model accuracy.
+
 The queue integration test uses isolated PostgreSQL schemas and real Docker
 execution. It forcibly kills a worker during a task, starts a replacement, checks
 that saved analysis is reused, preserves a genuine failing assertion and verifies
@@ -562,8 +668,8 @@ npm run evaluate -- examples/evaluation.json
 
 - **B0:** direct generation from requirements/Python context; no independent review or refinement.
 - **B1:** adds retrieved project documentation; no generated-test feedback refinement.
-- **B2:** full loop with unconditional failed-generated-test repair as an evaluation baseline.
-- **B3:** full loop with evidence-based diagnosis before refinement; always used by the UI.
+- **B2:** full loop that selects failed generated tests for repair without evidence-based diagnosis; all original-contract admission gates still apply.
+- **B3:** evidence-based diagnosis before eligible refinement; the UI uses this policy with selectable mutation depth and a request limit.
 
 B0/B1 rule IDs are scaffolding, not semantic behavior decomposition or verification
 claims. B2 intentionally omits evidence-based diagnosis and is available only through the explicit
@@ -573,6 +679,13 @@ Results are saved in a new directory under `.evidence/evaluation/` on every invo
 Reference labels and correction patches stay outside the model-visible project.
 The benchmark independently probes whether generated failures detect seeded defects
 before and after refinement, using separate corrected disposable copies.
+
+For shared initial generation, use `examples/experiments-shared-initial.json`.
+B1 generates once per pair; B3 audits the unchanged candidates and continues with
+bounded feedback. This CLI mode does not change normal website verification.
+`paired-comparison.json` checks executable identity and includes the common prefix
+in B3 end-to-end costs. See [the experiment guide](examples/experiments/README.md)
+for the fixed small protocol and its limits; this is not a diagnosis-only ablation.
 
 Run `npm run score -- <run-directory>/index.json` to generate `summary.md` and
 `metrics.json`. Independent reviewers must first check the copied reference labels
@@ -587,28 +700,44 @@ pilot is not a completed independent evaluation or a real-world effectiveness cl
 
 ### Controlled project experiments
 
-The standalone experiment configuration runs three development projects across
-B0–B3 with three repetitions each (36 runs). External executable contract witnesses
-validate original/corrected reference copies without entering model context.
-The runner preserves frozen inputs, image/source/dependency fingerprints, request
-usage, errors and timing. Objective measurements export to CSV/JSON and standalone
-PNG/SVG figures. Independent semantic metrics remain unavailable without human
-review. See [the experiment protocol](examples/experiments/README.md) for commands,
-denominators and limitations. This workflow is separate from the website.
+Current experiment status: 16 development decision cases have actual Docker
+execution evidence, but zero independently completed reference labels and no
+model calls for policy v12. The three-project budgeted workflow manifest passed
+reference preflight only. No current defect-detection, diagnosis F1 or resource
+improvement result is available. See [current experiment status](experiments/README.md).
 
-The five-project standalone comparison is configured separately in
-[the standalone benchmark protocol](examples/standalone-benchmark/README.md).
-It compares B0 and B3 on newly authored synthetic fixtures; it is not a named
-commercial-product comparison or independent semantic accuracy assessment.
+Old-version model experiments, acceptance exports, figures and private raw copies
+were removed at the user's request on 2026-10-28. Their scores are not carried
+forward. Reusable requirements, projects, witnesses, provenance and runnable
+manifests remain under examples/. Future model runs create new frozen evidence;
+setup or regression success must not be reported as model-quality success.
 
 ### Repeated decision consistency
 
-Run `npm run evaluate:decisions -- 3` for eleven focused test-review and diagnosis
-cases repeated three times (33 paid model requests). Production tasks and the same
+Run `npm run evaluate:decisions -- 3` for sixteen focused test-review and diagnosis
+cases repeated three times (48 paid model requests). Production tasks and the same
 reasoning function are reused. Frozen inputs, raw decisions, errors and fingerprints
 are saved under `.evidence/decision-evaluation/`. This checks raw classification
 consistency; it does not replace whole-agent evaluation or independent review.
 The small synthetic development set is not held out.
+
+Prepare an independent reviewer pack with actual Docker executions and no model
+calls using `npm run evaluate:decisions -- prepare /tmp/reqtest-independent-review`.
+It contains a blank reference template and no predictions or draft labels. Use a
+completed independent reference with `--reference /absolute/path/reference.json`.
+The accepted AI-assisted reference is also usable via
+`--reference experiments/annotations/2026-10-28-contract-decisions/reference.ai-assisted.json`.
+It enables explicitly labelled referenceComparison agreement and reference-relative
+metrics while independent-human accuracy fields remain unavailable. Source and
+exact annotation evidence are preserved in frozen references.
+The completed v12 run has 48/48 valid outputs and 47/48 agreement with this
+reference. Its false-support case, scoped F1, raw responses and token usage are
+retained in the linked development results. New runs hash the frozen reference
+and task text; offline scoring rejects inconsistent artifacts. Later label review
+uses `score ROOT --reference PATH --reason TEXT` to create a separate revision.
+Reviewed complete results also expose admission Precision/Recall/F1 and diagnosis
+confusion/Macro-F1. Pending references and missing decisions keep accuracy metrics
+unavailable. See the evaluation protocol for denominators and review instructions.
 
 Test generation and review distinguish value checks from explicitly claimed return
 types. Every extra assertion needs its own requirement support; a timestamp offset
@@ -626,26 +755,35 @@ reviewed and all repetitions are valid. See the benchmark README for review step
 
 ## Project evaluation dashboard
 
+Requirement progress counts items whose mapped behaviors all have passing or
+failing recorded checks, separately from the stricter verification states. The
+summary distinguishes passed recorded checks, items needing investigation and
+incomplete/unexecuted checks. A failed assertion can complete a check while still
+requiring investigation. Skips, errors, missing mappings, interrupted runs and
+untrusted execution do not earn completed-check progress. Mutation assessment is
+shown separately; original verification states and CI gates are unchanged.
+
 Open **Evaluation** after signing in and choose one of your latest 20 project
 verification runs. Refresh reloads saved results without making a model request;
 a selected running job updates every four seconds.
 
 Project verification contains inputs, progress, a short summary and next actions.
-Use **View results in Evaluation** to open that run's charts and detailed results.
-The requirement traceability table and technical report are not repeated on the
+Use **View results in Evaluation** to open that run's results and evidence.
+The requirement traceability list and technical report are not repeated on the
 task page. Original text and excerpts are collapsed with bounded scroll areas.
 
-- Summary cards show passed, failed/error and skipped outcomes separately from
-  approved test files. A shared next-action summary distinguishes workflow
-  completion, test outcomes and requirement verification. Existing charts remain.
-- Charts show requirement states and the latest test outcomes, including errors
-  and skipped cases. A missing execution is unavailable, not a zero-percent pass.
+- Four result cards show passed, failed, errors and skipped separately. Select a
+  card to filter the test list; failures and errors appear first in All results.
+  Expand a result for its test ID, behavior link, execution node and message.
+- A native SVG ring shows the recorded pass rate, passing count and total, with
+  separate counts for failures, errors and skips. Empty execution shows no rate.
+  Requirement progress is separate. Blocked proposals are not executed outcomes.
 - A requirement is Verified only when all its mapped behavior assessments are
   Verified with passing recorded nodes and intact execution evidence. Running
   reports are Pending; failed, cancelled or conflicting evidence is Uncertain.
   Unmapped requirements stay visible. These states concern recorded cases and do
   not establish exhaustive specification coverage or independent agent accuracy.
-- Evidence checks show saved code fingerprints, document citations, selected
+- Collapsed evidence checks show saved code fingerprints, document citations, selected
   extraction scope and execution integrity. Pasted requirements do not require
   document citations. Fingerprints are not rechecked by viewing the dashboard.
 - Expand requirements to inspect original quotes, PDF page links, OCR confidence
@@ -658,9 +796,6 @@ task page. Original text and excerpts are collapsed with bounded scroll areas.
   model review responses, admission results and the saved stopping reason. Applied
   means admitted into the active suite, not passed. Earlier reports without this
   metadata are identified explicitly. Evidence JSON and test exports retain it.
-- The [integrated local acceptance](experiments/acceptance/2026-10-27/README.md)
-  records fresh correct/defective Shipping checks, export replay and saved-suite
-  execution. These are development checks, not a benchmark or accuracy score.
 - Failure diagnoses, blocked tests, execution logs and limitations remain available
   in expandable sections. Retrieval and mutation records are under Technical
   details. Download run evidence or the approved generated tests from this page.

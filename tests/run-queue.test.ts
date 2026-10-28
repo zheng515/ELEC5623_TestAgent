@@ -78,6 +78,7 @@ test('durable queue executes, survives a killed worker, reuses checkpoints and r
   assert.ok((await database.query('SELECT key FROM run_checkpoints WHERE run_id=$1', [run.id])).rows.length >= 4);
   const beforeCrash = await saved(run.id);
   assert.equal(beforeCrash.execution?.attempt, 1);
+  assert.equal(beforeCrash.resources?.requests.at(-1)?.status, 'started', 'In-flight dispatch must already be durably reserved.');
   await stop(first.child, 'SIGKILL');
   await until(async () => (await runtimeHealth(owner.user.id, async () => true)).worker === 'offline' ? true : undefined, 25000);
   assert.equal((await refreshQueuedRun(await saved(run.id))).status, 'running', 'Worker loss must remain recoverable');
@@ -85,6 +86,8 @@ test('durable queue executes, survives a killed worker, reuses checkpoints and r
   const complete = await until(async () => { const report = await saved(run.id); return report.status !== 'running' ? report : undefined; }, 90000);
   assert.equal(complete.status, 'completed', complete.error);
   assert.equal(complete.execution?.recovered, true); assert.equal(complete.execution?.attempt, 2);
+  assert.equal(complete.resources?.requests.length, (await readFile(calls, 'utf8')).trim().split('\n').length, 'Physical attempts, including the interrupted call, stay counted across recovery.');
+  assert.ok(complete.resources!.requests.some(request => request.status === 'started'), 'Interrupted usage remains unknown rather than being erased.');
   assert.equal((await readFile(calls, 'utf8')).split('\n').filter(kind => kind === 'analysis').length, 1, 'Persisted analysis must not call the model again');
   assert.equal(complete.measurements[0].outcomes[0].status, 'failed');
   assert.equal(complete.diagnoses[0].category, 'potential_implementation_defect');
@@ -110,6 +113,7 @@ test('durable queue executes, survives a killed worker, reuses checkpoints and r
     const response = await replayRequest(owner.cookie); assert.equal(response.status, 200);
     const stream = response.body!.getReader(), event = await stream.read();
     const replay: PythonReport = JSON.parse(new TextDecoder().decode(event.value).split('\ndata: ')[1].trim()).report;
+    assert.deepEqual(replay.testAttempts, complete.testAttempts, 'Saved execution preserves the suite-bound coverage review.');
     await stream.cancel();
     const workerReplay = worker(false); await workerReplay.wait('ready');
     const result = await until(async () => { const next = await saved(replay.id); return next.status !== 'running' ? next : undefined; });

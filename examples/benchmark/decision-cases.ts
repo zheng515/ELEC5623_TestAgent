@@ -35,9 +35,16 @@ export const decisionCases: DecisionCase[] = [
   fixture('C09', 'diagnosis', 'notify() returns integer 0 after delivery.', 'delivery.py', 'import delivery_transport\ndef notify():\n    return delivery_transport.send()\n', 'from delivery import notify\ndef test_case():\n    assert notify() == 0\n', "ModuleNotFoundError: No module named 'delivery_transport'"),
   fixture('C10', 'test_review', threshold, 'shipping.py', shipping, shippingTest.replace('assert fee(10000) == 0', 'actual = fee(10000)\n    assert isinstance(actual, int) and not isinstance(actual, bool)\n    assert actual == 0')),
   fixture('C11', 'test_review', windowRule, 'calendar_window.py', windowSource, windowTest.replace('    assert start ==', '    assert isinstance(start, datetime)\n    assert isinstance(end, datetime)\n    assert start ==')),
+  fixture('C12', 'test_review', 'For a negative amount, fee(amount) raises ValueError.', 'shipping.py', 'def fee(amount):\n    if amount < 0: raise ValueError("invalid amount")\n    return 0\n', 'import pytest\nfrom shipping import fee\ndef test_case():\n    with pytest.raises(ValueError): fee(-1)\n'),
+  fixture('C13', 'test_review', 'For a negative amount, fee(amount) raises ValueError.', 'shipping.py', 'def fee(amount):\n    if amount < 0: raise ValueError("invalid amount")\n    return 0\n', 'import pytest\nfrom shipping import fee\ndef test_case():\n    with pytest.raises(ValueError, match="Amount must be positive"): fee(-1)\n'),
+  fixture('C14', 'diagnosis', threshold, 'shipping.py', shipping, shippingTest.replace('from shipping', 'from invented_shipping'), "ModuleNotFoundError: No module named 'invented_shipping'"),
+  fixture('C15', 'diagnosis', 'For amount >= 10000, fee(amount) returns 0. For amount <= 10000, fee(amount) returns 1000.', 'shipping.py', 'def fee(amount):\n    return 1000 if amount <= 10000 else 0\n', shippingTest, 'AssertionError: assert 1000 == 0'),
+  fixture('C16', 'test_review', 'For a large amount, fee(amount) returns zero.', 'shipping.py', shipping, shippingTest),
 ];
 // An import failure occurs before the named generated test can register.
 decisionCases[8].context.measurement!.outcomes[0].status = 'error';
 decisionCases[8].context.measurement!.outcomes[0].name = '<module>';
 decisionCases[8].context.measurement!.outcomes[0].node = 'reqtest_generated/test_reqtest_T1.py::<module>';
 decisionCases[8].context.measurement!.exitCode = 2;
+Object.assign(decisionCases[13].context.measurement!.outcomes[0], { status: 'error', name: '<module>', node: 'reqtest_generated/test_reqtest_T1.py::<module>' });
+decisionCases[13].context.measurement!.exitCode = 2;
