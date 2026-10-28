@@ -131,7 +131,8 @@ export function validateAnalysis(analysis: Analysis, report: PythonReport, snaps
     // Gap indexes are list positions; drop a model-written prefix only when it repeats that position.
     behavior.gaps = behavior.gaps.map((gap, index) => gap.replace(new RegExp(`^\\s*(?:gap\\s*)?(?:\\[${index}\\]|${index}[:.)])\\s*`, 'i'), '') || gap);
     const rule = report.rules.find((rule) => rule.id === behavior.ruleId);
-    if (ids.has(behavior.id) || !rule?.text.includes(behavior.quote) || !behavior.quote.trim() || !validEvidence(behavior.evidence, snapshot)) throw new Error('Analysis has unsupported or duplicate evidence links.');
+    if (!rule) throw new Error(`Analysis links ${behavior.id} to unknown requirement ${behavior.ruleId}.`);
+    if (ids.has(behavior.id) || !rule.text.includes(behavior.quote) || !behavior.quote.trim() || !validEvidence(behavior.evidence, snapshot)) throw new Error('Analysis has unsupported or duplicate evidence links.');
     ids.add(behavior.id);
     if (behavior.files.some((file) => !sourceFile(file) || snapshot.files[file] === undefined) || behavior.existingTests.some((node) => !snapshot.nodes.includes(node))) throw new Error('Analysis references an unknown source file or existing test.');
     if ((behavior.files.length || behavior.existingTests.length) && !behavior.evidence.length) throw new Error('Code/test links require exact source evidence.');
@@ -144,6 +145,32 @@ export function validateAnalysis(analysis: Analysis, report: PythonReport, snaps
     const id = 'B' + (Math.max(0, ...analysis.behaviors.map((behavior) => Number(behavior.id.slice(1)))) + 1);
     analysis.behaviors.push({ id, ruleId: rule.id, quote: rule.text, text: rule.text, category: 'rule', issue: 'not_testable', reason: 'No grounded behavior was extracted; clarification is required.', files: [], existingTests: [], evidence: [], gaps: ['Behavior extraction incomplete.'] });
   }
+}
+// Models sometimes link by the document ID (FR25); a unique original ID maps losslessly to its internal R ID.
+export function alignRuleIds(analysis: Analysis, report: PythonReport) {
+  const internal = (id: string) => {
+    if (report.rules.some(rule => rule.id === id)) return id;
+    const matches = report.rules.filter(rule => rule.originalId?.toUpperCase() === id.trim().toUpperCase());
+    return matches.length === 1 ? matches[0].id : id;
+  };
+  for (const item of [...analysis.behaviors, ...analysis.inconsistencies]) item.ruleId = internal(item.ruleId);
+}
+// A correction can drop a requirement the first response decomposed; its grounded first-response claims are kept instead of a placeholder.
+export function restoreOmittedRules(corrected: Analysis, original: Analysis, report: PythonReport, snapshot: Inspection) {
+  const omitted = new Set(report.rules.filter(rule => !corrected.behaviors.some(behavior => behavior.ruleId === rule.id)).map(rule => rule.id));
+  const candidate = structuredClone(original);
+  alignRuleIds(candidate, report);
+  candidate.behaviors = candidate.behaviors.filter(behavior => omitted.has(behavior.ruleId));
+  candidate.inconsistencies = candidate.inconsistencies.filter(item => omitted.has(item.ruleId));
+  if (!candidate.behaviors.length) return [];
+  pruneAnalysis(candidate, report, snapshot);
+  const behaviors = candidate.behaviors.filter(behavior => omitted.has(behavior.ruleId));
+  let next = Math.max(0, ...corrected.behaviors.map(behavior => Number(behavior.id.slice(1)) || 0));
+  const ids = new Map(behaviors.map(behavior => [behavior.id, 'B' + ++next]));
+  corrected.behaviors.push(...behaviors.map(behavior => ({ ...behavior, id: ids.get(behavior.id)! })));
+  corrected.inconsistencies.push(...candidate.inconsistencies.filter(item => item.behaviorIds.every(id => ids.has(id))).map(item => ({ ...item, behaviorIds: item.behaviorIds.map(id => ids.get(id)!) })));
+  return [...new Set(behaviors.map(behavior => behavior.ruleId))].map(ruleId =>
+    `${ruleId}: kept ${behaviors.filter(behavior => behavior.ruleId === ruleId).length} grounded behaviors from the first analysis response; the correction omitted this requirement.`);
 }
 // After the single correction, claims that still lack exact grounding are removed rather than failing the run.
 export function pruneAnalysis(analysis: Analysis, report: PythonReport, snapshot: Inspection) {
@@ -264,14 +291,21 @@ export async function runPython(report: PythonReport, root: string, signal: Abor
     const scope = { ...report, rules }, scoped = rules.length === report.rules.length ? context : { ...context, requirementBatch: rules.map(rule => rule.id) };
     const analysis = await stage('Analyze requirements and consistency' + label, () => ask(analysisSchema, analysisTask, scoped, report.model, signal));
     const original = structuredClone(analysis);
+    alignRuleIds(analysis, scope);
     try { validateAnalysis(analysis, scope, snapshot, fixedBehaviors); return analysis; }
     catch (error) {
       const message = error instanceof Error ? error.message : 'Invalid analysis evidence.';
       report.analysisCorrection ||= { original, error: message };
       const invalidEvidence = [...original.behaviors, ...original.inconsistencies].flatMap(item => item.evidence).filter(item => !validEvidence([item], snapshot));
       const corrected = await stage('Correct invalid analysis evidence' + label, () => ask(analysisSchema, correctionTask, { ...scoped, previousAnalysis: original, validationError: message, invalidEvidence }, report.model, signal));
+      const record = report.analysisCorrection!;
+      if (record.original === original) record.corrected = structuredClone(corrected);
+      alignRuleIds(corrected, scope);
       const removed = pruneAnalysis(corrected, scope, snapshot);
-      if (removed.length) report.analysisCorrection!.removed = [...report.analysisCorrection!.removed || [], ...removed];
+      if (removed.length) record.removed = [...record.removed || [], ...removed];
+      // Shared-initial continuations must keep their fixed behavior IDs, so nothing is restored there.
+      const restored = fixedBehaviors ? [] : restoreOmittedRules(corrected, original, scope, snapshot);
+      if (restored.length) record.restored = [...record.restored || [], ...restored];
       validateAnalysis(corrected, scope, snapshot, fixedBehaviors);
       return corrected;
     }
