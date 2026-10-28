@@ -1,0 +1,200 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "value-0",
+      "ruleId": "R1",
+      "description": "Explicit integer witness 0.",
+      "initialGap": true
+    },
+    {
+      "id": "value-1",
+      "ruleId": "R2",
+      "description": "Explicit integer witness 1.",
+      "initialGap": true
+    },
+    {
+      "id": "value-2",
+      "ruleId": "R3",
+      "description": "Explicit integer witness 2.",
+      "initialGap": true
+    },
+    {
+      "id": "value-3",
+      "ruleId": "R4",
+      "description": "Explicit integer witness 3.",
+      "initialGap": true
+    },
+    {
+      "id": "value-4",
+      "ruleId": "R5",
+      "description": "Explicit integer witness 4.",
+      "initialGap": true
+    },
+    {
+      "id": "value-5",
+      "ruleId": "R6",
+      "description": "Explicit integer witness 5.",
+      "initialGap": true
+    },
+    {
+      "id": "value-6",
+      "ruleId": "R7",
+      "description": "Explicit integer witness 6.",
+      "initialGap": true
+    },
+    {
+      "id": "value-7",
+      "ruleId": "R8",
+      "description": "Explicit integer witness 7.",
+      "initialGap": true
+    },
+    {
+      "id": "value-8",
+      "ruleId": "R9",
+      "description": "Explicit integer witness 8.",
+      "initialGap": true
+    },
+    {
+      "id": "value-9",
+      "ruleId": "R10",
+      "description": "Explicit integer witness 9.",
+      "initialGap": true
+    },
+    {
+      "id": "value-10",
+      "ruleId": "R11",
+      "description": "Explicit integer witness 10.",
+      "initialGap": true
+    },
+    {
+      "id": "value-11",
+      "ruleId": "R12",
+      "description": "Explicit integer witness 11.",
+      "initialGap": true
+    },
+    {
+      "id": "value-12",
+      "ruleId": "R13",
+      "description": "Explicit integer witness 12.",
+      "initialGap": true
+    },
+    {
+      "id": "value-13",
+      "ruleId": "R14",
+      "description": "Explicit integer witness 13.",
+      "initialGap": true
+    },
+    {
+      "id": "value-14",
+      "ruleId": "R15",
+      "description": "Explicit integer witness 14.",
+      "initialGap": true
+    },
+    {
+      "id": "value-15",
+      "ruleId": "R16",
+      "description": "Explicit integer witness 15.",
+      "initialGap": true
+    },
+    {
+      "id": "value-16",
+      "ruleId": "R17",
+      "description": "Explicit integer witness 16.",
+      "initialGap": true
+    },
+    {
+      "id": "value-17",
+      "ruleId": "R18",
+      "description": "Explicit integer witness 17.",
+      "initialGap": true
+    },
+    {
+      "id": "value-18",
+      "ruleId": "R19",
+      "description": "Explicit integer witness 18.",
+      "initialGap": true
+    },
+    {
+      "id": "value-19",
+      "ruleId": "R20",
+      "description": "Explicit integer witness 19.",
+      "initialGap": true
+    },
+    {
+      "id": "value-20",
+      "ruleId": "R21",
+      "description": "Explicit integer witness 20.",
+      "initialGap": true
+    },
+    {
+      "id": "value-21",
+      "ruleId": "R22",
+      "description": "Explicit integer witness 21.",
+      "initialGap": true
+    },
+    {
+      "id": "value-22",
+      "ruleId": "R23",
+      "description": "Explicit integer witness 22.",
+      "initialGap": true
+    },
+    {
+      "id": "value-23",
+      "ruleId": "R24",
+      "description": "Explicit integer witness 23.",
+      "initialGap": true
+    },
+    {
+      "id": "value-24",
+      "ruleId": "R25",
+      "description": "Explicit integer witness 24.",
+      "initialGap": true
+    },
+    {
+      "id": "value-25",
+      "ruleId": "R26",
+      "description": "Explicit integer witness 25.",
+      "initialGap": true
+    },
+    {
+      "id": "value-26",
+      "ruleId": "R27",
+      "description": "Explicit integer witness 26.",
+      "initialGap": true
+    },
+    {
+      "id": "value-27",
+      "ruleId": "R28",
+      "description": "Explicit integer witness 27.",
+      "initialGap": true
+    },
+    {
+      "id": "value-28",
+      "ruleId": "R29",
+      "description": "Explicit integer witness 28.",
+      "initialGap": true
+    },
+    {
+      "id": "value-29",
+      "ruleId": "R30",
+      "description": "Explicit integer witness 29.",
+      "initialGap": true
+    },
+    {
+      "id": "value-30",
+      "ruleId": "R31",
+      "description": "Explicit integer witness 30.",
+      "initialGap": true
+    },
+    {
+      "id": "value-31",
+      "ruleId": "R32",
+      "description": "Explicit integer witness 31.",
+      "initialGap": true
+    }
+  ]
+}

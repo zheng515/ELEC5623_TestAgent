@@ -112,7 +112,7 @@ export type PythonReport = {
   policy?: VerificationPolicy;
   resources?: {
     limit: number | null; exhausted?: boolean;
-    requests: { key: string; stage: string; status: 'started' | 'completed' | 'failed'; startedAt: string; elapsedMs?: number; inputTokens?: number; outputTokens?: number; totalTokens?: number; promptBytes?: number; promptHash?: string }[];
+    requests: { key: string; stage: string; status: 'started' | 'completed' | 'failed'; startedAt: string; elapsedMs?: number; inputTokens?: number; outputTokens?: number; totalTokens?: number; promptBytes?: number; promptHash?: string; error?: string }[];
   };
   initialSuite?: { reportId: string; executableHash: string };
   testAttempts?: TestAttempt[];
@@ -125,7 +125,7 @@ export type PythonReport = {
   collection?: { exitCode: number; log: string; timedOut?: boolean };
   elapsedMs?: number;
   retrieval?: { query: string; documents: { file: string; text: string; score: number; sha256: string }[] };
-  configuration?: { sandboxImage: string; improvementLimit: number; mutationSeconds: number; policyVersion?: string; mode?: 'saved_tests' | 'regenerate' };
+  configuration?: { sandboxImage: string; improvementLimit: number; mutationSeconds: number; policyVersion?: string; modelTimeoutSeconds?: number; initialCandidateSource?: 'model' | 'seeded'; mode?: 'saved_tests' | 'regenerate' };
   initialStates?: PythonReport["states"];
   id: string; title: string; createdAt: string; model: string; source: string; fingerprint: string;
   status: "running" | "completed" | "failed" | "cancelled"; stage: string; error?: string;

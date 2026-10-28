@@ -23,13 +23,13 @@ export function Topbar({ currentModel, onSelectModel, isRunning, configured }: {
     finally { setChecking(false); }
   }
   return (
-    <header className="bg-white text-black scheme-light">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-5">
-        <strong className="text-2xl tracking-tight">REQTEST<span className="text-primary">.</span></strong>
+    <header className="border-b border-border bg-card/60">
+      <div className="max-w-6xl mx-auto px-4 py-5 flex flex-wrap items-center justify-between gap-5 sm:px-6">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1"><strong className="text-2xl tracking-tight">REQTEST<span className="text-primary">.</span></strong><span className="hidden text-xs text-muted-foreground sm:inline">Requirement-aware verification</span></div>
         <div className="flex items-center gap-3 text-sm">
           {isRunning && <span role="status">Running</span>}
           <Dialog.Root open={open} onOpenChange={value => { if (value) setDraftModel(currentModel); setOpen(value); }}>
-            <Dialog.Trigger asChild><Button variant="outline" className="border-neutral-300 bg-white text-black hover:bg-neutral-100 hover:text-black"><Settings aria-hidden="true" />Settings</Button></Dialog.Trigger>
+            <Dialog.Trigger asChild><Button variant="ghost"><Settings aria-hidden="true" />Settings</Button></Dialog.Trigger>
             <Dialog.Portal>
               <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
               <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 text-foreground scheme-dark shadow-xl">

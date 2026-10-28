@@ -38,7 +38,7 @@ improvement budget prevents repeated optimization against the same implementatio
 
 ## Depth and stopping policy
 
-The website defaults to requirement checks with at most 12 model requests.
+Policy v13 defaults to requirement checks with no request-count limit. Users may set any positive request limit; the benchmark manifests keep explicit budgets.
 Original-contract admission, suite coverage review, failure diagnosis and eligible
 bounded improvement remain active. Optional mutation checks assess additional test
 strength; they are offered explicitly so the user can choose the additional
@@ -52,15 +52,16 @@ supported partial checks. Requesting mutation checks does not ensure a complete
 measurement or independent semantic correctness. Timeouts, unresolved survivors,
 missing reviews, contradictions and failed assertions remain visible.
 
-The request limit is an integer from 1 to 24. It is enforced before provider
-dispatch, across all stages and worker retries. A reservation is saved before
+An optional request limit is enforced before provider dispatch, across all stages and worker retries. A reservation is saved before
 calling the provider; failed and interrupted attempts consume slots. Cache hits
 consume none. Interrupted requests can have unknown usage, so recorded tokens
 are a known subtotal, not a complete bill. Token or currency ceilings are not
-claimed. The existing per-call output/timeout limits and ten-minute worker limit
-also apply. Budget exhaustion produces an incomplete run, never verification.
+claimed. Model responses have a configurable 300-second default deadline per request; 0 disables that deadline while owner cancellation remains active. Output tokens and specification size have no fixed application cap. The durable queue expires jobs after 24 hours, and individual sandbox tools retain their own execution limits. Budget exhaustion produces an incomplete run, never verification.
 
 ## Context, state and execution
+
+Large specifications use batches of five requirements and six behaviors, with up to four concurrent model calls after the first cache-warming request. Python runs can use a server subdirectory while retaining frontend source context. Browser checks use sandbox Chromium against the project's ASGI/WSGI application; failed checks retain screenshots. Frontend JavaScript is not mutation-tested.
+
 
 - MiniSearch ranks local Markdown/text documentation. Initial analysis still sees
   the supported project context; this is not evidence of scalable semantic RAG.
@@ -87,4 +88,4 @@ summarizes recorded evidence. `scripts/evaluate.ts` records frozen model runs;
 The current default model is the configured provider alias with low reasoning
 effort, structured output and no automatic retries. No model-selection study has
 established that it is optimal. A different model, prompt or runtime needs a new
-frozen evaluation. Current model judgments still need independent human review.
+frozen evaluation. Current model judgments still need independent human review. Retained v12 experiments identify older code snapshots; their results do not validate the current v13 implementation.

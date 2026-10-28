@@ -1,13 +1,24 @@
 import { z } from 'zod';
 import type { PythonReport } from './python-types';
 
+export const verificationPolicyVersion = 'contract-witness-v13-batched-browser-verification';
+export const defaultModelResponseSeconds = 300;
+
 export const verificationPolicySchema = z.object({
   mutationChecks: z.boolean().default(true),
   // Omitted means no request limit; usage is still recorded for every request.
   modelRequestLimit: z.number().int().min(1).optional(),
+  modelTimeoutSeconds: z.number().int().min(0).max(86400).optional(),
 });
 export type VerificationPolicy = z.infer<typeof verificationPolicySchema>;
 export const interactivePolicy: VerificationPolicy = { mutationChecks: false };
+
+export function usageNotice(report: PythonReport) {
+  const usage = requestUsage(report), threshold = 100_000;
+  if (usage.reportedTokens >= threshold) return `${usage.reportedTokens.toLocaleString('en-US')} provider-reported tokens so far${usage.unknownUsage ? `; ${usage.unknownUsage} requests have unknown usage` : ''}. This is a usage notice, not a spending cap.`;
+  if (report.resources?.limit && usage.used >= Math.ceil(report.resources.limit * 0.8)) return `${usage.used} of ${report.resources.limit} model requests consumed. ${usage.remaining} remain; incomplete evidence is retained if the limit is reached.`;
+  return null;
+}
 
 export function requestUsage(report: PythonReport) {
   const requests = report.resources?.requests || [];

@@ -44,8 +44,8 @@ function Dashboard({ userId }: { userId: string }) {
   return (
     <div className="min-h-screen">
       <Topbar currentModel={model} onSelectModel={selectModel} isRunning={isRunning} configured={configured} />
-      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6 sm:px-6">
-        <nav className="flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1 w-fit"><Button variant={mode === "python" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("python")}>Project verification</Button><Button variant={mode === "evaluation" ? "default" : "outline"} disabled={isRunning} onClick={() => setMode("evaluation")}>Evaluation</Button></nav>
+      <main className="max-w-6xl mx-auto px-4 py-7 space-y-7 sm:px-6">
+        <nav aria-label="Workspace" className="flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1 w-fit"><Button variant={mode === "python" ? "secondary" : "ghost"} aria-current={mode === "python" ? "page" : undefined} disabled={isRunning} onClick={() => setMode("python")}>Project verification</Button><Button variant={mode === "evaluation" ? "secondary" : "ghost"} aria-current={mode === "evaluation" ? "page" : undefined} disabled={isRunning} onClick={() => setMode("evaluation")}>Evaluation</Button></nav>
         {message && <p role="alert" className="text-base text-red-400">{message}</p>}
         {mode === "evaluation" ? <EvaluationWorkspace initialRunId={evaluationRunId} /> : <PythonWorkspace model={model} configured={configured} onRunningChange={setIsRunning} onOpenEvaluation={(runId) => { setEvaluationRunId(runId); setMode("evaluation"); }} />}
       </main>

@@ -753,6 +753,33 @@ remain visible. Agreement can be consistently wrong; accuracy and false-support
 metrics stay unavailable until every copied reference label has been independently
 reviewed and all repetitions are valid. See the benchmark README for review steps.
 
+## Current evaluation inputs and runtime controls
+
+Policy v13 keeps support for full specifications and optional request limits.
+Verification options include a per-model-response timeout in seconds (default 300;
+0 disables it). A timeout retains partial evidence and the consumed request slot.
+Known-token and request-budget notices are informational, not monetary caps.
+
+New development inputs are available without launching a model study:
+
+```sh
+# Docker preflight only; these commands make no model requests.
+npm run evaluate -- examples/experiments-recovery.json --validate-only
+npm run evaluate -- examples/experiments-browser.json --validate-only
+npm run evaluate -- examples/experiments-large-spec.json --validate-only
+```
+
+The recovery manifest deliberately seeds initial candidates: omitted equality
+boundary, invented import, unsupported return-type assertion and a valid failing
+assertion. B1 records their unreviewed execution with no model generation; B3
+reviews the identical candidates. The runner freezes the initial JSON and its
+hash, and the analyzer exports it. This measures a controlled recovery challenge,
+not natural model-error frequency. The browser fixture has a declared JavaScript
+boundary defect. The 32-item fixture exercises batching on finite explicit values.
+All are developer-authored pilot inputs, not independently reviewed held-out data.
+Removing --validate-only starts a new paid study. Existing v12 results refer to
+their recorded older code snapshots and are not current v13 performance.
+
 ## Project evaluation dashboard
 
 Requirement progress counts items whose mapped behaviors all have passing or

@@ -1,0 +1,9 @@
+{
+  "purpose": "pilot",
+  "repeat": 3,
+  "variants": ["B1", "B3"],
+  "sharedInitialSuite": true,
+  "followupRequestLimit": 8,
+  "policy": { "mutationChecks": false, "modelRequestLimit": 16, "modelTimeoutSeconds": 300 },
+  "cases": [{ "id": "browser-name", "project": "examples/browser-benchmark/project", "requirements": "examples/browser-benchmark/requirements.txt", "gold": "examples/browser-benchmark/gold.json", "oracle": "examples/browser-benchmark/oracle.py" }]
+}

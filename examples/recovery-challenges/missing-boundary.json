@@ -1,0 +1,18 @@
+{
+  "provenance": {
+    "source": "deliberately_seeded",
+    "independentlyReviewed": false,
+    "purpose": "Controlled recovery input, not a model observation or natural-error frequency sample."
+  },
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B2",
+      "functionName": "test_above_threshold",
+      "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+      "gapIndexes": [],
+      "purpose": "Check the free-shipping contract.",
+      "code": "from shipping import fee\ndef test_above_threshold():\n    result = fee(10001)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 0\n"
+    }
+  ]
+}

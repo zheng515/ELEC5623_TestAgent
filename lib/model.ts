@@ -1,5 +1,13 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { APICallError } from "ai";
+import { defaultModelResponseSeconds } from './verification-policy';
+
+export class ModelTimeoutError extends Error {
+  constructor(seconds: number) {
+    super(`Model response timed out after ${seconds} seconds. Partial evidence and the consumed request are retained. Increase the model response timeout or reduce the scope before starting a new run.`);
+    this.name = 'ModelTimeoutError';
+  }
+}
 
 export function modelError(error: unknown) {
   const status = APICallError.isInstance(error) ? error.statusCode : undefined;
@@ -14,8 +22,8 @@ export function options(input: { model: string; timeoutMs?: number; maxOutputTok
   if (process.env.OPENAI_API_KEY.startsWith('sk-or-')) throw new Error('Use an OpenAI API key from platform.openai.com. Third-party API keys are not supported.');
   return {
     model: createOpenAI({ apiKey: process.env.OPENAI_API_KEY, baseURL: 'https://api.openai.com/v1' }).responses(input.model),
-    // Verification calls are unbounded; callers such as the connection check pass their own limits.
-    abortSignal: input.timeoutMs ? AbortSignal.any([signal, AbortSignal.timeout(input.timeoutMs)]) : signal,
+    // Zero explicitly disables the per-call deadline; owner cancellation remains active.
+    abortSignal: (input.timeoutMs ?? defaultModelResponseSeconds * 1000) > 0 ? AbortSignal.any([signal, AbortSignal.timeout(input.timeoutMs ?? defaultModelResponseSeconds * 1000)]) : signal,
     maxRetries: 0,
     ...(input.maxOutputTokens ? { maxOutputTokens: input.maxOutputTokens } : {}),
     providerOptions: { openai: { store: false } },
