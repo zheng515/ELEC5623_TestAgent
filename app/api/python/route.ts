@@ -60,7 +60,8 @@ export async function POST(request: Request) {
     const replay = form.get('mode') === 'saved_tests';
     const mutationChoice = form.get('mutationChecks');
     if (mutationChoice !== null && mutationChoice !== 'true' && mutationChoice !== 'false') throw new Error('Choose whether to run mutation checks.');
-    const policy = verificationPolicySchema.parse({ mutationChecks: mutationChoice === 'true', modelRequestLimit: String(form.get('modelRequestLimit') ?? '').trim() ? Number(form.get('modelRequestLimit')) : interactivePolicy.modelRequestLimit });
+    const policy = verificationPolicySchema.parse({ mutationChecks: mutationChoice === 'true', modelRequestLimit: String(form.get('modelRequestLimit') ?? '').trim() ? Number(form.get('modelRequestLimit')) : interactivePolicy.modelRequestLimit,
+      modelTimeoutSeconds: String(form.get('modelTimeoutSeconds') ?? '').trim() ? Number(form.get('modelTimeoutSeconds')) : undefined });
     if (!replay && !process.env.OPENAI_API_KEY) throw new Error('Configure OPENAI_API_KEY in the root .env.local and restart.');
     const title = String(form.get('title') || 'Project verification').trim();
     const model = String(form.get('model') || process.env.REQTEST_LLM_MODEL || 'gpt-6-luna').trim().replace(/^openai\/(?=gpt-)/, '');

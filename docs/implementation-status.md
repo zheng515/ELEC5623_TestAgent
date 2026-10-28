@@ -26,7 +26,7 @@ not the academic report or a historical experiment-results archive.
 - Support account isolation, GitHub connection, local production checks and
   offline backup/restore tools within their documented scope.
 
-## Policy v12
+## Policy v13
 
 The website defaults to requirement checks and offers optional mutation checks.
 Both retain original-contract admission, coverage review, grounded diagnosis and
@@ -44,7 +44,7 @@ Budget exhaustion retains partial evidence and cannot pass verification gates.
 
 ## Available validation
 
-The integrated main/version-2 Docker regression on 2026-10-28 passed 155 tests,
+Before the v13 changes, the integrated main/version-2 Docker regression on 2026-10-28 passed 155 tests,
 with two optional integration skips (live model and email delivery) and no failures.
 A separate screenshot-route integration check passed ownership, authentication and
 path validation against an isolated database. Type checks, lint, English-source
@@ -55,7 +55,7 @@ scores.
 The decision-evaluation tool supports 16 development cases, independently reviewed
 admission Precision/Recall/F1, diagnosis confusion and Macro-F1. The reviewer pack
 contains actual Docker execution and a blank reference template. No independent
-labels have been completed. The current development study completed 48 component
+labels have been completed. The retained v12 development study completed 48 component
 decisions and 18 B1/B3 workflows; all raw observations and frozen inputs are
 exported under experiments/results/2026-10-28-v12.
 
@@ -65,7 +65,7 @@ referenceComparison for agreement, reference-relative admission metrics and
 diagnosis confusion/F1 once all planned model outputs exist. It preserves AI
 authorship and exact evidence, keeps independent-human accuracy unavailable and
 does not treat a reviewed flag alone as overriding pending human-review metadata.
-The completed component run agreed with the AI reference on 47/48 decisions;
+That historical component run agreed with the AI reference on 47/48 decisions;
 admission F1 was 0.947 and C03 contains the retained false-support observation.
 Both B1 and B3 detected 6/6 seeded-fault observations on two distinct defects.
 B3 added six grounded diagnoses, retained those failures and added no detections;
@@ -125,3 +125,21 @@ pg-boss's 24-hour job expiry. Upload byte sizes, archive safety checks, project
 size limits and per-command sandbox timeouts remain. Test execution time scales
 with the selected suite (120 seconds plus 15 per test), and sandbox containers run
 with an init process so closed browsers cannot exhaust the process limit.
+
+## Current code changes awaiting model evaluation
+
+Policy v13 records the effective per-request response deadline (300 seconds by
+default, 0 to disable) and explicit timeout errors without resetting consumed
+requests. Usage notices at 100,000 known tokens or 80% of an explicit request
+budget do not impose a token spending cap. The dashboard separates items needing
+attention from passed checks with limited assurance; missing contract coverage
+still requires attention even when recorded checks pass.
+
+The evaluator accepts frozen, deliberately seeded B1 candidates only for paired
+B1/B3 recovery challenges. It preserves exact candidate hashes and exports their
+provenance. Recovery, browser and 32-item specification manifests are provided as
+future pilot inputs, not model results. Their offline preflight made no model
+calls. The retained v12 labels and results are unchanged and do not establish v13
+model quality. No academic report is included in this update.
+
+Current v13 code validation passed 160 tests with two optional integration skips and no failures. A later targeted summary check passed all 15 tests after adding the missing-coverage attention guard. These are scripted engineering checks, not live-model accuracy or recovery-success measurements.

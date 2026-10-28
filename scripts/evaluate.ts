@@ -13,7 +13,8 @@ import { probeFault, probeReferenceSuite, validateReference } from '../lib/evalu
 import type { PythonReport, Measurement } from '../lib/python-types';
 import { parseRequirementInput } from '../lib/requirement-input';
 import type { ExperimentEntry } from '../lib/experiment-metrics';
-import { verificationPolicySchema } from '../lib/verification-policy';
+import { verificationPolicySchema, verificationPolicyVersion } from '../lib/verification-policy';
+import { testsSchema } from '../lib/python-types';
 
 const manifestSchema = z.object({
   purpose: z.enum(['pilot', 'held-out']).default('pilot'),
@@ -23,7 +24,7 @@ const manifestSchema = z.object({
   followupRequestLimit: z.number().int().min(1).max(12).default(6),
   // Benchmarks keep their frozen 12-request budget; interactive runs default to no limit.
   policy: verificationPolicySchema.default(() => verificationPolicySchema.parse({ modelRequestLimit: 12 })),
-  cases: z.array(z.object({ id: z.string().regex(/^[\w-]+$/), project: z.string(), requirements: z.string(), gold: z.string(), oracle: z.string().optional() })).min(1).max(20),
+  cases: z.array(z.object({ id: z.string().regex(/^[\w-]+$/), project: z.string(), requirements: z.string(), gold: z.string(), oracle: z.string().optional(), initialTests: z.string().optional() })).min(1).max(20),
 });
 async function main() {
   loadEnvConfig(process.cwd(), true);
@@ -32,6 +33,7 @@ async function main() {
   const manifestText = await readFile(process.argv[2] || 'examples/evaluation.json', 'utf8');
   const manifest = manifestSchema.parse(JSON.parse(manifestText));
   if (manifest.sharedInitialSuite && (manifest.variants.length !== 2 || !manifest.variants.includes('B1') || !manifest.variants.includes('B3'))) throw new Error('Shared initial suites require exactly B1 and B3.');
+  if (manifest.cases.some(item => item.initialTests) && !manifest.sharedInitialSuite) throw new Error('Seeded recovery challenges require shared B1/B3 initial suites.');
   if (new Set(manifest.variants).size !== manifest.variants.length || new Set(manifest.cases.map((item) => item.id)).size !== manifest.cases.length) throw new Error('Benchmark variants and case IDs must be unique.');
   const sandboxImage = execFileSync('docker', ['image', 'inspect', '--format', '{{.Id}}', process.env.REQTEST_SANDBOX_IMAGE || 'reqtest-python:1'], { encoding: 'utf8' }).trim();
   process.env.REQTEST_SANDBOX_IMAGE = sandboxImage;
@@ -42,7 +44,7 @@ async function main() {
   await mkdir(output, { recursive: true });
   await writeFile(join(output, 'manifest.json'), manifestText);
   await writeFile(join(output, 'agent-snapshot.json'), JSON.stringify(agentFiles));
-  const index: { purpose: 'pilot' | 'held-out'; createdAt: string; model: string; manifestHash: string; sandboxImage: string; agentFingerprint: string; expectedRuns: number; status: string; inputs: Record<string, { archiveHash: string; requirementHash: string }>; runs: ExperimentEntry[] } = { purpose: manifest.purpose, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', manifestHash: createHash('sha256').update(manifestText).digest('hex'), sandboxImage, agentFingerprint, expectedRuns: validateOnly ? 0 : manifest.cases.length * manifest.variants.length * manifest.repeat, status: 'preflight', inputs: {}, runs: [] };
+  const index: { purpose: 'pilot' | 'held-out'; policyVersion: string; createdAt: string; model: string; manifestHash: string; sandboxImage: string; agentFingerprint: string; expectedRuns: number; status: string; inputs: Record<string, { archiveHash: string; requirementHash: string; initialTestsHash?: string }>; runs: ExperimentEntry[] } = { purpose: manifest.purpose, policyVersion: verificationPolicyVersion, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', manifestHash: createHash('sha256').update(manifestText).digest('hex'), sandboxImage, agentFingerprint, expectedRuns: validateOnly ? 0 : manifest.cases.length * manifest.variants.length * manifest.repeat, status: 'preflight', inputs: {}, runs: [] };
   await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
   console.log(`Experiment: ${output}; ${index.expectedRuns} planned runs. ${validateOnly ? 'Reference validation only; no model requests.' : 'Paid model requests; no automatic retries.'}`);
   const interrupted = new AbortController();
@@ -64,7 +66,7 @@ async function main() {
         if (entry.name.startsWith('.') || ['node_modules', '__pycache__'].includes(entry.name)) continue;
         const file = join(path, entry.name);
         if (entry.isDirectory()) await visit(file);
-        else if (entry.isFile() && /\.(py|md|txt|cfg|toml)$/.test(file)) zip.file(relative(directory, file), await readFile(file));
+        else if (entry.isFile() && /\.(py|[cm]?[jt]sx?|html|css|md|txt|cfg|toml|json|lock)$/.test(file)) zip.file(relative(directory, file), await readFile(file));
       }
     }
     await visit(directory);
@@ -76,6 +78,19 @@ async function main() {
     await writeFile(join(output, `${item.id}.gold.json`), JSON.stringify(gold, null, 2));
     await writeFile(join(output, `${item.id}.requirements.txt`), requirementText);
     index.inputs[item.id] = { archiveHash: createHash('sha256').update(archive).digest('hex'), requirementHash: createHash('sha256').update(requirementText).digest('hex') };
+    let seededCandidates;
+    if (item.initialTests) {
+      const child = relative(directory, resolve(item.initialTests));
+      if (!child.startsWith('../') && !isAbsolute(child)) throw new Error('Seeded initial tests must be outside the model-visible project.');
+      const text = await readFile(item.initialTests, 'utf8');
+      seededCandidates = testsSchema.parse(JSON.parse(text)).tests;
+      if (!seededCandidates.length || new Set(seededCandidates.map(test => test.id)).size !== seededCandidates.length || seededCandidates.some(test => {
+        const rule = rules.find((_, index) => test.behaviorId === 'B' + (index + 1));
+        return !rule || !test.quote.trim() || !rule.text.includes(test.quote);
+      })) throw new Error('Seeded candidates must have unique IDs and exact original-rule links.');
+      await writeFile(join(output, `${item.id}.initial-tests.json`), text);
+      index.inputs[item.id].initialTestsHash = createHash('sha256').update(text).digest('hex');
+    }
     let reference: string | undefined;
     if (item.oracle) {
       const oracle = await readFile(item.oracle, 'utf8');
@@ -85,12 +100,12 @@ async function main() {
       await writeFile(join(output, reference), JSON.stringify(validation, null, 2));
       if (!validation.valid) throw new Error(`Contract witnesses failed for ${item.id}; no model calls for this case.`);
     }
-    prepared.push({ item, archive, gold, rules, requirementInput, reference });
+    prepared.push({ item, archive, gold, rules, requirementInput, reference, seededCandidates });
     await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
   }
   if (validateOnly) { index.status = 'validated'; return; }
   index.status = 'running';
-  for (const { item, archive, gold, rules, requirementInput, reference } of prepared) {
+  for (const { item, archive, gold, rules, requirementInput, reference, seededCandidates } of prepared) {
     const initialSuites = new Map<number, { report: PythonReport; path: string }>();
     const variants = manifest.sharedInitialSuite ? ['B1', 'B3'] as const : manifest.variants;
     const attempts = Array.from({ length: manifest.repeat }, (_, i) => variants.map((_, offset) => ({ repeat: i + 1, variant: variants[manifest.sharedInitialSuite ? offset : (i + offset) % variants.length] }))).flat();
@@ -111,18 +126,18 @@ async function main() {
       const save = () => writeFile(join(root, 'report.json'), JSON.stringify(report, null, 2));
       const requests: { stage: string; taskHash: string; contextHash: string; contextBytes: number; elapsedMs: number; usage?: ReasonUsage; error?: string }[] = [];
       await writeFile(join(root, 'requests.json'), '[]');
-      const measuredReason: Reason = async (schema, task, context, model, signal, onUsage) => {
+      const measuredReason: Reason = async (schema, task, context, model, signal, onUsage, timeoutMs) => {
         if (manifest.sharedInitialSuite && variant === 'B3' && requests.length >= manifest.followupRequestLimit) throw new Error('Follow-up model request budget exhausted. Saved evidence is retained; unresolved checks are not verified.');
         const serialized = JSON.stringify(context);
         const started = Date.now(), request: typeof requests[number] = { stage: report.stage, taskHash: createHash('sha256').update(task).digest('hex'), contextHash: createHash('sha256').update(serialized).digest('hex'), contextBytes: Buffer.byteLength(serialized), elapsedMs: 0 };
-        try { return await reason(schema, task, context, model, signal, usage => { request.usage = usage; onUsage?.(usage); }); }
+        try { return await reason(schema, task, context, model, signal, usage => { request.usage = usage; onUsage?.(usage); }, timeoutMs); }
         catch (error) { request.error = (error instanceof Error ? error.message : 'Request failed.').replaceAll(process.env.OPENAI_API_KEY!, '[redacted]').slice(0, 1500); throw error; }
         finally { request.elapsedMs = Date.now() - started; requests.push(request); await writeFile(join(root, 'requests.json'), JSON.stringify(requests, null, 2)); }
       };
       const started = Date.now();
       try {
         if (manifest.sharedInitialSuite && variant === 'B3' && !initial) throw new Error('The shared B1 prefix did not complete. No replacement initial suite is generated.');
-        await runPython(report, root, AbortSignal.any([interrupted.signal, AbortSignal.timeout(600000)]), async (stage) => { console.log(item.id, variant, repeat, stage); await save(); }, measuredReason, variant, undefined, initial?.report);
+        await runPython(report, root, AbortSignal.any([interrupted.signal, AbortSignal.timeout(600000)]), async (stage) => { console.log(item.id, variant, repeat, stage); await save(); }, measuredReason, variant, undefined, initial?.report, variant === 'B1' ? seededCandidates : undefined);
       } catch (error) {
         report.status = interrupted.signal.aborted ? 'cancelled' : 'failed';
         report.error = (error instanceof Error ? error.message : 'Failed').replaceAll(process.env.OPENAI_API_KEY!, '[redacted]');

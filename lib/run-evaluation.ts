@@ -44,6 +44,8 @@ export function verificationSummary(report: PythonReport) {
     passed: checkItems.filter(item => item.checked && !item.investigate).length,
     investigate: checkItems.filter(item => item.investigate).length,
     remaining: checkItems.filter(item => !item.checked).length };
+  const needsAttention = evaluation.requirements.filter(rule => checkItems.some(item => item.id === rule.id && (!item.checked || item.investigate)) || !requirementCoverage(report, rule.id).complete);
+  const checksPassedAwaitingAssurance = evaluation.requirements.filter(rule => rule.status !== 'Verified' && !needsAttention.some(item => item.id === rule.id) && checkItems.some(item => item.id === rule.id && item.checked && !item.investigate));
   const mutation = report.mutations.at(-1);
   const mutationAssessment = !mutation ? report.policy?.mutationChecks === false ? 'Not performed (not requested)' : 'Not performed'
     : mutation.incomplete || mutation.timedOut || mutation.mutants.some(item => item.status === 'unknown') ? 'Incomplete' : `Execution recorded (${mutation.mutants.length} mutants)`;
@@ -65,7 +67,7 @@ export function verificationSummary(report: PythonReport) {
   else { title = `${passed} ${passed === 1 ? 'test' : 'tests'} passed${skipped ? `; ${skipped} skipped` : ''}`; next = 'Review unresolved behavior states and blocked tests. Passing cases do not establish complete specification coverage.'; }
   if (report.status === 'completed' && evaluation.blocked) next = `${evaluation.blocked} blocked test proposals need attention. Inspect their review reasons and uncovered requirements before regenerating. ` + next;
   if (report.replay) next += ' Saved-test execution does not regenerate analysis or diagnoses.';
-  return { ...evaluation, passed, failedCount: failed, errors, skipped, unmapped, unresolved, preserved, requirementChecks, mutationAssessment, title, next };
+  return { ...evaluation, passed, failedCount: failed, errors, skipped, unmapped, unresolved, preserved, requirementChecks, needsAttention, checksPassedAwaitingAssurance, mutationAssessment, title, next };
 }
 
 // Summarize saved assessments conservatively; this does not independently grade the agent.

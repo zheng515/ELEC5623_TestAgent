@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { APICallError, generateText, Output } from 'ai';
 import { z } from 'zod';
-import { modelError, options } from '../lib/model';
+import { modelError, options, ModelTimeoutError } from '../lib/model';
+import { reason } from '../lib/python-agent';
 
 test('model requests use official Responses API even with a stale gateway setting', async context => {
   const original = { key: process.env.OPENAI_API_KEY, base: process.env.OPENAI_BASE_URL, fetch: globalThis.fetch };
@@ -45,4 +46,27 @@ test('authentication errors do not expose actual or masked key fragments', () =>
   assert.match(modelError(error), /OpenAI rejected the API key/);
   assert.ok(!modelError(error).includes('sk-'));
   assert.ok(!modelError(new Error('Provider error sk-proj-********fixture')).includes('sk-'));
+});
+
+test('per-call timeouts stop stalled transport while owner cancellation stays distinct', async context => {
+  const original = { key: process.env.OPENAI_API_KEY, fetch: globalThis.fetch };
+  context.after(() => { globalThis.fetch = original.fetch; if (original.key === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = original.key; });
+  process.env.OPENAI_API_KEY = 'local-timeout-fixture';
+  let calls = 0;
+  globalThis.fetch = async (_input, init) => {
+    calls++;
+    return new Promise<Response>((_resolve, reject) => {
+      const guard = setTimeout(() => reject(new Error('Mock transport was not aborted.')), 500);
+      const stop = () => { clearTimeout(guard); reject(init!.signal!.reason); };
+      if (init?.signal?.aborted) stop(); else init?.signal?.addEventListener('abort', stop, { once: true });
+    });
+  };
+  await assert.rejects(reason(z.object({ ok: z.boolean() }), 'Timeout fixture', {}, 'fixture', new AbortController().signal, undefined, 20), ModelTimeoutError);
+  assert.equal(calls, 1, 'A timed-out request is not silently retried.');
+  const owner = new AbortController();
+  const timer = setTimeout(() => owner.abort(new Error('Stopped by owner.')), 10);
+  try { await assert.rejects(reason(z.object({ ok: z.boolean() }), 'Cancel fixture', {}, 'fixture', owner.signal, undefined, 0), error => !(error instanceof ModelTimeoutError)); }
+  finally { clearTimeout(timer); }
+  const noTimeout = options({ model: 'fixture', timeoutMs: 0 }, owner.signal);
+  assert.equal(noTimeout.abortSignal, owner.signal);
 });

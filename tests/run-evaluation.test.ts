@@ -44,14 +44,23 @@ test('default-depth progress counts checked requirements including a retained fa
   report.analysis!.behaviors = Array.from({ length: 7 }, (_, index) => ({ ...fixture().analysis!.behaviors[0], id: `B${index + 1}`, ruleId: index < 3 ? `R${index + 1}` : 'R4' }));
   report.states = report.analysis!.behaviors.map((behavior, index) => ({ id: behavior.id, status: index === 1 ? 'Uncertain' : 'Partially Verified', reason: index === 1 ? 'Failure retained.' : 'Mutation not assessed.', nodes: [`test_${index + 1}`] }));
   report.measurements[0].outcomes = report.analysis!.behaviors.map((_, index) => ({ node: `test_${index + 1}`, file: 'tests.py', name: `test_${index + 1}`, status: index === 1 ? 'failed' : 'passed', message: '' }));
+  report.tests = report.analysis!.behaviors.map((behavior, index) => ({ ...fixture().tests[0], id: `T${index + 1}`, behaviorId: behavior.id, quote: 'Recorded contract', functionName: `test_${index + 1}`, code: `def test_${index + 1}():\n    assert fee() == 1` }));
+  report.measurements[0].outcomes.forEach((outcome, index) => { outcome.file = `reqtest_generated/test_reqtest_T${index + 1}.py`; outcome.node = outcome.file + '::' + outcome.name; report.states[index].nodes = [outcome.node]; });
+  recordCoverage(report);
   const original = structuredClone(report);
   const result = verificationSummary(report);
   assert.equal(result.requirementChecks.checked, 4); assert.equal(result.requirementChecks.passed, 3);
   assert.equal(result.requirementChecks.investigate, 1); assert.equal(result.requirementChecks.remaining, 0);
+  assert.deepEqual(result.needsAttention.map(item => item.id), ['R2']);
+  assert.deepEqual(result.checksPassedAwaitingAssurance.map(item => item.id), ['R1', 'R3', 'R4']);
   assert.deepEqual(result.requirementChecks.items.map(item => item.label), ['Recorded checks passed', 'Needs investigation', 'Recorded checks passed', 'Recorded checks passed']);
   assert.equal(result.distribution.find(item => item.name === 'Verified')!.value, 0);
   assert.equal(result.mutationAssessment, 'Not performed (not requested)');
   assert.deepEqual(report, original, 'Display summaries must not rewrite saved assurance or execution.');
+  report.testAttempts![0].coverage = report.testAttempts![0].coverage!.filter(item => item.ruleId !== 'R1');
+  const missingCoverage = verificationSummary(report);
+  assert.equal(missingCoverage.requirementChecks.checked, 4, 'Execution progress remains separate from coverage.');
+  assert.deepEqual(missingCoverage.needsAttention.map(item => item.id), ['R1', 'R2'], 'Passing checks cannot hide missing contract coverage.');
 });
 
 test('progress excludes skipped, erroneous, absent and untrusted mapped checks', () => {
@@ -70,6 +79,7 @@ test('progress excludes skipped, erroneous, absent and untrusted mapped checks',
     assert.equal(verificationSummary(report).requirementChecks.checked, 0);
   }
   const report = fixture();
+  assert.deepEqual(verificationSummary(report).needsAttention.map(item => item.id), ['R1', 'R2', 'R3'], 'Unmapped and skipped requirements need attention alongside the failure.');
   assert.equal(verificationSummary(report).requirementChecks.checked, 1, 'Skipped R1 and unmapped R3 remain incomplete; failed R2 was checked.');
   report.measurements[0].outcomes[1].status = 'error';
   assert.equal(verificationSummary(report).requirementChecks.checked, 1);

@@ -19,6 +19,31 @@ test('shared-suite analysis cannot move a test to another requirement or renumbe
   }
 });
 
+test('seeded challenge candidates reject unsupported modes, duplicate IDs and invented contracts before execution', async () => {
+  const ask: Reason = async () => { throw new Error('No model call expected'); };
+  await assert.rejects(runPython(report(), '.', new AbortController().signal, () => {}, ask, 'B3', undefined, undefined, [artifact]), /fresh B1/);
+  await assert.rejects(runPython(report(), '.', new AbortController().signal, () => {}, ask, 'B1', undefined, undefined, [artifact, artifact]), /unique IDs/);
+  await assert.rejects(runPython(report(), '.', new AbortController().signal, () => {}, ask, 'B1', undefined, undefined, [{ ...artifact, quote: 'Invented contract' }]), /original-rule links/);
+});
+
+test('seeded B1 baselines execute unchanged failures and bad imports with zero model calls', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 30000 }, async t => {
+  for (const imported of [false, true]) {
+    const root = await project(t), zip = new JSZip(), implementation = code.replace('>=', '>');
+    zip.file('shipping.py', implementation);
+    const source = await importProject(root, await zip.generateAsync({ type: 'nodebuffer' }));
+    const r = report(); r.fingerprint = source.fingerprint;
+    const candidate = { ...artifact, code: imported ? artifact.code.replace('from shipping', 'from invented_module') : artifact.code };
+    let calls = 0;
+    await runPython(r, root, AbortSignal.timeout(12000), () => {}, async () => { calls++; throw new Error('No generation call permitted'); }, 'B1', undefined, undefined, [candidate]);
+    assert.equal(calls, 0); assert.equal(r.resources!.requests.length, 0);
+    assert.equal(r.configuration!.initialCandidateSource, 'seeded');
+    assert.equal(r.tests[0].code, candidate.code); assert.equal(r.status, 'completed');
+    assert.ok(r.measurements[0].outcomes.some(outcome => outcome.status === (imported ? 'error' : 'failed')));
+    assert.equal(await readFile(join(root, 'source/shipping.py'), 'utf8'), implementation);
+    assert.ok(r.limitations.some(text => text.includes('deliberately seeded')));
+  }
+});
+
 test('a shared B1 suite is not regenerated; one additive boundary check exposes the defect', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 50000 }, async t => {
   const root = await project(t), zip = new JSZip(), implementation = code.replace('>=', '>');
   zip.file('shipping.py', implementation);
@@ -67,12 +92,13 @@ test('a shared B1 suite is not regenerated; one additive boundary check exposes 
   }
 });
 
-test('paired CLI stops at its follow-up budget without making another provider request', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 40000 }, async t => {
+test('seeded paired CLI freezes candidates, stops at its follow-up budget and exports an auditable comparison', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 40000 }, async t => {
   const root = await project(t), projectPath = join(root, 'source');
-  const requirements = join(root, 'requirements.txt'), gold = join(root, 'gold.json'), manifest = join(root, 'manifest.json'), transport = join(root, 'transport.mjs');
+  const requirements = join(root, 'requirements.txt'), gold = join(root, 'gold.json'), manifest = join(root, 'manifest.json'), transport = join(root, 'transport.mjs'), initialTests = join(root, 'initial-tests.json');
   await writeFile(requirements, 'R1: ' + rule);
   await writeFile(gold, JSON.stringify({ reviewed: false, reviewer: '', issues: [], inconsistencies: [], behaviors: [{ id: 'threshold', ruleId: 'R1', description: rule, initialGap: true }] }));
-  await writeFile(manifest, JSON.stringify({ purpose: 'pilot', repeat: 1, variants: ['B1', 'B3'], sharedInitialSuite: true, followupRequestLimit: 1, cases: [{ id: 'budget', project: projectPath, requirements, gold }] }));
+  await writeFile(initialTests, JSON.stringify({ tests: [artifact] }));
+  await writeFile(manifest, JSON.stringify({ purpose: 'pilot', repeat: 1, variants: ['B1', 'B3'], sharedInitialSuite: true, followupRequestLimit: 1, cases: [{ id: 'budget', project: projectPath, requirements, gold, initialTests }] }));
   await writeFile(transport, `globalThis.fetch = async (url, init) => {
     if (String(url) !== 'https://api.openai.com/v1/responses') throw Error('External network is forbidden in this fixture.');
     const body = JSON.parse(init.body), message = body.input.find(m => m.role === 'user');
@@ -89,9 +115,19 @@ test('paired CLI stops at its follow-up budget without making another provider r
   const stopped = JSON.parse(await readFile(join(output!, index.runs[1].report), 'utf8'));
   const requests = JSON.parse(await readFile(join(output!, index.runs[1].requests), 'utf8'));
   assert.equal(initial.status, 'completed'); assert.equal(stopped.status, 'failed');
+  assert.equal(initial.configuration.initialCandidateSource, 'seeded');
+  assert.deepEqual(JSON.parse(await readFile(join(output!, index.runs[0].requests), 'utf8')), []);
+  assert.ok(index.inputs.budget.initialTestsHash);
   assert.match(stopped.error, /^Follow-up model request budget exhausted/);
   assert.equal(requests.length, 1);
   assert.equal(index.runs[1].initialReport, index.runs[0].report);
   assert.equal(executableSuiteHash(stopped.testAttempts[0].tests), executableSuiteHash(initial.tests));
   assert.ok(stopped.states.every((state: { status: string }) => state.status !== 'Verified'));
+  await promisify(execFile)(process.execPath, ['--import', 'tsx', 'scripts/analyze-experiment.ts', join(output!, 'index.json')], { timeout: 10000 });
+  const summary = JSON.parse(await readFile(join(output!, 'analysis/metrics.json'), 'utf8'));
+  assert.equal(summary.protocol.initialCandidates[0].source, 'seeded');
+  assert.equal(summary.rows.find((row: { variant: string }) => row.variant === 'B1').modelRequests, 0);
+  assert.equal(await readFile(join(output!, 'analysis/evidence/budget.initial-tests.json'), 'utf8'), await readFile(initialTests, 'utf8'));
+  await writeFile(join(output!, 'budget.initial-tests.json'), '{}');
+  await assert.rejects(promisify(execFile)(process.execPath, ['--import', 'tsx', 'scripts/analyze-experiment.ts', join(output!, 'index.json')], { timeout: 10000 }), /Frozen seeded candidates changed/);
 });

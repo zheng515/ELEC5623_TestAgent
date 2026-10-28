@@ -19,7 +19,7 @@ import Link from "next/link";
 import type { GitHubConnectionStatus } from "@/lib/github-config";
 import { RuntimeStatus, useRuntimeHealth } from "./runtime-health";
 import { VerificationGuide } from './verification-guide';
-import { interactivePolicy, requestUsage } from '@/lib/verification-policy';
+import { interactivePolicy, requestUsage, defaultModelResponseSeconds, usageNotice } from '@/lib/verification-policy';
 
 export function PythonWorkspace({ model, configured, onRunningChange, onOpenEvaluation }: { model: string; configured: boolean; onRunningChange: (running: boolean) => void; onOpenEvaluation: (runId: string) => void }) {
   const runtimeStatus = useRuntimeHealth();
@@ -174,6 +174,7 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
               <div className="mt-4 space-y-4">
                 <label className="block space-y-2">Verification depth<NativeSelect name="mutationChecks" defaultValue={String(parent?.policy?.mutationChecks ?? interactivePolicy.mutationChecks)}><NativeSelectOption value="false">Requirement checks</NativeSelectOption><NativeSelectOption value="true">Requirement and mutation checks</NativeSelectOption></NativeSelect><span className="text-xs text-muted-foreground">Both review requirements and execute approved tests. Mutation checks assess test strength and may take longer; without them, passing cases remain partially verified.</span></label>
                 <label className="block space-y-2">Maximum model requests (optional)<Input name="modelRequestLimit" type="number" min={1} step={1} placeholder="No limit" defaultValue={parent?.policy?.modelRequestLimit ?? ''} /><span className="text-xs text-muted-foreground">Blank means no limit. Failed and interrupted requests count. A limit stops the run with partial evidence; it is not a spending cap.</span></label>
+                <label className="block space-y-2">Model response timeout (seconds)<Input name="modelTimeoutSeconds" type="number" min={0} max={86400} step={1} defaultValue={parent?.policy?.modelTimeoutSeconds ?? defaultModelResponseSeconds} /><span className="text-xs text-muted-foreground">Per model request, not the whole run. Use 0 for no response timeout. Stopping a timed-out run retains its evidence and consumed request.</span></label>
               </div>
             </details>
             <details className="text-sm text-muted-foreground"><summary className="cursor-pointer">Run name</summary><label className="mt-3 block space-y-2"><span className="sr-only">Run name</span><Input name="title" required maxLength={120} defaultValue={parent ? parent.title + ' — re-run' : 'Project verification'} /></label></details>
@@ -216,6 +217,7 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
             <Button variant="destructive" disabled={!selected || stage === 'Stopping' || selected.stage === 'Stopping'} onClick={stop}>{stage === 'Stopping' || selected?.stage === 'Stopping' ? 'Stopping…' : 'Stop'}</Button>
           </div>
           {selected && <p className="text-xs text-muted-foreground">{selected.rules.length} requirement items{selected.resources && <> · {requestUsage(selected).used} model requests / {selected.resources.limit ?? 'no limit'}</>}</p>}
+          {selected && usageNotice(selected) && <p role="status" className="text-sm text-amber-300">{usageNotice(selected)}</p>}
         </div> : selected && <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">Test results and evidence are available in Evaluation.</p>
           <Button className="h-11 w-full sm:w-auto" onClick={() => onOpenEvaluation(selected.id)}>View results<ArrowRight aria-hidden="true" /></Button>

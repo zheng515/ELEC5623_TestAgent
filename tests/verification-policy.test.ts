@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { budgetedRequest, ModelBudgetError, requestUsage, verificationPolicySchema } from '../lib/verification-policy';
+import { budgetedRequest, ModelBudgetError, requestUsage, usageNotice, verificationPolicySchema, verificationPolicyVersion } from '../lib/verification-policy';
+import { ModelTimeoutError } from '../lib/model';
 import { runPython, type Reason } from '../lib/python-agent';
 import { verificationGate, runEvaluation } from '../lib/run-evaluation';
 import { analysisSchema, testsSchema, reviewTestsSchema } from '../lib/python-types';
@@ -36,6 +37,33 @@ test('without a request limit every request is dispatched and still recorded', a
   for (let index = 0; index < 60; index++) await budgetedRequest(r, 'request-' + index, () => {}, async request => { calls++; Object.assign(request, { totalTokens: 1 }); });
   assert.equal(calls, 60); assert.equal(r.resources.exhausted, undefined);
   assert.deepEqual(requestUsage(r), { used: 60, remaining: null, reportedTokens: 60, unknownUsage: 0 });
+});
+
+test('usage notices retain unknown usage without imposing a hidden token limit', async () => {
+  const r = report(); r.resources = { limit: 10, requests: [] };
+  for (let index = 0; index < 8; index++) await budgetedRequest(r, `notice-${index}`, () => {}, async request => { request.totalTokens = 1000; });
+  assert.match(usageNotice(r)!, /8 of 10/);
+  r.resources.limit = null; r.resources.requests[0].totalTokens = 100_000;
+  r.resources.requests[1].totalTokens = undefined;
+  assert.match(usageNotice(r)!, /unknown usage/);
+  assert.equal(r.resources.exhausted, undefined);
+  for (const value of [-1, 0.5, 86401]) assert.equal(verificationPolicySchema.safeParse({ modelTimeoutSeconds: value }).success, false);
+  assert.equal(verificationPolicySchema.parse({ modelTimeoutSeconds: 0 }).modelTimeoutSeconds, 0);
+});
+
+test('model timeout retains the consumed slot, error and explicit stopping reason', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 20000 }, async t => {
+  const root = await project(t), r = report();
+  r.policy = { mutationChecks: false, modelTimeoutSeconds: 15 };
+  const ask: Reason = async (_schema, _task, _context, _model, _signal, _usage, timeoutMs) => {
+    assert.equal(timeoutMs, 15000); throw new ModelTimeoutError(15);
+  };
+  await assert.rejects(runPython(r, root, new AbortController().signal, () => {}, ask), ModelTimeoutError);
+  assert.equal(r.configuration!.policyVersion, verificationPolicyVersion);
+  assert.equal(r.configuration!.modelTimeoutSeconds, 15);
+  assert.equal(r.resources!.requests.length, 1); assert.equal(r.resources!.requests[0].status, 'failed');
+  assert.match(r.resources!.requests[0].error!, /timed out after 15 seconds/);
+  assert.equal(r.stopReason, r.resources!.requests[0].error);
+  assert.equal(verificationGate(r, false), false);
 });
 
 test('requesting less assurance or exhausting a budget cannot upgrade a saved positive state', () => {

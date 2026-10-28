@@ -1,0 +1,3 @@
+R1: On a fresh visit to the root page, the Name input is empty and Continue is disabled.
+R2: After entering exactly three or more ASCII letters into Name, Continue is enabled, including exactly three letters.
+R3: After clearing Name or entering fewer than three ASCII letters, Continue is disabled, including after it was previously enabled.

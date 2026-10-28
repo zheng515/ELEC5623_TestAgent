@@ -1,0 +1,12 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    { "id": "empty", "ruleId": "R1", "description": "Fresh empty input leaves Continue disabled.", "initialGap": true },
+    { "id": "three", "ruleId": "R2", "description": "Exactly three letters enables Continue.", "initialGap": true },
+    { "id": "reset", "ruleId": "R3", "description": "Clearing an enabled input disables Continue.", "initialGap": true }
+  ],
+  "fault": { "id": "exclusive-name-length", "file": "app.js", "before": "value.length > 3", "after": "value.length >= 3" }
+}

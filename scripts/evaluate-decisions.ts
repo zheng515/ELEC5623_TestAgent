@@ -8,6 +8,7 @@ import { decisionHash, decisionReferenceSchema, scoreDecisions, type DecisionAtt
 import { reason, testReviewTask, diagnosisTask } from '../lib/python-agent';
 import { diagnosisSchema, reviewTestsSchema } from '../lib/python-types';
 import { prepareDecisionReview } from '../lib/decision-review';
+import { verificationPolicyVersion, defaultModelResponseSeconds } from '../lib/verification-policy';
 
 async function summarize(root: string, revision?: { reference: DecisionReference; reason: string }) {
   const index = JSON.parse(await readFile(join(root, 'index.json'), 'utf8'));
@@ -91,13 +92,13 @@ async function main() {
   const referenceFlag = process.argv.indexOf('--reference');
   if (referenceFlag >= 0 && !process.argv[referenceFlag + 1]) throw new Error('Supply a reference JSON path after --reference.');
   const reference = decisionReferenceSchema.parse(JSON.parse(await readFile(referenceFlag >= 0 ? process.argv[referenceFlag + 1] : 'examples/benchmark/decision-reference.json', 'utf8')));
-  const agentFiles = ['lib/python-agent.ts', 'lib/python-types.ts', 'lib/model.ts', 'lib/decision-evaluation.ts', 'scripts/evaluate-decisions.ts', 'package-lock.json'];
+  const agentFiles = ['lib/python-agent.ts', 'lib/python-types.ts', 'lib/model.ts', 'lib/verification-policy.ts', 'lib/decision-evaluation.ts', 'scripts/evaluate-decisions.ts', 'package-lock.json'];
   const agentSnapshot = await Promise.all(agentFiles.map(async file => [file, await readFile(file, 'utf8')]));
   const agentFingerprint = decisionHash(agentSnapshot);
   scoreDecisions(decisionCases, reference, [], repeat, agentFingerprint);
   const root = resolve('.evidence/decision-evaluation', new Date().toISOString().replaceAll(/[:.]/g, '-') + '-' + randomUUID().slice(0, 8));
   const tasks = { testReviewTask, diagnosisTask };
-  const index = { schemaVersion: 2, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', repeat, datasetHash: decisionHash(decisionCases), referenceHash: decisionHash(reference), tasksHash: decisionHash(tasks), agentFingerprint, status: 'running' };
+  const index = { schemaVersion: 2, policyVersion: verificationPolicyVersion, modelTimeoutSeconds: defaultModelResponseSeconds, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', repeat, datasetHash: decisionHash(decisionCases), referenceHash: decisionHash(reference), tasksHash: decisionHash(tasks), agentFingerprint, status: 'running' };
   await mkdir(root, { recursive: true });
   await writeFile(join(root, 'index.json'), JSON.stringify(index, null, 2));
   await writeFile(join(root, 'cases.json'), JSON.stringify(decisionCases, null, 2));
