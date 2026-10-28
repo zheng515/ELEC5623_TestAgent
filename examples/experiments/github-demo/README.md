@@ -12,6 +12,6 @@ Three fresh B3 runs measure variation on the pinned source and full SRS. Correct
 copy probes test whether generated failures disappear after the external threshold
 patch. Source and requirements remain unchanged between repeats. No website run
 history or account credentials are exported. This fixture is retained for regression
-checks; a replacement five-project benchmark has not been selected.
+checks. The later scoped public-library benchmark uses separate projects.
 
 npm run evaluate -- examples/experiments/github-demo/manifest.json

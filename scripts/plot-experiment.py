@@ -1,5 +1,6 @@
 """Render standalone experiment figures from recorded measurements only."""
 import json
+import statistics
 import sys
 import textwrap
 from pathlib import Path
@@ -148,5 +149,33 @@ if any("referenceFailureObserved" in row for row in rows):
     ax.yaxis.get_major_locator().set_params(integer=True)
     ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1, 1))
     save(fig, "07-reference-replay", "Reference copies passed fixed external contract witnesses. Remaining assertion failures are disagreements to investigate, not independently established false positives. Empty, erroneous or skipped replays are unavailable.")
+
+if len(labels) == 2 and len(cases) > 1:
+    fig, axes = plt.subplots(1, 2, figsize=(12, max(4.8, len(cases) * .55 + 2)))
+    for ax, key, title, xlabel in [
+        (axes[0], "elapsedSeconds", "Per-project median latency", "Seconds per workflow (log scale)"),
+        (axes[1], "totalTokens", "Per-project total token usage", "Tokens across repeats (log scale)"),
+    ]:
+        for i, case in enumerate(cases):
+            values = []
+            for variant in labels:
+                subset = [row for row in rows if row["caseId"] == case and row["variant"] == variant]
+                observed = [row[key] for row in subset if row[key] is not None]
+                values.append((statistics.median(observed) if key == "elapsedSeconds" else sum(observed))
+                              if observed and len(observed) == len(subset) else None)
+            if all(value is not None and value > 0 for value in values):
+                ax.plot(values, [i, i], color="#cbd5e1", linewidth=2)
+                ax.annotate(f"{values[1] / values[0]:.2f}x", (max(values), i), xytext=(9, 0),
+                            textcoords="offset points", va="center", fontsize=9)
+            for j, value in enumerate(values):
+                if value is not None and value > 0:
+                    ax.scatter(value, i, color=colors[j], s=65, label=labels[j] if i == 0 else None, zorder=3)
+        ax.set_xscale("log")
+        ax.set(yticks=range(len(cases)), yticklabels=cases, title=title, xlabel=xlabel)
+        ax.invert_yaxis()
+        ax.margins(x=.35, y=.15)
+        ax.grid(axis="x", alpha=.15)
+        ax.legend(frameon=False)
+    save(fig, "08-project-resource-tradeoffs", "Each project retains every repeat. Ratios compare the second configuration to the first. Unknown measurements are omitted, never treated as zero. Different workflow budgets prevent an equal-cost or isolated-component claim.")
 
 print(f"Saved PNG and SVG figures to {figures}")

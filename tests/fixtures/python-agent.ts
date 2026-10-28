@@ -43,7 +43,16 @@ export async function project(t: TestContext, files: Record<string, string> = {}
 
 export const approval = (...ids: string[]) => ({
   decisions: ids.map(testId => ({ testId, supported: true, reason: 'Exact contract', quote: rule })),
+  coverage: [{ ruleId: 'R1', quote: rule, complete: true, reason: 'Controlled suite covers the stated example.', testIds: ids, missingExamples: [] }],
 });
+
+// Explicit coverage fixture for tests whose subject is another verification gate.
+export function recordCoverage(report: PythonReport) {
+  report.testAttempts = [{ phase: 'generation', reason: 'Controlled coverage fixture.', status: 'applied', tests: structuredClone(report.tests), coverageRuleIds: report.rules.map(rule => rule.id), coverage: report.rules.flatMap(rule => {
+    const testIds = report.tests.filter(test => test.approved && report.analysis?.behaviors.some(behavior => behavior.id === test.behaviorId && behavior.ruleId === rule.id)).map(test => test.id);
+    return testIds.length ? [{ ruleId: rule.id, quote: rule.text, complete: true, reason: 'Controlled suite covers the stated examples.', testIds, missingExamples: [] }] : [];
+  }) }];
+}
 
 // Fixed responses keep real sandbox workflows reproducible without calling a model.
 export function scripted(...responses: unknown[]): Reason {

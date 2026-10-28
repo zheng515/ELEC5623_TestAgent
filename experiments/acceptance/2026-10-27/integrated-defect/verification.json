@@ -1,6 +1,0 @@
-{
-  "project": "examples/experiments/full-srs/project",
-  "requirements": "examples/experiments/full-srs/SRS.md",
-  "output": ".evidence/verification",
-  "requireVerified": true
-}

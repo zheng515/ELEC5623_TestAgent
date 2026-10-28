@@ -1,4 +1,0 @@
-For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.
-For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.
-For negative built-in int hours, booking.cancellation_fee raises ValueError.
-For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.

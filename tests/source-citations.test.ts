@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { asSchema } from 'ai';
 import { createHash } from 'node:crypto';
-import { sourceEvidenceSchema, groundedAnalysisSchema, groundedDiagnosisSchema, originalQuoteSchema, analysisSchema, diagnosisSchema, reviewTestsSchema } from '../lib/python-types';
-import { reason, validateAnalysis, assertionPolicy, testReviewTask, type ReasonUsage } from '../lib/python-agent';
+import { sourceEvidenceSchema, groundedAnalysisSchema, groundedDiagnosisSchema, originalQuoteSchema, analysisSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema } from '../lib/python-types';
+import { reason, validateAnalysis, assertionPolicy, testReviewTask, mutationReviewTask, type ReasonUsage } from '../lib/python-agent';
 import { analysis, artifact, code, rule, report } from './fixtures/python-agent';
 
 test('source references resolve exact lines and reject invented, blank and out-of-file references', () => {
@@ -50,6 +50,7 @@ test('mocked official SDK requests send numbered files, restore originals and fa
   t.after(() => { globalThis.fetch = savedFetch; if (savedKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = savedKey; });
   process.env.OPENAI_API_KEY = 'source-citation-fixture-not-a-key';
   const original = 'R1\n' + rule;
+  let expectedRequirement = original;
   const context = { rules: [{ id: 'R1', text: original }], files: { 'shipping.py': code, 'reqtest_generated/test_reqtest_T1.py': artifact.code }, existingTests: [], failedTestIds: ['T1'] };
   const before = structuredClone(context), prompts: string[] = [];
   let numbered = true;
@@ -66,7 +67,7 @@ test('mocked official SDK requests send numbered files, restore originals and fa
     assert.equal(body.max_output_tokens, 8000);
     prompts.push(prompt);
     assert.equal(JSON.parse(prompt).files['shipping.py'], numbered ? '1: def fee(amount):\n2:     return 0 if amount >= 10000 else 1000\n3: ' : code);
-    assert.equal(JSON.parse(prompt).rules[0].text, original, 'Numbering never rewrites requirement text.');
+    assert.equal(JSON.parse(prompt).rules[0].text, expectedRequirement, 'Encoding never rewrites requirement text.');
     return Response.json({ id: 'resp_fixture', object: 'response', created_at: 1, status: 'completed', model: body.model,
       output: [{ id: 'msg_fixture', type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify(output), annotations: [] }] }],
       usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } });
@@ -84,9 +85,19 @@ test('mocked official SDK requests send numbered files, restore originals and fa
   await assert.rejects(reason(analysisSchema, 'Invalid source reference', context, 'gpt-6-luna', new AbortController().signal));
   assert.equal(prompts.length, 3, 'Invalid lines do not trigger automatic provider retries or a fallback to copied quotes.');
   numbered = false;
-  output = { decisions: [{ testId: 'T1', supported: true, reason: 'Review wire fixture.', quote: 'R1' }] };
+  output = { decisions: [{ testId: 'T1', supported: true, reason: 'Review wire fixture.', quote: 'R1' }], coverage: [{ ruleId: 'R1', quote: 'R1', complete: true, reason: 'Controlled coverage.', testIds: ['T1'], missingExamples: [] }] };
   const review = await reason(reviewTestsSchema, testReviewTask, context, 'gpt-6-luna', new AbortController().signal);
   assert.equal(review.decisions[0].quote, original);
+  assert.equal(review.coverage[0].quote, original);
   assert.equal(prompts.length, 4, 'Review keeps the unmodified source view and a single policy copy.');
+  const mutationContext = { ...context, rules: [{ id: 'R1', text: rule }], pairs: ['B1', 'B2'].map(behaviorId => ({ id: 'Mutant #1', behaviorId })), mutants: [{ id: 'Mutant #1', file: 'shipping.py', line: 2, diff: '- >= 10000\n+ > 10000' }] };
+  expectedRequirement = rule;
+  output = { decisions: mutationContext.pairs.map(pair => ({ mutantId: pair.id, behaviorId: pair.behaviorId, quote: 'R1', relevant: true, reason: 'Controlled shared-diff wire fixture.' })) };
+  const mutations = await reason(relevanceSchema, mutationReviewTask, mutationContext, 'gpt-6-luna', new AbortController().signal);
+  assert.equal(mutations.decisions.length, 2);
+  assert.ok(mutations.decisions.every(decision => decision.quote === rule), 'Mutation reviews use short rule IDs even for single-line contracts, restored to the full original text.');
+  const shared = JSON.parse(prompts.at(-1)!);
+  assert.equal(shared.mutants.length, 1);
+  assert.deepEqual(shared.pairs, mutationContext.pairs);
   assert.deepEqual(context, before, 'Saved source and caller input remain unchanged.');
 });

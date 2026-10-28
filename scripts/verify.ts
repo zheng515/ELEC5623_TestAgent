@@ -11,10 +11,11 @@ import { runPython } from "../lib/python-agent";
 import type { PythonReport } from "../lib/python-types";
 import { parseRequirementInput } from '../lib/requirement-input';
 import { verificationGate } from '../lib/run-evaluation';
+import { verificationPolicySchema } from '../lib/verification-policy';
 async function main() {
   loadEnvConfig(process.cwd(), true);
   if (!process.env.OPENAI_API_KEY) throw new Error("Configure OPENAI_API_KEY. This command makes paid model requests.");
-  const config = z.object({ project: z.string(), requirements: z.string(), output: z.string().default(".evidence/verification"), requireVerified: z.boolean().default(true) }).parse(JSON.parse(await readFile(process.argv[2] || "examples/verification.json", "utf8")));
+  const config = z.object({ project: z.string(), requirements: z.string(), output: z.string().default(".evidence/verification"), requireVerified: z.boolean().default(true), policy: verificationPolicySchema.default(() => verificationPolicySchema.parse({})) }).parse(JSON.parse(await readFile(process.argv[2] || "examples/verification.json", "utf8")));
   const directory = resolve(config.project), zip = new JSZip();
   async function visit(path: string) {
     for (const entry of await readdir(path, { withFileTypes: true })) {
@@ -31,7 +32,7 @@ async function main() {
   await mkdir(join(root, "generated"), { recursive: true });
   const snapshot = await importProject(root, await zip.generateAsync({ type: "nodebuffer" }));
   process.env.REQTEST_SANDBOX_IMAGE = await sandboxImage();
-  const report: PythonReport = { runtime: snapshot.runtime, id, title: "CI verification", createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || "gpt-6-luna", source: config.project, fingerprint: snapshot.fingerprint, requirementInput, status: "running", stage: "", rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: ["Model-generated assessments require review. CI completion is not exhaustive correctness."] };
+  const report: PythonReport = { policy: config.policy, runtime: snapshot.runtime, id, title: "CI verification", createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || "gpt-6-luna", source: config.project, fingerprint: snapshot.fingerprint, requirementInput, status: "running", stage: "", rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: ["Model-generated assessments require review. CI completion is not exhaustive correctness."] };
   const controller = new AbortController(); process.once("SIGINT", () => controller.abort());
   const save = () => writeFile(join(root, "report.json"), JSON.stringify(report, null, 2));
   try { await runPython(report, root, AbortSignal.any([controller.signal, AbortSignal.timeout(600000)]), async stage => { console.log(stage); await save(); }); }

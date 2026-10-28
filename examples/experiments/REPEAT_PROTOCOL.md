@@ -1,7 +1,9 @@
 # Repeated workflow comparison
 
-Status: 18-run scope authorized on 2026-10-27. This is an executable study
-plan, not a results report or the separate five-project benchmark.
+Status: reusable B0/B3 development-study protocol. Previous execution outputs
+were removed on 2026-10-28 at the user's request. This file does not authorize
+or establish completion of a new paid experiment. The current v12 plan is
+examples/experiments-budgeted.json; see ../../experiments/README.md.
 
 ## Question and scope
 
@@ -10,16 +12,10 @@ B0 generation, and what extra execution evidence does it provide for its token
 and latency overhead? Equal or worse detection is a valid result. Do not tune
 prompts between repetitions to obtain an advantage.
 
-The earlier six-run pilot found both defects with both configurations and used
-more resources for B3. It did not exercise successful refinement or establish
-repeatability. Its frozen outputs remain observations of their original source,
-not a control group for the current implementation.
-
-The approved manifest is `examples/experiments-repeat.json`: three existing
-development projects, B0/B3 and three repetitions, giving 18 complete workflow
-runs. These are nine runs per configuration, including six seeded-defect runs.
-The user authorized real execution of this scope. The earlier six-run scope
-remains available in `examples/experiments-pilot.json`.
+The manifest examples/experiments-repeat.json defines three development projects,
+B0/B3 and three repetitions, giving 18 planned workflow runs. All future execution
+must freeze the current policy, source and runtime before calls. No previous
+score, authorization or timing is carried forward as a new result.
 
 | Case | Condition | Objective observation |
 | --- | --- | --- |

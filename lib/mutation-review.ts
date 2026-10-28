@@ -4,11 +4,26 @@ type Mutant = Mutation['mutants'][number];
 type Decision = PythonReport['relevance'][number];
 export type MutationReviewPair = Mutant & { behaviorId: string };
 
+export function mutationReviewContext(report: PythonReport, files: Record<string, string>, pairs: MutationReviewPair[]) {
+  const behaviors = (report.analysis?.behaviors || []).filter(behavior => pairs.some(pair => pair.behaviorId === behavior.id));
+  const inconsistencies = (report.analysis?.inconsistencies || []).filter(item => item.behaviorIds.some(id => behaviors.some(behavior => behavior.id === id)));
+  const names = new Set([...pairs.map(pair => pair.file), ...behaviors.flatMap(behavior => [...behavior.files, ...behavior.existingTests.map(node => node.split('::')[0]), ...behavior.evidence.map(item => item.file)]), ...inconsistencies.flatMap(item => item.evidence.map(evidence => evidence.file))]);
+  return {
+    rules: report.rules,
+    requirementContext: report.requirementInput?.context || '',
+    analysis: { behaviors: behaviors.map(({ id, ruleId, text, category, issue, reason, files }) => ({ id, ruleId, text, category, issue, reason, files })), inconsistencies },
+    files: Object.fromEntries(Object.entries(files).filter(([file]) => names.has(file))),
+    mutants: [...new Map(pairs.map(({ id, file, line, diff }) => [id, { id, file, line, diff }])).values()],
+    pairs: pairs.map(({ id, behaviorId }) => ({ id, behaviorId })),
+    contextScope: 'All original rules and supporting requirement context are retained for cross-cutting constraints. Only mapped files are supplied; unshown dependencies are not validated. Preserve uncertainty when the evidence is insufficient.',
+  };
+}
+
 export function groundedMutationDecision(report: PythonReport, mutant: Mutant, decision: Decision) {
   const behavior = report.analysis?.behaviors.find(behavior => behavior.id === decision.behaviorId);
   return decision.grounded === true && decision.mutantId === mutant.id && decision.file === mutant.file &&
     Boolean(mutant.diff.trim()) && decision.diff === mutant.diff && Boolean(decision.reason.trim()) &&
-    Boolean(behavior?.files.includes(mutant.file) && decision.quote.trim() && report.rules.find(rule => rule.id === behavior.ruleId)?.text.includes(decision.quote));
+    Boolean(behavior?.files.includes(mutant.file) && decision.quote.trim() && report.rules.find(rule => rule.id === behavior.ruleId)?.text === decision.quote);
 }
 
 export const survivorLabels = {

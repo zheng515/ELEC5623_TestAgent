@@ -1,8 +1,0 @@
-{
-  "purpose": "pilot",
-  "repeat": 1,
-  "variants": ["B3"],
-  "cases": [
-    { "id": "booking", "project": "examples/benchmark/booking/project", "requirements": "examples/benchmark/booking/SRS.txt", "gold": "examples/benchmark/booking/gold.json", "oracle": "examples/experiments/oracles/booking.py" }
-  ]
-}

@@ -1,7 +1,8 @@
 # Scoped public-project benchmark
 
-Status: 30 real-model workflow runs authorized on 2026-10-27. This benchmark runs
-outside the website. It is not the academic report or an external-product contest.
+Status: reusable public-module fixtures and a 30-workflow manifest. Previous
+execution results were removed at the user's request on 2026-10-28. These inputs
+do not establish current model performance. This benchmark runs outside the website. It is not the academic report or an external-product contest.
 
 ## Source and scope
 
