@@ -1,0 +1,38 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "contract-1",
+      "ruleId": "R1",
+      "description": "pathspec.PathSpec.from_lines('gitwildmatch', lines) compiles gitignore-style patterns supplied as an iterable of strings.",
+      "initialGap": true
+    },
+    {
+      "id": "contract-2",
+      "ruleId": "R2",
+      "description": "A '*.py' pattern matches a Python filename such as 'app.py' or 'src/app.py', but does not match 'notes.txt'.",
+      "initialGap": true
+    },
+    {
+      "id": "contract-3",
+      "ruleId": "R3",
+      "description": "A pattern prefixed with '!' negates the match; with patterns ['*.py', '!keep.py'], match_file('keep.py') is False and match_file('other.py') is True.",
+      "initialGap": true
+    },
+    {
+      "id": "contract-4",
+      "ruleId": "R4",
+      "description": "A directory pattern ending with '/' matches descendants; with ['build/'], match_file('build/output.txt') is True and match_file('src/output.txt') is False.",
+      "initialGap": true
+    },
+    {
+      "id": "contract-5",
+      "ruleId": "R5",
+      "description": "PathSpec.match_files yields matching input file paths; matching ['app.py','notes.txt','src/app.py'] against ['*.py'] selects the two Python paths.",
+      "initialGap": true
+    }
+  ]
+}

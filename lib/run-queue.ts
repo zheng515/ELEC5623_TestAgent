@@ -68,7 +68,7 @@ export async function checkpointStore(runId: string, job: RunJob): Promise<Check
       return entry.isDirectory() ? sourceFiles(path) : [Buffer.from(path.slice(root.length)), await readFile(path)];
     }))).flat();
   }
-  const files: Buffer[] = await Promise.all(["python-agent.ts", "python-tools.ts", "python-types.ts", "mutation-review.ts", "runtime.ts", "test-services.ts"].map(file => readFile(join(process.cwd(), "lib", file))));
+  const files: Buffer[] = await Promise.all(["python-agent.ts", "python-tools.ts", "python-types.ts", "verification-policy.ts", "model.ts", "requirement-coverage.ts", "mutation-review.ts", "test-suite.ts", "runtime.ts", "test-services.ts"].map(file => readFile(join(process.cwd(), "lib", file))));
   files.push(...await sourceFiles(join(root, "source")), await readFile(join(root, "runtime.json")).catch(() => Buffer.from("python")));
   const hash = createHash("sha256");
   for (const file of files) hash.update(String(file.length) + ":").update(file);
@@ -93,7 +93,7 @@ export async function executeRun(job: RunJob, ask: Reason = reason) {
   const row = (await database.query("SELECT report,cancel_requested FROM runs WHERE id=$1 AND user_id=$2", [runId, userId])).rows[0];
   if (!row || row.cancel_requested || row.report.status !== "running") return;
   const original: PythonReport = row.report;
-  const report: PythonReport = { ...original, status: "running", stage: "Resuming", error: undefined, stopReason: undefined, testAttempts: undefined, improvementProposal: undefined, tests: original.replay ? original.tests : [], measurements: [], mutations: [], diagnoses: [], proposedDiagnoses: undefined, relevance: [], improvements: [], states: [], initialStates: undefined, analysis: original.replay ? original.analysis : undefined, analysisCorrection: undefined };
+  const report: PythonReport = { ...original, status: "running", stage: "Resuming", error: undefined, stopReason: undefined, testAttempts: original.replay ? original.testAttempts : undefined, improvementProposal: undefined, tests: original.replay ? original.tests : [], measurements: [], mutations: [], diagnoses: [], proposedDiagnoses: undefined, relevance: [], improvements: [], states: [], initialStates: undefined, analysis: original.replay ? original.analysis : undefined, analysisCorrection: undefined };
   report.execution = { ...original.execution!, attempt: job.retryCount + 1, recovered: job.retryCount > 0 };
   const cancelled = new AbortController(), signal = AbortSignal.any([job.signal, cancelled.signal]);
   const timer = setInterval(async () => {

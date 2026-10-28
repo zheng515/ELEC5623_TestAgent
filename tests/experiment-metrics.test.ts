@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { pairedMutationCounts, summarizeExperiment, experimentRow, type ExperimentItem } from '../lib/experiment-metrics';
+import { pairedMutationCounts, summarizeExperiment, experimentRow, compareSharedInitialSuites, type ExperimentItem } from '../lib/experiment-metrics';
+import { executableSuiteHash } from '../lib/test-suite';
 import type { PythonReport, Mutation } from '../lib/python-types';
 
 function fixture(): ExperimentItem {
@@ -47,6 +48,27 @@ test('unknown request usage stays unavailable rather than being billed as zero t
   const item = fixture(); item.requests!.push({ elapsedMs: 200, error: 'Request failed.' });
   const result = experimentRow(item);
   assert.equal(result.modelRequests, 2); assert.equal(result.requestErrors, 1); assert.equal(result.totalTokens, null);
+});
+test('zero paid requests cost zero tokens; missing usage remains unavailable', () => {
+  const item = fixture(); item.requests = [];
+  assert.equal(experimentRow(item).totalTokens, 0);
+  delete item.requests; assert.equal(experimentRow(item).totalTokens, null);
+});
+test('paired continuation charges its prefix and verifies unchanged initial executable artifacts', () => {
+  const prefix = fixture(), after = fixture(); prefix.entry.variant = 'B1'; prefix.entry.report = 'initial.json'; prefix.report!.variant = 'B1'; prefix.report!.id = 'prefix';
+  after.entry.initialReport = prefix.entry.report;
+  after.report!.initialSuite = { reportId: 'prefix', executableHash: executableSuiteHash(prefix.report!.tests) };
+  after.report!.testAttempts = [{ phase: 'generation', reason: 'Shared prefix audit.', status: 'applied', tests: structuredClone(prefix.report!.tests) }];
+  const row = compareSharedInitialSuites([prefix, after])[0];
+  assert.equal(row.sharedInitialVerified, true);
+  assert.equal(row.endToEndRequests, 2); assert.equal(row.additionalRequests, 1);
+  assert.equal(row.endToEndTokens, 60); assert.equal(row.endToEndSeconds, 4);
+  assert.equal(row.additionalFaultDetected, false); assert.equal(row.lostFaultDetection, false);
+  after.report!.testAttempts[0].tests[0].code = 'Replacement initial suite';
+  assert.throws(() => compareSharedInitialSuites([prefix, after]), /preserve/);
+  after.report!.status = 'failed'; after.report!.error = 'Follow-up model request budget exhausted. Saved evidence is retained.';
+  const stopped = compareSharedInitialSuites([prefix, after])[0];
+  assert.equal(stopped.budgetExhausted, true); assert.equal(stopped.finalFaultDetected, null);
 });
 test('reference disagreements require actual usable replay and never become semantic accuracy', () => {
   const item = fixture();

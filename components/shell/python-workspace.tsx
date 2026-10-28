@@ -18,6 +18,7 @@ import type { GitHubConnectionStatus } from "@/lib/github-config";
 import { browserTest } from "@/lib/runtime";
 import { RuntimeStatus, useRuntimeHealth } from "./runtime-health";
 import { VerificationGuide } from './verification-guide';
+import { interactivePolicy, requestUsage } from '@/lib/verification-policy';
 
 export function PythonWorkspace({ model, configured, onRunningChange, onOpenEvaluation }: { model: string; configured: boolean; onRunningChange: (running: boolean) => void; onOpenEvaluation: (runId: string) => void }) {
   const runtimeStatus = useRuntimeHealth();
@@ -146,6 +147,12 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
     {!busy && !selected && <VerificationGuide firstRun={!runs.length} />}
     <form noValidate ref={formRef} key={parent?.id || 'new'} onSubmit={run} className="space-y-5" hidden={busy || Boolean(selected)}>
       <label className="block space-y-2">Run name<Input name="title" required maxLength={120} defaultValue={parent ? parent.title + ' — re-run' : 'Project verification'} /></label>
+      <div className="grid gap-5 md:grid-cols-2">
+        <label className="block space-y-2">Verification depth<NativeSelect name="mutationChecks" defaultValue={String(parent?.policy?.mutationChecks ?? interactivePolicy.mutationChecks)}>
+          <NativeSelectOption value="false">Requirement checks</NativeSelectOption><NativeSelectOption value="true">Requirement and mutation checks</NativeSelectOption>
+        </NativeSelect><span className="block text-xs text-muted-foreground">Both review original requirements, execute approved tests and investigate failures. Mutation checks examine test strength and may take longer. Without them, passing cases remain partially verified.</span></label>
+        <label className="block space-y-2">Maximum model requests (optional)<Input name="modelRequestLimit" type="number" min={1} step={1} placeholder="No limit" defaultValue={parent?.policy?.modelRequestLimit ?? ''} /><span className="block text-xs text-muted-foreground">Leave empty for no limit; every request is still recorded. When set, the run stops before exceeding it, including failed or interrupted requests, and saves partial results. This limits request count, not a monetary charge.</span></label>
+      </div>
       {parent ? <div className="space-y-3 border rounded p-4"><p>Reusing the saved code snapshot from {parent.title}. The previous report stays unchanged.</p><p>{parent.source}</p><details><summary>Previous requirements</summary><div className="max-h-64 overflow-auto">{parent.rules.map(rule => <blockquote key={rule.id}>{rule.id}: {rule.text}</blockquote>)}</div></details><label className="block">Clarification — additional requirements, one per line<Textarea name="clarification" rows={4} placeholder="State the intended rule that resolves the earlier ambiguity. These statements become new requirements in this run." /></label></div> : <>
         <fieldset aria-label="Project configuration" className="space-y-5" disabled={checking} onChange={() => setSetup(undefined)}>
           <div className="grid gap-5 md:grid-cols-2">
@@ -212,6 +219,8 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
         </>}
         <details className="text-sm text-muted-foreground"><summary className="cursor-pointer">Run details</summary><div className="mt-3 space-y-2">
           <p>Workflow: {selected.status}. This is separate from test and requirement results.</p>
+          {selected.resources && <p>Model requests: {requestUsage(selected).used}/{selected.resources.limit ?? 'no limit'}{selected.resources.limit !== null && <> · {requestUsage(selected).remaining} remaining</>}. Reported tokens: {requestUsage(selected).reportedTokens}; usage unavailable for {requestUsage(selected).unknownUsage} requests.{selected.resources.exhausted ? ' Request budget exhausted; this run is incomplete.' : ''}</p>}
+          {selected.policy && <p>Mutation checks: {selected.policy.mutationChecks ? 'Requested; inspect measurements for actual completion.' : 'Not requested. Test strength against mutations remains unassessed.'}</p>}
           {selected.execution && <p>{selected.execution.recovered ? `Worker recovery attempt ${selected.execution.attempt}. Saved checkpoints are reused when available.` : selected.execution.attempt ? 'Processed by the background verification worker.' : 'Queued. Waiting for an available background worker.'}</p>}
           {selected.replay && <p>Saved tests re-executed without model calls. Original analysis and reviews were reused; no new diagnosis or mutation analysis was performed.</p>}
           {selected.requirementDocument && <p>Document scope: {selected.requirementDocument.selectedBlocks} of {selected.requirementDocument.totalBlocks} original text blocks linked from {selected.requirementDocument.fileName}. Edited text without an exact match has no original-block citation.</p>}

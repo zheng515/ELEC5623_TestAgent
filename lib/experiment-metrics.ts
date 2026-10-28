@@ -2,13 +2,40 @@ import { createHash } from 'node:crypto';
 import { testFile } from './runtime';
 import type { Gold, FaultProbe } from './evaluation';
 import type { PythonReport, Mutation, Measurement } from './python-types';
+import { executableSuiteHash } from './test-suite';
 
-export type ExperimentEntry = { caseId: string; variant: string; repeat: number; report: string; gold: string; review: string; requests?: string; reference?: string; referenceExecution?: string; elapsedMs?: number; fault?: FaultProbe };
+export type ExperimentEntry = { caseId: string; variant: string; repeat: number; report: string; gold: string; review: string; requests?: string; reference?: string; referenceExecution?: string; elapsedMs?: number; fault?: FaultProbe; initialReport?: string };
 export type RequestRecord = { elapsedMs: number; usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number }; error?: string };
 export type ReferenceCheck = { valid: boolean; sourceFingerprint: string; faultHash: string; oracleHash: string };
 export type ReferenceExecution = Measurement & { sourceFingerprint: string; suiteHash: string };
 export type ExperimentItem = { entry: ExperimentEntry; report?: PythonReport; gold?: Gold; reference?: ReferenceCheck; referenceExecution?: ReferenceExecution; requests?: RequestRecord[] };
 const ratio = (a: number, b: number) => b ? a / b : null;
+export function compareSharedInitialSuites(items: ExperimentItem[]) {
+  return items.filter(item => item.entry.variant === 'B3').map(item => {
+    const prefix = items.find(candidate => candidate.entry.caseId === item.entry.caseId && candidate.entry.repeat === item.entry.repeat && candidate.entry.variant === 'B1');
+    const before = prefix && experimentRow(prefix), after = experimentRow(item);
+    const initial = item.report?.testAttempts?.find(attempt => attempt.phase === 'generation');
+    const hash = prefix?.report && executableSuiteHash(prefix.report.tests);
+    const shared = !!hash && prefix?.report?.status === 'completed' && item.entry.initialReport === prefix.entry.report && item.report?.initialSuite?.reportId === prefix.report.id && item.report.initialSuite.executableHash === hash;
+    const unchanged = shared && !!initial && executableSuiteHash(initial.tests) === hash;
+    if (item.report?.status === 'completed' && !unchanged) throw new Error('A paired continuation must preserve its linked B1 initial executable suite.');
+    if (shared && (prefix!.report!.fingerprint !== item.report!.fingerprint || prefix!.report!.model !== item.report!.model || JSON.stringify(prefix!.report!.rules) !== JSON.stringify(item.report!.rules) || JSON.stringify(prefix!.report!.requirementInput) !== JSON.stringify(item.report!.requirementInput) || prefix!.report!.configuration?.sandboxImage !== item.report!.configuration?.sandboxImage)) throw new Error('Paired inputs must match.');
+    const sum = (a: number | null | undefined, b: number | null) => a == null || b === null ? null : a + b;
+    return { caseId: item.entry.caseId, repeat: item.entry.repeat, status: after.status, sharedInitialVerified: unchanged,
+      initialReport: prefix?.entry.report || null, followupReport: item.entry.report,
+      initialFaultDetected: before?.faultAfter ?? null, finalFaultDetected: after.faultAfter,
+      additionalFaultDetected: before?.faultAfter === false && after.faultAfter === true,
+      lostFaultDetection: before?.faultAfter === true && after.faultAfter === false,
+      initialReferenceFailure: before?.referenceFailureObserved ?? null, finalReferenceFailure: after.referenceFailureObserved,
+      blockedInitialCandidates: initial?.tests.filter(test => !test.approved).length ?? null,
+      improvements: item.report?.improvements.length ?? null,
+      prefixRequests: before?.modelRequests ?? null, additionalRequests: after.modelRequests, endToEndRequests: sum(before?.modelRequests, after.modelRequests),
+      prefixTokens: before?.totalTokens ?? null, additionalTokens: after.totalTokens, endToEndTokens: sum(before?.totalTokens, after.totalTokens),
+      prefixSeconds: before?.elapsedSeconds ?? null, additionalSeconds: after.elapsedSeconds, endToEndSeconds: sum(before?.elapsedSeconds, after.elapsedSeconds),
+      budgetExhausted: item.report?.resources?.exhausted || item.report?.error?.startsWith('Follow-up model request budget exhausted.') || false,
+    };
+  });
+}
 export function pairedMutationCounts(before?: Mutation, after?: Mutation) {
   const usable = (item?: Mutation) => item && !item.incomplete && !item.timedOut && item.mutants.length && new Set(item.mutants.map(mutant => `${mutant.file}:${mutant.id}`)).size === item.mutants.length && item.mutants.every(mutant => mutant.diff && ['killed', 'survived'].includes(mutant.status));
   const keys = (item: Mutation) => item.mutants.map(mutant => [mutant.id, mutant.file, mutant.diff]).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
@@ -44,7 +71,7 @@ export function experimentRow({ entry, report, gold, reference, referenceExecuti
   };
   const mutation = report && report.mutations.length > 1 ? pairedMutationCounts(report.mutations[0], report.mutations.at(-1)) : null;
   const lastMutation = report?.mutations.at(-1);
-  const tokens = (key: 'inputTokens' | 'outputTokens' | 'totalTokens') => requests?.length && requests.every(request => typeof request.usage?.[key] === 'number') ? requests.reduce((sum, request) => sum + request.usage![key]!, 0) : null;
+  const tokens = (key: 'inputTokens' | 'outputTokens' | 'totalTokens') => requests && requests.every(request => typeof request.usage?.[key] === 'number') ? requests.reduce((sum, request) => sum + request.usage![key]!, 0) : null;
   return {
     caseId: entry.caseId, variant: entry.variant, repeat: entry.repeat, status: report?.status || 'missing',
     elapsedSeconds: entry.elapsedMs === undefined ? null : entry.elapsedMs / 1000,

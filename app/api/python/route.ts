@@ -11,6 +11,7 @@ import { documentText, parseRequirementInput, ruleSources, sourceMatches } from 
 import { jobs, interruptedReport } from "@/lib/python-jobs";
 import { sameOrigin } from "@/lib/request";
 import type { PythonReport } from "@/lib/python-types";
+import { interactivePolicy, verificationPolicySchema } from '@/lib/verification-policy';
 
 export const runtime = "nodejs";
 export async function GET(request: Request) {
@@ -57,6 +58,9 @@ export async function POST(request: Request) {
   try {
     const form = await request.formData();
     const replay = form.get('mode') === 'saved_tests';
+    const mutationChoice = form.get('mutationChecks');
+    if (mutationChoice !== null && mutationChoice !== 'true' && mutationChoice !== 'false') throw new Error('Choose whether to run mutation checks.');
+    const policy = verificationPolicySchema.parse({ mutationChecks: mutationChoice === 'true', modelRequestLimit: String(form.get('modelRequestLimit') ?? '').trim() ? Number(form.get('modelRequestLimit')) : interactivePolicy.modelRequestLimit });
     if (!replay && !process.env.OPENAI_API_KEY) throw new Error('Configure OPENAI_API_KEY in the root .env.local and restart.');
     const title = String(form.get('title') || 'Project verification').trim();
     const model = String(form.get('model') || process.env.REQTEST_LLM_MODEL || 'gpt-6-luna').trim().replace(/^openai\/(?=gpt-)/, '');
@@ -118,7 +122,7 @@ export async function POST(request: Request) {
       if (setup.setup.status === 'needs_setup' && form.get('allowEnvironmentFailure') !== 'true') throw new Error('Project dependencies do not match the sandbox. Check project setup first, prepare the image, or explicitly run to diagnose environment failures.');
       source = setup.source; fingerprint = setup.fingerprint; projectSetup = setup;
     }
-    report = { runtime: parent?.runtime || projectSetup?.runtime || 'python', execution: {queueId: id, image: (replay ? parent?.execution?.image || parent?.configuration?.sandboxImage : undefined) || projectSetup?.sandboxImage || await sandboxImage(), attempt: 0, recovered: false}, id, title, model, createdAt: new Date().toISOString(), source, fingerprint, workerId: jobs.workerId, parentRunId: parent?.id, clarification: clarification || undefined, projectSetup, requirementDocument, requirementInput, status: 'running', stage: 'Queued — waiting for verification worker', rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: [
+    report = { policy, runtime: parent?.runtime || projectSetup?.runtime || 'python', execution: {queueId: id, image: (replay ? parent?.execution?.image || parent?.configuration?.sandboxImage : undefined) || projectSetup?.sandboxImage || await sandboxImage(), attempt: 0, recovered: false}, id, title, model, createdAt: new Date().toISOString(), source, fingerprint, workerId: jobs.workerId, parentRunId: parent?.id, clarification: clarification || undefined, projectSetup, requirementDocument, requirementInput, status: 'running', stage: 'Queued — waiting for verification worker', rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: [
       'Verified describes mapped, reviewed cases and recorded execution; exhaustive correctness is not established.',
       'Model analysis, mappings, diagnoses and equivalence decisions require independent evaluation.',
       'Python/pytest/mutmut or Node.js/node:test/Stryker run in disposable containers. Selected test services use a private internal network; public network access is unavailable during tests.',
@@ -129,8 +133,10 @@ export async function POST(request: Request) {
       ...(requirementDocument ? ['Uploaded text is editable. Only exact original excerpts retain document citations; review extraction warnings. Analysis does not establish complete specification verification.'] : []),
     ] };
     if (replay && parent) {
+      report.policy = parent.policy || verificationPolicySchema.parse({});
       report.analysis = structuredClone(parent.analysis);
       report.tests = structuredClone(parent.tests);
+      report.testAttempts = structuredClone(parent.testAttempts);
       report.replay = { suiteHash: createHash('sha256').update(JSON.stringify(report.tests)).digest('hex'), states: structuredClone(parent.states) };
       report.model = parent.model;
       report.limitations.push('Saved-test execution makes no model calls. Original analysis and test reviews are reused; diagnoses and mutation measurements are not refreshed. Results may change for time-dependent or nondeterministic target code.');

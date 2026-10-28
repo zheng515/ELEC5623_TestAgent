@@ -14,10 +14,36 @@ policy for deciding whether a generated failure is eligible for repair.
 | [Meta ACH, official engineering description, 2025](https://engineering.fb.com/2025/02/05/security/revolutionizing-software-testing-llm-powered-bug-catchers-meta-ach/) | Generate concern-specific mutants and tests that detect them. | Fault-oriented feedback and plain-text testing concerns. | Combine document provenance, cross-artifact analysis and bounded failure diagnosis in a small verification workflow. Mutation-guided generation is prior work, not a novelty claim. ReqTest uses existing mutation tools and lacks ACH's industrial evidence. |
 
 These sources do not establish that competing tools lack a particular feature.
-No external competitor was run in the retained experiments. Avoid claims that
+No external competitor comparison is available in the current evidence. Avoid claims that
 ReqTest is the first agent, first closed loop, or stronger than general coding
 agents. Its contribution is the implemented integration and explicit decision
 policy, whose effectiveness still requires independent evaluation.
+
+## Contribution under test
+
+The contribution is an original-contract trace and a bounded policy for handling
+generated failures. It is an integration and decision-policy contribution, not a
+new test-generation algorithm. The current implementation keeps three claims
+separate:
+
+| Mechanism | Inspectable implementation | Evaluation question and current boundary |
+| --- | --- | --- |
+| Original contract trace | Exact document/file references, rule/behavior/test IDs and execution nodes | Can an independent reviewer justify each mapped assertion? Exact quotations establish provenance, not semantic correctness. |
+| Diagnosis before replacement | Grounded failure categories, one reviewed improvement and retained prior artifacts | Are valid failures preserved and generated errors corrected? Scripted regression establishes control paths; model accuracy needs independent labels. |
+| Conservative scoped states | Suite-bound coverage audits, stale-evidence rejection and explicit unassessed mutation scope | Does the system avoid unsupported Verified states? A minimal equality-boundary regression exercises stale-positive rejection; the guard is not general semantic proof. |
+
+Policy v12 makes mutation checks optional and records an enforced model-request
+budget across worker recovery. Both depths keep original-contract admission and
+failure handling. Passing checks without requested mutation assessment remain
+partially verified. No efficiency or quality advantage is established for this
+policy. Old-version experiment results were removed at the user's request on
+2026-10-28 and must not be cited as current evidence.
+
+See [architecture and choices](architecture.md) and [evaluation protocol](evaluation-protocol.md).
+No external competitor comparison, independent review or user-task result has
+been manufactured. A credible next test is whether users choose the right action
+from the retained requirement/assertion/trace evidence, rather than whether the
+system generates more tests.
 
 ## Inspectable implementation
 
@@ -29,57 +55,33 @@ policy, whose effectiveness still requires independent evaluation.
 | What happens after a proposal is rejected? | One bounded improvement can correct an explicitly rejected proposal with unique, valid original citations. A supported behavior without any proposal can receive a new reviewed check. | Original blocked proposal, replacement review and actual re-execution. Duplicate or ungrounded reviews do not authorize correction. |
 | Is a passing suite strong enough? | Selected mutation execution and original-contract survivor review. | Exact mutant differences and raw outcomes. Unreviewed relevance/equivalence judgments are not a gold mutation score. |
 
-## Concrete user workflows
+## Inspectable development scenarios
 
-These examples illustrate the implemented contribution. They are development
-evidence, not a benchmark against another product or independent accuracy labels.
-No model run is needed to inspect the saved records.
+These are source fixtures and deterministic regression scenarios, not model-quality
+results or independently reviewed accuracy labels:
 
-| Situation | What the user can inspect | Useful next action |
+| Situation | Reproducible source or regression | Intended decision |
 | --- | --- | --- |
-| A passing suite misses a stated boundary | The shipping SRS explicitly includes 10000 cents in free shipping. The implementation uses `> 10000`; a generated boundary assertion fails. The retained run has six passes and one failure, and its exported tests reproduce those outcomes. | Follow R2 to its behavior, assertion and failure. Investigate the implementation while keeping the requirement-grounded failing check. |
-| The Agent proposes a test that is not admitted | Each round records its candidate code, admission reasons and model review responses. A rejected retry leaves the earlier approved suite intact. Applied does not imply that execution passed. | Open Agent decisions, inspect the exact rejection, then clarify or regenerate. A zero-test run is not a verification success. |
-| A surviving mutation changes an unspecified detail | The saved strict-CI acceptance has two message-only survivors, each reviewed separately against all four mapped behaviors. The eight decisions support their individual exclusions; one decision cannot clear the entire file. | Inspect the exact diff and each cited requirement. Investigate a missing/relevant pair instead of interpreting every survivor as a business defect. |
-| A fresh generation produces different tests | Saved-test execution checks the same source fingerprint, image and saved suite without a model call. A separate regenerate action requests fresh analysis. | Repeat saved tests when investigating execution behavior; regenerate when revising requirements or analysis. Unresolved adequacy is not upgraded merely because the same tests pass again. |
+| An explicit equality example is missing from a passing suite | tests/requirement-coverage.test.ts constructs a minimal interior-only stale-positive fixture and exercises an additive boundary test in Docker. | Retain partial assurance until original-contract coverage and execution support a stronger state. |
+| A test asserts unsupported message text or imports the wrong module | tests/agent-safety.test.ts uses scripted responses with real Docker execution. | Reject the unsupported assertion or correct the generated import under the same admission gates. |
+| A valid assertion exposes a threshold defect | tests/python-agent.test.ts and tests/shared-initial-suite.test.ts retain the original implementation and failing assertion. | Investigate the implementation without weakening the assertion. |
+| A worker stops during a model request | tests/run-queue.test.ts kills and restarts a real worker. | Reuse completed checkpoints and retain interrupted request consumption. |
 
-Inspect the actual [shipping SRS and defect](../experiments/acceptance/2026-10-26/srs/README.md)
-and [strict-CI mutation acceptance](../experiments/acceptance/2026-10-26/strict-ci/README.md).
-Both are historical synthetic model runs; they predate the current decision-history
-UI and must not be described as fresh acceptance of the current build.
-Current deterministic regressions in `tests/python-agent.test.ts` exercise admitted,
-rejected, failed and out-of-scope proposals; `tests/run-queue.test.ts` checks saved
-execution and interrupted-worker recovery. These establish control-flow properties,
-not the correctness of arbitrary model judgments.
-
-The [integrated acceptance from 2026-10-27](../experiments/acceptance/2026-10-27/README.md)
-adds fresh model runs with decision history and stopping reasons: the correct copy
-passed strict CI, while the known boundary defect was detected and its assertion
-retained. Separate exported-suite executions reproduced both outcomes. This is one
-synthetic project in two conditions, not a comparative benchmark or accuracy score.
-
-The overlap with the related approaches above is generation, executable feedback
-and mutation analysis. The specific contribution demonstrated here is keeping an
-inspectable requirement contract across admission, execution, diagnosis and bounded
-improvement so the user can choose what to investigate. It is not a claim of a new
-test-generation algorithm, higher fault detection or a feature absent elsewhere.
+These establish selected control-flow properties, not arbitrary model judgments,
+semantic coverage, user benefit or an advantage over other products.
 
 ## Current evaluation status
 
-Old benchmark and experiment outputs were removed on 2026-10-27 because their
-frozen agent sources differ from the current implementation. Their scores and
-latency comparisons must not be presented as current results.
-
-The replacement [six-run development pilot](../experiments/results/2026-10-27-current-pilot/README.md)
-completed: three existing projects,
-B0 and B3, one observation per project/configuration. B0 is local direct generation
-with schema/original-quote checks but no model admission review; it is not Codex,
-Claude or a paper implementation. B3 adds model review and the full workflow. Both
-configurations share model, input archives, requirements and sandbox image.
-See [the experiment protocol](../examples/experiments/README.md).
-
-A single observation cannot establish repeatability. Reference-copy replays can
-expose assertion disagreements but do not replace independent semantic review.
-Both configurations detected the two seeded defects. B3 used more time and tokens;
-this pilot does not support a stronger fault-detection claim. Its recorded diagnoses,
-retained failures and mutation decisions demonstrate workflow differences only.
-The separate five-project benchmark remains paused.
+The independent reviewer pack under experiments/reviews contains 16 development
+cases with actual Docker outcomes, no predictions and a blank reference template.
+There are zero completed independent labels. The [v12 development study](../experiments/results/2026-10-28-v12/README.md)
+completed 48 component decisions and 18 paired workflows. Component agreement with
+the AI reference was 47/48, with one false-support observation. Both workflow
+configurations detected 6/6 seeded-fault observations. B3 retained six diagnosed
+valid failures and added no detections while using 5.04 times B1's tokens including
+the shared initial prefix. This supports inspectable diagnosis/retention examples,
+not an incremental detection, repair-success or efficiency advantage. No accepted
+repair or rejected initial proposal occurred in the workflow study.
+Independent human accuracy and user-task benefit remain unmeasured.
+See [current experiment status](../experiments/README.md) and the
+[evaluation protocol](evaluation-protocol.md). No academic report was written.

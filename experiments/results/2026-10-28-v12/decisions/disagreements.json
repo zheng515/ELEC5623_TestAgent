@@ -1,0 +1,223 @@
+[
+  {
+    "id": "C03",
+    "kind": "test_review",
+    "predictions": [
+      "supported",
+      "blocked",
+      "blocked"
+    ],
+    "draftAllowed": [
+      "blocked"
+    ],
+    "complete": true,
+    "unanimous": false,
+    "reference": {
+      "id": "C03",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The test compares both returned instants with datetime values but has no predicate establishing that the actual results are datetimes. Under the assigned behavior and current admission policy, a value equality check does not establish the promised semantic return type.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+        },
+        "source": [
+          {
+            "file": "calendar_window.py",
+            "line": 3,
+            "quote": "    return datetime.fromisoformat(start), datetime.fromisoformat(end)"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 5,
+            "quote": "    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "passed",
+          "exitCode": 0,
+          "quote": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s"
+        }
+      },
+      "caveat": "The current implementation returns datetimes and the test passes. The label concerns the assertion strength for its assigned contract, not the actual implementation return types."
+    },
+    "attempts": [
+      {
+        "caseId": "C03",
+        "repeat": 1,
+        "inputHash": "1fc48c7c29f052bc1966d8b6d14f26971ae2977099ab31493d9e4d962a0e6e86",
+        "agentFingerprint": "5efcbef09ad7e2f9dc07964a5e629b9c9becaef6b1f6539ce5b4be58d7b3b9cf",
+        "elapsedMs": 3644,
+        "usage": {
+          "inputTokens": 1371,
+          "inputTokenDetails": {
+            "noCacheTokens": 3,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 1368
+          },
+          "outputTokens": 322,
+          "outputTokenDetails": {
+            "textTokens": 168,
+            "reasoningTokens": 154
+          },
+          "totalTokens": 1693,
+          "raw": {
+            "input_tokens": 1371,
+            "input_tokens_details": {
+              "cache_write_tokens": 1368,
+              "cached_tokens": 0
+            },
+            "output_tokens": 322,
+            "output_tokens_details": {
+              "reasoning_tokens": 154
+            },
+            "total_tokens": 1693
+          },
+          "promptBytes": 1598,
+          "promptHash": "1fc48c7c29f052bc1966d8b6d14f26971ae2977099ab31493d9e4d962a0e6e86"
+        },
+        "output": {
+          "decisions": [
+            {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test passes two explicit ISO timestamps to the specified API and checks that each returned value equals the datetime representing its respective timestamp. The assertions are grounded in the stated behavior and cover the assigned gap.",
+              "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+            }
+          ],
+          "coverage": [
+            {
+              "ruleId": "R1",
+              "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+              "complete": true,
+              "reason": "The supported test checks both explicit ISO timestamp inputs and verifies each returned datetime preserves its respective instant. The rule specifies no additional acceptance examples or equality boundaries.",
+              "testIds": [
+                "T1"
+              ],
+              "missingExamples": []
+            }
+          ]
+        }
+      },
+      {
+        "caseId": "C03",
+        "repeat": 2,
+        "inputHash": "1fc48c7c29f052bc1966d8b6d14f26971ae2977099ab31493d9e4d962a0e6e86",
+        "agentFingerprint": "5efcbef09ad7e2f9dc07964a5e629b9c9becaef6b1f6539ce5b4be58d7b3b9cf",
+        "elapsedMs": 4079,
+        "usage": {
+          "inputTokens": 1371,
+          "inputTokenDetails": {
+            "noCacheTokens": 3,
+            "cacheReadTokens": 1368,
+            "cacheWriteTokens": 0
+          },
+          "outputTokens": 384,
+          "outputTokenDetails": {
+            "textTokens": 148,
+            "reasoningTokens": 236
+          },
+          "totalTokens": 1755,
+          "raw": {
+            "input_tokens": 1371,
+            "input_tokens_details": {
+              "cached_tokens": 1368,
+              "cache_write_tokens": 0
+            },
+            "output_tokens": 384,
+            "output_tokens_details": {
+              "reasoning_tokens": 236
+            },
+            "total_tokens": 1755
+          },
+          "promptBytes": 1598,
+          "promptHash": "1fc48c7c29f052bc1966d8b6d14f26971ae2977099ab31493d9e4d962a0e6e86"
+        },
+        "output": {
+          "decisions": [
+            {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The equality assertions check the expected values, but do not explicitly verify that both returned values are datetimes, as the contract requires.",
+              "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+            }
+          ],
+          "coverage": [
+            {
+              "ruleId": "R1",
+              "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+              "complete": false,
+              "reason": "No supported test checks the full contract, including that the returned values are datetimes.",
+              "testIds": [],
+              "missingExamples": [
+                "returns datetimes preserving their respective instants"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "caseId": "C03",
+        "repeat": 3,
+        "inputHash": "1fc48c7c29f052bc1966d8b6d14f26971ae2977099ab31493d9e4d962a0e6e86",
+        "agentFingerprint": "5efcbef09ad7e2f9dc07964a5e629b9c9becaef6b1f6539ce5b4be58d7b3b9cf",
+        "elapsedMs": 5277,
+        "usage": {
+          "inputTokens": 1371,
+          "inputTokenDetails": {
+            "noCacheTokens": 3,
+            "cacheReadTokens": 1368,
+            "cacheWriteTokens": 0
+          },
+          "outputTokens": 448,
+          "outputTokenDetails": {
+            "textTokens": 164,
+            "reasoningTokens": 284
+          },
+          "totalTokens": 1819,
+          "raw": {
+            "input_tokens": 1371,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 1368
+            },
+            "output_tokens": 448,
+            "output_tokens_details": {
+              "reasoning_tokens": 284
+            },
+            "total_tokens": 1819
+          },
+          "promptBytes": 1598,
+          "promptHash": "1fc48c7c29f052bc1966d8b6d14f26971ae2977099ab31493d9e4d962a0e6e86"
+        },
+        "output": {
+          "decisions": [
+            {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The equality assertions check values equivalent to the parsed inputs, but do not assert that the returned values are datetimes. The contract explicitly requires that return type, so the test does not fully verify the assigned behavior.",
+              "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+            }
+          ],
+          "coverage": [
+            {
+              "ruleId": "R1",
+              "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+              "complete": false,
+              "reason": "There are no supported tests for this rule. The proposed test does not check the explicitly required datetime return type.",
+              "testIds": [],
+              "missingExamples": [
+                "returns datetimes"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

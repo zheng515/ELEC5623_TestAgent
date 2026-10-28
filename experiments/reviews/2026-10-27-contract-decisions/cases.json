@@ -1,0 +1,697 @@
+[
+  {
+    "id": "C03",
+    "kind": "test_review",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+      }
+    ],
+    "files": {
+      "calendar_window.py": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from datetime import datetime\nfrom calendar_window import window\ndef test_case():\n    start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n",
+        "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 0,
+      "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C11",
+    "kind": "test_review",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+      }
+    ],
+    "files": {
+      "calendar_window.py": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from datetime import datetime\nfrom calendar_window import window\ndef test_case():\n    start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n    assert isinstance(start, datetime)\n    assert isinstance(end, datetime)\n    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n",
+        "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 0,
+      "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C01",
+    "kind": "test_review",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+        "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 0,
+      "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C07",
+    "kind": "diagnosis",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+      }
+    ],
+    "files": {
+      "calendar_window.py": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n",
+      "reqtest_generated/test_reqtest_T1.py": "from datetime import datetime\nfrom zoneinfo import ZoneInfo\nfrom calendar_window import window\ndef test_case():\n    start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n    assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from datetime import datetime\nfrom zoneinfo import ZoneInfo\nfrom calendar_window import window\ndef test_case():\n    start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n    assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\n",
+        "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "failed",
+          "message": "def test_case():\n        start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n        assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n        assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n>       assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\nE       AssertionError: assert datetime.timezone(datetime.timedelta(seconds=36000)) == zoneinfo.ZoneInfo(key='Australia/Sydney')\nE        +  where datetime.timezone(datetime.timedelta(seconds=36000)) = datetime.datetime(2026, 9, 24, 9, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=36000))).tzinfo\nE        +  and   zoneinfo.ZoneInfo(key='Australia/Sydney') = ZoneInfo('Australia/Sydney')\n\nreqtest_generated/test_reqtest_T1.py:8: AssertionError"
+        }
+      ],
+      "exitCode": 1,
+      "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________________ test_case ___________________________________\n\n    def test_case():\n        start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n        assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n        assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n>       assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\nE       AssertionError: assert datetime.timezone(datetime.timedelta(seconds=36000)) == zoneinfo.ZoneInfo(key='Australia/Sydney')\nE        +  where datetime.timezone(datetime.timedelta(seconds=36000)) = datetime.datetime(2026, 9, 24, 9, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=36000))).tzinfo\nE        +  and   zoneinfo.ZoneInfo(key='Australia/Sydney') = ZoneInfo('Australia/Sydney')\n\nreqtest_generated/test_reqtest_T1.py:8: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_case - AssertionError: asse...\n1 failed in 0.02s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C09",
+    "kind": "diagnosis",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "notify() returns integer 0 after delivery."
+      }
+    ],
+    "files": {
+      "delivery.py": "import delivery_transport\ndef notify():\n    return delivery_transport.send()\n",
+      "reqtest_generated/test_reqtest_T1.py": "from delivery import notify\ndef test_case():\n    assert notify() == 0\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from delivery import notify\ndef test_case():\n    assert notify() == 0\n",
+        "quote": "notify() returns integer 0 after delivery.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::reqtest_generated.test_reqtest_T1",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "reqtest_generated.test_reqtest_T1",
+          "status": "error",
+          "message": "ImportError while importing test module '/work/project/reqtest_generated/test_reqtest_T1.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nreqtest_generated/test_reqtest_T1.py:1: in <module>\n    from delivery import notify\ndelivery.py:1: in <module>\n    import delivery_transport\nE   ModuleNotFoundError: No module named 'delivery_transport'"
+        }
+      ],
+      "exitCode": 2,
+      "log": "\n==================================== ERRORS ====================================\n____________ ERROR collecting reqtest_generated/test_reqtest_T1.py _____________\nImportError while importing test module '/work/project/reqtest_generated/test_reqtest_T1.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nreqtest_generated/test_reqtest_T1.py:1: in <module>\n    from delivery import notify\ndelivery.py:1: in <module>\n    import delivery_transport\nE   ModuleNotFoundError: No module named 'delivery_transport'\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nERROR reqtest_generated/test_reqtest_T1.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.07s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C13",
+    "kind": "test_review",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "For a negative amount, fee(amount) raises ValueError."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    if amount < 0: raise ValueError(\"invalid amount\")\n    return 0\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "import pytest\nfrom shipping import fee\ndef test_case():\n    with pytest.raises(ValueError, match=\"Amount must be positive\"): fee(-1)\n",
+        "quote": "For a negative amount, fee(amount) raises ValueError.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "failed",
+          "message": "def test_case():\n>       with pytest.raises(ValueError, match=\"Amount must be positive\"): fee(-1)\n                                                                         ^^^^^^^\n\nreqtest_generated/test_reqtest_T1.py:4: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\namount = -1\n\n    def fee(amount):\n>       if amount < 0: raise ValueError(\"invalid amount\")\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE       ValueError: invalid amount\n\nshipping.py:2: ValueError\n\nDuring handling of the above exception, another exception occurred:\n\n    def test_case():\n>       with pytest.raises(ValueError, match=\"Amount must be positive\"): fee(-1)\nE       AssertionError: Regex pattern did not match.\nE        Regex: 'Amount must be positive'\nE        Input: 'invalid amount'\n\nreqtest_generated/test_reqtest_T1.py:4: AssertionError"
+        }
+      ],
+      "exitCode": 1,
+      "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________________ test_case ___________________________________\n\n    def test_case():\n>       with pytest.raises(ValueError, match=\"Amount must be positive\"): fee(-1)\n                                                                         ^^^^^^^\n\nreqtest_generated/test_reqtest_T1.py:4: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\namount = -1\n\n    def fee(amount):\n>       if amount < 0: raise ValueError(\"invalid amount\")\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE       ValueError: invalid amount\n\nshipping.py:2: ValueError\n\nDuring handling of the above exception, another exception occurred:\n\n    def test_case():\n>       with pytest.raises(ValueError, match=\"Amount must be positive\"): fee(-1)\nE       AssertionError: Regex pattern did not match.\nE        Regex: 'Amount must be positive'\nE        Input: 'invalid amount'\n\nreqtest_generated/test_reqtest_T1.py:4: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_case - AssertionError: Rege...\n1 failed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C04",
+    "kind": "test_review",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+      }
+    ],
+    "files": {
+      "calendar_window.py": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from datetime import datetime\nfrom zoneinfo import ZoneInfo\nfrom calendar_window import window\ndef test_case():\n    start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n    assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\n",
+        "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "failed",
+          "message": "def test_case():\n        start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n        assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n        assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n>       assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\nE       AssertionError: assert datetime.timezone(datetime.timedelta(seconds=36000)) == zoneinfo.ZoneInfo(key='Australia/Sydney')\nE        +  where datetime.timezone(datetime.timedelta(seconds=36000)) = datetime.datetime(2026, 9, 24, 9, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=36000))).tzinfo\nE        +  and   zoneinfo.ZoneInfo(key='Australia/Sydney') = ZoneInfo('Australia/Sydney')\n\nreqtest_generated/test_reqtest_T1.py:8: AssertionError"
+        }
+      ],
+      "exitCode": 1,
+      "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________________ test_case ___________________________________\n\n    def test_case():\n        start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n        assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n        assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n>       assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\nE       AssertionError: assert datetime.timezone(datetime.timedelta(seconds=36000)) == zoneinfo.ZoneInfo(key='Australia/Sydney')\nE        +  where datetime.timezone(datetime.timedelta(seconds=36000)) = datetime.datetime(2026, 9, 24, 9, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=36000))).tzinfo\nE        +  and   zoneinfo.ZoneInfo(key='Australia/Sydney') = ZoneInfo('Australia/Sydney')\n\nreqtest_generated/test_reqtest_T1.py:8: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_case - AssertionError: asse...\n1 failed in 0.02s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C15",
+    "kind": "diagnosis",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "For amount >= 10000, fee(amount) returns 0. For amount <= 10000, fee(amount) returns 1000."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    return 1000 if amount <= 10000 else 0\n",
+      "reqtest_generated/test_reqtest_T1.py": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+        "quote": "For amount >= 10000, fee(amount) returns 0. For amount <= 10000, fee(amount) returns 1000.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "failed",
+          "message": "def test_case():\n>       assert fee(10000) == 0\nE       assert 1000 == 0\nE        +  where 1000 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError"
+        }
+      ],
+      "exitCode": 1,
+      "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________________ test_case ___________________________________\n\n    def test_case():\n>       assert fee(10000) == 0\nE       assert 1000 == 0\nE        +  where 1000 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_case - assert 1000 == 0\n1 failed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C12",
+    "kind": "test_review",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "For a negative amount, fee(amount) raises ValueError."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    if amount < 0: raise ValueError(\"invalid amount\")\n    return 0\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "import pytest\nfrom shipping import fee\ndef test_case():\n    with pytest.raises(ValueError): fee(-1)\n",
+        "quote": "For a negative amount, fee(amount) raises ValueError.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 0,
+      "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C06",
+    "kind": "diagnosis",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    return 0 if amount > 10000 else 1000\n",
+      "reqtest_generated/test_reqtest_T1.py": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+        "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "failed",
+          "message": "def test_case():\n>       assert fee(10000) == 0\nE       assert 1000 == 0\nE        +  where 1000 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError"
+        }
+      ],
+      "exitCode": 1,
+      "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________________ test_case ___________________________________\n\n    def test_case():\n>       assert fee(10000) == 0\nE       assert 1000 == 0\nE        +  where 1000 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_case - assert 1000 == 0\n1 failed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C16",
+    "kind": "test_review",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "For a large amount, fee(amount) returns zero."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+        "quote": "For a large amount, fee(amount) returns zero.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 0,
+      "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C02",
+    "kind": "test_review",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 1000\n",
+        "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "failed",
+          "message": "def test_case():\n>       assert fee(10000) == 1000\nE       assert 0 == 1000\nE        +  where 0 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError"
+        }
+      ],
+      "exitCode": 1,
+      "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________________ test_case ___________________________________\n\n    def test_case():\n>       assert fee(10000) == 1000\nE       assert 0 == 1000\nE        +  where 0 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_case - assert 0 == 1000\n1 failed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C08",
+    "kind": "diagnosis",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "The cancellation fee shall be reasonable."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    return 1000\n",
+      "reqtest_generated/test_reqtest_T1.py": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+        "quote": "The cancellation fee shall be reasonable.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "failed",
+          "message": "def test_case():\n>       assert fee(10000) == 0\nE       assert 1000 == 0\nE        +  where 1000 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError"
+        }
+      ],
+      "exitCode": 1,
+      "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________________ test_case ___________________________________\n\n    def test_case():\n>       assert fee(10000) == 0\nE       assert 1000 == 0\nE        +  where 1000 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_case - assert 1000 == 0\n1 failed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C05",
+    "kind": "diagnosis",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n",
+      "reqtest_generated/test_reqtest_T1.py": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 1\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 1\n",
+        "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "failed",
+          "message": "def test_case():\n>       assert fee(10000) == 1\nE       assert 0 == 1\nE        +  where 0 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError"
+        }
+      ],
+      "exitCode": 1,
+      "log": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________________________________ test_case ___________________________________\n\n    def test_case():\n>       assert fee(10000) == 1\nE       assert 0 == 1\nE        +  where 0 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nFAILED reqtest_generated/test_reqtest_T1.py::test_case - assert 0 == 1\n1 failed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C10",
+    "kind": "test_review",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from shipping import fee\ndef test_case():\n    actual = fee(10000)\n    assert isinstance(actual, int) and not isinstance(actual, bool)\n    assert actual == 0\n",
+        "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "test_case",
+          "status": "passed",
+          "message": ""
+        }
+      ],
+      "exitCode": 0,
+      "log": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  },
+  {
+    "id": "C14",
+    "kind": "diagnosis",
+    "rules": [
+      {
+        "id": "R1",
+        "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+      }
+    ],
+    "files": {
+      "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n",
+      "reqtest_generated/test_reqtest_T1.py": "from invented_shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n"
+    },
+    "tests": [
+      {
+        "id": "T1",
+        "behaviorId": "B1",
+        "functionName": "test_case",
+        "code": "from invented_shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+        "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+        "gapIndexes": [
+          0
+        ],
+        "purpose": "Check the stated behavior.",
+        "file": "reqtest_generated/test_reqtest_T1.py"
+      }
+    ],
+    "execution": {
+      "outcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::reqtest_generated.test_reqtest_T1",
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "name": "reqtest_generated.test_reqtest_T1",
+          "status": "error",
+          "message": "ImportError while importing test module '/work/project/reqtest_generated/test_reqtest_T1.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nreqtest_generated/test_reqtest_T1.py:1: in <module>\n    from invented_shipping import fee\nE   ModuleNotFoundError: No module named 'invented_shipping'"
+        }
+      ],
+      "exitCode": 2,
+      "log": "\n==================================== ERRORS ====================================\n____________ ERROR collecting reqtest_generated/test_reqtest_T1.py _____________\nImportError while importing test module '/work/project/reqtest_generated/test_reqtest_T1.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nreqtest_generated/test_reqtest_T1.py:1: in <module>\n    from invented_shipping import fee\nE   ModuleNotFoundError: No module named 'invented_shipping'\n--------------------- generated xml file: /tmp/results.xml ---------------------\n=========================== short test summary info ============================\nERROR reqtest_generated/test_reqtest_T1.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.07s\n",
+      "timedOut": false,
+      "integrity": true,
+      "runtimeArtifacts": []
+    }
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/python-humanize/humanize",
+  "tag": "4.11.0",
+  "commit": "073a00b4cae648cb79e494eefb0389f5b038ffce",
+  "sourceFiles": [
+    {
+      "upstreamPath": "src/humanize/filesize.py",
+      "fixturePath": "filesize.py",
+      "sha256": "2105e3b38e98e9fee57e1ef8507deb29d563b3dce48dbbe86d6e3acb15f327f1"
+    }
+  ],
+  "condition": "controlled injected mutation",
+  "fault": {
+    "id": "injected-decimal-binary-base",
+    "file": "filesize.py",
+    "before": "    base = 1000",
+    "after": "    base = 1024 if (gnu or binary) else 1000"
+  },
+  "requirementsOrigin": "Selected public docstrings and README excerpts; author-derived SRS, not an upstream SRS or independently reviewed labels.",
+  "heldOut": false
+}

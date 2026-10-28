@@ -1,0 +1,8 @@
+{
+  "datasetHash": "7c79de91aed7d1ef3a05972826f9441c744c39f9bc87fd3addf69dfd20e77480",
+  "sandboxImage": "sha256:4ed90f6d7d0b21406d97fa0a2c50abf553b678f3b578743e687a9f051c02de30",
+  "cases": 16,
+  "modelCalls": 0,
+  "status": "prepared",
+  "evidenceHash": "80f3d747cda2ff9ca1a0cd0b3a4c7b00fc1cb593c8605d709e3465002d5b0487"
+}

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { RequirementSource, DocumentPage, RequirementDocument } from "./requirements";
 import type { ProjectSetup } from "./project-setup";
+import type { VerificationPolicy } from './verification-policy';
 import { sourceFile, type ProjectRuntime } from "./runtime";
 const evidence = z.object({ file: z.string(), quote: z.string().min(1), line: z.number().int().min(1).optional() });
 export function sourceEvidenceSchema(files: Record<string, string>) {
@@ -65,9 +66,14 @@ export function groundedDiagnosisSchema(ids: string[], quote: z.ZodType<string>,
   });
   return diagnosisSchema.extend({ decisions: z.array(files ? decision.extend({ evidence: z.array(sourceEvidenceSchema(files)) }) : decision) });
 }
+export const coverageReviewSchema = z.object({
+  ruleId: z.string(), quote: z.string(), complete: z.boolean(), reason: z.string(),
+  testIds: z.array(z.string().regex(/^T[1-9]\d*$/)),
+  missingExamples: z.array(z.string().min(1)),
+});
 export const reviewTestsSchema = z.object({ decisions: z.array(z.object({
   testId: z.string(), supported: z.boolean(), reason: z.string(), quote: z.string(),
-})) });
+})), coverage: z.array(coverageReviewSchema).default([]) });
 export const relevanceSchema = z.object({ decisions: z.array(z.object({
   mutantId: z.string().regex(/^Mutant #[1-9]\d*$/), behaviorId: z.string().regex(/^B[1-9]\d*$/), relevant: z.boolean(), reason: z.string(), quote: z.string(),
 })) });
@@ -82,7 +88,7 @@ export type PythonTest = z.infer<typeof testsSchema>["tests"][number] & { approv
 export type TestAttempt = {
   phase: 'generation' | 'improvement'; reason: string;
   status: 'proposed' | 'reviewed' | 'applied' | 'rejected' | 'failed';
-  tests: PythonTest[]; decisions?: z.infer<typeof reviewTestsSchema>['decisions']; error?: string;
+  tests: PythonTest[]; decisions?: z.infer<typeof reviewTestsSchema>['decisions']; coverage?: z.infer<typeof coverageReviewSchema>[]; coverageRuleIds?: string[]; error?: string;
 };
 export type Outcome = { node: string; file: string; name: string; status: "passed" | "failed" | "error" | "skipped"; message: string; screenshot?: string };
 export type Measurement = { outcomes: Outcome[]; exitCode: number; log: string; timedOut: boolean; integrity: boolean; runtimeArtifacts?: { file: string; kind: 'sqlite'; sha256: string }[] };
@@ -90,6 +96,12 @@ export type Mutation = { incomplete: boolean; mutants: { id: string; file: strin
 export type DiagnosisPhase = 'collection' | 'baseline' | 'execution' | 'remeasurement';
 export type Diagnosis = z.infer<typeof diagnosisSchema>["decisions"][number] & { phase?: DiagnosisPhase };
 export type PythonReport = {
+  policy?: VerificationPolicy;
+  resources?: {
+    limit: number | null; exhausted?: boolean;
+    requests: { key: string; stage: string; status: 'started' | 'completed' | 'failed'; startedAt: string; elapsedMs?: number; inputTokens?: number; outputTokens?: number; totalTokens?: number; promptBytes?: number; promptHash?: string }[];
+  };
+  initialSuite?: { reportId: string; executableHash: string };
   testAttempts?: TestAttempt[];
   stopReason?: string;
   analysisCorrection?: { original: Analysis; error: string; removed?: string[] };

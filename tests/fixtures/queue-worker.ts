@@ -17,7 +17,7 @@ const ask: Reason = async (schema, _task, _context, _model, signal) => {
   }
   if (kind === 'analysis') return schema.parse({ behaviors: [{ id: 'B1', ruleId: 'R1', quote: rule, text: 'Exact threshold', category: 'boundary', issue: 'none', reason: 'Explicit inclusive boundary', files: ['shipping.py'], existingTests: [], evidence: [{ file: 'shipping.py', quote: 'def fee(amount):' }], gaps: ['Exact threshold not tested'] }], inconsistencies: [] });
   if (kind === 'generation') return schema.parse({ tests: [{ id: 'T1', behaviorId: 'B1', functionName: 'test_threshold', gapIndexes: [0], quote: rule, purpose: 'Exact threshold', code: 'from shipping import fee\ndef test_threshold():\n    assert fee(10000) == 0\n' }] });
-  if (kind === 'review') return schema.parse({ decisions: [{ testId: 'T1', supported: true, reason: 'Explicit original contract', quote: rule }] });
+  if (kind === 'review') return schema.parse({ decisions: [{ testId: 'T1', supported: true, reason: 'Explicit original contract', quote: rule }], coverage: [{ruleId:'R1',quote:rule,complete:true,reason:'The exact-boundary case is included; execution decides its outcome.',testIds:['T1'],missingExamples:[]}] });
   if (Object.is(schema, diagnosisSchema)) return schema.parse({ decisions: [{ testId: 'T1', category: 'potential_implementation_defect', reason: 'The exact threshold returns 1000 instead of the required zero.', quote: rule, executionQuote: 'assert 1000 == 0', evidence: [{ file: 'shipping.py', quote: '> 10000' }, { file: 'reqtest_generated/test_reqtest_T1.py', quote: 'assert fee(10000) == 0' }] }] });
   throw new Error('Unexpected reasoning action');
 };
