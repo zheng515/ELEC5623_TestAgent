@@ -1,7 +1,7 @@
-import { APICallError, generateText, Output } from "ai";
+import { generateText, Output } from "ai";
 import { z } from "zod";
 import { session } from "@/lib/auth";
-import { options } from "@/lib/model";
+import { options, modelError } from "@/lib/model";
 import { sameOrigin } from "@/lib/request";
 export const runtime = "nodejs";
 const recent = new Map<string, number>();
@@ -15,12 +15,10 @@ export async function POST(request: Request) {
   recent.set(account.user.id, Date.now());
   if (recent.size > 1000) for (const [id, time] of recent) if (Date.now() - time > 60000) recent.delete(id);
   try {
-    const result = await generateText({ ...options(input.data, AbortSignal.any([request.signal, AbortSignal.timeout(90000)])), prompt: "Return ok as true.", maxOutputTokens: 256, providerOptions: { openai: { store: false, reasoningEffort: "low" } }, output: Output.object({ schema: z.object({ ok: z.boolean() }) }) });
+    const result = await generateText({ ...options({ ...input.data, timeoutMs: 90000, maxOutputTokens: 256 }, request.signal), prompt: "Return ok as true.", providerOptions: { openai: { store: false, reasoningEffort: "low" } }, output: Output.object({ schema: z.object({ ok: z.boolean() }) }) });
     if (!result.output.ok) throw new Error("Unexpected response.");
     return Response.json({ connected: true, model: input.data.model });
   } catch (error) {
-    const status = APICallError.isInstance(error) ? error.statusCode : undefined;
-    const message = status === 401 ? "OpenAI rejected the API key. Update OPENAI_API_KEY in .env.local and restart." : status === 403 || status === 404 ? "This key cannot access the selected model. Check model access and its exact name." : status === 429 ? "Model quota or rate limit reached. Check the API account." : "Cannot complete a model request. Check credentials, model access, network and quota.";
-    return Response.json({ connected: false, error: message }, { status: 502 });
+    return Response.json({ connected: false, error: modelError(error) }, { status: 502 });
   }
 }

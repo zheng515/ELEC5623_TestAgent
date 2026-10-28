@@ -2,6 +2,7 @@ import type { Mutation, PythonReport } from './python-types';
 
 type Mutant = Mutation['mutants'][number];
 type Decision = PythonReport['relevance'][number];
+export type MutationReviewPair = Mutant & { behaviorId: string };
 
 export function groundedMutationDecision(report: PythonReport, mutant: Mutant, decision: Decision) {
   const behavior = report.analysis?.behaviors.find(behavior => behavior.id === decision.behaviorId);
@@ -15,22 +16,19 @@ export const survivorLabels = {
   outside_behavior: 'Outside cited behavior', unreviewed: 'Unreviewed / unsupported',
 };
 
-/** Behaviors mapped to the mutated file. Each needs its own decision for a survivor. */
-export function affectedBehaviors(report: PythonReport, mutant: Mutant) {
-  return (report.analysis?.behaviors || []).filter(behavior => behavior.files.includes(mutant.file));
-}
-
-export function behaviorDecision(report: PythonReport, mutant: Mutant, behaviorId: string) {
-  const decisions = report.relevance.filter(decision => decision.behaviorId === behaviorId && groundedMutationDecision(report, mutant, decision));
-  return decisions.length === 1 ? decisions[0] : undefined;
+export function mutationBehaviorReviews(report: PythonReport, mutant: Mutant) {
+  return (report.analysis?.behaviors || []).filter(behavior => behavior.files.includes(mutant.file)).map(behavior => {
+    const decisions = report.relevance.filter(decision => decision.behaviorId === behavior.id && groundedMutationDecision(report, mutant, decision));
+    const decision = decisions.length === 1 ? decisions[0] : undefined;
+    const category: keyof typeof survivorLabels = !decision ? 'unreviewed' : behavior.issue !== 'none' ? 'clarification' : decision.relevant ? 'test_gap' : 'outside_behavior';
+    return { behavior, decision, category };
+  });
 }
 
 export function survivorReviews(report: PythonReport) {
   return (report.mutations.at(-1)?.mutants || []).filter(mutant => mutant.status === 'survived').map(mutant => {
-    const reviews = affectedBehaviors(report, mutant).map(behavior => ({ behavior, decision: behaviorDecision(report, mutant, behavior.id) }));
-    const category: keyof typeof survivorLabels = reviews.some(({ behavior, decision }) => decision?.relevant && behavior.issue === 'none') ? 'test_gap'
-      : reviews.some(({ behavior, decision }) => decision && behavior.issue !== 'none') ? 'clarification'
-      : !reviews.length || reviews.some(({ decision }) => !decision) ? 'unreviewed' : 'outside_behavior';
-    return { mutant, reviews, category };
+    const reviews = mutationBehaviorReviews(report, mutant);
+    const category = (['unreviewed', 'test_gap', 'clarification', 'outside_behavior'] as const).find(category => reviews.some(review => review.category === category)) || 'unreviewed';
+    return { mutant, reviews, decision: reviews.length === 1 ? reviews[0].decision : undefined, category };
   });
 }

@@ -1,0 +1,21 @@
+{
+  "decisions": [
+    {
+      "testId": "T1",
+      "category": "potential_implementation_defect",
+      "reason": "The test checks the exact-threshold value required by R1. At amount 10000, the implementation returns 1000 rather than 0, violating the requirement.",
+      "quote": "For integer amount >= 10000, shipping.fee(amount) returns integer 0.",
+      "executionQuote": "E       assert 1000 == 0",
+      "evidence": [
+        {
+          "file": "shipping.py",
+          "quote": "return 0 if amount > 10000 else 1000"
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "quote": "assert fee(10000) == 0"
+        }
+      ]
+    }
+  ]
+}

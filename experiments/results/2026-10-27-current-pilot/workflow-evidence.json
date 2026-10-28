@@ -1,0 +1,90 @@
+{
+  "scope": "Observed workflow records on identical case inputs. Counts do not establish semantic correctness or superiority over external products.",
+  "baseline": "B0 is this repository's direct-generation configuration, not a measurement of Codex, Claude, CoverUp or TestGen-LLM.",
+  "rows": [
+    {
+      "caseId": "shipping",
+      "variant": "B0",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B0-1/report.json"
+    },
+    {
+      "caseId": "shipping",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-B3-1/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B0",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B0-1/report.json"
+    },
+    {
+      "caseId": "booking",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B3-1/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B0",
+      "repeat": 1,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B0-1/report.json"
+    },
+    {
+      "caseId": "inventory",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 5,
+      "behaviorsWithArtifactQuotes": 8,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/inventory-B3-1/report.json"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "variant": "B0",
+      "completed": 3,
+      "planned": 3,
+      "seededFaultDetection": 1,
+      "medianSeconds": 8.298,
+      "totalTokens": 9393
+    },
+    {
+      "variant": "B3",
+      "completed": 3,
+      "planned": 3,
+      "seededFaultDetection": 1,
+      "medianSeconds": 30.818,
+      "totalTokens": 49749
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import { interruptedReport } from "./python-jobs";
 import type { PythonReport } from "./python-types";
 import { readFile, readdir } from "node:fs/promises";
 import { queueName, queueSchema } from "./queue-config";
+import { modelError } from "./model";
 export { queueName, queueSchema } from "./queue-config";
 
 type RunJob = Pick<Job<{ runId: string; userId: string }>, "data" | "retryCount" | "signal">;
@@ -92,7 +93,7 @@ export async function executeRun(job: RunJob, ask: Reason = reason) {
   const row = (await database.query("SELECT report,cancel_requested FROM runs WHERE id=$1 AND user_id=$2", [runId, userId])).rows[0];
   if (!row || row.cancel_requested || row.report.status !== "running") return;
   const original: PythonReport = row.report;
-  const report: PythonReport = { ...original, status: "running", stage: "Resuming", error: undefined, tests: [], measurements: [], mutations: [], diagnoses: [], proposedDiagnoses: undefined, relevance: [], improvements: [], states: [], initialStates: undefined, analysis: undefined, analysisCorrection: undefined };
+  const report: PythonReport = { ...original, status: "running", stage: "Resuming", error: undefined, stopReason: undefined, testAttempts: undefined, improvementProposal: undefined, tests: original.replay ? original.tests : [], measurements: [], mutations: [], diagnoses: [], proposedDiagnoses: undefined, relevance: [], improvements: [], states: [], initialStates: undefined, analysis: original.replay ? original.analysis : undefined, analysisCorrection: undefined };
   report.execution = { ...original.execution!, attempt: job.retryCount + 1, recovered: job.retryCount > 0 };
   const cancelled = new AbortController(), signal = AbortSignal.any([job.signal, cancelled.signal]);
   const timer = setInterval(async () => {
@@ -111,7 +112,7 @@ export async function executeRun(job: RunJob, ask: Reason = reason) {
     if (job.signal.aborted && !cancelled.signal.aborted) throw error;
     const stopped = (await database.query("SELECT cancel_requested FROM runs WHERE id=$1", [runId])).rows[0]?.cancel_requested;
     report.status = stopped ? "cancelled" : "failed";
-    report.error = stopped ? "Run stopped by its owner." : (error instanceof Error ? error.message : "Verification failed.").replaceAll(process.env.OPENAI_API_KEY || "\0", "[redacted]");
+    report.error = stopped ? "Run stopped by its owner." : modelError(error);
     report.states = report.states.map(state => ({ ...state, status: "Uncertain" }));
     await database.query(`UPDATE runs SET report=$1 WHERE id=$2 AND user_id=$3 AND cancel_requested=false AND report->>'status'='running' AND ${heldLease}`, [JSON.stringify(report), runId, userId, job.retryCount]);
   } finally { clearInterval(timer); }

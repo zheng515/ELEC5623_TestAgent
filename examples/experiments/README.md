@@ -6,8 +6,17 @@ contain the final academic report.
 
 ## Protocol
 
+The approved current run is `examples/experiments-pilot.json`: three existing
+projects, B0/B3, one observation per project/configuration, six model-backed runs.
+It checks the experiment machinery and gives case-level observations only. It
+cannot assess repeatability, population reliability or component-level causality.
+The five-project standalone benchmark remains paused. Old result directories were
+removed on 2026-10-27 because their frozen sources differ from the current code;
+old scores must not be carried forward as measurements of this implementation.
+
 `examples/experiments.json` fixes three synthetic development projects, four
-configurations and three repetitions: 36 complete-agent runs. These projects were
+configurations and three repetitions: 36 complete-agent runs for a later study.
+The six-run pilot does not start that configuration. These projects were
 used during development; they are not a held-out or representative industry sample.
 
 | Project | Known condition | External reference check |
@@ -21,18 +30,28 @@ diagnosis and B3 diagnosed loop use the same requirements, source archive, model
 immutable Docker image for each project. B2 still uses the common original-contract
 review gates. It must not be described as an unrestricted agent that always accepts
 an unsafe repair. No implementation code is patched inside the agent workspace.
+B0/B1 use schema and original-quote checks but bypass model admission review;
+their approved flag means eligible for baseline execution, not reviewed approval.
+Thus B0/B3 differ in review as well as context, analysis and feedback. This is a
+workflow comparison, not an isolated diagnosis ablation or equal-token comparison.
 
-Before each case, fixed contract witnesses run on separate original/corrected
+Before any model request, every case's fixed contract witnesses run on separate original/corrected
 copies, outside model context. Their hashes, source fingerprints and patch hashes
 are retained. They validate only their explicitly listed checks. They do not prove
 that the full requirement document was extracted or interpreted correctly.
 
+The current runner uses the same SRS parser and supporting context as the website.
 The runner saves the original manifest, input archives, production agent/dependency
 source snapshot, image ID, per-stage reports, request errors, provider token usage,
 wall time, corrected-copy probes and independent-review templates. Requests have no
 automatic retries. The agent retains its one-correction and one-improvement limits.
 Changed agent inputs stop further runs. Every planned run remains in denominators,
 including missing, cancelled and failed runs. Re-scoring makes no model calls.
+The final approved suite also replays on a separate reference copy, including
+the no-fault case and suites with no original assertion failure. Remaining
+assertion failures are reference disagreements for investigation, not independently
+established false positives. Source snapshots, input archives and requirement text
+are hash-checked during analysis. Original inputs are never patched in place.
 
 ## Commands
 
@@ -40,10 +59,13 @@ Requires the normal Node.js, Docker and sandbox setup in the root README.
 
 ```sh
 # No model calls: validate original/corrected reference witnesses.
-npm run evaluate -- examples/experiments.json --validate-only
+npm run evaluate -- examples/experiments-pilot.json --validate-only
 
-# Real model calls. Configure OPENAI_API_KEY in .env.local first.
-npm run experiment:run
+# Six pilot runs. Configure OPENAI_API_KEY in .env.local first.
+npm run experiment:pilot
+
+# Later repeated study only after its scope is confirmed; not part of the pilot.
+# npm run experiment:run
 
 # Use the index.json path printed by the runner.
 npm run experiment:analyze -- .evidence/evaluation/<run>/index.json experiments/results/<run>
@@ -54,7 +76,7 @@ python3 scripts/plot-experiment.py experiments/results/<run>
 ```
 
 The exported directory contains metrics.json, runs.csv, variants.csv,
-failure-cases.json and PNG/SVG figures. Its evidence/ subdirectory contains only
+failure-cases.json, analysis-notes.json and PNG/SVG figures. Its evidence/ subdirectory contains only
 this controlled experiment's reports, request measurements, input archives,
 reference checks and source snapshot, so analysis can be reproduced after moving
 the result directory. The original working directories remain in .evidence.
@@ -79,6 +101,11 @@ evidence are never selected by the exporter.
   reviewed mutation score.
 - Retained failure diagnoses, blocked tests, final failing nodes and refinement
   history for case-level inspection.
+- Generated-suite assertion failures on the witness-validated reference copy.
+  Errors, skips, empty suites and missing replays remain unavailable. A witness
+  set cannot prove that a reference satisfies every possible contract interpretation.
+- Per-case approved-suite hashes and observations; a single pilot repeat explicitly
+  leaves stability unassessed. Literal suite variation is not semantic inaccuracy.
 
 Independent semantic accuracy, finding Precision/Recall/F1, diagnosis Macro-F1 and
 reviewed mutation scores remain unavailable until references and outputs receive
@@ -87,7 +114,7 @@ README; no human reviewer or review flag is manufactured by this experiment.
 
 ## Limits to state alongside figures
 
-The execution order is fixed by project, configuration and repetition. API cache,
+New runs rotate configurations within each case/repetition; project order remains fixed. API cache,
 model-service variability and time drift are not controlled. Do not interpret
 latency differences as a randomized causal result. Repetitions within a project
 are correlated; three projects do not support general effectiveness claims or

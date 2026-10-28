@@ -1,0 +1,21 @@
+{
+  "baseCommit": "ab229a607d7f6393e1cb1795882c1751c9bea21a",
+  "agentFileHashes": {
+    "lib/python-agent.ts": "dced140dabc356e8a10db60830606a94b30511c5bc68ad13713d9476f87d5597",
+    "lib/python-types.ts": "15430ab73e373924b3cc5dddab8fc722cc371a98be57459a9d47cc40daa91c21",
+    "lib/requirement-input.ts": "d5a92ed4a88b96eb7ab45ada384763398d01eefe3a22ac3d1e2c20dfd30fb9b8",
+    "lib/python-tools.ts": "f53f365a8631642b95ed36ebf994426c20d4d9243d6c11a03e905fbc3df721df",
+    "lib/model.ts": "498c8bcf11a92870657307858ff3a80f4d906991831cb2e939c78c0b12e84f54",
+    "package-lock.json": "60e07e607906e4e2d40980fb46c26d95a67445e19190298c220c05739c7dad62"
+  },
+  "fullDockerRegression": {
+    "passed": 93,
+    "skipped": 3,
+    "failed": 0
+  },
+  "focusedRegressionAfterSummaryChanges": {
+    "passed": 29,
+    "failed": 0
+  },
+  "validationScope": "Synthetic development acceptance; not independent semantic accuracy. The model run used the current agent and parser. Summary presentation received later conservative guards."
+}

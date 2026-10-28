@@ -1,5 +1,5 @@
 import { loadEnvConfig } from "@next/env";
-/** Explicit paid benchmark. Reference labels and patches never enter model context. */
+/** Explicit paid experiment. Reference labels and patches never enter model context. */
 import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve, relative, isAbsolute } from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
@@ -9,8 +9,9 @@ import { z } from 'zod';
 import { runPython, reason, type Reason, type ReasonUsage } from '../lib/python-agent';
 import { importProject } from '../lib/python-tools';
 import { goldSchema, reviewTemplate, type FaultProbe } from '../lib/evaluation';
-import { probeFault, validateReference } from '../lib/evaluation-tools';
-import type { PythonReport } from '../lib/python-types';
+import { probeFault, probeReferenceSuite, validateReference } from '../lib/evaluation-tools';
+import type { PythonReport, Measurement } from '../lib/python-types';
+import { parseRequirementInput } from '../lib/requirement-input';
 
 const manifestSchema = z.object({
   purpose: z.enum(['pilot', 'held-out']).default('pilot'),
@@ -27,19 +28,21 @@ async function main() {
   if (new Set(manifest.variants).size !== manifest.variants.length || new Set(manifest.cases.map((item) => item.id)).size !== manifest.cases.length) throw new Error('Benchmark variants and case IDs must be unique.');
   const sandboxImage = execFileSync('docker', ['image', 'inspect', '--format', '{{.Id}}', process.env.REQTEST_SANDBOX_IMAGE || 'reqtest-python:1'], { encoding: 'utf8' }).trim();
   process.env.REQTEST_SANDBOX_IMAGE = sandboxImage;
-  const agentPaths = ['lib/python-agent.ts', 'lib/python-types.ts', 'lib/python-tools.ts', 'lib/model.ts', 'lib/runtime.ts', 'lib/mutation-review.ts', 'lib/test-services.ts', 'lib/evaluation-tools.ts', 'scripts/evaluate.ts', 'sandbox/worker.py', 'sandbox/node-worker.cjs', 'package-lock.json'];
+  const agentPaths = ['lib/python-agent.ts', 'lib/python-types.ts', 'lib/python-tools.ts', 'lib/model.ts', 'lib/runtime.ts', 'lib/mutation-review.ts', 'lib/test-services.ts', 'lib/evaluation.ts', 'lib/evaluation-tools.ts', 'lib/experiment-metrics.ts', 'lib/requirement-input.ts', 'lib/requirements.ts', 'lib/run-evaluation.ts', 'scripts/evaluate.ts', 'scripts/analyze-experiment.ts', 'sandbox/worker.py', 'sandbox/node-worker.cjs', 'package-lock.json'];
   const agentFiles = await Promise.all(agentPaths.map(async file => [file, await readFile(file, 'utf8')]));
   const agentFingerprint = createHash('sha256').update(JSON.stringify(agentFiles)).digest('hex');
   const output = resolve('.evidence/evaluation', new Date().toISOString().replaceAll(/[:.]/g, '-') + '-' + randomUUID().slice(0, 8));
   await mkdir(output, { recursive: true });
   await writeFile(join(output, 'manifest.json'), manifestText);
   await writeFile(join(output, 'agent-snapshot.json'), JSON.stringify(agentFiles));
-  const index: { purpose: 'pilot' | 'held-out'; createdAt: string; model: string; manifestHash: string; sandboxImage: string; agentFingerprint: string; expectedRuns: number; status: string; runs: { caseId: string; variant: string; repeat: number; report: string; gold: string; review: string; fault?: FaultProbe; reference?: string; requests: string; elapsedMs?: number }[] } = { purpose: manifest.purpose, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', manifestHash: createHash('sha256').update(manifestText).digest('hex'), sandboxImage, agentFingerprint, expectedRuns: manifest.cases.length * manifest.variants.length * manifest.repeat, status: 'running', runs: [] };
+  const index: { purpose: 'pilot' | 'held-out'; createdAt: string; model: string; manifestHash: string; sandboxImage: string; agentFingerprint: string; expectedRuns: number; status: string; inputs: Record<string, { archiveHash: string; requirementHash: string }>; runs: { caseId: string; variant: string; repeat: number; report: string; gold: string; review: string; fault?: FaultProbe; reference?: string; referenceExecution?: string; requests: string; elapsedMs?: number }[] } = { purpose: manifest.purpose, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', manifestHash: createHash('sha256').update(manifestText).digest('hex'), sandboxImage, agentFingerprint, expectedRuns: validateOnly ? 0 : manifest.cases.length * manifest.variants.length * manifest.repeat, status: 'preflight', inputs: {}, runs: [] };
   await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
-  if (validateOnly) index.expectedRuns = 0;
   console.log(`Experiment: ${output}; ${index.expectedRuns} planned runs. ${validateOnly ? 'Reference validation only; no model requests.' : 'Paid model requests; no automatic retries.'}`);
   const interrupted = new AbortController();
   process.once('SIGINT', () => interrupted.abort());
+  process.once('SIGTERM', () => interrupted.abort());
+  const prepared = [];
+  try {
   for (const item of manifest.cases) {
     const directory = resolve(item.project), goldPath = resolve(item.gold), goldRelative = relative(directory, goldPath);
     if (!goldRelative.startsWith('../') && !isAbsolute(goldRelative)) throw new Error('Reference labels must be outside the model-visible project directory.');
@@ -60,9 +63,12 @@ async function main() {
     await visit(directory);
     const archive = await zip.generateAsync({ type: 'nodebuffer' });
     await writeFile(join(output, `${item.id}.zip`), archive);
-    const rules = (await readFile(item.requirements, 'utf8')).split(/\r?\n/).filter((line) => line.trim()).map((text, position) => ({ id: 'R' + (position + 1), text }));
-    if (!rules.length || rules.length > 12 || JSON.stringify(rules).length > 13000) throw new Error('Benchmark requirements must fit the supported input limits.');
+    const requirementText = await readFile(item.requirements, 'utf8');
+    const parsed = parseRequirementInput(requirementText);
+    const { rules, ...requirementInput } = parsed;
     await writeFile(join(output, `${item.id}.gold.json`), JSON.stringify(gold, null, 2));
+    await writeFile(join(output, `${item.id}.requirements.txt`), requirementText);
+    index.inputs[item.id] = { archiveHash: createHash('sha256').update(archive).digest('hex'), requirementHash: createHash('sha256').update(requirementText).digest('hex') };
     let reference: string | undefined;
     if (item.oracle) {
       const oracle = await readFile(item.oracle, 'utf8');
@@ -72,23 +78,31 @@ async function main() {
       await writeFile(join(output, reference), JSON.stringify(validation, null, 2));
       if (!validation.valid) throw new Error(`Contract witnesses failed for ${item.id}; no model calls for this case.`);
     }
-    if (validateOnly) continue;
-    for (const variant of manifest.variants) for (let repeat = 1; repeat <= manifest.repeat; repeat++) {
+    prepared.push({ item, archive, gold, rules, requirementInput, reference });
+    await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
+  }
+  if (validateOnly) { index.status = 'validated'; return; }
+  index.status = 'running';
+  for (const { item, archive, gold, rules, requirementInput, reference } of prepared) {
+    const attempts = Array.from({ length: manifest.repeat }, (_, i) => manifest.variants.map((_, offset) => ({ repeat: i + 1, variant: manifest.variants[(i + offset) % manifest.variants.length] }))).flat();
+    for (const { variant, repeat } of attempts) {
       if (interrupted.signal.aborted) { index.status = 'cancelled'; await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2)); return; }
       const currentAgent = await Promise.all(agentPaths.map(async file => [file, await readFile(file, 'utf8')]));
       if (createHash('sha256').update(JSON.stringify(currentAgent)).digest('hex') !== agentFingerprint) throw new Error('Agent inputs changed during the experiment. Start a new frozen experiment.');
       const name = `${item.id}-${variant}-${repeat}`, root = join(output, name);
       await mkdir(join(root, 'generated'), { recursive: true });
       const snapshot = await importProject(root, archive);
-      const report: PythonReport = { id: randomUUID(), variant, title: item.id, createdAt: new Date().toISOString(), model: index.model, source: item.project, fingerprint: snapshot.fingerprint, status: 'running', stage: '', rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: ['Dataset purpose: ' + manifest.purpose + '. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis.'] };
+      const report: PythonReport = { id: randomUUID(), variant, title: item.id, createdAt: new Date().toISOString(), model: index.model, source: item.project, fingerprint: snapshot.fingerprint, requirementInput, status: 'running', stage: '', rules, tests: [], measurements: [], mutations: [], diagnoses: [], relevance: [], improvements: [], states: [], limitations: ['Dataset purpose: ' + manifest.purpose + '. Labels and outputs require independent human review. B0/B1 scaffolding is not a semantic verification claim. B2 omits evidence-based diagnosis.'] };
       const entry: typeof index.runs[number] = { caseId: item.id, variant, repeat, report: `${name}/report.json`, gold: `${item.id}.gold.json`, review: `${name}/review.json`, reference, requests: `${name}/requests.json` };
       if (gold.fault) entry.fault = { id: gold.fault.id, beforeDetected: null, afterDetected: null, corrected: [] };
       index.runs.push(entry);
       await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
       const save = () => writeFile(join(root, 'report.json'), JSON.stringify(report, null, 2));
-      const requests: { taskHash: string; elapsedMs: number; usage?: ReasonUsage; error?: string }[] = [];
+      const requests: { stage: string; taskHash: string; contextHash: string; contextBytes: number; elapsedMs: number; usage?: ReasonUsage; error?: string }[] = [];
+      await writeFile(join(root, 'requests.json'), '[]');
       const measuredReason: Reason = async (schema, task, context, model, signal) => {
-        const started = Date.now(), request: typeof requests[number] = { taskHash: createHash('sha256').update(task).digest('hex'), elapsedMs: 0 };
+        const serialized = JSON.stringify(context);
+        const started = Date.now(), request: typeof requests[number] = { stage: report.stage, taskHash: createHash('sha256').update(task).digest('hex'), contextHash: createHash('sha256').update(serialized).digest('hex'), contextBytes: Buffer.byteLength(serialized), elapsedMs: 0 };
         try { return await reason(schema, task, context, model, signal, usage => { request.usage = usage; }); }
         catch (error) { request.error = (error instanceof Error ? error.message : 'Request failed.').replaceAll(process.env.OPENAI_API_KEY!, '[redacted]').slice(0, 1500); throw error; }
         finally { request.elapsedMs = Date.now() - started; requests.push(request); await writeFile(join(root, 'requests.json'), JSON.stringify(requests, null, 2)); }
@@ -103,7 +117,13 @@ async function main() {
       }
       entry.elapsedMs = Date.now() - started;
       if (report.status === 'completed' && !interrupted.signal.aborted) {
-        try { entry.fault = await probeFault(root, archive, gold, report, AbortSignal.any([interrupted.signal, AbortSignal.timeout(220000)])); }
+        let referenceExecution: Measurement | undefined;
+        try {
+          referenceExecution = await probeReferenceSuite(join(root, 'final-reference'), archive, gold, report, AbortSignal.any([interrupted.signal, AbortSignal.timeout(120000)]));
+          entry.referenceExecution = `${name}/reference-execution.json`;
+          await writeFile(join(root, 'reference-execution.json'), JSON.stringify(referenceExecution, null, 2));
+        } catch { console.log(name, 'Final reference replay incomplete; reference failures remain unavailable.'); }
+        try { entry.fault = await probeFault(root, archive, gold, report, AbortSignal.any([interrupted.signal, AbortSignal.timeout(220000)]), referenceExecution); }
         catch { console.log(name, 'Reference probe incomplete; detection remains unavailable.'); }
       }
       await save();
@@ -113,8 +133,9 @@ async function main() {
     }
   }
   index.status = 'completed';
-  await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
-  console.log(`Saved benchmark: ${join(output, 'index.json')}`);
+  console.log(`Saved experiment: ${join(output, 'index.json')}`);
   console.log('Review the copied gold labels and review.json files independently, then run npm run score -- <index.json>.');
+  } catch (error) { index.status = interrupted.signal.aborted ? 'cancelled' : 'failed'; throw error; }
+  finally { await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2)); }
 }
 main().catch((error) => { console.error(error.message); process.exitCode = 1; });

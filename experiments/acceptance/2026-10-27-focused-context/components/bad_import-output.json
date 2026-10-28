@@ -1,0 +1,21 @@
+{
+  "decisions": [
+    {
+      "testId": "T1",
+      "category": "generated_test_error",
+      "reason": "The test fails during collection because it imports `invented_shipping`, but the supplied module is `shipping.py`. This generated import does not match the supplied file layout, so the test never reaches its contract-supported threshold assertion.",
+      "quote": "For integer amount >= 10000, shipping.fee(amount) returns integer 0.",
+      "executionQuote": "E   ModuleNotFoundError: No module named 'invented_shipping'",
+      "evidence": [
+        {
+          "file": "reqtest_generated/test_reqtest_T1.py",
+          "quote": "from invented_shipping import fee"
+        },
+        {
+          "file": "shipping.py",
+          "quote": "def fee(amount):"
+        }
+      ]
+    }
+  ]
+}

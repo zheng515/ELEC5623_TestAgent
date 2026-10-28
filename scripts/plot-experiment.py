@@ -22,10 +22,10 @@ figures.mkdir(exist_ok=True)
 
 
 def save(fig, name, caption):
-    fig.text(.02, .015, textwrap.fill(caption, 135), fontsize=8, color="#475569")
+    fig.text(.02, .015, textwrap.fill(caption, max(60, int(fig.get_figwidth() * 12))), fontsize=8, color="#475569")
     fig.tight_layout(rect=(0, .13, 1, .95), pad=1.4)
-    fig.savefig(figures / (name + ".png"), dpi=200, facecolor="white")
-    fig.savefig(figures / (name + ".svg"), facecolor="white")
+    fig.savefig(figures / (name + ".png"), dpi=200, facecolor="white", bbox_inches="tight")
+    fig.savefig(figures / (name + ".svg"), facecolor="white", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -71,7 +71,7 @@ for ax, title, ylabel in [(axes[0], "End-to-end latency", "Seconds per run"), (a
     ax.set(title=title, ylabel=ylabel, xlim=(-.6, len(labels)-.4))
     ax.set_ylim(bottom=0)
     ax.grid(axis="y", alpha=.15)
-save(fig, "03-latency-and-tokens", "Dots are recorded runs, grouped across three development projects. Whiskers show min/max; no population inference. Failed calls with unknown tokens are omitted and counted in n.")
+save(fig, "03-latency-and-tokens", "Dots are recorded runs, grouped across the frozen case set. Whiskers show min/max; no population inference. Failed calls with unknown tokens are omitted and counted in n.")
 
 paired = [row for row in rows if row["mutationTotal"] is not None]
 fig, ax = plt.subplots(figsize=(10, max(4, len(paired) * .45 + 1.8)))
@@ -99,4 +99,54 @@ else:
         ax.set_axis_off()
 ax.set_title("Paired mutation feedback" if paired else "Mutation observations: no paired improvement evidence")
 save(fig, "04-mutation-feedback", "Raw tool counts only. Relevance and equivalence have not been independently reviewed; no semantic mutation score is claimed.")
+
+fig, ax = plt.subplots(figsize=(9, 5))
+bottom = np.zeros(len(labels))
+for key, color, label in [("generatedPassed", "#2563eb", "Passed"), ("generatedFailed", "#fb923c", "Failed assertions"), ("generatedErrors", "#64748b", "Execution errors")]:
+    values = [sum(row[key] for row in rows if row["variant"] == variant) for variant in labels]
+    bars = ax.bar(x, values, bottom=bottom, color=color, label=label, width=.55)
+    ax.bar_label(bars, labels=[str(value) if value else "" for value in values], label_type="center", color="white")
+    bottom += values
+ax.set(xticks=x, xticklabels=labels, ylabel="Executed generated checks", title="Actual generated-test outcomes across all runs", ylim=(0, max(1, max(bottom)) * 1.15))
+ax.yaxis.get_major_locator().set_params(integer=True)
+ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1,1))
+save(fig, "05-test-outcomes", "Passing counts are observed test cases, not accuracy or equal coverage. A failing assertion can successfully expose a seeded defect. Blocked proposals are not executed tests; inspect variants.csv separately.")
+
+cases = list(dict.fromkeys(row["caseId"] for row in rows))
+fig, ax = plt.subplots(figsize=(max(7, len(labels) * 1.9), max(4, len(cases) * .9 + 1.7)))
+ax.set(xlim=(-.5, len(labels)-.5), ylim=(len(cases)-.5, -.5),
+       xticks=range(len(labels)), xticklabels=labels, yticks=range(len(cases)), yticklabels=cases,
+       title="Per-case seeded-fault detection and execution")
+for i, case in enumerate(cases):
+    for j, variant in enumerate(labels):
+        subset = [row for row in rows if row["caseId"] == case and row["variant"] == variant]
+        faults = [row for row in subset if row["faultCase"]]
+        if faults:
+            detected = sum(row["faultAfter"] is True for row in faults)
+            pending = sum(row["faultAfter"] is None for row in faults)
+            label = f"Detected {detected}/{len(faults)}" + (f"\n{pending} unresolved" if pending else "")
+            color = "#dbeafe" if detected == len(faults) else "#ffedd5"
+        else:
+            executed = sum(row["completedWithExecution"] for row in subset)
+            label = f"Executed {executed}/{len(subset)}\nNo seeded fault"
+            color = "#f1f5f9"
+        ax.add_patch(plt.Rectangle((j-.47, i-.42), .94, .84, facecolor=color, edgecolor="white"))
+        ax.text(j, i, label, ha="center", va="center", fontsize=10)
+ax.tick_params(length=0, pad=10)
+for spine in ax.spines.values(): spine.set_visible(False)
+save(fig, "06-case-results", "Denominators include every planned repeat. No seeded fault does not mean no possible bug. Detection requires the original failure and a matching pass on the corrected copy; this is not overall semantic accuracy.")
+
+if any("referenceFailureObserved" in row for row in rows):
+    fig, ax = plt.subplots(figsize=(9, 5))
+    bottom = np.zeros(len(labels))
+    for state, color, label in [(False, "#2563eb", "No reference assertion failure"), (True, "#f59e0b", "Reference assertion failure"), (None, "#cbd5e1", "Replay unavailable")]:
+        values = [sum(row.get("referenceFailureObserved") is state for row in rows if row["variant"] == variant) for variant in labels]
+        bars = ax.bar(x, values, bottom=bottom, color=color, label=label, width=.55)
+        ax.bar_label(bars, labels=[str(value) if value else "" for value in values], label_type="center")
+        bottom += values
+    ax.set(xticks=x, xticklabels=labels, ylabel="Number of runs", title="Generated tests replayed on reference copies", ylim=(0, max(bottom) * 1.15))
+    ax.yaxis.get_major_locator().set_params(integer=True)
+    ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1, 1))
+    save(fig, "07-reference-replay", "Reference copies passed fixed external contract witnesses. Remaining assertion failures are disagreements to investigate, not independently established false positives. Empty, erroneous or skipped replays are unavailable.")
+
 print(f"Saved PNG and SVG figures to {figures}")

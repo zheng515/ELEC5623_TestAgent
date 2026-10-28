@@ -10,7 +10,7 @@ export const pageSchema = z.object({ page: z.number().int().positive(), status: 
 export type DocumentPage = z.infer<typeof pageSchema>;
 export const documentSchema = z.object({ id: z.string().uuid(), fileName: z.string(), sha256: z.string(), format: z.enum(["pdf", "doc", "docx", "txt", "md"]), segments: z.array(segmentSchema), warnings: z.array(z.string()), pages: z.array(pageSchema).default([]) });
 export type RequirementDocument = z.infer<typeof documentSchema>;
-export type RequirementSource = { documentId: string; segmentId: string; fileName: string; sha256: string; location: string; page?: number; paragraph?: number; line?: number; extraction?: "ocr" | "text"; confidence?: number; quote?: string };
+export type RequirementSource = { documentId: string; segmentId: string; fileName: string; sha256: string; location: string; page?: number; paragraph?: number; line?: number; extraction?: "ocr" | "text"; confidence?: number; quote?: string; start?: number };
 export class DocumentIntegrityError extends Error {}
 function directory(userId: string, id: string) {
   if (!z.string().uuid().safeParse(id).success) throw new Error("Invalid requirement document.");

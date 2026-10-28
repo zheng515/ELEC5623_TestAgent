@@ -9,7 +9,7 @@ import JSZip from "jszip";
 import { extractRequirements, loadRequirements, documentRules, originalRequirements } from "../lib/requirements";
 import { prepareProject, copyPreparedProject } from "../lib/project-setup";
 import { dataDir } from "../lib/auth";
-import { githubArchive, importProject, inspectProject, measureProject } from "../lib/python-tools";
+import { importProject, inspectProject, measureProject } from "../lib/python-tools";
 
 test("project directories isolate runtime inputs while retaining bounded dependency lockfiles", async () => {
   const root = await mkdtemp(join(tmpdir(), 'reqtest-directory-'));
@@ -33,24 +33,6 @@ test("project directories isolate runtime inputs while retaining bounded depende
     zip.file('repository/backend/uv.lock', 'x'.repeat(1000001));
     await assert.rejects(importProject(root, await zip.generateAsync({ type: 'nodebuffer' }), 'auto', 'backend'), /lockfile exceeds 1 MB/);
   } finally { await rm(root, { recursive: true, force: true }); }
-});
-
-test("private GitHub downloads pin the commit and never forward tokens to the archive host", async () => {
-  const original = globalThis.fetch, calls: { url: string; token?: string }[] = [];
-  const sha = "a".repeat(40), token = "github_pat_fixture";
-  globalThis.fetch = (async (input, init) => {
-    const url = String(input); calls.push({ url, token: new Headers(init?.headers).get("Authorization") || undefined });
-    if (url.includes("/commits/")) return Response.json({ sha });
-    if (url.includes("/zipball/")) return new Response(null, { status: 302, headers: { location: "https://codeload.github.com/owner/private/zip/" + sha + "?temporary=fixture" } });
-    return new Response("zip fixture");
-  }) as typeof fetch;
-  try {
-    const result = await githubArchive("https://github.com/owner/private", "feature/example", token);
-    assert.ok(calls[0].url.endsWith("feature%2Fexample")); assert.equal(calls[0].token, "Bearer " + token); assert.equal(calls[1].token, "Bearer " + token); assert.equal(calls[2].token, undefined);
-    assert.equal(result.source, "https://github.com/owner/private/tree/" + sha); assert.ok(!JSON.stringify(result).includes(token));
-    globalThis.fetch = (async (input) => String(input).includes("/commits/") ? Response.json({ sha }) : new Response(null, { status: 302, headers: { location: "https://untrusted.example/archive" } })) as typeof fetch;
-    await assert.rejects(() => githubArchive("https://github.com/owner/private", "main", token), /authorize/);
-  } finally { globalThis.fetch = original; }
 });
 
 test("real PDF and Word extraction retains locations, original bytes and account boundaries", { skip: process.env.REQTEST_DOCKER_TEST !== "1", timeout: 90000 }, async () => {

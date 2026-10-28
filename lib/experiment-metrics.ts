@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
 import { testFile } from './runtime';
 import type { Gold, FaultProbe } from './evaluation';
-import type { PythonReport, Mutation } from './python-types';
+import type { PythonReport, Mutation, Measurement } from './python-types';
 
-export type ExperimentEntry = { caseId: string; variant: string; repeat: number; report: string; gold: string; review: string; requests?: string; reference?: string; elapsedMs?: number; fault?: FaultProbe };
+export type ExperimentEntry = { caseId: string; variant: string; repeat: number; report: string; gold: string; review: string; requests?: string; reference?: string; referenceExecution?: string; elapsedMs?: number; fault?: FaultProbe };
 export type RequestRecord = { elapsedMs: number; usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number }; error?: string };
 export type ReferenceCheck = { valid: boolean; sourceFingerprint: string; faultHash: string; oracleHash: string };
-export type ExperimentItem = { entry: ExperimentEntry; report?: PythonReport; gold?: Gold; reference?: ReferenceCheck; requests?: RequestRecord[] };
+export type ReferenceExecution = Measurement & { sourceFingerprint: string; suiteHash: string };
+export type ExperimentItem = { entry: ExperimentEntry; report?: PythonReport; gold?: Gold; reference?: ReferenceCheck; referenceExecution?: ReferenceExecution; requests?: RequestRecord[] };
 const ratio = (a: number, b: number) => b ? a / b : null;
 export function pairedMutationCounts(before?: Mutation, after?: Mutation) {
   const usable = (item?: Mutation) => item && !item.incomplete && !item.timedOut && item.mutants.length && new Set(item.mutants.map(mutant => `${mutant.file}:${mutant.id}`)).size === item.mutants.length && item.mutants.every(mutant => mutant.diff && ['killed', 'survived'].includes(mutant.status));
@@ -14,7 +15,7 @@ export function pairedMutationCounts(before?: Mutation, after?: Mutation) {
   if (!usable(before) || !usable(after) || JSON.stringify(before!.scope) !== JSON.stringify(after!.scope) || JSON.stringify(keys(before!)) !== JSON.stringify(keys(after!))) return null;
   return { total: before!.mutants.length, beforeKilled: before!.mutants.filter(item => item.status === 'killed').length, afterKilled: after!.mutants.filter(item => item.status === 'killed').length };
 }
-export function experimentRow({ entry, report, gold, reference, requests }: ExperimentItem) {
+export function experimentRow({ entry, report, gold, reference, referenceExecution, requests }: ExperimentItem) {
   if (report && (report.title !== entry.caseId || report.variant !== entry.variant)) throw new Error('Experiment entry does not match its report.');
   const latest = report?.measurements.at(-1);
   const outcomes = latest?.outcomes || [];
@@ -22,6 +23,9 @@ export function experimentRow({ entry, report, gold, reference, requests }: Expe
   const count = (items: typeof outcomes, status: string) => items.filter(outcome => outcome.status === status).length;
   const faultHash = createHash('sha256').update(JSON.stringify(gold?.fault || null)).digest('hex');
   const referenceValid = !!report && !!reference?.valid && reference.sourceFingerprint === report.fingerprint && reference.faultHash === faultHash;
+  const suiteHash = report ? createHash('sha256').update(JSON.stringify(report.tests.filter(test => test.approved).map(test => ({ id: test.id, code: test.code })))).digest('hex') : null;
+  const referenceOutcomes = referenceExecution?.outcomes.filter(outcome => report?.tests.some(test => test.approved && outcome.file === testFile(test.id, report.runtime))) || [];
+  const referenceUsable = referenceValid && report?.status === 'completed' && referenceExecution?.sourceFingerprint === report.fingerprint && referenceExecution?.suiteHash === suiteHash && referenceExecution?.integrity === true && !referenceExecution.timedOut && [0, 1].includes(referenceExecution.exitCode) && referenceOutcomes.length > 0 && !referenceExecution.outcomes.some(outcome => ['error', 'skipped'].includes(outcome.status));
   const faultDetection = (phase: 'before' | 'after') => {
     if (!referenceValid || report?.status !== 'completed' || !gold?.fault || entry.fault?.id !== gold.fault.id) return null;
     const measurement = phase === 'before' ? report.measurements[0] : latest;
@@ -51,6 +55,11 @@ export function experimentRow({ entry, report, gold, reference, requests }: Expe
     baselinePassed: report?.baseline ? count(report.baseline.outcomes, 'passed') : null,
     passed: count(outcomes, 'passed'), failed: count(outcomes, 'failed'), errors: count(outcomes, 'error'), skipped: count(outcomes, 'skipped'),
     generatedPassed: count(generated, 'passed'), generatedFailed: count(generated, 'failed'), generatedErrors: count(generated, 'error'),
+    referenceExecutionUsable: !!referenceUsable,
+    referencePassed: referenceUsable ? count(referenceOutcomes, 'passed') : null,
+    referenceFailed: referenceUsable ? count(referenceOutcomes, 'failed') : null,
+    referenceFailureObserved: referenceUsable ? referenceOutcomes.some(outcome => outcome.status === 'failed') : null,
+    suiteHash,
     executionRecorded: !!latest, executionIntegrity: latest ? latest.integrity === true && !latest.timedOut : null,
     completedWithExecution: report?.status === 'completed' && !!latest?.integrity && !latest.timedOut && outcomes.some(outcome => ['passed', 'failed'].includes(outcome.status) && outcome.name !== '<module>'),
     improvementActions: report?.improvements.length ?? null,
@@ -68,7 +77,7 @@ export function summarizeExperiment(items: ExperimentItem[]) {
   const keys = items.map(item => `${item.entry.caseId}:${item.entry.variant}:${item.entry.repeat}`);
   if (new Set(keys).size !== keys.length) throw new Error('Duplicate experiment runs are not allowed.');
   const reports = items.flatMap(item => item.report ? [item.report] : []);
-  for (const report of reports) if (reports.some(other => other.title === report.title && (other.fingerprint !== report.fingerprint || other.model !== report.model || JSON.stringify(other.rules) !== JSON.stringify(report.rules)))) throw new Error('A case must use identical source, requirements and model in every run.');
+  for (const report of reports) if (reports.some(other => other.title === report.title && (other.fingerprint !== report.fingerprint || other.model !== report.model || JSON.stringify(other.rules) !== JSON.stringify(report.rules) || JSON.stringify(other.requirementInput) !== JSON.stringify(report.requirementInput) || other.configuration?.sandboxImage !== report.configuration?.sandboxImage || other.configuration?.policyVersion !== report.configuration?.policyVersion))) throw new Error('A case must use identical source, requirements, context, model, image and policy in every run.');
   const rows = items.map(experimentRow);
   const summary = [...new Set(rows.map(row => row.variant))].map(variant => {
     const runs = rows.filter(row => row.variant === variant), faults = runs.filter(row => row.faultCase);
@@ -82,6 +91,14 @@ export function summarizeExperiment(items: ExperimentItem[]) {
       completedWithExecutionRate: ratio(runs.filter(row => row.completedWithExecution).length, runs.length),
       medianSeconds: elapsed.length ? elapsed.length % 2 ? elapsed[Math.floor(elapsed.length / 2)] : (elapsed[elapsed.length / 2 - 1] + elapsed[elapsed.length / 2]) / 2 : null,
       latencyObservedRuns: elapsed.length, modelRequests: total('modelRequests'), totalTokens: total('totalTokens'),
+      approvedArtifacts: runs.reduce((sum, row) => sum + (row.approvedArtifacts || 0), 0),
+      blockedArtifacts: runs.reduce((sum, row) => sum + (row.blockedArtifacts || 0), 0),
+      generatedPassed: runs.reduce((sum, row) => sum + row.generatedPassed, 0),
+      generatedFailed: runs.reduce((sum, row) => sum + row.generatedFailed, 0),
+      generatedErrors: runs.reduce((sum, row) => sum + row.generatedErrors, 0),
+      referenceObservedRuns: runs.filter(row => row.referenceFailureObserved !== null).length,
+      referenceFailureRuns: runs.filter(row => row.referenceFailureObserved === true).length,
+      referenceFailureRate: runs.every(row => row.referenceFailureObserved !== null) ? ratio(runs.filter(row => row.referenceFailureObserved).length, runs.length) : null,
       faultRuns: faults.length, unresolvedFaultRuns: faults.filter(row => row.faultAfter === null).length,
       correctedCopyDetectionRate: faults.length && faults.every(row => row.faultAfter !== null) ? ratio(faults.filter(row => row.faultAfter).length, faults.length) : null,
       initialDetections: preserved.length,
@@ -89,5 +106,12 @@ export function summarizeExperiment(items: ExperimentItem[]) {
       independentSemanticAccuracy: null, independentDiagnosisMacroF1: null, independentlyReviewedMutationScore: null,
     };
   });
-  return { rows, summary };
+  const cases = [...new Set(rows.map(row => row.caseId))].flatMap(caseId => summary.map(({ variant }) => {
+    const runs = rows.filter(row => row.caseId === caseId && row.variant === variant);
+    const suites = runs.flatMap(row => row.suiteHash ? [row.suiteHash] : []);
+    return { caseId, variant, plannedRuns: runs.length, observedSuites: suites.length, distinctApprovedSuites: new Set(suites).size,
+      detectionObservations: runs.map(row => row.faultAfter), referenceFailureObservations: runs.map(row => row.referenceFailureObserved),
+      stabilityAssessed: runs.length > 1 && suites.length === runs.length };
+  }));
+  return { rows, summary, cases };
 }

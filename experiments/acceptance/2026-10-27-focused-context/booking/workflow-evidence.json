@@ -1,0 +1,27 @@
+{
+  "scope": "Observed workflow records on identical case inputs. Counts do not establish semantic correctness or superiority over external products.",
+  "baseline": "B0 is this repository's direct-generation configuration, not a measurement of Codex, Claude, CoverUp or TestGen-LLM.",
+  "rows": [
+    {
+      "caseId": "booking",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 5,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-B3-1/report.json"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "variant": "B3",
+      "completed": 1,
+      "planned": 1,
+      "seededFaultDetection": 1,
+      "medianSeconds": 40.06,
+      "totalTokens": 17389
+    }
+  ]
+}

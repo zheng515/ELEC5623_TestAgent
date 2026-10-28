@@ -6,17 +6,46 @@ import { join } from 'node:path';
 import JSZip from 'jszip';
 import { execFileSync } from 'node:child_process';
 import { asSchema } from 'ai';
-import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId, quoteReferences, mergeAnalyses, chunks, pool, pruneAnalysis, type MutationReviewRequest } from '../lib/python-agent';
-import { survivorReviews } from '../lib/mutation-review';
+import { createHash } from 'node:crypto';
+import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId, quoteReferences, mergeAnalyses, chunks, pool, pruneAnalysis } from '../lib/python-agent';
+import { survivorReviews, type MutationReviewPair } from '../lib/mutation-review';
+import { verificationGate } from '../lib/run-evaluation';
 import { importProject, measureProject, mutateProject, dockerTool, type Inspection } from '../lib/python-tools';
-import { analysisSchema, groundedAnalysisSchema, groundedTestsSchema, groundedDiagnosisSchema, originalQuoteSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema, testsSchema, type PythonReport, type Measurement, type DiagnosisPhase } from '../lib/python-types';
+import { analysisSchema, groundedAnalysisSchema, groundedTestsSchema, groundedDiagnosisSchema, groundedRelevanceSchema, originalQuoteSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema, testsSchema, type PythonReport, type Measurement, type DiagnosisPhase } from '../lib/python-types';
+import { rule, code, artifact, report, analysis } from './fixtures/python-agent';
 
-const rule = 'For integer amount >= 10000, shipping.fee(amount) returns integer 0.';
-const code = 'def fee(amount):\n    return 0 if amount >= 10000 else 1000\n';
-function report(): PythonReport { return { id:'test', title:'Test', createdAt:new Date().toISOString(), model:'unused', source:'synthetic fixture', fingerprint:'test', status:'running', stage:'', rules:[{id:'R1',text:rule}], tests:[], measurements:[], mutations:[], diagnoses:[], relevance:[], improvements:[], states:[], limitations:[] }; }
-function analysis() { return analysisSchema.parse({ behaviors:[{id:'B1',ruleId:'R1',quote:rule,text:'Exact threshold',category:'boundary',issue:'none',reason:'Explicit boundary',files:['shipping.py'],existingTests:[],evidence:[{file:'shipping.py',quote:'def fee(amount):'}],gaps:['No exact-threshold test']}],inconsistencies:[] }); }
 const snapshot: Inspection = {files:{'shipping.py':code},functions:[],nodes:[],collection:{exitCode:5,log:''},errors:[]};
-const artifact = {id:'T1',behaviorId:'B1',functionName:'test_threshold',gapIndexes:[0],quote:rule,purpose:'Exact threshold',code:'from shipping import fee\ndef test_threshold():\n    assert fee(10000) == 0\n',approved:true};
+
+test('saved-test re-execution preserves outcomes without model calls and refuses changed evidence', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 45000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'reqtest-replay-'));
+  try {
+    for (const faulty of [false, true]) {
+      const zip = new JSZip(); zip.file('shipping.py', code.replace('>=', faulty ? '>' : '>='));
+      const root = join(directory, faulty ? 'faulty' : 'correct');
+      const source = await importProject(root, await zip.generateAsync({ type: 'nodebuffer' }));
+      await mkdir(join(root, 'generated'));
+      const r = report(); r.analysis = analysis(); r.fingerprint = source.fingerprint;
+      r.tests = [structuredClone(artifact), { ...artifact, id: 'T2', approved: false, code: artifact.code.replace('== 0', '== 999') }];
+      r.replay = { suiteHash: createHash('sha256').update(JSON.stringify(r.tests)).digest('hex'), states: [{ id: 'B1', status: 'Partially Verified', reason: 'Unresolved adequacy.', nodes: [] }] };
+      const initial = structuredClone(r);
+      const noModel = async () => { throw new Error('Saved tests must never invoke a model.'); };
+      for (let repeat = 0; repeat < 2; repeat++) {
+        const next = structuredClone(initial);
+        await runPython(next, root, AbortSignal.timeout(15000), () => {}, noModel);
+        assert.equal(next.status, 'completed'); assert.equal(next.measurements.length, 1);
+        assert.ok(next.measurements[0].integrity); assert.equal(next.measurements[0].outcomes.length, 1);
+        assert.equal(next.measurements[0].outcomes[0].status, faulty ? 'failed' : 'passed');
+        assert.equal(next.states[0].status, faulty ? 'Uncertain' : 'Partially Verified');
+        assert.deepEqual(next.tests, initial.tests); assert.deepEqual(next.diagnoses, []);
+        assert.equal(next.configuration?.improvementLimit, 0);
+      }
+      const changed = structuredClone(initial); changed.tests[0].code += '\n# Changed';
+      await assert.rejects(runPython(changed, root, AbortSignal.timeout(15000), () => {}, noModel), /suite changed/);
+      await writeFile(join(root, 'source', 'shipping.py'), code + '\n# Changed source');
+      await assert.rejects(runPython(initial, root, AbortSignal.timeout(15000), () => {}, noModel), /fingerprint changed/);
+    }
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
 
 test('diagnosis provider schema accepts only requested canonical IDs and original quotes', async () => {
   const schema = groundedDiagnosisSchema(['T1', 'tests/test_original.py::test_fee', 'environment'], originalQuoteSchema(['', rule], ['', 'R1']));
@@ -57,6 +86,56 @@ function mutationReport(count = 1) {
 }
 const mutationDecision = (mutantId: string) => ({ mutantId, behaviorId: 'B1', relevant: true, quote: rule, reason: 'Changes the stated inclusive threshold.' });
 
+test('mutation provider schema permits repeated mutant IDs only with the supplied behavior pairs', async () => {
+  const schema = asSchema(groundedRelevanceSchema([{ id: 'Mutant #2', behaviorId: 'B1' }, { id: 'Mutant #2', behaviorId: 'B2' }], originalQuoteSchema([rule])));
+  const decisions = ['B1', 'B2'].map(behaviorId => ({ ...mutationDecision('Mutant #2'), behaviorId }));
+  assert.equal((await schema.validate!({ decisions })).success, true);
+  for (const change of [{ mutantId: 'Mutant #5' }, { behaviorId: 'B3' }]) {
+    assert.equal((await schema.validate!({ decisions: [{ ...decisions[0], ...change }] })).success, false);
+  }
+});
+
+test('complete mutant-by-behavior review permits strict CI; missing, duplicate and relevant pairs still block', async () => {
+  const r = mutationReport(2);
+  r.status = 'completed';
+  r.analysis!.behaviors = Array.from({ length: 4 }, (_, i) => ({ ...analysis().behaviors[0], id: `B${i + 1}` }));
+  r.tests = r.analysis!.behaviors.map((behavior, i) => ({ ...artifact, id: `T${i + 1}`, behaviorId: behavior.id }));
+  r.measurements = [{ outcomes: r.tests.map(test => ({ node: `reqtest_generated/test_reqtest_${test.id}.py::test_threshold`, file: `reqtest_generated/test_reqtest_${test.id}.py`, name: test.functionName, status: 'passed', message: '' })), exitCode: 0, timedOut: false, integrity: true, log: '' }];
+  for (const mutant of r.mutations[0].mutants) mutant.diff = '- raise ValueError("old")\n+ raise ValueError("new")';
+  const batches: MutationReviewPair[][] = [];
+  const review = async (pairs: MutationReviewPair[]) => { batches.push(pairs); return { decisions: pairs.map(pair => ({ ...mutationDecision(pair.id), behaviorId: pair.behaviorId, relevant: false, reason: 'Only unspecified exception message wording changes.' })) }; };
+  await reviewSurvivingMutations(r, review); updateStates(r);
+  assert.equal(batches[0].length, 8); assert.equal(r.relevance.length, 8);
+  assert.ok(r.states.every(state => state.status === 'Verified')); assert.equal(verificationGate(r, true), true);
+  assert.ok(survivorReviews(r).every(row => row.category === 'outside_behavior' && row.reviews.length === 4));
+  await reviewSurvivingMutations(r, review); assert.equal(batches.length, 1, 'Complete pairs are cached');
+  const removed = r.relevance.pop()!; updateStates(r);
+  assert.equal(verificationGate(r, true), false); assert.equal(r.states.filter(state => state.status === 'Verified').length, 3);
+  await reviewSurvivingMutations(r, review); assert.equal(batches[1].length, 1, 'Only the missing pair is requested');
+  r.relevance.push({ ...r.relevance.at(-1)! }); updateStates(r); assert.equal(verificationGate(r, true), false);
+  await reviewSurvivingMutations(r, review); assert.equal(batches[2].length, 1);
+  r.relevance.find(decision => decision.mutantId === removed.mutantId && decision.behaviorId === removed.behaviorId)!.relevant = true;
+  updateStates(r); assert.equal(verificationGate(r, true), false);
+  assert.equal(r.states.filter(state => state.status === 'Verified').length, 3, 'A relevant survivor blocks its own behavior');
+  r.mutations[0].mutants[0].diff += '\nchanged'; updateStates(r);
+  assert.ok(r.states.every(state => state.status !== 'Verified'), 'Changed diffs invalidate all affected pairs');
+});
+
+test('pair review batches by pair count and never clears siblings from a duplicate decision', async () => {
+  const r = mutationReport(5); r.analysis!.behaviors = Array.from({ length: 4 }, (_, i) => ({ ...analysis().behaviors[0], id: `B${i + 1}` }));
+  const sizes: number[] = [];
+  await reviewSurvivingMutations(r, async pairs => {
+    sizes.push(pairs.length);
+    const decisions = pairs.map(pair => ({ ...mutationDecision(pair.id), behaviorId: pair.behaviorId, relevant: false }));
+    if (sizes.length === 1) decisions.push({ ...decisions[0] });
+    return { decisions };
+  });
+  assert.deepEqual(sizes, [16, 4]);
+  assert.equal(r.relevance.filter(decision => decision.grounded).length, 19);
+  assert.equal(survivorReviews(r)[0].category, 'unreviewed');
+  assert.equal(survivorReviews(r)[0].reviews.filter(review => review.decision).length, 3);
+});
+
 test('survivor review batches all retained mutants and reuses only exact diff-bound decisions', async () => {
   const r = mutationReport(33), sizes: number[] = [];
   const review = async (mutants: PythonReport['mutations'][number]['mutants']) => {
@@ -95,10 +174,11 @@ test('an irrelevant mutation decision cannot clear other behaviors in the same f
   updateStates(r);
   assert.equal(r.states.find(state => state.id === 'B1')?.status, 'Verified');
   assert.equal(r.states.find(state => state.id === 'B2')?.status, 'Partially Verified');
-  assert.equal(survivorReviews(r)[0].category, 'unreviewed', 'B2 still lacks its own review');
-  const retried: MutationReviewRequest[][] = [];
-  await reviewSurvivingMutations(r, async (_mutants, _batch, requests) => { retried.push(requests); return { decisions: [] }; });
-  assert.deepEqual(retried, [[{ mutantId: 'Mutant #1', behaviorId: 'B2' }]], 'Only the missing behavior is reviewed again');
+  assert.equal(survivorReviews(r)[0].category, 'unreviewed');
+  assert.equal(survivorReviews(r)[0].reviews.find(review => review.behavior.id === 'B1')?.category, 'outside_behavior');
+  const retried: MutationReviewPair[][] = [];
+  await reviewSurvivingMutations(r, async pairs => { retried.push(pairs); return { decisions: [] }; });
+  assert.deepEqual(retried.map(pairs => pairs.map(pair => ({ mutantId: pair.id, behaviorId: pair.behaviorId }))), [[{ mutantId: 'Mutant #1', behaviorId: 'B2' }]], 'Only the missing behavior is reviewed again');
   r.mutations[0].mutants[0].diff += '\nchanged'; updateStates(r);
   assert.equal(r.states[0].status, 'Partially Verified', 'A changed diff invalidates the old exclusion');
 });
@@ -108,12 +188,12 @@ test('each behavior sharing a mutated file receives its own survivor review', as
   r.analysis!.behaviors.push({ ...r.analysis!.behaviors[0], id: 'B2' });
   r.tests = [artifact, { ...artifact, id: 'T2', behaviorId: 'B2' }];
   r.measurements = [{ outcomes: r.tests.map(test => ({ node: `reqtest_generated/test_reqtest_${test.id}.py::test_threshold`, file: `reqtest_generated/test_reqtest_${test.id}.py`, name: test.functionName, status: 'passed', message: '' })), exitCode: 0, log: '', timedOut: false, integrity: true }];
-  const requests: MutationReviewRequest[][] = [];
-  await reviewSurvivingMutations(r, async (_mutants, _batch, batch) => {
-    requests.push(batch);
-    return { decisions: batch.map(request => ({ ...mutationDecision(request.mutantId), behaviorId: request.behaviorId, relevant: false, reason: `Outside ${request.behaviorId}.` })) };
+  const requests: MutationReviewPair[][] = [];
+  await reviewSurvivingMutations(r, async pairs => {
+    requests.push(pairs);
+    return { decisions: pairs.map(pair => ({ ...mutationDecision(pair.id), behaviorId: pair.behaviorId, relevant: false, reason: `Outside ${pair.behaviorId}.` })) };
   });
-  assert.deepEqual(requests, [[{ mutantId: 'Mutant #1', behaviorId: 'B1' }, { mutantId: 'Mutant #1', behaviorId: 'B2' }]]);
+  assert.deepEqual(requests.map(pairs => pairs.map(pair => ({ mutantId: pair.id, behaviorId: pair.behaviorId }))), [[{ mutantId: 'Mutant #1', behaviorId: 'B1' }, { mutantId: 'Mutant #1', behaviorId: 'B2' }]]);
   updateStates(r);
   assert.deepEqual(r.states.map(state => state.status), ['Verified', 'Verified']);
   assert.equal(survivorReviews(r)[0].category, 'outside_behavior');
@@ -329,6 +409,85 @@ test('real Docker pytest keeps a genuine defect and never repairs it', {skip:pro
   } finally {await rm(root,{recursive:true,force:true});}
 });
 
+test('one bounded retry can replace a blocked unexecuted proposal without bypassing its second review', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 180000 }, async () => {
+  for (const accepted of [true, false]) {
+    const root = await mkdtemp(join(tmpdir(), 'reqtest-blocked-gap-'));
+    try {
+      await mkdir(join(root, 'source')); await mkdir(join(root, 'generated'));
+      await writeFile(join(root, 'source/shipping.py'), code);
+      const r = report(); let generation = 0, reviews = 0;
+      r.requirementInput = { mode: 'numbered', text: rule, context: 'Supporting environment: Python 3.11.' };
+      const ask: typeof import('../lib/python-agent').reason = async (schema, _task, context) => {
+        assert.equal((context as { requirementContext: string }).requirementContext, r.requirementInput!.context);
+        if (Object.is(schema, analysisSchema)) return schema.parse(analysis());
+        if (Object.is(schema, testsSchema)) return schema.parse({ tests: [{ ...artifact, code: generation++ ? artifact.code : artifact.code.replace('== 0', '== 1') }] });
+        if (Object.is(schema, reviewTestsSchema)) return schema.parse({ decisions: [{ testId: 'T1', supported: reviews++ > 0 && accepted, quote: rule, reason: 'Check only the explicitly required expected value.' }] });
+        if (Object.is(schema, relevanceSchema)) return schema.parse({ decisions: (context as { pairs: MutationReviewPair[] }).pairs.map(pair => ({ mutantId: pair.id, behaviorId: pair.behaviorId, relevant: false, quote: rule, reason: 'The fixture checks bounded admission and post-repair measurement only.' })) });
+        throw new Error('Unexpected extra action');
+      };
+      await runPython(r, root, AbortSignal.timeout(120000), () => {}, ask);
+      assert.equal(generation, 2); assert.equal(reviews, 2);
+      assert.equal(r.measurements[0].outcomes.length, 0, 'The rejected assertion must never execute.');
+      assert.equal(r.improvements.length, accepted ? 1 : 0);
+      assert.equal(r.tests[0].approved, accepted);
+      assert.equal(r.testAttempts?.length, 2, 'Recovery must retain exactly one record per proposal round.');
+      const [initial, retry] = r.testAttempts!;
+      assert.equal(initial.status, 'rejected');
+      assert.equal(initial.tests[0].approved, false);
+      assert.ok(initial.tests[0].code.includes('== 1'), 'Retain the initial rejected proposal unchanged.');
+      assert.equal(retry.status, accepted ? 'applied' : 'rejected');
+      assert.match(r.stopReason!, accepted ? /applied and re-measured/ : /not admitted/);
+      assert.ok(retry.tests[0].code.includes('== 0'), 'Retain the second proposal even when review rejects it.');
+      assert.equal(retry.decisions?.[0].supported, accepted);
+      assert.notEqual(retry.tests[0], r.tests[0], 'Decision records must be detached from the active suite.');
+      if (accepted) {
+        assert.equal(r.measurements.at(-1)!.outcomes[0].status, 'passed');
+        assert.ok(r.improvements[0].before[0].code.includes('== 1'));
+        assert.ok(r.tests[0].code.includes('== 0'));
+      } else assert.equal(r.measurements.length, 1, 'No third proposal or unreviewed execution.');
+    } finally { await rm(root, { recursive: true, force: true }); }
+  }
+});
+
+test('failed and out-of-scope improvement proposals retain their evidence without executing', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 90000 }, async () => {
+  for (const failure of ['generation', 'review', 'outside_scope']) {
+    const root = await mkdtemp(join(tmpdir(), 'reqtest-attempt-history-'));
+    try {
+      await mkdir(join(root, 'source')); await mkdir(join(root, 'generated'));
+      await writeFile(join(root, 'source/shipping.py'), code);
+      const r = report(); let generations = 0, reviews = 0;
+      const ask: typeof import('../lib/python-agent').reason = async (schema) => {
+        if (Object.is(schema, analysisSchema)) return schema.parse(analysis());
+        if (Object.is(schema, testsSchema)) {
+          if (++generations === 2 && failure === 'generation') throw new Error('Generation request unavailable.');
+          return schema.parse({ tests: [{ ...artifact, id: generations === 2 && failure === 'outside_scope' ? 'T2' : 'T1' }] });
+        }
+        if (Object.is(schema, reviewTestsSchema)) {
+          if (++reviews === 2 && failure === 'review') throw new Error('Review request unavailable.');
+          return schema.parse({ decisions: [{ testId: 'T1', supported: false, quote: rule, reason: 'Controlled rejection for recovery testing.' }] });
+        }
+        throw new Error('Unexpected extra action');
+      };
+      const execution = runPython(r, root, AbortSignal.timeout(30000), () => {}, ask);
+      if (failure === 'outside_scope') await execution;
+      else await assert.rejects(execution, /request unavailable/);
+      const attempt = r.testAttempts!.at(-1)!;
+      assert.equal(r.testAttempts!.length, 2);
+      assert.equal(attempt.status, failure === 'outside_scope' ? 'rejected' : 'failed');
+      assert.equal(attempt.tests.length, failure === 'generation' ? 0 : 1);
+      if (failure === 'outside_scope') {
+        assert.equal(attempt.tests[0].id, 'T2');
+        assert.match(attempt.tests[0].review!, /Outside the permitted improvement scope/);
+        assert.equal(reviews, 1, 'An out-of-scope proposal must not reach model review.');
+      } else assert.match(attempt.error!, /request unavailable/);
+      assert.deepEqual(r.tests.map(test => [test.id, test.approved]), [['T1', false]]);
+      assert.equal(r.measurements.length, 1);
+      assert.equal(r.measurements[0].outcomes.length, 0);
+      assert.equal(await readFile(join(root, 'source/shipping.py'), 'utf8'), code);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  }
+});
+
 test('recorded diagnosis aliases enable one grounded repair but duplicates and unsupported evidence do not', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 180000 }, async () => {
   for (const mode of ['valid', 'duplicate', 'unsupported'] as const) {
     const root = await mkdtemp(join(tmpdir(), 'reqtest-diagnosis-id-'));
@@ -348,7 +507,7 @@ test('recorded diagnosis aliases enable one grounded repair but duplicates and u
           const decision = { testId: node, category: 'generated_test_error', reason: 'The generated test expects 1, while the original contract explicitly requires 0.', quote: rule, executionQuote: 'assert 0 == 1', evidence: [{ file: 'shipping.py', quote: 'return 0 if amount >= 10000 else 1000' }, { file: 'reqtest_generated/test_reqtest_T1.py', quote: mode === 'unsupported' ? 'invented assertion' : 'assert fee(10000) == 1' }] };
           return schema.parse({ decisions: mode === 'duplicate' ? [decision, { ...decision, testId: 'T1' }] : [decision] });
         }
-        if (Object.is(schema, relevanceSchema)) return schema.parse({ decisions: (context as { requests: MutationReviewRequest[] }).requests.map(request => ({ ...request, relevant: false, reason: 'The fixture only checks that repaired tests are mutation-tested.', quote: rule })) });
+        if (Object.is(schema, relevanceSchema)) return schema.parse({ decisions: (context as { pairs: MutationReviewPair[] }).pairs.map(pair => ({ mutantId: pair.id, behaviorId: pair.behaviorId, relevant: false, reason: 'The fixture only checks that repaired tests are mutation-tested.', quote: rule })) });
         throw new Error('Unexpected mutation or refinement stage');
       };
       await runPython(r, root, new AbortController().signal, () => {}, ask);
@@ -379,8 +538,10 @@ test('collection and baseline dependency errors are diagnosed even with no gener
         return schema.parse({tests:[]});
       }
       if(Object.is(schema,diagnosisSchema)) {
-        const evidence=context as {phase:DiagnosisPhase;failedTestIds:string[];measurement:Measurement};
+        const evidence=context as {phase:DiagnosisPhase;failedTestIds:string[];measurement:Measurement;files:Record<string,string>;analysis:ReturnType<typeof analysis>};
         assert.ok(['collection','baseline'].includes(evidence.phase));
+        assert.equal(evidence.files['tests/test_missing.py'], 'import reqtest_missing_dependency\n', 'Unmapped environment failures retain full source context.');
+        assert.ok(evidence.analysis.behaviors.some(behavior => behavior.id === 'B1'), 'Fallback retains the original behavior analysis.');
         const executionQuote="ModuleNotFoundError: No module named 'reqtest_missing_dependency'";
         assert.ok(evidence.measurement.log.includes(executionQuote));
         return schema.parse({decisions:evidence.failedTestIds.map(testId=>({testId,category:'environment_failure',reason:'The sandbox is missing a dependency required by existing tests.',quote:'',executionQuote,evidence:[{file:'tests/test_missing.py',quote:'import reqtest_missing_dependency'}]}))});
@@ -443,7 +604,7 @@ test('real mutmut survivors trigger one targeted improvement and re-measurement'
         return schema.parse({tests:generation===1 ? [{...artifact,gapIndexes:[],functionName:'test_above',code:'from shipping import fee\ndef test_above():\n    assert fee(20000) == 0\n'}] : [{...artifact,id:'T2'}]});
       }
       if(Object.is(schema,reviewTestsSchema)) return schema.parse({decisions:(context as {tests:{id:string}[]}).tests.map(test=>({testId:test.id,supported:true,reason:'Exact contract',quote:rule}))});
-      if(Object.is(schema,relevanceSchema)) return schema.parse({decisions:(context as {mutants:{id:string;diff:string}[]}).mutants.map(mutant=>({mutantId:mutant.id,behaviorId:'B1',relevant:/\+.*(?:amount > 10000|amount >= 10001)/.test(mutant.diff),reason:'Boundary mutations can violate the inclusive threshold; changing the below-threshold fee does not change the stated >=10000 contract.',quote:rule}))});
+      if(Object.is(schema,relevanceSchema)) return schema.parse({decisions:(context as {pairs:MutationReviewPair[]}).pairs.map(mutant=>({mutantId:mutant.id,behaviorId:mutant.behaviorId,relevant:/\+.*(?:amount > 10000|amount >= 10001)/.test(mutant.diff),reason:'Boundary mutations can violate the inclusive threshold; changing the below-threshold fee does not change the stated >=10000 contract.',quote:rule}))});
       throw new Error('Unexpected diagnosis for a passing fixture');
     };
     await runPython(r,root,new AbortController().signal,()=>{},ask);

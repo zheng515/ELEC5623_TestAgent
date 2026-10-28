@@ -1,0 +1,62 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "standard",
+      "ruleId": "R1",
+      "description": "Interior amount below 10000 returns 1000 cents.",
+      "initialGap": false
+    },
+    {
+      "id": "zero",
+      "ruleId": "R1",
+      "description": "Zero returns 1000 cents.",
+      "initialGap": true
+    },
+    {
+      "id": "below-threshold",
+      "ruleId": "R1",
+      "description": "9999 returns 1000 cents.",
+      "initialGap": true
+    },
+    {
+      "id": "threshold",
+      "ruleId": "R2",
+      "description": "10000 returns 0 cents.",
+      "initialGap": true
+    },
+    {
+      "id": "above-threshold",
+      "ruleId": "R2",
+      "description": "An amount above 10000 returns 0 cents.",
+      "initialGap": true
+    },
+    {
+      "id": "negative",
+      "ruleId": "R3",
+      "description": "Negative integers raise ValueError.",
+      "initialGap": true
+    },
+    {
+      "id": "boolean",
+      "ruleId": "R4",
+      "description": "Boolean input raises TypeError.",
+      "initialGap": true
+    },
+    {
+      "id": "other-types",
+      "ruleId": "R4",
+      "description": "Other non-int inputs raise TypeError.",
+      "initialGap": true
+    }
+  ],
+  "fault": {
+    "id": "shipping-exact-threshold",
+    "file": "shipping.py",
+    "before": "amount_cents > 10000",
+    "after": "amount_cents >= 10000"
+  }
+}

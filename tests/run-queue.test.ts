@@ -2,44 +2,33 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fork, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
-import { existsSync } from 'node:fs';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import type { PythonReport } from '../lib/python-types';
 import JSZip from 'jszip';
+import { authFixture } from './fixtures/auth';
 
 test('durable queue executes, survives a killed worker, reuses checkpoints and respects owner cancellation', {
   skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 150000,
 }, async context => {
-  if (!process.env.DATABASE_URL && existsSync('.env.local')) process.loadEnvFile('.env.local');
-  process.env.REQTEST_DATA_NAMESPACE = 'queue_' + randomUUID().replaceAll('-', '');
-  process.env.REQTEST_LOCAL_MAIL = 'false'; process.env.SMTP_HOST = '';
   process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = 'false';
   process.env.OPENAI_API_KEY = 'queue-test-not-a-real-key';
-  const { getAuth, database, dataDir } = await import('../lib/auth').then(async module => { await module.getAuth(); return module; });
-  const { enqueueRun, getQueue, queueName, queueSchema, checkpointStore, cancelRun, refreshQueuedRun } = await import('../lib/run-queue');
-  const pendingQueue = getQueue();
   const children: ChildProcess[] = [];
+  let pendingQueue: ReturnType<typeof import('../lib/run-queue').getQueue> | undefined = undefined;
+  const { database, dataDir, base, account } = await authFixture(context, 'queue', async () => {
+    await Promise.all(children.map(child => stop(child)));
+    await (await pendingQueue?.catch(() => undefined))?.stop({ graceful: false });
+    await database.query('DROP SCHEMA IF EXISTS "' + queueSchema + '" CASCADE');
+  });
+  const { enqueueRun, getQueue, queueName, queueSchema, checkpointStore, cancelRun, refreshQueuedRun } = await import('../lib/run-queue');
+  pendingQueue = getQueue();
   async function stop(child: ChildProcess, signal: NodeJS.Signals = 'SIGTERM') {
     if (child.exitCode !== null || child.signalCode !== null) return;
     const closed = once(child, 'close'); child.kill(signal); await closed;
   }
-  context.after(async () => {
-    await Promise.all(children.map(child => stop(child)));
-    await (await pendingQueue.catch(() => undefined))?.stop({ graceful: false });
-    await database.query('DROP SCHEMA IF EXISTS "' + queueSchema + '" CASCADE');
-    await database.query('DROP SCHEMA IF EXISTS "' + process.env.REQTEST_DATA_NAMESPACE + '" CASCADE');
-    await database.end(); await rm(dataDir, { recursive: true, force: true });
-  });
   const boss = await pendingQueue;
   const { runtimeHealth } = await import('../lib/runtime-health');
-  const base = 'http://127.0.0.1:3001', auth = await getAuth();
-  async function account() {
-    const response = await auth.handler(new Request(base + '/api/auth/sign-up/email', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base, 'X-Forwarded-For': '127.0.0.1' }, body: JSON.stringify({ name: 'Queue test', email: randomUUID() + '@example.test', password: 'Abcd1234' }) }));
-    assert.equal(response.status, 200);
-    return { id: (await response.json()).user.id, cookie: response.headers.getSetCookie().map(value => value.split(';')[0]).join('; ') };
-  }
   const owner = await account(), other = await account();
   const routes = await import('../app/api/python/route');
   const image = await (await import('../lib/python-tools')).sandboxImage();
@@ -81,16 +70,16 @@ test('durable queue executes, survives a killed worker, reuses checkpoints and r
   const run: PythonReport = JSON.parse(new TextDecoder().decode(firstEvent.value).split('\ndata: ')[1].trim()).report;
   await reader.cancel();
   assert.equal((await saved(run.id)).status, 'running', 'Disconnecting the browser stream must not cancel queued work');
-  const duplicate = await fixture(); await assert.rejects(enqueueRun(duplicate, owner.id), /already queued or running/);
+  const duplicate = await fixture(); await assert.rejects(enqueueRun(duplicate, owner.user.id), /already queued or running/);
   assert.equal((await database.query('SELECT 1 FROM runs WHERE id=$1', [duplicate.id])).rowCount, 0);
   assert.equal((await refreshQueuedRun(run)).status, 'running');
   const first = worker(true); await first.wait('ready'); await first.wait('blocked');
-  await until(async () => (await runtimeHealth(owner.id, async () => true)).worker === 'online' ? true : undefined);
+  await until(async () => (await runtimeHealth(owner.user.id, async () => true)).worker === 'online' ? true : undefined);
   assert.ok((await database.query('SELECT key FROM run_checkpoints WHERE run_id=$1', [run.id])).rows.length >= 4);
   const beforeCrash = await saved(run.id);
   assert.equal(beforeCrash.execution?.attempt, 1);
   await stop(first.child, 'SIGKILL');
-  await until(async () => (await runtimeHealth(owner.id, async () => true)).worker === 'offline' ? true : undefined, 25000);
+  await until(async () => (await runtimeHealth(owner.user.id, async () => true)).worker === 'offline' ? true : undefined, 25000);
   assert.equal((await refreshQueuedRun(await saved(run.id))).status, 'running', 'Worker loss must remain recoverable');
   const second = worker(false); await second.wait('ready');
   const complete = await until(async () => { const report = await saved(run.id); return report.status !== 'running' ? report : undefined; }, 90000);
@@ -100,10 +89,40 @@ test('durable queue executes, survives a killed worker, reuses checkpoints and r
   assert.equal(complete.measurements[0].outcomes[0].status, 'failed');
   assert.equal(complete.diagnoses[0].category, 'potential_implementation_defect');
   assert.equal(complete.improvements.length, 0, 'Recovery must retain valid defect assertions');
+  assert.equal(complete.testAttempts?.length, 1, 'Recovered proposal history must not duplicate earlier rounds.');
+  assert.equal(complete.testAttempts![0].status, 'applied');
+  assert.match(complete.stopReason!, /Failing checks were retained/);
   await stop(second.child);
 
+  // Saved-suite requests remain owner-only and run through the durable worker without an API key.
+  await until(async () => (await boss.findJobs(queueName, { id: run.id }))[0]?.state === 'completed' ? true : undefined);
+  const replayForm = (clarification = '') => {
+    const form = new FormData(); form.set('parentRunId', run.id); form.set('reuseRequirements', 'true'); form.set('mode', 'saved_tests');
+    if (clarification) form.set('clarification', clarification);
+    return form;
+  };
+  const replayRequest = (cookie: string, clarification = '') => routes.POST(new Request(base + '/api/python', { method: 'POST', headers: { Cookie: cookie, Origin: base }, body: replayForm(clarification) }));
+  const key = process.env.OPENAI_API_KEY; delete process.env.OPENAI_API_KEY;
+  try {
+    assert.equal((await replayRequest(other.cookie)).status, 422);
+    assert.equal((await replayRequest(owner.cookie, 'Change the contract')).status, 422);
+    const callsBeforeReplay = await readFile(calls, 'utf8');
+    const response = await replayRequest(owner.cookie); assert.equal(response.status, 200);
+    const stream = response.body!.getReader(), event = await stream.read();
+    const replay: PythonReport = JSON.parse(new TextDecoder().decode(event.value).split('\ndata: ')[1].trim()).report;
+    await stream.cancel();
+    const workerReplay = worker(false); await workerReplay.wait('ready');
+    const result = await until(async () => { const next = await saved(replay.id); return next.status !== 'running' ? next : undefined; });
+    assert.equal(result.status, 'completed', result.error); assert.equal(result.configuration?.mode, 'saved_tests');
+    assert.equal(result.measurements[0].outcomes[0].status, 'failed');
+    assert.equal(await readFile(calls, 'utf8'), callsBeforeReplay, 'Saved execution must make zero model requests');
+    assert.deepEqual(result.tests, complete.tests); assert.deepEqual(result.diagnoses, []);
+    assert.deepEqual((await saved(run.id)).measurements, complete.measurements, 'The parent evidence stays unchanged');
+    await stop(workerReplay.child);
+  } finally { process.env.OPENAI_API_KEY = key; }
+
   // Cancellation uses the same authenticated endpoint as the UI.
-  const active = await fixture(); await enqueueRun(active, owner.id);
+  const active = await fixture(); await enqueueRun(active, owner.user.id);
   const third = worker(true); await third.wait('ready'); await third.wait('blocked');
   const patch = (cookie: string) => routes.PATCH(new Request(base + '/api/python', { method: 'PATCH', headers: { Cookie: cookie, Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: active.id }) }));
   assert.equal((await patch(other.cookie)).status, 404, 'Other accounts cannot cancel a run');
@@ -113,12 +132,12 @@ test('durable queue executes, survives a killed worker, reuses checkpoints and r
   assert.equal((await saved(active.id)).status, 'cancelled', 'A late worker save cannot overwrite owner cancellation');
   assert.equal((await saved(active.id)).stage, 'Stopped');
   await stop(third.child);
-  const queued = await fixture(); await enqueueRun(queued, owner.id);
-  assert.equal(await cancelRun(queued.id, owner.id), true);
+  const queued = await fixture(); await enqueueRun(queued, owner.user.id);
+  assert.equal(await cancelRun(queued.id, owner.user.id), true);
   assert.equal((await boss.findJobs(queueName, { id: queued.id }))[0].state, 'cancelled');
 
   // Changed source must never be combined with execution evidence from an earlier attempt.
-  const changed = await fixture(); await enqueueRun(changed, owner.id);
+  const changed = await fixture(); await enqueueRun(changed, owner.user.id);
   const [fetched] = await boss.fetch<{ runId: string; userId: string }>(queueName);
   const job = { ...fetched, signal: new AbortController().signal };
   assert.equal(job.data.runId, changed.id);
@@ -128,9 +147,9 @@ test('durable queue executes, survives a killed worker, reuses checkpoints and r
   await assert.rejects(cache('stale-worker', async () => ({ value: 'late evidence' })), /worker lease changed/);
   await writeFile(join(dataDir, 'runs', changed.id, 'source/shipping.py'), 'def fee(amount):\n    return 0\n');
   await assert.rejects(checkpointStore(changed.id, job), /changed since the checkpoint/);
-  await cancelRun(changed.id, owner.id);
+  await cancelRun(changed.id, owner.user.id);
 
-  const exhausted = await fixture(); await enqueueRun(exhausted, owner.id);
+  const exhausted = await fixture(); await enqueueRun(exhausted, owner.user.id);
   for (let attempt = 0; attempt < 3; attempt++) {
     const failed = await until(async () => (await boss.fetch(queueName))[0]);
     assert.equal(failed.id, exhausted.id);

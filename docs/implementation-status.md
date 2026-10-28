@@ -1,8 +1,154 @@
 # Implementation status
 
-Audit date: 2026-10-22. Scope: the current Version 2 working tree, including
+## Redundancy cleanup: 2026-10-27
+
+The shared assertion policy is now sent once per model request. Model timeout and
+output limits are configured in one place with the existing values preserved.
+Reference-copy patching and experiment-context serialization no longer duplicate
+work. Unused UI variants, an unused select group and an obsolete mutation-review
+debug driver were removed; active packages and evidence safeguards remain.
+
+The environment template was removed. The README explains how to create a private
+.env.local; existing local configuration and saved data were not changed. Docker
+regression passed 121 checks with two optional skips. No paid model request,
+experiment rerun or academic report was produced; model quality and billed savings
+are not established by this cleanup.
+
+## Source-line citations: 2026-10-27
+
+Policy v8 replaces copied file quotations in model analysis and diagnosis outputs
+with file/line selections. Zod resolves each selection against the original source,
+preserving indentation and line endings, and stores the exact quote and one-based
+line number. Invalid, blank, fractional and out-of-file selections are rejected;
+there is no fuzzy matching. Legacy quote-only evidence remains supported. A supplied
+line number must match its quote during validation. Real file lines do not establish
+semantic correctness or independently reviewed evidence.
+
+Only the provider-facing file view has numbered prefixes. Project snapshots and
+requirements stay unchanged. Prompt bytes/hash are recorded separately from the
+caller's original context size. Offline schema and mocked official-SDK checks cover
+encoding, original-quote restoration, legacy compatibility and invalid references.
+The full Docker regression passed 121 checks with two optional skips and no failures.
+Typecheck, lint, English-source checks, production build and ten browser-check groups
+passed. Evaluation displays file:line when that metadata is present.
+No paid model request, new experiment or academic report was produced for this
+change. The v7 acceptance below remains frozen evidence for its own source.
+
+## Focused-context real-model acceptance: 2026-10-27
+
+Four real-model component calls on captured follow-up inputs blocked an unsupported
+exception message and undefined threshold, identified a generated import error and
+flagged a seeded boundary defect. Draft expectations remain independently unreviewed;
+the fixture setup is scripted and these are not four full Agent runs.
+
+One complete B3 Booking run then produced five passing outcomes and one retained
+boundary failure. All five generated checks passed on the separate corrected copy.
+The first analysis included a non-verbatim README quote; source validation rejected
+it and the single correction succeeded. The workflow used five requests, 17389 tokens
+and 39.966 seconds. Together the checks used nine requests and 24767 tokens. No repeated
+trial or full-context control was run, and lower cost is not established. The older
+Booking observation used fewer resources, so input shrinking must not be claimed
+as measured savings. Frozen inputs, raw outputs and offline-rescorable evidence are
+under [the acceptance record](../experiments/acceptance/2026-10-27-focused-context/README.md).
+No academic report or separate five-project benchmark was produced.
+
+## Focused follow-up context and automatic safety checks: 2026-10-27
+
+Policy v7 removes duplicated retrieved-document bodies from model requests while
+retaining full retrieval evidence in reports. Initial analysis and generation keep
+the project context. Admission review, failure diagnosis and mutation review use
+mapped source files, cited documents/tests and recorded traceback files. All original
+requirements and supporting requirement context remain. Whole files are retained;
+unmapped cases fall back to the complete file context. Generated failure code is
+supplied once under its real artifact path. The experiment runner records serialized
+context bytes alongside hashes and provider usage for future runs.
+
+Four scripted-decision scenarios exercise real Docker execution: an unsupported
+exception message cannot execute, an invented import can receive one reviewed
+repair, a requirement-grounded boundary failure remains unchanged, and an ambiguous
+threshold cannot earn verification credit. Input-size checks use a controlled
+fixture containing unrelated documentation. These are orchestration safeguards,
+not evidence that the model always recognizes hallucinations or that model quality,
+latency or billed cost improved. No new model experiment or benchmark was run.
+The earlier six-run pilot keeps its frozen v6 source and original measurements.
+
+## Code cleanup and Evaluation simplification: 2026-10-27
+
+Import-graph and TypeScript unused-symbol checks identified an unreferenced table
+component; it was removed. Evaluation now uses four status filters, a compact
+SVG outcome ring, an expandable test list and native requirement progress instead of
+two repeated charts. Removing the unused chart dependency removed 37 installed
+packages. Downloads and reference-copy probes share their existing implementations.
+Agent admission, state computation, account ownership and evidence checks remain.
+Browser checks cover zero execution, mixed outcomes, skipped cases, interrupted
+or untrusted records, exports and expanded layouts at 320/390/768/1440 px.
+The running view shows only the current step, input count, waiting message and
+Stop action; worker and document details are collapsed. Interim zero counts and
+repeated unresolved totals are hidden until the run finishes.
+No model experiment was repeated. The six-run pilot below identifies its own
+frozen source; it predates this UI/dependency cleanup and probe refactoring.
+
+## Current-source experiment pilot: 2026-10-27
+
+The authorized six-run pilot completed on policy v6: three development projects,
+B0/B3, one observation each. Both configurations completed 3/3 runs and detected
+2/2 seeded faults; every final generated suite passed on its witness-validated
+reference copy. Median agent time was 8.298 seconds for B0 and 30.818 for B3;
+provider-reported totals were 9393 and 49749 tokens. This gives no detection
+advantage to B3 on these inputs. B3 adds model admission review, diagnoses and
+mutation observations; B0 bypasses model review. No improvement was applied.
+See [actual inputs, records, figures and limits](../experiments/results/2026-10-27-current-pilot/README.md).
+One observation cannot assess repeatability. No independent semantic accuracy is
+claimed. Old benchmark outputs were removed; the five-project study remains paused.
+
+## Local version-2 conflict resolution: 2026-10-27
+
+Integrated remote `0d03a50` with the main-based local implementation. Production
+startup checks and shared test fixtures are retained. An existing proposal needs
+a unique, explicitly negative review with valid original quotes to qualify for
+unexecuted correction. A supported behavior with no proposal can receive a new
+reviewed check. Approved tests and valid failing assertions remain unchanged.
+Repaired passing suites retain the main branch mutation measurement; missing
+mutation judgments do not grant verification credit. Proposal history, saved-suite
+execution and decision displays remain connected. Older improvementProposal-only
+reports retain a technical-details fallback without duplicating newer history.
+
+Post-integration checks: 109 tests passed, two optional checks skipped, zero failed;
+production build, typecheck, lint and English checks passed. The policy marker is
+`contract-witness-v6-review-recovery`. Real-model acceptance was not repeated during
+conflict resolution; the v5 records below remain historical evidence for their
+archived implementation.
+
+## Integrated working-tree update: 2026-10-27
+
+The local integration preserves the latest main fixes and restored SRS traceability,
+shared website/CI parsing, saved-suite execution and proposal history. Evaluation
+now displays each generation/improvement round and the recorded stopping reason.
+Older reports without this metadata are identified without invented history.
+Quick start explains supported projects/documents and result interpretation.
+Expanded evidence passed page-width checks at 320, 390, 768 and 1440 px.
+
+Current regression: 102 passed, two optional skipped, zero failed. Build, typecheck,
+lint and English checks passed. Fresh model acceptance on the correct Shipping
+copy passed strict CI with nine outcomes and four Verified behaviors. A separate
+known-defect copy produced four passes and one retained boundary failure; strict
+CI correctly rejected it. Export replay reproduced both outcomes, and saved-suite
+execution repeated the nine passes without model calls. The source snapshot and
+actual reports are under `experiments/acceptance/2026-10-27`.
+
+This is one synthetic project in two conditions. Independent semantic annotation,
+representative reliability, independent first-use testing and the formal experiment
+remain outstanding. The historical sections below describe earlier evidence.
+
+Audit date: 2026-10-26. Scope: the current Version 2 working tree, including
 uncommitted implementation files. This is a capability audit, not an independent
 measurement of model accuracy or a production-readiness certification.
+
+Historical trials below describe earlier runs. Ignored local scratch evidence may
+have been cleared. Old experiment outputs were removed on 2026-10-27 because
+they used earlier agent implementations. Historical sections are development
+chronology, not current benchmark evidence. Separate versioned acceptance
+evidence remains under experiments/acceptance.
 
 ## Source language
 
@@ -25,7 +171,7 @@ that all model-generated analyses or test oracles are correct.
 
 | ID | Capability | Status | Evidence and limits |
 | --- | --- | --- | --- |
-| FR1 | Requirements, Python repository and existing pytest inputs | Implemented within scope | Text entry, PDF/DOCX/TXT/Markdown extraction, ZIP and pinned GitHub snapshots. Selected blocks retain locations and original hashes. Private access uses a connected GitHub account or transient token. |
+| FR1 | Requirements, Python repository and existing pytest inputs | Implemented within scope | Editable text, document extraction, automatic numbered-item grouping, ZIP and pinned GitHub snapshots. Exact excerpts retain locations, offsets and original hashes. Private access uses a connected GitHub account or transient token. |
 | FR2 | Behavior/rule/condition/boundary/exception decomposition | Implemented; accuracy pending evaluation | Structured model output, stable behavior IDs and original requirement quotes. |
 | FR3 | Requirement-quality analysis | Implemented; accuracy pending evaluation | Ambiguous, incomplete and insufficiently testable categories with evidence. |
 | FR4 | Relevant implementation and existing-test inspection | Implemented within scope | Python AST inspection, pytest collection and validated file/node references. |
@@ -94,16 +240,11 @@ continues to mean workflow termination, not successful verification of every beh
 
 ### P1: Independent evaluation is not finished
 
-The retained post-fix pilot completed 12 real-model runs: three synthetic projects
-across B0–B3. Reference/output reviews remain pending. These cases were used during
-development, so they are not a held-out benchmark. The pilot does not establish
-that B3 outperforms the other variants or that semantic coverage is exhaustive.
-
-Complete independent reference/output annotation, then evaluate held-out projects
-with repeated runs and all relevant failure classes. Pending or insufficient evidence
-must continue to produce null accuracy/coverage/mutation metrics. Historical pilot
-mutation reports with missing killed-mutant differences cannot establish a fully
-reviewed mutation score; the updated sandbox retains these differences for new runs.
+Old model experiment outputs were removed because their frozen source differs
+from the current implementation. A replacement six-run pilot uses three existing
+projects and B0/B3 once each. It is not held-out evidence and cannot establish
+repeatability. Independent semantic, diagnosis and reviewed mutation metrics remain
+unavailable without independent reference/output annotation.
 
 ### Document and project limits
 
@@ -114,8 +255,8 @@ unchanged excerpts retain original citations; edited text is user-provided.
 Requirement text has no character or line-count limit and is never truncated.
 English OCR and LibreOffice DOC conversion pass Docker regression cases, including
 PDF pages containing native text and scanned images together. Each PDF page has an
-explicit extraction outcome. Low-confidence OCR is retained but not selected by
-default; confidence is not an accuracy score. Unbudgeted OCR of every page, partial
+explicit extraction outcome. Low-confidence OCR is retained in editable input and flagged for
+review; confidence is not an accuracy score. Unbudgeted OCR of every page, partial
 failures, conversion timeout/errors, encrypted/damaged documents and source
 integrity failures are covered by controlled tests. Originals support owner-only
 permissions and authenticated PDF page viewing. DOC locations explicitly refer to
@@ -152,6 +293,25 @@ accuracy or complete specification coverage. Benchmark execution, reference-labe
 review and scoring are separate CLI/file workflows. A held-out manifest supports
 explicit dataset purpose and repeated runs. Existing development cases are not
 relabeled as held-out evidence.
+
+Numbered SRS items retain their original identifiers independently of internal rule
+IDs. Supporting text is retained as context, with no separate verification claim.
+Single-paragraph documents with multiple identifiers retain exact excerpt offsets.
+The UI shows input scope, omitted behavior extraction, pass/fail/error/skip counts
+and a shared next action while preserving the existing charts. A blocked unexecuted
+proposal can use the single improvement budget; replacement still requires review.
+
+The current synthetic full-SRS acceptance made four model requests, extracted four
+numbered items and seven behaviors, and executed seven approved tests: six passes,
+one seeded threshold failure, zero execution errors. The failing assertion was
+retained. Exported tests reproduced the same outcomes in a separate read-only Docker
+execution. This single development run does not establish general reliability.
+The complete Docker regression passed 93 checks with three optional checks skipped.
+
+Product positioning cites TestGen-LLM, CoverUp and Meta ACH, acknowledges overlap,
+and maps the narrower contribution to inspectable implementation records.
+Offline experiment exports now include workflow-evidence.json. Earlier B0-B3
+results are historical and have not been relabeled as results of these changes.
 
 Project verification now shows task inputs, progress, a short summary and next
 actions. Its results link opens the same run in Evaluation, which owns detailed
@@ -403,35 +563,35 @@ Docker regression. The earlier real-model citation failure remains saved separat
 Regression: 69 tests, 66 passed, three optional tests skipped, zero failures; types,
 lint, English check and production build passed. Independent review remains pending.
 
-## Controlled automated experiments: 2026-10-26
+## Experiment evidence reset: 2026-10-27
 
-Three synthetic development projects ran across B0–B3, three repetitions each:
-36 completed runs and 96 real model requests. Model, source, requirements and Docker
-image were fixed within the experiment. External contract witnesses validated the
-original/corrected reference copies without entering model context. Per-request
-latency, usage, input archives, source snapshots and failure traces are retained.
+Older experiment and partial benchmark outputs have been removed. Source comparison
+confirmed that their frozen agent implementations differ from the current code.
+Reusable projects, requirements, labels and fixed witnesses remain. A six-run
+current-source pilot is authorized; the five-project benchmark is not running.
+No old scores are carried forward as evidence of the current implementation.
 
-All configurations completed 9/9 runs. On six seeded-fault runs per configuration,
-B0, B1 and B3 detected 6/6; B2 detected 5/6. All initially detected faults remained
-detected. B2 inventory repetition 1 blocked the equality test's exact return-class
-assertion, leaving the explicit boundary defect unexecuted. B3 shipping repetition
-3 retained a weak suite with only 1/9 raw mutants killed, compared with 7/9 in the
-other shipping measurements. These are failure observations, not independently
-reviewed error classifications. No run produced two comparable complete mutation
-measurements, so no mutation-improvement delta is claimed.
+## Code-side corrections: 2026-10-27
 
-Standalone CSV/JSON results, PNG/SVG figures and a portable evidence subset are in
-`experiments/results/2026-10-26`. Re-scoring the exported evidence reproduces the
-same metrics without model calls. Independent semantic/diagnosis/mutation-quality
-metrics remain unavailable as requested; this is not held-out evidence or proof that
-B3 outperforms direct generation. No final academic report was authored.
+The bounded improvement action now also corrects explicitly review-rejected tests
+for unambiguous behaviors. Same IDs/behavior links and all original approval gates
+still apply. Existing approved tests, valid failures and source files are preserved.
+Correction prompts now receive the same value/semantic-type policy as generation
+and review. Reviewed improvement proposals, including rejections, remain auditable.
 
-Next.js and matching tooling were updated to 16.4.3, Zod to 4.6.7, and vulnerable
-transitive dependencies patched. The current npm audit reports zero known
-vulnerabilities. Regression: 83 passed, three optional tests skipped, zero failed;
-lint, types, English checks and production build passed. The post-run API-key
-non-null type assertion emits identical JavaScript, verified against the frozen
-runner and recorded in its source-equivalence artifact.
+Older correction-replay summaries were removed with the obsolete experiment
+outputs. Current behavior must be supported by the retained deterministic
+regressions and a fresh frozen model run, not those historical counts.
+
+Startup now reports the failing phase/service, checks the configured port before
+launching, and routes start:all through the checked launcher. Test commands load
+both local environment files; shared account/project fixtures reduce duplication.
+Core Docker regressions retain genuine failures and block ambiguous, duplicate,
+uncited and twice-rejected proposals. Complete regression: 78 passed, three optional
+tests skipped, zero failures. The final six correction regressions and real queue
+crash/recovery/cancellation scenario passed again after proposal-audit changes.
+Lint, TypeScript, English-source checks and production build passed.
+No new runtime dependency or service was added.
 
 ## Recommended order
 

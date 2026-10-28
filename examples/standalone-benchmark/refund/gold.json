@@ -1,0 +1,32 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "rule-1",
+      "ruleId": "R1",
+      "description": "For nonnegative built-in int amount, refund.refund(amount) returns an integer equal to amount.",
+      "initialGap": true
+    },
+    {
+      "id": "rule-2",
+      "ruleId": "R2",
+      "description": "For negative built-in int amount, refund.refund(amount) raises ValueError.",
+      "initialGap": true
+    },
+    {
+      "id": "rule-3",
+      "ruleId": "R3",
+      "description": "For non-built-in-int amount, including bool, refund.refund(amount) raises TypeError.",
+      "initialGap": true
+    }
+  ],
+  "fault": {
+    "id": "refund-seeded-fault",
+    "file": "refund.py",
+    "before": "raise RuntimeError('negative amount')",
+    "after": "raise ValueError('negative amount')"
+  }
+}

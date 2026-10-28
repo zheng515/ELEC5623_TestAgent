@@ -1,0 +1,6 @@
+[project]
+name = "reqtest-shipping-demo"
+version = "0.1.0"
+description = "A minimal source-grounded requirement-to-test demo"
+requires-python = ">=3.11"
+dependencies = []

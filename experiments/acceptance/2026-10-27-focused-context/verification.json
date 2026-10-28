@@ -1,0 +1,20 @@
+{
+  "scope": "Automatic development acceptance checks; independent semantic metrics remain unavailable.",
+  "componentInputsAndSourceHashesValid": true,
+  "componentObservedDecisions": 4,
+  "componentQuoteMatches": 4,
+  "independentAccuracy": null,
+  "endToEndRuns": 1,
+  "seededDefectRetained": true,
+  "referenceGeneratedPassed": 5,
+  "originalImplementationUnmodifiedInArchive": true,
+  "analysisCorrectionRecorded": true,
+  "modelRequests": 9,
+  "providerReportedTokens": 24767,
+  "automaticProviderRetries": 0,
+  "stabilityAssessed": false,
+  "costReductionEstablished": false,
+  "agentWorkspaceSourceUnmodified": true,
+  "offlineMetricsRescoreIdentical": true,
+  "configuredCredentialMatches": 0
+}
