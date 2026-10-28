@@ -4,14 +4,14 @@ import type { Gold, FaultProbe } from './evaluation';
 import type { PythonReport, Mutation, Measurement } from './python-types';
 import { executableSuiteHash } from './test-suite';
 
-export type ExperimentEntry = { caseId: string; variant: string; repeat: number; report: string; gold: string; review: string; requests?: string; reference?: string; referenceExecution?: string; elapsedMs?: number; fault?: FaultProbe; initialReport?: string };
+export type ExperimentEntry = { caseId: string; variant: string; repeat: number; report: string; gold: string; review: string; requests?: string; reference?: string; referenceExecution?: string; elapsedMs?: number; fault?: FaultProbe; initialReport?: string; preparationReport?: string };
 export type RequestRecord = { elapsedMs: number; usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number }; error?: string };
 export type ReferenceCheck = { valid: boolean; sourceFingerprint: string; faultHash: string; oracleHash: string };
 export type ReferenceExecution = Measurement & { sourceFingerprint: string; suiteHash: string };
-export type ExperimentItem = { entry: ExperimentEntry; report?: PythonReport; gold?: Gold; reference?: ReferenceCheck; referenceExecution?: ReferenceExecution; requests?: RequestRecord[] };
+export type ExperimentItem = { entry: ExperimentEntry; report?: PythonReport; gold?: Gold; reference?: ReferenceCheck; referenceExecution?: ReferenceExecution; requests?: RequestRecord[]; preparation?: { report: PythonReport; requests: RequestRecord[]; elapsedMs: number; path: string } };
 const ratio = (a: number, b: number) => b ? a / b : null;
 export function compareSharedInitialSuites(items: ExperimentItem[]) {
-  return items.filter(item => item.entry.variant === 'B3').map(item => {
+  return items.filter(item => ['B2', 'B3'].includes(item.entry.variant) && item.entry.initialReport).map(item => {
     const prefix = items.find(candidate => candidate.entry.caseId === item.entry.caseId && candidate.entry.repeat === item.entry.repeat && candidate.entry.variant === 'B1');
     const before = prefix && experimentRow(prefix), after = experimentRow(item);
     const initial = item.report?.testAttempts?.find(attempt => attempt.phase === 'generation');
@@ -20,8 +20,12 @@ export function compareSharedInitialSuites(items: ExperimentItem[]) {
     const unchanged = shared && !!initial && executableSuiteHash(initial.tests) === hash;
     if (item.report?.status === 'completed' && !unchanged) throw new Error('A paired continuation must preserve its linked B1 initial executable suite.');
     if (shared && (prefix!.report!.fingerprint !== item.report!.fingerprint || prefix!.report!.model !== item.report!.model || JSON.stringify(prefix!.report!.rules) !== JSON.stringify(item.report!.rules) || JSON.stringify(prefix!.report!.requirementInput) !== JSON.stringify(item.report!.requirementInput) || prefix!.report!.configuration?.sandboxImage !== item.report!.configuration?.sandboxImage)) throw new Error('Paired inputs must match.');
+    const prepared = item.preparation;
+    const preparationVerified = prepared ? item.entry.preparationReport === prepared.path && prepared.report.status === 'completed' && item.report?.preparationSuite?.reportId === prepared.report.id && item.report.preparationSuite.executableHash === executableSuiteHash(prepared.report.tests) && JSON.stringify(item.report.analysis) === JSON.stringify(prepared.report.analysis) && executableSuiteHash(initial?.tests || []) === executableSuiteHash(prepared.report.tests) : null;
+    if (item.report?.status === 'completed' && prepared && !preparationVerified) throw new Error('A diagnosis ablation must preserve shared analysis and reviewed candidates.');
+    const preparationTokens = prepared ? prepared.requests.every(request => request.usage?.totalTokens !== undefined) ? prepared.requests.reduce((sum, request) => sum + request.usage!.totalTokens!, 0) : null : 0;
     const sum = (a: number | null | undefined, b: number | null) => a == null || b === null ? null : a + b;
-    return { caseId: item.entry.caseId, repeat: item.entry.repeat, status: after.status, sharedInitialVerified: unchanged,
+    return { caseId: item.entry.caseId, variant: item.entry.variant, sharedPreparationVerified: preparationVerified, preparationRequests: prepared?.requests.length ?? 0, preparationTokens, repeat: item.entry.repeat, status: after.status, sharedInitialVerified: unchanged,
       initialReport: prefix?.entry.report || null, followupReport: item.entry.report,
       initialFaultDetected: before?.faultAfter ?? null, finalFaultDetected: after.faultAfter,
       additionalFaultDetected: before?.faultAfter === false && after.faultAfter === true,
@@ -29,9 +33,9 @@ export function compareSharedInitialSuites(items: ExperimentItem[]) {
       initialReferenceFailure: before?.referenceFailureObserved ?? null, finalReferenceFailure: after.referenceFailureObserved,
       blockedInitialCandidates: initial?.tests.filter(test => !test.approved).length ?? null,
       improvements: item.report?.improvements.length ?? null,
-      prefixRequests: before?.modelRequests ?? null, additionalRequests: after.modelRequests, endToEndRequests: sum(before?.modelRequests, after.modelRequests),
-      prefixTokens: before?.totalTokens ?? null, additionalTokens: after.totalTokens, endToEndTokens: sum(before?.totalTokens, after.totalTokens),
-      prefixSeconds: before?.elapsedSeconds ?? null, additionalSeconds: after.elapsedSeconds, endToEndSeconds: sum(before?.elapsedSeconds, after.elapsedSeconds),
+      prefixRequests: before?.modelRequests ?? null, additionalRequests: after.modelRequests, endToEndRequests: sum(sum(before?.modelRequests, after.modelRequests), prepared?.requests.length ?? 0),
+      prefixTokens: before?.totalTokens ?? null, additionalTokens: after.totalTokens, endToEndTokens: sum(sum(before?.totalTokens, after.totalTokens), preparationTokens),
+      prefixSeconds: before?.elapsedSeconds ?? null, additionalSeconds: after.elapsedSeconds, endToEndSeconds: sum(sum(before?.elapsedSeconds, after.elapsedSeconds), prepared ? prepared.elapsedMs / 1000 : 0),
       budgetExhausted: item.report?.resources?.exhausted || item.report?.error?.startsWith('Follow-up model request budget exhausted.') || false,
     };
   });
@@ -104,7 +108,7 @@ export function summarizeExperiment(items: ExperimentItem[]) {
   const keys = items.map(item => `${item.entry.caseId}:${item.entry.variant}:${item.entry.repeat}`);
   if (new Set(keys).size !== keys.length) throw new Error('Duplicate experiment runs are not allowed.');
   const reports = items.flatMap(item => item.report ? [item.report] : []);
-  for (const report of reports) if (reports.some(other => other.title === report.title && (other.fingerprint !== report.fingerprint || other.model !== report.model || JSON.stringify(other.rules) !== JSON.stringify(report.rules) || JSON.stringify(other.requirementInput) !== JSON.stringify(report.requirementInput) || other.configuration?.sandboxImage !== report.configuration?.sandboxImage || other.configuration?.policyVersion !== report.configuration?.policyVersion))) throw new Error('A case must use identical source, requirements, context, model, image and policy in every run.');
+  for (const report of reports) if (reports.some(other => other.title === report.title && (other.fingerprint !== report.fingerprint || other.model !== report.model || JSON.stringify(other.rules) !== JSON.stringify(report.rules) || JSON.stringify(other.requirementInput) !== JSON.stringify(report.requirementInput) || (other.configuration && report.configuration || !other.configuration && other.status === 'completed' || !report.configuration && report.status === 'completed') && (other.configuration?.sandboxImage !== report.configuration?.sandboxImage || other.configuration?.policyVersion !== report.configuration?.policyVersion)))) throw new Error('A case must use identical source, requirements, context, model, image and policy in every run.');
   const rows = items.map(experimentRow);
   const summary = [...new Set(rows.map(row => row.variant))].map(variant => {
     const runs = rows.filter(row => row.variant === variant), faults = runs.filter(row => row.faultCase);
@@ -141,4 +145,65 @@ export function summarizeExperiment(items: ExperimentItem[]) {
       stabilityAssessed: runs.length > 1 && suites.length === runs.length };
   }));
   return { rows, summary, cases };
+}
+
+export function summarizeRecovery(items: ExperimentItem[], challenges: Record<string, string>) {
+  const rows = items.filter(item => challenges[item.entry.caseId]).map(item => {
+    const measured = experimentRow(item), kind = challenges[item.entry.caseId];
+    const prefix = items.find(candidate => candidate.entry.caseId === item.entry.caseId && candidate.entry.repeat === item.entry.repeat && candidate.entry.variant === 'B1');
+    const original = prefix?.report?.tests[0], current = item.report?.tests.find(test => test.id === original?.id);
+    const trusted = item.report?.status === 'completed' && measured.executionIntegrity;
+    const sameArtifact = !!original && !!current?.approved && current.code === original.code && current.functionName === original.functionName;
+    const repaired = !!original && !!current?.approved && current.code !== original.code && measured.generatedPassed > 0 && measured.generatedFailed === 0 && measured.generatedErrors === 0 && measured.referenceFailureObserved === false;
+    const success = !trusted ? null : kind === 'missing-boundary' ? measured.faultAfter
+      : kind === 'valid-failure' ? measured.faultAfter === null ? null : sameArtifact && measured.faultAfter
+      : !current?.approved || measured.generatedFailed > 0 || measured.generatedErrors > 0 ? false : measured.referenceExecutionUsable ? repaired : null;
+    return { caseId: item.entry.caseId, variant: item.entry.variant, repeat: item.entry.repeat, challenge: kind, status: measured.status,
+      success, unchangedValidFailure: kind === 'valid-failure' && trusted ? sameArtifact && measured.faultAfter === true : null,
+      validFailureDetectionLost: kind === 'valid-failure' && trusted && measured.faultBefore === true && measured.faultAfter !== null ? measured.faultAfter === false : null,
+      generatedArtifactRepaired: ['invented-import', 'unsupported-assertion'].includes(kind) && trusted ? repaired : null,
+      detectedBoundaryFault: kind === 'missing-boundary' && trusted ? measured.faultAfter : null };
+  });
+  const summary = [...new Set(rows.map(row => row.variant))].flatMap(variant => [...new Set(rows.map(row => row.challenge))].map(challenge => {
+    const planned = rows.filter(row => row.variant === variant && row.challenge === challenge), observed = planned.filter(row => row.success !== null);
+    return { variant, challenge, planned: planned.length, observed: observed.length, succeeded: observed.filter(row => row.success).length,
+      successRate: observed.length === planned.length ? ratio(observed.filter(row => row.success).length, planned.length) : null,
+      unresolved: planned.length - observed.length };
+  }));
+  return { scope: 'Controlled developer-seeded challenges, not natural-error frequency or independent semantic accuracy.',
+    definitions: { recovery: 'Import/assertion challenges require an approved changed original artifact, passing generated execution and usable fixed-witness reference replay. Missing boundaries require corrected-copy fault detection. Valid failures require unchanged approved code plus corrected-copy detection.',
+      missing: 'Missing/unusable runs stay in planned denominators and prevent a complete success rate.',
+      validFailureDetectionLost: 'Observed loss of an initially detected seeded defect, not a general independently reviewed incorrect-repair rate.' }, rows, summary };
+}
+
+// Keep admission rejection separate from failures actually available to the diagnosis stage.
+export function summarizeDiagnosisExposure(items: ExperimentItem[], references: Record<string, string>) {
+  const rows = items.filter(item => references[item.entry.caseId] && ['B2', 'B3'].includes(item.entry.variant)).map(item => {
+    const prepared = item.preparation?.report, measurement = prepared?.measurements.at(-1);
+    const usable = prepared?.status === 'completed' && measurement?.integrity === true && !measurement.timedOut;
+    const original = items.find(prefix => prefix.entry.caseId === item.entry.caseId && prefix.entry.repeat === item.entry.repeat && prefix.entry.variant === 'B1')?.report?.tests[0];
+    const admitted = original && prepared?.tests.find(test => test.id === original.id);
+    const exposed = usable && original ? !!admitted?.approved && measurement.outcomes.some(outcome => outcome.file === testFile(original.id, prepared!.runtime) && ['failed', 'error'].includes(outcome.status)) : null;
+    const decisions = item.report?.diagnoses.filter(decision => (decision.phase || 'execution') === 'execution' && decision.testId === original?.id) || [];
+    const category = exposed && decisions.length === 1 ? decisions[0].category : null;
+    const current = item.report?.tests.find(test => test.id === original?.id);
+    const complete = item.report?.status === 'completed';
+    return { caseId: item.entry.caseId, variant: item.entry.variant, repeat: item.entry.repeat,
+      referenceCategory: references[item.entry.caseId], preparationUsable: !!usable,
+      originalAdmitted: usable && original ? !!admitted?.approved : null, runtimeFailureExposed: exposed,
+      category, diagnosisBasis: item.entry.variant === 'B2' ? 'unconditional_repair_baseline' : 'grounded_model_assessment',
+      agreesWithFixtureReference: item.entry.variant === 'B3' && exposed && complete ? category === references[item.entry.caseId] : null,
+      improvementStageRequests: item.report?.resources?.requests.filter(request => request.stage === 'Improve tests once').length ?? null,
+      acceptedImprovements: complete ? item.report!.improvements.length : null,
+      originalArtifactUnchanged: complete && original && current ? current.code === original.code && current.functionName === original.functionName && !!current.approved : null,
+      status: item.report?.status || 'missing' };
+  });
+  return { scope: 'Developer-constructed runtime cases; expected categories are fixture references, not independent semantic labels. Admission is never bypassed. B2 categories are unconditional baseline decisions, not model classifications. No exposure means diagnosis agreement is unavailable, not successful diagnosis.', rows,
+    summary: [...new Set(rows.map(row => row.variant))].map(variant => {
+      const subset = rows.filter(row => row.variant === variant), exposed = subset.filter(row => row.runtimeFailureExposed === true);
+      return { variant, planned: subset.length, runtimeExposed: exposed.length, admissionBlocked: subset.filter(row => row.originalAdmitted === false).length,
+        preparationUnavailable: subset.filter(row => !row.preparationUsable).length,
+        scoredFixtureDecisions: subset.filter(row => row.agreesWithFixtureReference !== null).length,
+        matchesFixtureReference: subset.filter(row => row.agreesWithFixtureReference === true).length };
+    }) };
 }

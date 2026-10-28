@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="635.413437pt" height="270.952594pt" viewBox="0 0 635.413437 270.952594" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-29T00:34:08.128947</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 270.952594
+L 635.413437 270.952594
+L 635.413437 0
+L 0 0
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 171.684687 191.509938
+L 628.213438 191.509938
+L 628.213438 23.229938
+L 171.684687 23.229938
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 178.532619 36.692338
+L 393.101131 36.692338
+L 393.101131 178.047538
+L 178.532619 178.047538
+z
+" clip-path="url(#p5d0a6e4570)" style="fill: #ffedd5; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 406.796994 36.692338
+L 621.365506 36.692338
+L 621.365506 178.047538
+L 406.796994 178.047538
+z
+" clip-path="url(#p5d0a6e4570)" style="fill: #ffedd5; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1"/>
+     <g id="text_1">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="285.816875" y="209.867359" transform="rotate(-0 285.816875 209.867359)">B2</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_2"/>
+     <g id="text_2">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="514.08125" y="209.867359" transform="rotate(-0 514.08125 209.867359)">B3</text>
+     </g>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_3"/>
+     <g id="text_3">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end" x="161.684687" y="111.549078" transform="rotate(-0 161.684687 111.549078)">C04-click-typed-valid-failure</text>
+     </g>
+    </g>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(236.505156 103.966617)">0/3 runtime failures</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(203.427812 115.969352)">3 blocked; model agreement N/A</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(464.769531 103.966617)">0/3 runtime failures</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(431.692187 115.969352)">3 blocked; model agreement N/A</text>
+   </g>
+   <g id="text_6">
+    <text style="font-weight: 700; font-size: 13.2px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #0f172a" x="399.949063" y="17.229938" transform="rotate(-0 399.949063 17.229938)">Which cases reached runtime diagnosis?</text>
+   </g>
+  </g>
+  <g id="text_7">
+   <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #475569" transform="translate(8.573438 241.825563)">Every planned follow-up remains. Admission rejection is not runtime diagnosis. B2 uses an unconditional</text>
+   <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #475569" transform="translate(8.573438 251.42775)">baseline, not model classification. B3 matches refer to developer fixture labels, not independent accuracy.</text>
+   <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #475569" transform="translate(8.573438 261.029938)">N/A also covers unavailable preparations or classifications; inspect JSON.</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p5d0a6e4570">
+   <rect x="171.684687" y="23.229938" width="456.52875" height="168.28"/>
+  </clipPath>
+ </defs>
+</svg>

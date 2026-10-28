@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { PythonReport } from './python-types';
 
-export const verificationPolicyVersion = 'contract-witness-v13-batched-browser-verification';
+export const verificationPolicyVersion = 'contract-witness-v16-exact-execution-references';
 export const defaultModelResponseSeconds = 300;
 
 export const verificationPolicySchema = z.object({

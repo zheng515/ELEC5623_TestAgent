@@ -1,0 +1,329 @@
+{
+  "scope": "Observed workflow records on identical case inputs. Counts do not establish semantic correctness or superiority over external products.",
+  "baseline": "B2 and B3 reuse identical B1 candidates plus frozen analysis, admission review and initial execution. Follow-up order alternates. Only diagnosis and its downstream repair decision differ; the same request ceiling applies to both arms.",
+  "rows": [
+    {
+      "caseId": "C01-click-valid-failure",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C01-click-valid-failure-B1-1/report.json"
+    },
+    {
+      "caseId": "C01-click-valid-failure",
+      "variant": "B1",
+      "repeat": 2,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C01-click-valid-failure-B1-2/report.json"
+    },
+    {
+      "caseId": "C01-click-valid-failure",
+      "variant": "B1",
+      "repeat": 3,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C01-click-valid-failure-B1-3/report.json"
+    },
+    {
+      "caseId": "C01-click-valid-failure",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 5,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C01-click-valid-failure-B2-1/report.json"
+    },
+    {
+      "caseId": "C01-click-valid-failure",
+      "variant": "B2",
+      "repeat": 2,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 2,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C01-click-valid-failure-B2-2/report.json"
+    },
+    {
+      "caseId": "C01-click-valid-failure",
+      "variant": "B2",
+      "repeat": 3,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 5,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C01-click-valid-failure-B2-3/report.json"
+    },
+    {
+      "caseId": "C01-click-valid-failure",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 5,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C01-click-valid-failure-B3-1/report.json"
+    },
+    {
+      "caseId": "C01-click-valid-failure",
+      "variant": "B3",
+      "repeat": 2,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 5,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C01-click-valid-failure-B3-2/report.json"
+    },
+    {
+      "caseId": "C01-click-valid-failure",
+      "variant": "B3",
+      "repeat": 3,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 2,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C01-click-valid-failure-B3-3/report.json"
+    },
+    {
+      "caseId": "C02-packaging-wrong-assertion",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C02-packaging-wrong-assertion-B1-1/report.json"
+    },
+    {
+      "caseId": "C02-packaging-wrong-assertion",
+      "variant": "B1",
+      "repeat": 2,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C02-packaging-wrong-assertion-B1-2/report.json"
+    },
+    {
+      "caseId": "C02-packaging-wrong-assertion",
+      "variant": "B1",
+      "repeat": 3,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C02-packaging-wrong-assertion-B1-3/report.json"
+    },
+    {
+      "caseId": "C02-packaging-wrong-assertion",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C02-packaging-wrong-assertion-B2-1/report.json"
+    },
+    {
+      "caseId": "C02-packaging-wrong-assertion",
+      "variant": "B2",
+      "repeat": 2,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C02-packaging-wrong-assertion-B2-2/report.json"
+    },
+    {
+      "caseId": "C02-packaging-wrong-assertion",
+      "variant": "B2",
+      "repeat": 3,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C02-packaging-wrong-assertion-B2-3/report.json"
+    },
+    {
+      "caseId": "C02-packaging-wrong-assertion",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C02-packaging-wrong-assertion-B3-1/report.json"
+    },
+    {
+      "caseId": "C02-packaging-wrong-assertion",
+      "variant": "B3",
+      "repeat": 2,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C02-packaging-wrong-assertion-B3-2/report.json"
+    },
+    {
+      "caseId": "C02-packaging-wrong-assertion",
+      "variant": "B3",
+      "repeat": 3,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C02-packaging-wrong-assertion-B3-3/report.json"
+    },
+    {
+      "caseId": "C03-werkzeug-wrong-import",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C03-werkzeug-wrong-import-B1-1/report.json"
+    },
+    {
+      "caseId": "C03-werkzeug-wrong-import",
+      "variant": "B1",
+      "repeat": 2,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C03-werkzeug-wrong-import-B1-2/report.json"
+    },
+    {
+      "caseId": "C03-werkzeug-wrong-import",
+      "variant": "B1",
+      "repeat": 3,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/C03-werkzeug-wrong-import-B1-3/report.json"
+    },
+    {
+      "caseId": "C03-werkzeug-wrong-import",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C03-werkzeug-wrong-import-B2-1/report.json"
+    },
+    {
+      "caseId": "C03-werkzeug-wrong-import",
+      "variant": "B2",
+      "repeat": 2,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C03-werkzeug-wrong-import-B2-2/report.json"
+    },
+    {
+      "caseId": "C03-werkzeug-wrong-import",
+      "variant": "B2",
+      "repeat": 3,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C03-werkzeug-wrong-import-B2-3/report.json"
+    },
+    {
+      "caseId": "C03-werkzeug-wrong-import",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C03-werkzeug-wrong-import-B3-1/report.json"
+    },
+    {
+      "caseId": "C03-werkzeug-wrong-import",
+      "variant": "B3",
+      "repeat": 2,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C03-werkzeug-wrong-import-B3-2/report.json"
+    },
+    {
+      "caseId": "C03-werkzeug-wrong-import",
+      "variant": "B3",
+      "repeat": 3,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/C03-werkzeug-wrong-import-B3-3/report.json"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "variant": "B1",
+      "completed": 9,
+      "planned": 9,
+      "seededFaultDetection": 1,
+      "medianSeconds": 30.612,
+      "totalTokens": 0
+    },
+    {
+      "variant": "B2",
+      "completed": 9,
+      "planned": 9,
+      "seededFaultDetection": 0.6666666666666666,
+      "medianSeconds": 37.776,
+      "totalTokens": 1254111
+    },
+    {
+      "variant": "B3",
+      "completed": 9,
+      "planned": 9,
+      "seededFaultDetection": 0.6666666666666666,
+      "medianSeconds": 39.248,
+      "totalTokens": 1613101
+    }
+  ]
+}

@@ -92,7 +92,7 @@ async function main() {
   const referenceFlag = process.argv.indexOf('--reference');
   if (referenceFlag >= 0 && !process.argv[referenceFlag + 1]) throw new Error('Supply a reference JSON path after --reference.');
   const reference = decisionReferenceSchema.parse(JSON.parse(await readFile(referenceFlag >= 0 ? process.argv[referenceFlag + 1] : 'examples/benchmark/decision-reference.json', 'utf8')));
-  const agentFiles = ['lib/python-agent.ts', 'lib/python-types.ts', 'lib/model.ts', 'lib/verification-policy.ts', 'lib/decision-evaluation.ts', 'scripts/evaluate-decisions.ts', 'package-lock.json'];
+  const agentFiles = ['lib/python-agent.ts', 'lib/project-context.ts', 'lib/python-types.ts', 'lib/model.ts', 'lib/verification-policy.ts', 'lib/decision-evaluation.ts', 'scripts/evaluate-decisions.ts', 'package-lock.json'];
   const agentSnapshot = await Promise.all(agentFiles.map(async file => [file, await readFile(file, 'utf8')]));
   const agentFingerprint = decisionHash(agentSnapshot);
   scoreDecisions(decisionCases, reference, [], repeat, agentFingerprint);

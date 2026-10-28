@@ -9,10 +9,14 @@ RUN node /opt/npm/bin/npm-cli.js install --prefix /tool/node tsx@4.23.0 typescri
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
 RUN pip install --no-cache-dir playwright==1.55.0 && playwright install --with-deps --only-shell chromium && chmod -R a+rX /opt/ms-playwright
 COPY plugins/reqtest_browser.py /tool/plugins/reqtest_browser.py
+COPY plugins/reqtest_collection.py /tool/plugins/reqtest_collection.py
 COPY node-worker.cjs node-reporter.mjs prepare.py /tool/
 COPY worker.py /tool/worker.py
 COPY documents.py /tool/documents.py
 ENV PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONHASHSEED=0
+# The worker writes plain active paths here before starting project subprocesses.
+# This also supports upstream fixtures that intentionally replace PYTHONPATH.
+RUN python -c "import pathlib, site; (pathlib.Path(site.getsitepackages()[0]) / 'reqtest-paths.pth').write_text(\"import site; site.addsitedir('/tmp/reqtest-python-paths')\" + chr(10))"
 WORKDIR /work
 USER 65534:65534
 ENTRYPOINT ["python", "/tool/worker.py"]

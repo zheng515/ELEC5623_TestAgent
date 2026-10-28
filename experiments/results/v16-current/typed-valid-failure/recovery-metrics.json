@@ -1,0 +1,147 @@
+{
+  "scope": "Controlled developer-seeded challenges, not natural-error frequency or independent semantic accuracy.",
+  "definitions": {
+    "recovery": "Import/assertion challenges require an approved changed original artifact, passing generated execution and usable fixed-witness reference replay. Missing boundaries require corrected-copy fault detection. Valid failures require unchanged approved code plus corrected-copy detection.",
+    "missing": "Missing/unusable runs stay in planned denominators and prevent a complete success rate.",
+    "validFailureDetectionLost": "Observed loss of an initially detected seeded defect, not a general independently reviewed incorrect-repair rate."
+  },
+  "rows": [
+    {
+      "caseId": "C04-click-typed-valid-failure",
+      "variant": "B1",
+      "repeat": 1,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": true,
+      "unchangedValidFailure": true,
+      "validFailureDetectionLost": false,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "C04-click-typed-valid-failure",
+      "variant": "B1",
+      "repeat": 2,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": true,
+      "unchangedValidFailure": true,
+      "validFailureDetectionLost": false,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "C04-click-typed-valid-failure",
+      "variant": "B1",
+      "repeat": 3,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": true,
+      "unchangedValidFailure": true,
+      "validFailureDetectionLost": false,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "C04-click-typed-valid-failure",
+      "variant": "B2",
+      "repeat": 1,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": false,
+      "unchangedValidFailure": false,
+      "validFailureDetectionLost": null,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "C04-click-typed-valid-failure",
+      "variant": "B2",
+      "repeat": 2,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": false,
+      "unchangedValidFailure": false,
+      "validFailureDetectionLost": null,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "C04-click-typed-valid-failure",
+      "variant": "B2",
+      "repeat": 3,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": false,
+      "unchangedValidFailure": false,
+      "validFailureDetectionLost": null,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "C04-click-typed-valid-failure",
+      "variant": "B3",
+      "repeat": 1,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": false,
+      "unchangedValidFailure": false,
+      "validFailureDetectionLost": null,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "C04-click-typed-valid-failure",
+      "variant": "B3",
+      "repeat": 2,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": false,
+      "unchangedValidFailure": false,
+      "validFailureDetectionLost": null,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "C04-click-typed-valid-failure",
+      "variant": "B3",
+      "repeat": 3,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": false,
+      "unchangedValidFailure": false,
+      "validFailureDetectionLost": null,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    }
+  ],
+  "summary": [
+    {
+      "variant": "B1",
+      "challenge": "valid-failure",
+      "planned": 3,
+      "observed": 3,
+      "succeeded": 3,
+      "successRate": 1,
+      "unresolved": 0
+    },
+    {
+      "variant": "B2",
+      "challenge": "valid-failure",
+      "planned": 3,
+      "observed": 3,
+      "succeeded": 0,
+      "successRate": 0,
+      "unresolved": 0
+    },
+    {
+      "variant": "B3",
+      "challenge": "valid-failure",
+      "planned": 3,
+      "observed": 3,
+      "succeeded": 0,
+      "successRate": 0,
+      "unresolved": 0
+    }
+  ]
+}

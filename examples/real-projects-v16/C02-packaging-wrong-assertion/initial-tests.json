@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_canonical_names",
+      "gapIndexes": [
+        0
+      ],
+      "code": "from packaging.utils import canonicalize_name\ndef test_canonical_names():\n    assert canonicalize_name('Django') == 'django'\n    assert canonicalize_name('oslo.concurrency') == 'oslo_concurrency'\n",
+      "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+      "purpose": "Controlled unsupported-assertion challenge, not natural generator-error frequency."
+    }
+  ]
+}

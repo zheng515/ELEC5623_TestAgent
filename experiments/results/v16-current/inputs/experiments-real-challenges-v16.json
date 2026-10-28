@@ -1,0 +1,49 @@
+{
+  "purpose": "pilot",
+  "repeat": 3,
+  "variants": [
+    "B1",
+    "B2",
+    "B3"
+  ],
+  "sharedInitialSuite": true,
+  "diagnosisAblation": true,
+  "followupRequestLimit": 12,
+  "policy": {
+    "mutationChecks": false,
+    "modelRequestLimit": 32,
+    "modelTimeoutSeconds": 300
+  },
+  "cases": [
+    {
+      "id": "C01-click-valid-failure",
+      "project": ".evidence/real-projects-v16/challenges/C01-click-valid-failure/project",
+      "requirements": "examples/real-projects-v16/C01-click-valid-failure/requirements.txt",
+      "gold": "examples/real-projects-v16/C01-click-valid-failure/gold.json",
+      "initialTests": "examples/real-projects-v16/C01-click-valid-failure/initial-tests.json",
+      "oracle": "examples/real-projects-v16/C01-click-valid-failure/oracle.py",
+      "challenge": "valid-failure",
+      "expectedDiagnosis": "potential_implementation_defect"
+    },
+    {
+      "id": "C02-packaging-wrong-assertion",
+      "project": ".evidence/real-projects-v16/challenges/C02-packaging-wrong-assertion/project",
+      "requirements": "examples/real-projects-v16/C02-packaging-wrong-assertion/requirements.txt",
+      "gold": "examples/real-projects-v16/C02-packaging-wrong-assertion/gold.json",
+      "initialTests": "examples/real-projects-v16/C02-packaging-wrong-assertion/initial-tests.json",
+      "oracle": "examples/real-projects-v16/C02-packaging-wrong-assertion/oracle.py",
+      "challenge": "unsupported-assertion",
+      "expectedDiagnosis": "generated_test_error"
+    },
+    {
+      "id": "C03-werkzeug-wrong-import",
+      "project": ".evidence/real-projects-v16/challenges/C03-werkzeug-wrong-import/project",
+      "requirements": "examples/real-projects-v16/C03-werkzeug-wrong-import/requirements.txt",
+      "gold": "examples/real-projects-v16/C03-werkzeug-wrong-import/gold.json",
+      "initialTests": "examples/real-projects-v16/C03-werkzeug-wrong-import/initial-tests.json",
+      "oracle": "examples/real-projects-v16/C03-werkzeug-wrong-import/oracle.py",
+      "challenge": "invented-import",
+      "expectedDiagnosis": "generated_test_error"
+    }
+  ]
+}

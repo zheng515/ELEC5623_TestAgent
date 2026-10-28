@@ -9,7 +9,7 @@ import { runPython, validateAnalysis, type Reason } from '../lib/python-agent';
 import { executableSuiteHash } from '../lib/test-suite';
 import { importProject } from '../lib/python-tools';
 import { analysisSchema, testsSchema, reviewTestsSchema, diagnosisSchema } from '../lib/python-types';
-import { report, analysis, artifact, code, rule, project } from './fixtures/python-agent';
+import { report, analysis, artifact, code, rule, project, approval } from './fixtures/python-agent';
 
 test('shared-suite analysis cannot move a test to another requirement or renumber its behavior', () => {
   const r = report(), a = analysis(), snapshot = { files: { 'shipping.py': code }, functions: [], nodes: [], errors: [], collection: { exitCode: 5, log: '' } };
@@ -130,4 +130,37 @@ test('seeded paired CLI freezes candidates, stops at its follow-up budget and ex
   assert.equal(await readFile(join(output!, 'analysis/evidence/budget.initial-tests.json'), 'utf8'), await readFile(initialTests, 'utf8'));
   await writeFile(join(output!, 'budget.initial-tests.json'), '{}');
   await assert.rejects(promisify(execFile)(process.execPath, ['--import', 'tsx', 'scripts/analyze-experiment.ts', join(output!, 'index.json')], { timeout: 10000 }), /Frozen seeded candidates changed/);
+});
+
+test('diagnosis ablation freezes preparation and changes only failure diagnosis and its repair decision', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 60000 }, async t => {
+  const zip = new JSZip(); zip.file('shipping.py', code.replace('>=', '>'));
+  const archive = await zip.generateAsync({ type: 'nodebuffer' });
+  const roots = await Promise.all([0, 1, 2, 3].map(() => project(t)));
+  const snapshot = await importProject(roots[0], archive);
+  for (const root of roots.slice(1)) await importProject(root, archive);
+  const initial = report(); initial.id = 'initial'; initial.fingerprint = snapshot.fingerprint; initial.policy = { mutationChecks: false };
+  await runPython(initial, roots[0], AbortSignal.timeout(15000), () => {}, async () => { throw Error('Seeded input must not call the model'); }, 'B1', undefined, undefined, [artifact]);
+  const prepared = report(); prepared.id = 'prepared'; prepared.fingerprint = snapshot.fingerprint; prepared.policy = initial.policy;
+  const prefixCalls: string[] = [];
+  const prepare: Reason = async (schema) => {
+    if (Object.is(schema, analysisSchema)) { prefixCalls.push('analysis'); return schema.parse(analysis()); }
+    if (Object.is(schema, reviewTestsSchema)) { prefixCalls.push('review'); return schema.parse(approval('T1')); }
+    throw Error('Preparation must not diagnose or refine');
+  };
+  await runPython(prepared, roots[1], AbortSignal.timeout(20000), () => {}, prepare, 'B3', undefined, initial, undefined, { prepareOnly: true });
+  assert.deepEqual(prefixCalls, ['analysis', 'review']); assert.equal(prepared.stage, 'Shared preparation complete');
+  const frozen = JSON.stringify(prepared);
+  for (const [index, variant] of ['B2', 'B3'].entries()) {
+    const next = report(); next.fingerprint = snapshot.fingerprint; next.policy = initial.policy;
+    let diagnoses = 0, repairs = 0;
+    const ask: Reason = async (schema) => {
+      if (Object.is(schema, diagnosisSchema)) { diagnoses++; return schema.parse({ decisions: [{ testId: 'T1', category: 'potential_implementation_defect', quote: rule, executionQuote: 'assert 1000 == 0', reason: 'Inclusive threshold differs.', evidence: [{ file: 'shipping.py', quote: 'def fee(amount):' }, { file: 'reqtest_generated/test_reqtest_T1.py', quote: '    assert fee(10000) == 0' }] }] }); }
+      if (Object.is(schema, testsSchema)) { repairs++; return schema.parse({ tests: [] }); }
+      throw Error('Shared analysis and admission must not be repeated');
+    };
+    await runPython(next, roots[index + 2], AbortSignal.timeout(18000), () => {}, ask, variant as 'B2' | 'B3', undefined, initial, undefined, { prepared });
+    assert.deepEqual(next.analysis, prepared.analysis); assert.equal(next.preparationSuite?.reportId, prepared.id);
+    assert.equal(diagnoses, variant === 'B3' ? 1 : 0); assert.equal(repairs, variant === 'B2' ? 1 : 0);
+    assert.equal(next.tests[0].code, artifact.code); assert.equal(JSON.stringify(prepared), frozen);
+  }
 });

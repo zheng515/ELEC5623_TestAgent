@@ -1,0 +1,3 @@
+Scope: controlled development challenge on the complete pinned upstream runtime. The original API contract below comes from the previously indexed public documentation. Seeded candidates are not trusted references.
+
+R1: werkzeug.datastructures.MultiDict([('a', 'b'), ('a', 'c')]) returns 'b' for dictionary access at key 'a', and getlist('a') returns ['b', 'c'] in that order. An empty MultiDict returns [] for getlist('missing').

@@ -35,17 +35,17 @@ export const analysisSchema = z.object({
   inconsistencies: z.array(z.object({ ruleId: z.string(), behaviorIds: z.array(z.string()).min(1), quote: z.string(), description: z.string(), evidence: z.array(evidence).min(1) })),
 });
 export function originalQuoteSchema(quotes: string[], references?: string[]) {
-  // Encode multiline originals as stable IDs at the provider boundary; never rewrite text.
+  // Resolve provider-safe IDs to exact originals, without rewriting quotes or test nodes.
   if (references) return z.enum(references).transform(reference => quotes[references.indexOf(reference)]);
   return z.enum(quotes);
 }
-export function groundedAnalysisSchema(files: Record<string, string>, nodes: string[], quotes: string[], references?: string[], lineReferences = false) {
+export function groundedAnalysisSchema(files: Record<string, string>, nodes: string[], quotes: string[], references?: string[], lineReferences = false, testReferences?: string[]) {
   const evidence = analysisSchema.shape.behaviors.element.shape.evidence.element.extend({ file: z.enum(Object.keys(files)) });
   const evidenceList = (min = 0) => lineReferences ? sourceEvidenceListSchema(files, min) : min ? z.array(evidence).min(min) : z.array(evidence);
   const quote = originalQuoteSchema(quotes, references);
   const behavior = analysisSchema.shape.behaviors.element.extend({
     quote, files: z.array(z.enum(Object.keys(files).filter(sourceFile))),
-    existingTests: nodes.length ? z.array(z.enum(nodes)) : z.array(z.string()).max(0),
+    existingTests: nodes.length ? z.array(originalQuoteSchema(nodes, testReferences)) : z.array(z.string()).max(0),
     evidence: evidenceList(),
   });
   return analysisSchema.extend({
@@ -73,9 +73,10 @@ export const diagnosisSchema = z.object({ decisions: z.array(z.object({
   testId: z.string(), category: z.enum(["generated_test_error", "requirement_ambiguity", "potential_implementation_defect", "environment_failure", "uncertain"]),
   reason: z.string(), quote: z.string(), executionQuote: z.string(), evidence: z.array(evidence),
 })) });
-export function groundedDiagnosisSchema(ids: string[], quote: z.ZodType<string>, files?: Record<string, string>) {
+export function groundedDiagnosisSchema(ids: string[], quote: z.ZodType<string>, files?: Record<string, string>, testReferences?: string[], executionReferences?: { id: string; quote: string }[]) {
   const decision = diagnosisSchema.shape.decisions.element.extend({
-    testId: ids.length ? z.enum(ids) : z.string(), quote,
+    testId: ids.length ? originalQuoteSchema(ids, testReferences) : z.string(), quote,
+    ...(executionReferences ? { executionQuote: originalQuoteSchema(['', ...executionReferences.map(item => item.quote)], ['', ...executionReferences.map(item => item.id)]) } : {}),
   });
   return diagnosisSchema.extend({ decisions: z.array(files ? decision.extend({ evidence: sourceEvidenceListSchema(files) }) : decision) });
 }
@@ -86,6 +87,7 @@ export const coverageReviewSchema = z.object({
 });
 export const reviewTestsSchema = z.object({ decisions: z.array(z.object({
   testId: z.string(), supported: z.boolean(), reason: z.string(), quote: z.string(),
+  definedScope: z.object({ contractExcerpt: z.string().min(1), inputs: z.string().min(1), reason: z.string().min(1) }).nullable().default(null),
 })), coverage: z.array(coverageReviewSchema).default([]) });
 export const relevanceSchema = z.object({ decisions: z.array(z.object({
   mutantId: z.string().regex(/^Mutant #[1-9]\d*$/), behaviorId: z.string().regex(/^B[1-9]\d*$/), relevant: z.boolean(), reason: z.string(), quote: z.string(),
@@ -97,7 +99,7 @@ export function groundedRelevanceSchema(pairs: { id: string; behaviorId: string 
   return relevanceSchema.extend({ decisions: z.array(item).max(pairs.length) });
 }
 export type Analysis = z.infer<typeof analysisSchema>;
-export type PythonTest = z.infer<typeof testsSchema>["tests"][number] & { approved?: boolean; review?: string; reviewDecision?: { supported: boolean; quote: string; reason: string } };
+export type PythonTest = z.infer<typeof testsSchema>["tests"][number] & { approved?: boolean; review?: string; reviewDecision?: { supported: boolean; quote: string; reason: string; definedScope?: z.infer<typeof reviewTestsSchema>['decisions'][number]['definedScope'] } };
 export type TestAttempt = {
   phase: 'generation' | 'improvement'; reason: string;
   status: 'proposed' | 'reviewed' | 'applied' | 'rejected' | 'failed';
@@ -109,12 +111,15 @@ export type Mutation = { incomplete: boolean; mutants: { id: string; file: strin
 export type DiagnosisPhase = 'collection' | 'baseline' | 'execution' | 'remeasurement';
 export type Diagnosis = z.infer<typeof diagnosisSchema>["decisions"][number] & { phase?: DiagnosisPhase };
 export type PythonReport = {
+  testDiscovery?: { totalNodes: number; complete: boolean; modelSelectedNodes: number; modelOmittedNodes: number; catalogSha256: string; baselineFiles: string[]; assets: { file: string; bytes: number; sha256: string }[] };
   policy?: VerificationPolicy;
   resources?: {
     limit: number | null; exhausted?: boolean;
-    requests: { key: string; stage: string; status: 'started' | 'completed' | 'failed'; startedAt: string; elapsedMs?: number; inputTokens?: number; outputTokens?: number; totalTokens?: number; promptBytes?: number; promptHash?: string; error?: string }[];
+    requests: { key: string; stage: string; status: 'started' | 'completed' | 'failed'; startedAt: string; elapsedMs?: number; inputTokens?: number; outputTokens?: number; totalTokens?: number; promptBytes?: number; promptHash?: string; error?: string; contextBytes?: number; sourceBytes?: number }[];
   };
   initialSuite?: { reportId: string; executableHash: string };
+  preparationSuite?: { reportId: string; executableHash: string };
+  contextSelections?: { stage: string; totalBytes: number; selectedBytes: number; budget: number; selectedFiles: string[]; omitted: { file: string; bytes: number; sha256: string; required: boolean }[]; complete: boolean; dependencyLinks?: { from: string; to: string }[] }[];
   testAttempts?: TestAttempt[];
   stopReason?: string;
   analysisCorrection?: { original: Analysis; error: string; removed?: string[] };

@@ -1,13 +1,12 @@
 # ReqTest Shipping Demo
 
 A minimal Python application for a real requirement-to-test demonstration.
-The inputs and rules are synthetic; the repository download, model requests,
-generated tests, and sandbox execution are real operations.
+This is a synthetic development input. Historical model-result narratives were
+removed; its presence does not establish current model performance.
 
 - Production code: `shipping.py`
 - Requirement document: [`docs/SRS.md`](docs/SRS.md)
 - Runtime: Python 3.11+, without third-party production dependencies
-- Recorded live validation: [`docs/DEMO_RESULTS.md`](docs/DEMO_RESULTS.md)
 
 ## Use with ReqTest
 

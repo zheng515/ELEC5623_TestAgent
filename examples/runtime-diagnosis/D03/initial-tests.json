@@ -1,0 +1,17 @@
+{
+  "provenance": {
+    "source": "deliberately_seeded",
+    "independentlyReviewed": false
+  },
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_case",
+      "quote": "tokens.values() returns an iterator yielding exactly the strings a then b, in that order.",
+      "gapIndexes": [],
+      "purpose": "Check the supplied contract case.",
+      "code": "from tokens import values\ndef test_case():\n    result = values()\n    assert iter(result) is result\n    assert all(isinstance(item, str) for item in result)\n    assert list(result) == [\"a\", \"b\"]\n"
+    }
+  ]
+}

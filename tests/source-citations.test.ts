@@ -45,6 +45,43 @@ test('provider schemas decode line references while legacy saved quotes remain s
   validateAnalysis(source, report(), { files, functions: [], nodes: [], errors: [], collection: { exitCode: 5, log: '' } });
 });
 
+test('mocked SDK preserves quoted parameterized test IDs through analysis and diagnosis', async t => {
+  const savedKey = process.env.OPENAI_API_KEY, savedFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = savedFetch; if (savedKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = savedKey; });
+  process.env.OPENAI_API_KEY = 'node-reference-fixture-not-a-key';
+  const node = 'tests/test_headers.py::test_value["quoted"\\path\nline]';
+  const context = { rules: [{ id: 'R1', text: rule }], files: { 'shipping.py': code }, existingTests: [node], failedTestIds: [node] };
+  const before = structuredClone(context);
+  let output: unknown = { ...analysis(), behaviors: analysis().behaviors.map(behavior => ({ ...behavior, existingTests: ['N1'], evidence: [{ file: 'shipping.py', line: 1 }] })) };
+  let requests = 0;
+  globalThis.fetch = async (_input, init) => {
+    requests++;
+    const body = JSON.parse(String(init?.body));
+    const collectEnums = (value: unknown): string[] => {
+      if (!value || typeof value !== 'object') return [];
+      return Object.entries(value).flatMap(([key, child]) => key === 'enum' ? child as string[] : collectEnums(child));
+    };
+    const enums = collectEnums(body.text.format.schema);
+    assert.ok(enums.includes('N1'));
+    assert.ok(!enums.includes(node), 'Unsafe original nodes must not enter provider enums');
+    const user = body.input.find((message: { role: string }) => message.role === 'user');
+    const prompt = typeof user.content === 'string' ? user.content : user.content.find((item: { type: string }) => item.type === 'input_text').text;
+    assert.deepEqual(JSON.parse(prompt).testReferences, [{ id: 'N1', testId: node }]);
+    return Response.json({ id: 'resp_fixture', object: 'response', created_at: 1, status: 'completed', model: body.model,
+      output: [{ id: 'msg_fixture', type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify(output), annotations: [] }] }],
+      usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } });
+  };
+  const result = await reason(analysisSchema, 'Analysis fixture', context, 'gpt-6-luna', new AbortController().signal);
+  assert.deepEqual(result.behaviors[0].existingTests, [node]);
+  output = { decisions: [{ testId: 'N1', category: 'environment_failure', reason: 'Fixture failure', quote: '', executionQuote: 'failure', evidence: [] }] };
+  const diagnosis = await reason(diagnosisSchema, 'Diagnosis fixture', context, 'gpt-6-luna', new AbortController().signal);
+  assert.equal(diagnosis.decisions[0].testId, node);
+  output = { decisions: [{ testId: 'N999', category: 'environment_failure', reason: 'Unknown ID', quote: '', executionQuote: 'failure', evidence: [] }] };
+  await assert.rejects(reason(diagnosisSchema, 'Diagnosis fixture', context, 'gpt-6-luna', new AbortController().signal));
+  assert.equal(requests, 3);
+  assert.deepEqual(context, before, 'Wire encoding cannot rewrite saved context');
+});
+
 test('mocked official SDK requests send numbered files, restore originals and fail closed on invalid lines', async t => {
   const savedKey = process.env.OPENAI_API_KEY, savedFetch = globalThis.fetch;
   t.after(() => { globalThis.fetch = savedFetch; if (savedKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = savedKey; });
@@ -59,6 +96,12 @@ test('mocked official SDK requests send numbered files, restore originals and fa
   globalThis.fetch = async (input, init) => {
     assert.equal(String(input), 'https://api.openai.com/v1/responses');
     const body = JSON.parse(String(init?.body));
+    const properties = body.text.format.schema.properties.decisions?.items?.properties;
+    if (properties?.definedScope) {
+      assert.ok(body.text.format.schema.properties.decisions.items.required.includes('definedScope'), 'The provider must require the nullable scope field even though older stored records omit it.');
+      const variants = properties.definedScope.anyOf || [properties.definedScope];
+      assert.ok(variants.some((variant: { type: string }) => variant.type === 'null'));
+    }
     const user = body.input.find((message: { role: string }) => message.role === 'user');
     const prompt = typeof user.content === 'string' ? user.content : user.content.find((item: { type: string }) => item.type === 'input_text').text;
     const system = body.input.find((message: { role: string }) => ['system', 'developer'].includes(message.role));
@@ -85,10 +128,12 @@ test('mocked official SDK requests send numbered files, restore originals and fa
   await assert.rejects(reason(analysisSchema, 'Invalid source reference', context, 'gpt-6-luna', new AbortController().signal));
   assert.equal(prompts.length, 3, 'Invalid lines do not trigger automatic provider retries or a fallback to copied quotes.');
   numbered = false;
-  output = { decisions: [{ testId: 'T1', supported: true, reason: 'Review wire fixture.', quote: 'R1' }], coverage: [{ ruleId: 'R1', quote: 'R1', complete: true, reason: 'Controlled coverage.', testIds: ['T1'], missingExamples: [] }] };
+  output = { decisions: [{ testId: 'T1', supported: true, reason: 'Review wire fixture.', quote: 'R1', definedScope: null }], coverage: [{ ruleId: 'R1', quote: 'R1', complete: true, reason: 'Controlled coverage.', testIds: ['T1'], missingExamples: [] }] };
   const review = await reason(reviewTestsSchema, testReviewTask, context, 'gpt-6-luna', new AbortController().signal);
   assert.equal(review.decisions[0].quote, original);
   assert.equal(review.coverage[0].quote, original);
+  assert.equal(review.decisions[0].definedScope, null);
+  assert.equal(reviewTestsSchema.parse({ decisions: [{ testId: 'T1', supported: true, reason: 'Older stored review.', quote: original }] }).decisions[0].definedScope, null, 'Older stored reviews retain a fail-closed null scope.');
   assert.equal(prompts.length, 4, 'Review keeps the unmodified source view and a single policy copy.');
   const mutationContext = { ...context, rules: [{ id: 'R1', text: rule }], pairs: ['B1', 'B2'].map(behaviorId => ({ id: 'Mutant #1', behaviorId })), mutants: [{ id: 'Mutant #1', file: 'shipping.py', line: 2, diff: '- >= 10000\n+ > 10000' }] };
   expectedRequirement = rule;

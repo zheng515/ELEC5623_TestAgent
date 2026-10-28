@@ -1,66 +1,33 @@
-# Current experiment status
+# Current experiments
 
-Updated 2026-10-28. This is an experiment inventory, not the final report.
+Policy v16. Only `results/v16-current/` contains retained experiment results.
+Older v12/v14/v15 and initial open-source pilot results, raw runs, preflights,
+component predictions and review packs were deleted at the owner's request.
+Their metrics are no longer part of the current evidence.
 
-| Stage | Current state | Available evidence |
-| --- | --- | --- |
-| Engineering regression | Latest v13 regression: 160 passed, two optional skips, zero failures | Source tests exercise real Docker/PostgreSQL with scripted model decisions where indicated. This is not model accuracy. |
-| Decision cases | 16 development cases prepared and executed in Docker | [Reviewer pack](reviews/2026-10-27-contract-decisions/README.md), [actual execution records](reviews/2026-10-27-contract-decisions/cases.json) and its manifest |
-| AI-assisted annotations | 16 of 16 completed and accepted as development references; not independent human review | [Labels and evidence](annotations/2026-10-28-contract-decisions/reference.ai-assisted.json), [annotation rationale](annotations/2026-10-28-contract-decisions/README.md); reviewed=false |
-| Independent human references | 0 of 16 completed | [Blank reference template](reviews/2026-10-27-contract-decisions/reference.template.json); reviewed=false |
-| Retained v12 decision model evaluation | 48/48 valid responses; zero failed requests | [Recorded results](results/2026-10-28-v12/README.md): 47/48 agreement with AI reference; admission F1 0.947; one false-support observation retained. |
-| Retained v12 workflow comparison | 18/18 workflows completed; nine shared-suite pairs verified | [Paired evidence](results/2026-10-28-v12/workflow/paired-comparison.json): B1/B3 each detected 6/6 seeded-fault observations; B3 added six diagnoses and no detections, with higher prefix-inclusive resource usage. |
-| Independent accuracy and comparative benefit | Independent accuracy unavailable; no incremental detection advantage observed | AI-reference metrics and fixed-witness detection are scoped development evidence. No independent human review or user study is complete; no accepted repair was exercised. |
+[Current results and limitations](results/v16-current/README.md) cover:
 
-## Current v13 code and future studies
+| Study | Completed / planned workflows | Interpretation |
+| --- | ---: | --- |
+| Full projects | 18/18 | Click, Packaging and Werkzeug; shared B1/B3 candidates |
+| Stopped context study | 11/27 | Failed, cancelled and missing observations remain explicit |
+| Diagnosis ablation | 27/27 | Shared preparation; admission rejection is not runtime diagnosis |
+| Typed valid failure | 9/9 | Adaptive overstrict candidate revision |
+| Semantic valid failure | 9/9 | Adaptive candidate; copied execution-citation failures retained |
+| Execution-reference regression | 9/9 | Same-case engineering follow-up with exact log references |
 
-The implementation, prompts, batching, browser execution and runtime controls have
-changed since the retained v12 snapshots. No v13 paid model study has run. Do not
-use the older agreement/F1 or comparison values as current-version performance.
-New recovery, browser and 32-item specification manifests have passed Docker
-preflight without model calls. Seeded candidates are deliberately constructed
-challenge inputs and have not become independent human labels.
+Five completed studies contain 72 workflows and 18 common preparations. The
+stopped study remains separate. Source revisions, costs, raw requests, failures,
+plots and all 245 sealed artifacts remain unchanged. Current private raw studies
+were matched byte-for-byte to their exported archives before cleanup.
 
-## What a human reference label means
+[Reproduction inputs](../examples/real-projects-v16/README.md) and
+[evaluation protocol](../docs/evaluation-protocol.md) describe the current scope.
+Repeated and adaptive cases are not independent unseen projects. No independent
+semantic accuracy or external-product superiority is claimed.
 
-A reviewer reads the original requirement, implementation, proposed assertion and
-actual trace, then records the defensible reference decision and its rationale.
-For admission, use supported or blocked. For diagnosis, use generated_test_error,
-potential_implementation_defect, requirement_ambiguity, environment_failure or
-uncertain. A passing execution alone does not establish a supported test, and a
-failing execution alone does not establish an implementation defect.
-
-The repository decision-reference.json contains development draft labels. Those
-are not independently completed human references. Give the blank reviewer pack to
-a teammate before exposing draft labels or model predictions. Retain independent
-annotations and disagreements, enter the reviewer name, and set reviewed=true
-only after completing the review. The tool cannot verify reviewer independence.
-
-The separate AI-assisted annotation file also records original requirement quotes,
-source/test line references and actual execution outcomes for all 16 cases. It
-leaves reviewer blank and reviewed=false. The annotating assistant contributed to
-the implementation and fixtures; these labels are neither blind nor independent.
-The original blank reviewer pack remains unchanged. No model-evaluation output or
-independent accuracy score was generated by this annotation step.
-
-The project owner accepted the AI annotations as development reference answers.
-The component scorer can report agreement and reference-relative admission/F1
-metrics under referenceComparison.basis=ai_assisted. Root independent accuracy
-fields remain unavailable. This acceptance does not change the annotator into a
-human or establish independent review. Actual model responses are now retained in
-the separate 2026-10-28-v12 results. No old-version scores were restored.
-
-## Old experiment cleanup
-
-At the user's request on 2026-10-28, old-version acceptance, benchmark and workflow
-result exports, plots and matching private raw copies were deleted. Their scores
-are not current evidence. Reusable examples/, source provenance, requirements,
-witnesses, manifests, evaluation tools and current unlabelled reviewer evidence
-remain. Application accounts, saved user reports and backups were not selected.
-The boundary regression now constructs its own minimal fixture instead of reading
-a deleted historical report.
-
-See [the evaluation protocol](../docs/evaluation-protocol.md) for commands and
-denominators. No paid model run is launched by reading this inventory or preparing
-an independent reviewer pack. Future experiments must freeze inputs and retain
-all planned outcomes, including failures and negative results.
+Reusable source fixtures and fixed witnesses remain for regression tests. The
+16-case AI-assisted reference and its original trace inputs now live under
+`tests/fixtures/decision-reference*`; they are test data, not current model-study
+results or human annotations. Application runs, accounts and backups were not
+changed. No new model calls were made during cleanup.

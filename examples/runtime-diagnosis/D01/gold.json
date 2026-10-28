@@ -1,0 +1,20 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "contract-1",
+      "ruleId": "R1",
+      "description": "For an integer order amount of at least 10000 cents, shipping.fee(amount) returns integer 0, including exactly 10000.",
+      "initialGap": true
+    }
+  ],
+  "fault": {
+    "id": "inclusive-threshold",
+    "file": "rates.py",
+    "before": "amount > 10000",
+    "after": "amount >= 10000"
+  }
+}

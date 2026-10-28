@@ -32,7 +32,7 @@ separate:
 | Diagnosis before replacement | Grounded failure categories, one reviewed improvement and retained prior artifacts | Are valid failures preserved and generated errors corrected? Scripted regression establishes control paths; model accuracy needs independent labels. |
 | Conservative scoped states | Suite-bound coverage audits, stale-evidence rejection and explicit unassessed mutation scope | Does the system avoid unsupported Verified states? A minimal equality-boundary regression exercises stale-positive rejection; the guard is not general semantic proof. |
 
-Policy v12 makes mutation checks optional and records an enforced model-request
+Policy v16 makes mutation checks optional and records an enforced model-request
 budget across worker recovery. Both depths keep original-contract admission and
 failure handling. Passing checks without requested mutation assessment remain
 partially verified. No efficiency or quality advantage is established for this
@@ -72,16 +72,28 @@ semantic coverage, user benefit or an advantage over other products.
 
 ## Current evaluation status
 
-The independent reviewer pack under experiments/reviews contains 16 development
-cases with actual Docker outcomes, no predictions and a blank reference template.
-There are zero completed independent labels. The [v12 development study](../experiments/results/2026-10-28-v12/README.md)
-completed 48 component decisions and 18 paired workflows. Component agreement with
-the AI reference was 47/48, with one false-support observation. Both workflow
-configurations detected 6/6 seeded-fault observations. B3 retained six diagnosed
-valid failures and added no detections while using 5.04 times B1's tokens including
-the shared initial prefix. This supports inspectable diagnosis/retention examples,
-not an incremental detection, repair-success or efficiency advantage. No accepted
-repair or rejected initial proposal occurred in the workflow study.
-Independent human accuracy and user-task benefit remain unmeasured.
-See [current experiment status](../experiments/README.md) and the
-[evaluation protocol](evaluation-protocol.md). No academic report was written.
+The v16 complete-runtime study adds three pinned upstream projects and three
+shared B1/B3 repeats per project. Full imported baselines collect and execute
+611 Click, 26,921 Packaging and 914 Werkzeug nodes, with exact catalog matching.
+All 18 workflows completed. B1 generated 53 passing and one failing case across
+54 artifacts; B3's final suites recorded 54 passing cases. In the single natural
+Click failure, two callbacks had appended values before the test asserted a
+one-element list. B3 diagnosed the generated test's execution-order error and
+its revised suite passed on a separate unmodified source copy. This is one
+traceable observation, not a population accuracy estimate or external-tool win.
+
+This study supports the implemented execution/context boundary and one concrete
+diagnosis-and-repair trace. B1/B3 adds several stages simultaneously, so the
+observation does not isolate diagnosis. A separate shared-preparation B2/B3
+challenge study tests that mechanism; rejected candidates, unexposed categories,
+failed attempts and source revisions remain separate in the
+[current inventory](../experiments/README.md). Mutation checks were disabled and
+passing requirement cases retain partial assurance.
+
+See [the current inventory](../experiments/README.md) for frozen observations and
+limits. Older-version experiment exports and raw runs were deleted at the owner's
+request. Their numbers are not current evidence. The current protocol isolates
+failure diagnosis using a shared preparation and measures controlled recovery,
+reference replay, valid-failure retention and prefix-inclusive resources.
+Independent semantic accuracy and user-task benefit remain unmeasured until
+appropriate reviewers or users supply evidence. See [the protocol](evaluation-protocol.md).

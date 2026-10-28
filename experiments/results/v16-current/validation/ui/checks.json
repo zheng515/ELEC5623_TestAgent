@@ -1,0 +1,13 @@
+{
+  "scope": "UI-only test with intercepted read-only API responses; not new model observations or independent semantic review.",
+  "reportId": "9ac0b9d7-53f7-4d4f-bfc6-305b55dddb2b",
+  "outcomeCount": 26927,
+  "checks": [
+    "27k outcomes: only 100 result rows render per page; navigation and filter reset work",
+    "Raw execution evidence is paginated without discarding exact saved outcomes",
+    "No horizontal overflow at 320px with real parameterized node names",
+    "No horizontal overflow at 390px with real parameterized node names",
+    "No horizontal overflow at 768px with real parameterized node names"
+  ],
+  "pageErrors": []
+}

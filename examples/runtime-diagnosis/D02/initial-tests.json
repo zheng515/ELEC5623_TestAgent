@@ -1,0 +1,17 @@
+{
+  "provenance": {
+    "source": "deliberately_seeded",
+    "independentlyReviewed": false
+  },
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_case",
+      "quote": "delivery.notify() returns integer 0 after sending a notification through its configured transport.",
+      "gapIndexes": [],
+      "purpose": "Check the supplied contract case.",
+      "code": "from delivery import notify\ndef test_case():\n    result = notify()\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 0\n"
+    }
+  ]
+}

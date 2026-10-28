@@ -1,0 +1,14 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "contract-1",
+      "ruleId": "R1",
+      "description": "packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+      "initialGap": true
+    }
+  ]
+}

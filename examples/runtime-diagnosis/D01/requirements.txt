@@ -1,0 +1,1 @@
+R1: For an integer order amount of at least 10000 cents, shipping.fee(amount) returns integer 0, including exactly 10000.

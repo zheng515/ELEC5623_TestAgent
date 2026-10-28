@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { pairedMutationCounts, summarizeExperiment, experimentRow, compareSharedInitialSuites, type ExperimentItem } from '../lib/experiment-metrics';
+import { pairedMutationCounts, summarizeExperiment, experimentRow, compareSharedInitialSuites, summarizeRecovery, type ExperimentItem } from '../lib/experiment-metrics';
 import { executableSuiteHash } from '../lib/test-suite';
 import type { PythonReport, Mutation } from '../lib/python-types';
 
@@ -111,4 +111,58 @@ test('mutation deltas require two actual complete measurements with identical sc
   after.mutants[0].diff = 'changed'; assert.equal(pairedMutationCounts(before, after), null);
   after.mutants[0].diff = 'threshold'; after.incomplete = true;
   assert.equal(pairedMutationCounts(before, after), null);
+});
+
+test('ablation costs include shared preparation and reject changed shared analysis', () => {
+  const prefix = fixture(), arm = fixture(); prefix.entry.variant = 'B1'; prefix.report!.variant = 'B1'; prefix.report!.id = 'initial'; prefix.entry.report = 'initial.json';
+  const prepared = structuredClone(prefix.report!); prepared.id = 'prepared'; prepared.analysis = { behaviors: [], inconsistencies: [] };
+  arm.entry.variant = 'B2'; arm.report!.variant = 'B2'; arm.entry.initialReport = 'initial.json'; arm.entry.preparationReport = 'prepared.json';
+  arm.preparation = { report: prepared, requests: [{ elapsedMs: 1, usage: { totalTokens: 7 } }], elapsedMs: 1000, path: 'prepared.json' };
+  arm.report!.initialSuite = { reportId: 'initial', executableHash: executableSuiteHash(prefix.report!.tests) };
+  arm.report!.preparationSuite = { reportId: 'prepared', executableHash: executableSuiteHash(prepared.tests) };
+  arm.report!.analysis = structuredClone(prepared.analysis);
+  arm.report!.testAttempts = [{ phase: 'generation', reason: 'Shared audit', status: 'applied', tests: structuredClone(prepared.tests) }];
+  const row = compareSharedInitialSuites([prefix, arm])[0];
+  assert.equal(row.sharedPreparationVerified, true); assert.equal(row.endToEndTokens, 67);
+  assert.equal(row.endToEndRequests, 3); assert.equal(row.endToEndSeconds, 5);
+  arm.report!.analysis!.inconsistencies.push({ ruleId: 'R1', behaviorIds: ['B1'], quote: '', description: 'Changed analysis', evidence: [] });
+  assert.throws(() => compareSharedInitialSuites([prefix, arm]), /shared analysis/);
+});
+test('recovery distinguishes unchanged valid failures, changed artifacts and incomplete planned observations', () => {
+  const prefix = fixture(), arm = fixture(); prefix.entry.variant = 'B1'; prefix.report!.variant = 'B1';
+  for (const item of [prefix, arm]) item.referenceExecution = { ...structuredClone(item.entry.fault!.corrected[0]), sourceFingerprint: item.report!.fingerprint, suiteHash: experimentRow(item).suiteHash! };
+  const result = summarizeRecovery([prefix, arm], { case: 'valid-failure' });
+  assert.equal(result.rows[1].success, true);
+  arm.report!.tests[0].code = 'changed';
+  assert.equal(summarizeRecovery([prefix, arm], { case: 'valid-failure' }).rows[1].success, false);
+  arm.report!.status = 'failed';
+  assert.equal(summarizeRecovery([prefix, arm], { case: 'valid-failure' }).summary.find(row => row.variant === 'B3')!.successRate, null);
+});
+
+test('diagnosis comparison does not credit an admission rejection as runtime diagnosis', async () => {
+  const { summarizeDiagnosisExposure } = await import('../lib/experiment-metrics');
+  const prefix = fixture(); prefix.entry.variant = 'B1'; prefix.report!.variant = 'B1';
+  const item = fixture(), prepared = structuredClone(item.report!);
+  item.preparation = { report: prepared, requests: [], elapsedMs: 1, path: 'prep.json' };
+  item.report!.diagnoses = [{ testId: 'T1', phase: 'execution', category: 'potential_implementation_defect', quote: 'At 10 the fee is zero.', reason: 'Boundary failure.', executionQuote: 'boundary', evidence: [] }];
+  let result = summarizeDiagnosisExposure([prefix, item], { case: 'potential_implementation_defect' });
+  assert.equal(result.rows[0].runtimeFailureExposed, true); assert.equal(result.rows[0].agreesWithFixtureReference, true);
+  prepared.tests[0].approved = false;
+  result = summarizeDiagnosisExposure([prefix, item], { case: 'potential_implementation_defect' });
+  assert.equal(result.rows[0].runtimeFailureExposed, false); assert.equal(result.rows[0].category, null);
+  assert.equal(result.rows[0].agreesWithFixtureReference, null); assert.equal(result.summary[0].admissionBlocked, 1);
+  delete item.preparation;
+  result = summarizeDiagnosisExposure([prefix, item], { case: 'potential_implementation_defect' });
+  assert.equal(result.rows[0].runtimeFailureExposed, null); assert.equal(result.summary[0].preparationUnavailable, 1);
+});
+
+test('a run failing before configuration stays in analysis without weakening completed identity checks', () => {
+  const prefix = fixture(), stopped = fixture();
+  prefix.entry.variant = 'B1'; prefix.report!.variant = 'B1';
+  prefix.report!.configuration = { sandboxImage: 'frozen-image', improvementLimit: 1, mutationSeconds: 75, policyVersion: 'fixture' };
+  stopped.report!.status = 'failed'; stopped.report!.error = 'Shared preparation did not complete.';
+  const result = summarizeExperiment([prefix, stopped]);
+  assert.equal(result.rows[1].status, 'failed'); assert.equal(result.summary[1].plannedRuns, 1); assert.equal(result.summary[1].completionRate, 0);
+  stopped.report!.status = 'completed';
+  assert.throws(() => summarizeExperiment([prefix, stopped]), /identical source/);
 });

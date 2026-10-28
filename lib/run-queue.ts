@@ -68,7 +68,7 @@ export async function checkpointStore(runId: string, job: RunJob): Promise<Check
       return entry.isDirectory() ? sourceFiles(path) : [Buffer.from(path.slice(root.length)), await readFile(path)];
     }))).flat();
   }
-  const files: Buffer[] = await Promise.all(["python-agent.ts", "python-tools.ts", "python-types.ts", "verification-policy.ts", "model.ts", "requirement-coverage.ts", "mutation-review.ts", "test-suite.ts", "runtime.ts", "test-services.ts"].map(file => readFile(join(process.cwd(), "lib", file))));
+  const files: Buffer[] = await Promise.all(["python-agent.ts", "project-context.ts", "project-files.ts", "test-context.ts", "execution-evidence.ts", "python-tools.ts", "python-types.ts", "verification-policy.ts", "model.ts", "requirement-coverage.ts", "mutation-review.ts", "test-suite.ts", "runtime.ts", "test-services.ts"].map(file => readFile(join(process.cwd(), "lib", file))));
   files.push(...await sourceFiles(join(root, "source")), await readFile(join(root, "runtime.json")).catch(() => Buffer.from("python")));
   const hash = createHash("sha256");
   for (const file of files) hash.update(String(file.length) + ":").update(file);

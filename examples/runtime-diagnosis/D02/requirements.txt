@@ -1,0 +1,1 @@
+R1: delivery.notify() returns integer 0 after sending a notification through its configured transport.

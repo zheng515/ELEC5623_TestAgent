@@ -1,0 +1,222 @@
+{
+  "scope": "Observed workflow records on identical case inputs. Counts do not establish semantic correctness or superiority over external products.",
+  "baseline": "B1 supplies the shared initial candidates. B3 adds bounded follow-up; paired-comparison.json includes the prefix in end-to-end costs.",
+  "rows": [
+    {
+      "caseId": "click-full",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/click-full-B1-1/report.json"
+    },
+    {
+      "caseId": "click-full",
+      "variant": "B1",
+      "repeat": 2,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/click-full-B1-2/report.json"
+    },
+    {
+      "caseId": "click-full",
+      "variant": "B1",
+      "repeat": 3,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/click-full-B1-3/report.json"
+    },
+    {
+      "caseId": "click-full",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 6,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/click-full-B3-1/report.json"
+    },
+    {
+      "caseId": "click-full",
+      "variant": "B3",
+      "repeat": 2,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 6,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/click-full-B3-2/report.json"
+    },
+    {
+      "caseId": "click-full",
+      "variant": "B3",
+      "repeat": 3,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 6,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/click-full-B3-3/report.json"
+    },
+    {
+      "caseId": "packaging-full",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/packaging-full-B1-1/report.json"
+    },
+    {
+      "caseId": "packaging-full",
+      "variant": "B1",
+      "repeat": 2,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/packaging-full-B1-2/report.json"
+    },
+    {
+      "caseId": "packaging-full",
+      "variant": "B1",
+      "repeat": 3,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/packaging-full-B1-3/report.json"
+    },
+    {
+      "caseId": "packaging-full",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 6,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/packaging-full-B3-1/report.json"
+    },
+    {
+      "caseId": "packaging-full",
+      "variant": "B3",
+      "repeat": 2,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 6,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/packaging-full-B3-2/report.json"
+    },
+    {
+      "caseId": "packaging-full",
+      "variant": "B3",
+      "repeat": 3,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 6,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/packaging-full-B3-3/report.json"
+    },
+    {
+      "caseId": "werkzeug-full",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/werkzeug-full-B1-1/report.json"
+    },
+    {
+      "caseId": "werkzeug-full",
+      "variant": "B1",
+      "repeat": 2,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/werkzeug-full-B1-2/report.json"
+    },
+    {
+      "caseId": "werkzeug-full",
+      "variant": "B1",
+      "repeat": 3,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/werkzeug-full-B1-3/report.json"
+    },
+    {
+      "caseId": "werkzeug-full",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 5,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/werkzeug-full-B3-1/report.json"
+    },
+    {
+      "caseId": "werkzeug-full",
+      "variant": "B3",
+      "repeat": 2,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 5,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/werkzeug-full-B3-2/report.json"
+    },
+    {
+      "caseId": "werkzeug-full",
+      "variant": "B3",
+      "repeat": 3,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 5,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/werkzeug-full-B3-3/report.json"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "variant": "B1",
+      "completed": 9,
+      "planned": 9,
+      "seededFaultDetection": null,
+      "medianSeconds": 42.274,
+      "totalTokens": 587022
+    },
+    {
+      "variant": "B3",
+      "completed": 9,
+      "planned": 9,
+      "seededFaultDetection": null,
+      "medianSeconds": 56.255,
+      "totalTokens": 1979169
+    }
+  ]
+}

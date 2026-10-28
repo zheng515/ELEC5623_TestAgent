@@ -1,0 +1,37 @@
+{
+  "scope": "Automatic observations for a development pilot, not a final report or external product benchmark.",
+  "repeatability": "Repeated development cases; inspect per-case observations, not population accuracy.",
+  "comparison": "B1 generation is shared unchanged with B3. B3 adds analysis, admission review and bounded feedback; this is not a diagnosis-only ablation. Use paired-comparison.json for prefix-inclusive resource totals.",
+  "constraints": [
+    "Development cases are not held out.",
+    "Reference witnesses cover specified examples, not all possible inputs.",
+    "No independent semantic or diagnosis labels are available.",
+    "Model alias, API time drift and caching are not frozen.",
+    "More tests or higher pass counts do not establish higher requirement coverage."
+  ],
+  "observations": [
+    {
+      "variant": "B1",
+      "completed": "9/9",
+      "usableExecutionRate": 1,
+      "faultDetectionRate": null,
+      "unresolvedFaultRuns": 0,
+      "referenceFailureRuns": 1,
+      "referenceObservedRuns": 9,
+      "medianSeconds": 42.274,
+      "totalTokens": 587022
+    },
+    {
+      "variant": "B3",
+      "completed": "9/9",
+      "usableExecutionRate": 1,
+      "faultDetectionRate": null,
+      "unresolvedFaultRuns": 0,
+      "referenceFailureRuns": 0,
+      "referenceObservedRuns": 9,
+      "medianSeconds": 56.255,
+      "totalTokens": 1979169
+    }
+  ],
+  "nextDecision": "Inspect every blocked proposal, reference disagreement and unresolved probe before choosing a larger repeated experiment. Do not tune on a future held-out case set."
+}

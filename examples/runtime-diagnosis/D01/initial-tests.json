@@ -1,0 +1,17 @@
+{
+  "provenance": {
+    "source": "deliberately_seeded",
+    "independentlyReviewed": false
+  },
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_case",
+      "quote": "For an integer order amount of at least 10000 cents, shipping.fee(amount) returns integer 0, including exactly 10000.",
+      "gapIndexes": [],
+      "purpose": "Check the supplied contract case.",
+      "code": "from shipping import fee\ndef test_case():\n    result = fee(10000)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 0\n"
+    }
+  ]
+}

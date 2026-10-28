@@ -1,0 +1,581 @@
+{
+  "datasetHash": "7c79de91aed7d1ef3a05972826f9441c744c39f9bc87fd3addf69dfd20e77480",
+  "reviewed": false,
+  "reviewer": "",
+  "annotation": {
+    "source": "ai_assisted",
+    "annotator": "OpenAI Codex",
+    "completed": true,
+    "date": "2026-10-28",
+    "independentHumanReviewed": false,
+    "evidenceHash": "80f3d747cda2ff9ca1a0cd0b3a4c7b00fc1cb593c8605d709e3465002d5b0487",
+    "casesFile": "decision-reference.cases.json",
+    "limitations": [
+      "The annotating assistant also contributed to implementation and fixture design; this is not independent or blind review.",
+      "Labels follow the declared admission and diagnosis definitions. C01/C03 depend on the policy requiring separately asserted semantic return types.",
+      "These are development cases, not a held-out or representative industry sample.",
+      "Application model-evaluation calls remain zero. AI-assisted labels cannot establish independent semantic accuracy."
+    ],
+    "acceptedAsDevelopmentReference": true,
+    "referenceAcceptance": "Accepted for development-reference comparison at the project owner's request; AI authorship and pending independent human review are unchanged."
+  },
+  "labels": [
+    {
+      "id": "C01",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The assigned behavior includes both integer return type and zero value. The assertion fee(10000) == 0 checks the value only: it also accepts 0.0 or False. Under the current admission policy, the claimed type coverage is insufficient even though this implementation passes.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 1,
+            "quote": "def fee(amount):"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 3,
+            "quote": "    assert fee(10000) == 0"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "passed",
+          "exitCode": 0,
+          "quote": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s"
+        }
+      },
+      "caveat": "This is an admission/coverage decision under the declared policy, not a claim that every focused value-only test is invalid."
+    },
+    {
+      "id": "C02",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The requirement explicitly returns zero at the inclusive threshold, but the candidate expects 1000. The observed result is zero, so this is a contradictory assertion, not an implementation defect.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 2,
+            "quote": "    return 0 if amount >= 10000 else 1000"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 3,
+            "quote": "    assert fee(10000) == 1000"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "failed",
+          "exitCode": 1,
+          "quote": "def test_case():\n>       assert fee(10000) == 1000\nE       assert 0 == 1000\nE        +  where 0 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError"
+        }
+      }
+    },
+    {
+      "id": "C03",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The test compares both returned instants with datetime values but has no predicate establishing that the actual results are datetimes. Under the assigned behavior and current admission policy, a value equality check does not establish the promised semantic return type.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+        },
+        "source": [
+          {
+            "file": "calendar_window.py",
+            "line": 3,
+            "quote": "    return datetime.fromisoformat(start), datetime.fromisoformat(end)"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 5,
+            "quote": "    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "passed",
+          "exitCode": 0,
+          "quote": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s"
+        }
+      },
+      "caveat": "The current implementation returns datetimes and the test passes. The label concerns the assertion strength for its assigned contract, not the actual implementation return types."
+    },
+    {
+      "id": "C04",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The contract requires datetime results preserving the instants; it does not require ZoneInfo(\"Australia/Sydney\") as the timezone object. The extra timezone-object assertion is unsupported and fails on the fixed-offset result from datetime.fromisoformat.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+        },
+        "source": [
+          {
+            "file": "calendar_window.py",
+            "line": 3,
+            "quote": "    return datetime.fromisoformat(start), datetime.fromisoformat(end)"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 8,
+            "quote": "    assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "failed",
+          "exitCode": 1,
+          "quote": "def test_case():\n        start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n        assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n        assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n>       assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\nE       AssertionError: assert datetime.timezone(datetime.timedelta(seconds=36000)) == zoneinfo.ZoneInfo(key='Australia/Sydney')\nE        +  where datetime.timezone(datetime.timedelta(seconds=36000)) = datetime.datetime(2026, 9, 24, 9, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=36000))).tzinfo\nE        +  and   zoneinfo.ZoneInfo(key='Australia/Sydney') = ZoneInfo('Australia/Sydney')\n\nreqtest_generated/test_reqtest_T1.py:8: AssertionError"
+        }
+      },
+      "caveat": "The candidate also lacks explicit result-type checks; one unsupported extra assertion already prevents admission."
+    },
+    {
+      "id": "C05",
+      "allowed": [
+        "generated_test_error"
+      ],
+      "rationale": "The failing operation expects fee(10000) == 1, while the original requirement explicitly requires zero. The implementation returns zero as recorded in the failure. The unsupported expected value is in the generated test.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 2,
+            "quote": "    return 0 if amount >= 10000 else 1000"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 3,
+            "quote": "    assert fee(10000) == 1"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "failed",
+          "exitCode": 1,
+          "quote": "def test_case():\n>       assert fee(10000) == 1\nE       assert 0 == 1\nE        +  where 0 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError"
+        }
+      }
+    },
+    {
+      "id": "C06",
+      "allowed": [
+        "potential_implementation_defect"
+      ],
+      "rationale": "The value assertion fee(10000) == 0 is directly supported by the inclusive >= 10000 requirement. The implementation uses > 10000 and the recorded result is 1000. Preserve this justified failing assertion and investigate the implementation boundary.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 2,
+            "quote": "    return 0 if amount > 10000 else 1000"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 3,
+            "quote": "    assert fee(10000) == 0"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "failed",
+          "exitCode": 1,
+          "quote": "def test_case():\n>       assert fee(10000) == 0\nE       assert 1000 == 0\nE        +  where 1000 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError"
+        }
+      },
+      "caveat": "This diagnosis concerns the cause of the recorded value failure. The test does not independently establish the return-type obligation; that limitation does not invalidate its supported zero-value assertion."
+    },
+    {
+      "id": "C07",
+      "allowed": [
+        "generated_test_error"
+      ],
+      "rationale": "The recorded failure occurs at start.tzinfo == ZoneInfo(\"Australia/Sydney\"), after the instant comparisons. The original contract does not require that timezone object. The unsupported representation assertion causes this failure.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+        },
+        "source": [
+          {
+            "file": "calendar_window.py",
+            "line": 3,
+            "quote": "    return datetime.fromisoformat(start), datetime.fromisoformat(end)"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 8,
+            "quote": "    assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "failed",
+          "exitCode": 1,
+          "quote": "def test_case():\n        start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n        assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n        assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n>       assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\nE       AssertionError: assert datetime.timezone(datetime.timedelta(seconds=36000)) == zoneinfo.ZoneInfo(key='Australia/Sydney')\nE        +  where datetime.timezone(datetime.timedelta(seconds=36000)) = datetime.datetime(2026, 9, 24, 9, 0, tzinfo=datetime.timezone(datetime.timedelta(seconds=36000))).tzinfo\nE        +  and   zoneinfo.ZoneInfo(key='Australia/Sydney') = ZoneInfo('Australia/Sydney')\n\nreqtest_generated/test_reqtest_T1.py:8: AssertionError"
+        }
+      },
+      "caveat": "Do not reinterpret a fixed UTC offset as a requirement for a named geographic timezone."
+    },
+    {
+      "id": "C08",
+      "allowed": [
+        "generated_test_error"
+      ],
+      "rationale": "The original requirement says only that the cancellation fee shall be reasonable; it does not require zero for amount 10000. The generated artifact invents that exact expectation. Under the declared diagnosis precedence this is a generated-test error, with the vague requirement recorded as context.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "The cancellation fee shall be reasonable."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 2,
+            "quote": "    return 1000"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 3,
+            "quote": "    assert fee(10000) == 0"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "failed",
+          "exitCode": 1,
+          "quote": "def test_case():\n>       assert fee(10000) == 0\nE       assert 1000 == 0\nE        +  where 1000 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError"
+        }
+      },
+      "caveat": "The requirement also needs clarification. There is no supported numeric oracle here, so the failure cannot establish an implementation defect."
+    },
+    {
+      "id": "C09",
+      "allowed": [
+        "environment_failure"
+      ],
+      "rationale": "Collection fails while delivery.py imports delivery_transport, before notify() can be called. The generated test correctly imports the supplied delivery module. Classify the unavailable implementation dependency as an execution environment blocker.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "notify() returns integer 0 after delivery."
+        },
+        "source": [
+          {
+            "file": "delivery.py",
+            "line": 1,
+            "quote": "import delivery_transport"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 1,
+            "quote": "from delivery import notify"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::reqtest_generated.test_reqtest_T1",
+          "status": "error",
+          "exitCode": 2,
+          "quote": "ImportError while importing test module '/work/project/reqtest_generated/test_reqtest_T1.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nreqtest_generated/test_reqtest_T1.py:1: in <module>\n    from delivery import notify\ndelivery.py:1: in <module>\n    import delivery_transport\nE   ModuleNotFoundError: No module named 'delivery_transport'"
+        }
+      },
+      "caveat": "The evidence does not establish why the dependency is unavailable, whether packaging is defective, or whether notify would satisfy its contract once collection succeeds."
+    },
+    {
+      "id": "C10",
+      "allowed": [
+        "supported"
+      ],
+      "rationale": "The candidate checks fee(10000) at the explicit inclusive threshold, checks semantic integer type while excluding bool, and separately checks zero value. Those obligations are all present in the original requirement and the recorded execution passes.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 2,
+            "quote": "    return 0 if amount >= 10000 else 1000"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 4,
+            "quote": "    assert isinstance(actual, int) and not isinstance(actual, bool)"
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 5,
+            "quote": "    assert actual == 0"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "passed",
+          "exitCode": 0,
+          "quote": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s"
+        }
+      },
+      "caveat": "Support covers the stated finite witness, not every integer input or exhaustive correctness."
+    },
+    {
+      "id": "C11",
+      "allowed": [
+        "supported"
+      ],
+      "rationale": "The candidate explicitly checks both actual results with isinstance(..., datetime) and separately checks preservation of both supplied instants. It introduces no requirement for a particular timezone object and passes in the recorded execution.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+        },
+        "source": [
+          {
+            "file": "calendar_window.py",
+            "line": 3,
+            "quote": "    return datetime.fromisoformat(start), datetime.fromisoformat(end)"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 5,
+            "quote": "    assert isinstance(start, datetime)"
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 6,
+            "quote": "    assert isinstance(end, datetime)"
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 8,
+            "quote": "    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "passed",
+          "exitCode": 0,
+          "quote": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s"
+        }
+      },
+      "caveat": "These inputs are a finite supported witness, not exhaustive ISO parsing validation."
+    },
+    {
+      "id": "C12",
+      "allowed": [
+        "supported"
+      ],
+      "rationale": "The requirement explicitly requires ValueError for a negative amount. The candidate calls fee(-1) within pytest.raises(ValueError), checks exactly that exception category without specifying message text, and passes.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "For a negative amount, fee(amount) raises ValueError."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 2,
+            "quote": "    if amount < 0: raise ValueError(\"invalid amount\")"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 4,
+            "quote": "    with pytest.raises(ValueError): fee(-1)"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "passed",
+          "exitCode": 0,
+          "quote": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s"
+        }
+      },
+      "caveat": "The supported scope is the negative-input exception witness, not unspecified behavior for other inputs."
+    },
+    {
+      "id": "C13",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The original rule specifies ValueError but no error-message text. The candidate additionally requires the regex Amount must be positive. Execution raises the required ValueError and fails only because its message is invalid amount. The extra message obligation is unsupported.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "For a negative amount, fee(amount) raises ValueError."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 2,
+            "quote": "    if amount < 0: raise ValueError(\"invalid amount\")"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 4,
+            "quote": "    with pytest.raises(ValueError, match=\"Amount must be positive\"): fee(-1)"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "failed",
+          "exitCode": 1,
+          "quote": "def test_case():\n>       with pytest.raises(ValueError, match=\"Amount must be positive\"): fee(-1)\n                                                                         ^^^^^^^\n\nreqtest_generated/test_reqtest_T1.py:4: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\namount = -1\n\n    def fee(amount):\n>       if amount < 0: raise ValueError(\"invalid amount\")\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE       ValueError: invalid amount\n\nshipping.py:2: ValueError\n\nDuring handling of the above exception, another exception occurred:\n\n    def test_case():\n>       with pytest.raises(ValueError, match=\"Amount must be positive\"): fee(-1)\nE       AssertionError: Regex pattern did not match.\nE        Regex: 'Amount must be positive'\nE        Input: 'invalid amount'\n\nreqtest_generated/test_reqtest_T1.py:4: AssertionError"
+        }
+      },
+      "caveat": "If diagnosing this observed failure rather than reviewing admission, the unsupported message assertion would be a generated_test_error."
+    },
+    {
+      "id": "C14",
+      "allowed": [
+        "generated_test_error"
+      ],
+      "rationale": "The submitted source module is shipping.py, but the generated test imports invented_shipping. Collection fails on that import before reaching the target. This contradicts the supplied layout and is a generated-test setup error.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 1,
+            "quote": "def fee(amount):"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 1,
+            "quote": "from invented_shipping import fee"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::reqtest_generated.test_reqtest_T1",
+          "status": "error",
+          "exitCode": 2,
+          "quote": "ImportError while importing test module '/work/project/reqtest_generated/test_reqtest_T1.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nreqtest_generated/test_reqtest_T1.py:1: in <module>\n    from invented_shipping import fee\nE   ModuleNotFoundError: No module named 'invented_shipping'"
+        }
+      },
+      "caveat": "Unlike C09, the failing unavailable import is introduced directly by the generated artifact."
+    },
+    {
+      "id": "C15",
+      "allowed": [
+        "requirement_ambiguity"
+      ],
+      "rationale": "At amount 10000 the original >= clause requires zero and the <= clause requires 1000. Both clauses apply simultaneously. The test follows the first clause and the implementation follows the second; the recorded failure cannot resolve the conflicting contract.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "For amount >= 10000, fee(amount) returns 0. For amount <= 10000, fee(amount) returns 1000."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 2,
+            "quote": "    return 1000 if amount <= 10000 else 0"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 3,
+            "quote": "    assert fee(10000) == 0"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "failed",
+          "exitCode": 1,
+          "quote": "def test_case():\n>       assert fee(10000) == 0\nE       assert 1000 == 0\nE        +  where 1000 = fee(10000)\n\nreqtest_generated/test_reqtest_T1.py:3: AssertionError"
+        }
+      },
+      "caveat": "This label includes contradictory requirements. Clarify the intended equality rule before attributing a defect or changing the assertion."
+    },
+    {
+      "id": "C16",
+      "allowed": [
+        "blocked"
+      ],
+      "rationale": "The original requirement does not define large or specify a threshold. The candidate assumes that amount 10000 must return zero. Passing execution agrees with the implementation but cannot justify an expectation absent from the contract.",
+      "evidence": {
+        "requirement": {
+          "ruleId": "R1",
+          "quote": "For a large amount, fee(amount) returns zero."
+        },
+        "source": [
+          {
+            "file": "shipping.py",
+            "line": 2,
+            "quote": "    return 0 if amount >= 10000 else 1000"
+          }
+        ],
+        "test": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "line": 3,
+            "quote": "    assert fee(10000) == 0"
+          }
+        ],
+        "execution": {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+          "status": "passed",
+          "exitCode": 0,
+          "quote": ".                                                                        [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n1 passed in 0.01s"
+        }
+      },
+      "caveat": "The implementation is not an oracle for the missing requirement threshold."
+    }
+  ]
+}

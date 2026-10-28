@@ -15,19 +15,25 @@ data = json.loads((root / "metrics.json").read_text())
 rows, summary = data["rows"], data["summary"]
 paired_resources = data.get("protocol", {}).get("sharedInitialSuite", False)
 if paired_resources:
-    # The raw B3 rows measure follow-up only. Resource figures must include B1.
+    # Continuation rows omit B1 and any common preparation from raw costs.
     pairs = json.loads((root / "paired-comparison.json").read_text())["rows"]
     rows = [dict(row) for row in rows]
     for row in rows:
-        if row["variant"] != "B3":
+        if row["variant"] not in ("B2", "B3"):
             continue
-        matches = [pair for pair in pairs if pair["caseId"] == row["caseId"] and pair["repeat"] == row["repeat"]]
+        matches = [pair for pair in pairs if pair["caseId"] == row["caseId"] and pair["repeat"] == row["repeat"]
+                   and pair.get("variant", "B3") == row["variant"]]
+        if not matches and row['status'] in ['missing', 'failed', 'cancelled']:
+            # A stopped study can end before a shared prefix exists. Its paired
+            # end-to-end resources are unavailable; retain raw requests elsewhere.
+            row.update(elapsedSeconds=None, totalTokens=None, modelRequests=None)
+            continue
         if len(matches) != 1:
-            raise ValueError("Every B3 resource row requires exactly one paired comparison")
+            raise ValueError("Every continuation resource row requires exactly one matching variant/case/repeat pair")
         pair = matches[0]
         row.update(elapsedSeconds=pair["endToEndSeconds"], totalTokens=pair["endToEndTokens"],
                    modelRequests=pair["endToEndRequests"])
-resource_scope = ("B3 resources include the shared B1 prefix plus follow-up. " if paired_resources else "")
+resource_scope = ("Continuation resources include B1, any common preparation and follow-up per strategy; shared work is counted once in actual bills. " if paired_resources else "")
 labels = [item["variant"] for item in summary]
 colors = ["#94a3b8", "#93c5fd", "#3b82f6", "#1d4ed8"][:len(labels)]
 plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 11, "axes.spines.top": False,
@@ -194,5 +200,52 @@ if len(labels) == 2 and len(cases) > 1:
         ax.grid(axis="x", alpha=.15)
         ax.legend(frameon=False)
     save(fig, "08-project-resource-tradeoffs", resource_scope + "Each project retains every repeat. Ratios compare the second configuration to the first. Unknown measurements are omitted, never treated as zero. Different workflow budgets prevent an equal-cost or isolated-component claim.")
+
+recovery_path = root / "recovery-metrics.json"
+if recovery_path.exists():
+    recovery = json.loads(recovery_path.read_text())
+    groups = recovery["summary"]
+    challenges = list(dict.fromkeys(item["challenge"] for item in groups))
+    fig, ax = plt.subplots(figsize=(10, max(4, len(challenges) * .8 + 1.7)))
+    ax.set(xlim=(-.5, len(labels)-.5), ylim=(len(challenges)-.5, -.5),
+           xticks=range(len(labels)), xticklabels=labels, yticks=range(len(challenges)),
+           yticklabels=[item.replace("-", " ") for item in challenges], title="Controlled recovery and valid-failure retention")
+    for i, challenge in enumerate(challenges):
+        for j, variant in enumerate(labels):
+            matches = [item for item in groups if item["variant"] == variant and item["challenge"] == challenge]
+            if len(matches) != 1:
+                raise ValueError("Every recovery cell requires one challenge/variant summary")
+            item = matches[0]
+            text = f"{item['succeeded']}/{item['planned']}" + (f"\n{item['unresolved']} unavailable" if item["unresolved"] else "")
+            color = "#dcfce7" if item["succeeded"] == item["planned"] else "#ffedd5"
+            ax.add_patch(plt.Rectangle((j-.47, i-.42), .94, .84, facecolor=color, edgecolor="white"))
+            ax.text(j, i, text, ha="center", va="center")
+    ax.tick_params(length=0, pad=10)
+    for spine in ax.spines.values(): spine.set_visible(False)
+    save(fig, "09-recovery-challenges", "Success means corrected-copy detection, original artifact repair, or unchanged valid-failure retention, depending on the declared challenge. Every planned repeat remains. These developer-seeded cases do not measure natural-error frequency or independent semantic accuracy.")
+
+exposure_path = root / "diagnosis-exposure.json"
+if exposure_path.exists():
+    exposure = json.loads(exposure_path.read_text())["rows"]
+    variants = list(dict.fromkeys(row["variant"] for row in exposure))
+    cases = list(dict.fromkeys(row["caseId"] for row in exposure))
+    fig, ax = plt.subplots(figsize=(9, max(4, len(cases) * .9 + 1.7)))
+    ax.set(xlim=(-.5, len(variants)-.5), ylim=(len(cases)-.5, -.5),
+           xticks=range(len(variants)), xticklabels=variants, yticks=range(len(cases)), yticklabels=cases,
+           title="Which cases reached runtime diagnosis?")
+    for i, case in enumerate(cases):
+        for j, variant in enumerate(variants):
+            subset = [row for row in exposure if row["caseId"] == case and row["variant"] == variant]
+            exposed = sum(row["runtimeFailureExposed"] is True for row in subset)
+            blocked = sum(row["originalAdmitted"] is False for row in subset)
+            matches = sum(row["agreesWithFixtureReference"] is True for row in subset)
+            scored = sum(row["agreesWithFixtureReference"] is not None for row in subset)
+            text = f"{exposed}/{len(subset)} runtime failures\n"
+            text += f"{matches}/{scored} fixture matches" if scored else f"{blocked} blocked; model agreement N/A"
+            ax.add_patch(plt.Rectangle((j-.47, i-.42), .94, .84, facecolor="#dbeafe" if exposed else "#ffedd5", edgecolor="white"))
+            ax.text(j, i, text, ha="center", va="center", fontsize=10)
+    ax.tick_params(length=0, pad=10)
+    for spine in ax.spines.values(): spine.set_visible(False)
+    save(fig, "10-diagnosis-exposure", "Every planned follow-up remains. Admission rejection is not runtime diagnosis. B2 uses an unconditional baseline, not model classification. B3 matches refer to developer fixture labels, not independent accuracy. N/A also covers unavailable preparations or classifications; inspect JSON.")
 
 print(f"Saved PNG and SVG figures to {figures}")

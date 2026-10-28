@@ -3,6 +3,7 @@ import { ruleSources } from './requirement-input';
 import { testFile } from './runtime';
 import { requirementCoverage } from './requirement-coverage';
 import { mutationAssessmentMissing } from './verification-policy';
+import { hasUninspectedContext } from './project-context';
 
 export const requirementStates = ['Verified', 'Partially Verified', 'Unverified', 'Uncertain', 'Pending'] as const;
 export type RequirementState = typeof requirementStates[number];
@@ -91,6 +92,8 @@ export function runEvaluation(report: PythonReport) {
         status = 'Partially Verified'; reason = 'Some mapped checks did not pass.';
       } else if (status === 'Verified' && mutationAssessmentMissing(report)) {
         status = 'Partially Verified'; reason = 'Recorded checks passed; optional mutation adequacy was not assessed.';
+      } else if (status === 'Verified' && hasUninspectedContext(report.contextSelections, behavior.files)) {
+        status = 'Partially Verified'; reason = 'A mapped source file or recorded local dependency remains uninspected.';
       } else if (status === 'Verified' && !requirementCoverage(report, rule.id).complete) {
         status = 'Partially Verified'; reason = requirementCoverage(report, rule.id).reason;
       }

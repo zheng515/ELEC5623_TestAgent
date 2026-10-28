@@ -1,0 +1,98 @@
+{
+  "scope": "Derived trace from one naturally generated error in the unmodified Click study. Not an independent semantic label or population accuracy estimate.",
+  "caseId": "click-full",
+  "repeat": 3,
+  "upstreamCommit": "874ca2bc1c30d93a4ac6e36a15ed685eafe89097",
+  "sourceUnchangedBetweenArms": true,
+  "sourceFingerprint": "e9941d18d0d53e673421ecdc118a16f3cbaeba38fa9fc19d59bafae0ccba6d93",
+  "initialTest": {
+    "id": "T6",
+    "behaviorId": "B6",
+    "functionName": "test_integer_range_inclusive_bounds_and_rejections",
+    "gapIndexes": [
+      0
+    ],
+    "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_integer_range_inclusive_bounds_and_rejections():\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(1, 3))\n    def command(count):\n        received.append(count)\n\n    runner = CliRunner()\n    lower_result = runner.invoke(command, [\"--count\", \"1\"])\n    upper_result = runner.invoke(command, [\"--count\", \"3\"])\n    below_result = runner.invoke(command, [\"--count\", \"0\"])\n    above_result = runner.invoke(command, [\"--count\", \"4\"])\n\n    assert lower_result.exit_code == 0\n    assert received == [1]\n    assert upper_result.exit_code == 0\n    assert received == [1, 3]\n    assert below_result.exit_code == 2\n    assert received == [1, 3]\n    assert above_result.exit_code == 2\n    assert received == [1, 3]",
+    "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+    "purpose": "Checks both inclusive integer range endpoints and rejection of the specified values outside the range, without callback invocation for rejected inputs.",
+    "approved": true,
+    "review": "Evaluation baseline: no independent test review."
+  },
+  "failure": {
+    "node": "reqtest_generated/test_reqtest_T6.py::test_integer_range_inclusive_bounds_and_rejections",
+    "file": "reqtest_generated/test_reqtest_T6.py",
+    "name": "test_integer_range_inclusive_bounds_and_rejections",
+    "status": "failed",
+    "message": "def test_integer_range_inclusive_bounds_and_rejections():\n        received = []\n    \n        @click.command()\n        @click.option(\"--count\", type=click.IntRange(1, 3))\n        def command(count):\n            received.append(count)\n    \n        runner = CliRunner()\n        lower_result = runner.invoke(command, [\"--count\", \"1\"])\n        upper_result = runner.invoke(command, [\"--count\", \"3\"])\n        below_result = runner.invoke(command, [\"--count\", \"0\"])\n        above_result = runner.invoke(command, [\"--count\", \"4\"])\n    \n        assert lower_result.exit_code == 0\n>       assert received == [1]\nE       assert [1, 3] == [1]\nE         \nE         Left contains one more item: 3\nE         Use -v to get more diff\n\nreqtest_generated/test_reqtest_T6.py:20: AssertionError"
+  },
+  "diagnosis": [
+    {
+      "testId": "T6",
+      "category": "generated_test_error",
+      "reason": "The test invokes both accepted endpoint cases before making its first callback-list assertion, so `received` already contains both values `[1, 3]`. The assertion at line 20 incorrectly expects only the first invocation\u2019s value; it contradicts the test\u2019s own execution order, not the requirement.",
+      "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+      "executionQuote": "E       assert [1, 3] == [1]",
+      "evidence": [
+        {
+          "file": "src/click/types.py",
+          "quote": "        if lt_min or gt_max:",
+          "line": 468
+        },
+        {
+          "file": "src/click/core.py",
+          "quote": "        if self.callback is not None:",
+          "line": 1433
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T6.py",
+          "quote": "    upper_result = runner.invoke(command, [\"--count\", \"3\"])",
+          "line": 15
+        },
+        {
+          "file": "reqtest_generated/test_reqtest_T6.py",
+          "quote": "    assert received == [1]",
+          "line": 20
+        }
+      ],
+      "phase": "execution"
+    }
+  ],
+  "finalTest": {
+    "id": "T6",
+    "behaviorId": "B6",
+    "functionName": "test_integer_range_inclusive_bounds_and_rejections",
+    "gapIndexes": [],
+    "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_integer_range_inclusive_bounds_and_rejections():\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(1, 3))\n    def command(count):\n        received.append(count)\n\n    runner = CliRunner()\n    lower_result = runner.invoke(command, [\"--count\", \"1\"])\n    assert lower_result.exit_code == 0\n    assert received == [1]\n\n    upper_result = runner.invoke(command, [\"--count\", \"3\"])\n    assert upper_result.exit_code == 0\n    assert received == [1, 3]\n\n    below_result = runner.invoke(command, [\"--count\", \"0\"])\n    assert below_result.exit_code == 2\n    assert received == [1, 3]\n\n    above_result = runner.invoke(command, [\"--count\", \"4\"])\n    assert above_result.exit_code == 2\n    assert received == [1, 3]",
+    "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+    "purpose": "Checks both inclusive integer range endpoints and rejection of the specified values outside the range, without callback invocation for rejected inputs.",
+    "approved": true,
+    "reviewDecision": {
+      "testId": "T6",
+      "supported": true,
+      "reason": "The test covers both explicitly named inclusive endpoints with their expected callback values and successful exit codes, and both named out-of-range inputs with exit code 2 and no callback calls.",
+      "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+      "definedScope": null
+    },
+    "review": "The test covers both explicitly named inclusive endpoints with their expected callback values and successful exit codes, and both named out-of-range inputs with exit code 2 and no callback calls."
+  },
+  "separateSourceReplay": {
+    "integrity": true,
+    "exitCode": 0,
+    "outcomeCounts": {
+      "passed": 6,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0
+    }
+  },
+  "originalReportPaths": {
+    "B1": "click-full-B1-3/report.json",
+    "B3": "click-full-B3-3/report.json",
+    "replay": "click-full-B3-3/reference-execution.json"
+  },
+  "originalBytesSha256": {
+    "click-full-B1-3/report.json": "9d2acef85805ddb9fee8f00c0cdfbff4a9fd7f650816d9b63f70b0459a72ff59",
+    "click-full-B3-3/report.json": "49c87c9fb6b9fbfeddd976802cad9d12d74b3d64fb0ef3d85188f8f2c52eeddc",
+    "click-full-B3-3/reference-execution.json": "52584256f0cbc95d7c46d1390a199d0f37e0fd7c680795a1dd04caded5cf2508"
+  }
+}
