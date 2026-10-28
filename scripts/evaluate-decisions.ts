@@ -24,11 +24,18 @@ async function summarize(root: string) {
     'This evaluates raw model classification, not whole-agent test admission or diagnosis grounding. Fixture trace summaries are synthetic. Classifications use the production tasks and reason function.', '',
     `Valid decisions: ${metrics.validDecisions}/${metrics.expectedDecisions}. Unanimous cases: ${metrics.rows.filter(row => row.unanimous).length}/${metrics.cases}. Missing/invalid: ${metrics.missingOrInvalid}.`,
     'Consistency is agreement on identical inputs, not correctness. Errors and missing repeats remain in the denominator.',
-    'Reference status: ' + metrics.referenceStatus + '. Accuracy and false-support metrics remain unavailable until every label is independently reviewed and every attempt is valid.', '',
+    'Reference status: ' + metrics.referenceStatus + '. Independent accuracy fields require human review and all planned valid decisions. AI-assisted reference comparisons are explicitly labelled development agreement.', '',
     `Classification accuracy: ${metrics.classificationAccuracy ?? 'unavailable'}; diagnosis accuracy: ${metrics.diagnosisAccuracy ?? 'unavailable'}; false-support rate: ${metrics.falseSupportRate ?? 'unavailable'}.`, '',
     `Test-admission precision / recall / F1: ${metrics.testAdmission?.precision ?? 'unavailable'} / ${metrics.testAdmission?.recall ?? 'unavailable'} / ${metrics.testAdmission?.f1 ?? 'unavailable'}.`,
     `Diagnosis Macro-F1: ${metrics.diagnosisMacroF1 ?? 'unavailable'} across ${metrics.diagnosisScoredClasses} represented classes. Inspect diagnosisConfusion in metrics.json.`, metrics.metricScope, '',
-    '| Case | Component | Repeated labels | Draft allowed labels |', '| --- | --- | --- | --- |',
+    ...(metrics.referenceComparison ? [
+      'Reference comparison basis: ' + metrics.referenceComparison.basis + '.',
+      `Agreement with reference: ${metrics.referenceComparison.agreementRate ?? 'unavailable'}; diagnosis agreement: ${metrics.referenceComparison.diagnosisAgreementRate ?? 'unavailable'}.`,
+      `Admission precision / recall / F1 against reference: ${metrics.referenceComparison.testAdmission?.precision ?? 'unavailable'} / ${metrics.referenceComparison.testAdmission?.recall ?? 'unavailable'} / ${metrics.referenceComparison.testAdmission?.f1 ?? 'unavailable'}.`,
+      `Diagnosis Macro-F1 against reference: ${metrics.referenceComparison.diagnosisMacroF1 ?? 'unavailable'}. Inspect referenceComparison.diagnosisConfusion in metrics.json.`,
+      'AI-reference agreement is not independent human accuracy, external validation or a held-out result.', '',
+    ] : []),
+    '| Case | Component | Repeated labels | Reference labels |', '| --- | --- | --- | --- |',
     ...metrics.rows.map(row => `| ${row.id} | ${row.kind} | ${row.predictions.map(label => label || 'missing/invalid').join(', ')} | ${row.draftAllowed.join(', ')} |`), '',
     'Inspect cases.json and attempts.json. Independently check reference.json against original requirements, source, test and trace, then set reviewed=true and enter the reviewer name. Do not copy predictions into reference labels.',
     'Re-score without model calls: npm run evaluate:decisions -- score ' + root, '',
@@ -51,9 +58,9 @@ async function main() {
   const repeat = Number(process.argv[2] || 3);
   if (!Number.isInteger(repeat) || repeat < 2 || repeat > 5) throw new Error('Use 2–5 repetitions.');
   const referenceFlag = process.argv.indexOf('--reference');
-  if (referenceFlag >= 0 && !process.argv[referenceFlag + 1]) throw new Error('Supply a reviewed reference path after --reference.');
+  if (referenceFlag >= 0 && !process.argv[referenceFlag + 1]) throw new Error('Supply a reference JSON path after --reference.');
   const reference = decisionReferenceSchema.parse(JSON.parse(await readFile(referenceFlag >= 0 ? process.argv[referenceFlag + 1] : 'examples/benchmark/decision-reference.json', 'utf8')));
-  const agentFiles = ['lib/python-agent.ts', 'lib/python-types.ts', 'lib/model.ts', 'package-lock.json'];
+  const agentFiles = ['lib/python-agent.ts', 'lib/python-types.ts', 'lib/model.ts', 'lib/decision-evaluation.ts', 'scripts/evaluate-decisions.ts', 'package-lock.json'];
   const agentSnapshot = await Promise.all(agentFiles.map(async file => [file, await readFile(file, 'utf8')]));
   const agentFingerprint = decisionHash(agentSnapshot);
   scoreDecisions(decisionCases, reference, [], repeat, agentFingerprint);
@@ -88,7 +95,7 @@ async function main() {
   await writeFile(join(root, 'index.json'), JSON.stringify(index, null, 2));
   await writeFile(join(root, 'attempts.json'), JSON.stringify(attempts, null, 2));
   const metrics = await summarize(root);
-  console.log(`Saved: ${join(root, 'summary.md')}. Valid ${metrics.validDecisions}/${metrics.expectedDecisions}; accuracy=${metrics.classificationAccuracy ?? 'unavailable'}.`);
+  console.log(`Saved: ${join(root, 'summary.md')}. Valid ${metrics.validDecisions}/${metrics.expectedDecisions}; reference=${metrics.referenceStatus}; reference agreement=${metrics.referenceComparison?.agreementRate ?? 'unavailable'}; independent accuracy=${metrics.classificationAccuracy ?? 'unavailable'}.`);
   process.exitCode = cancelled.signal.aborted ? 130 : metrics.missingOrInvalid ? 1 : 0;
 }
 main().catch(error => { console.error(error instanceof Error ? error.message : 'Decision evaluation failed.'); process.exitCode = 1; });

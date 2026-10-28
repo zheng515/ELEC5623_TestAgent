@@ -48,6 +48,14 @@ contains actual Docker execution and a blank reference template. No independent
 labels have been completed. The current policy has no model-quality evaluation
 results; workflow preflight has run without model calls.
 
+The project owner has accepted the separate AI-assisted annotations as development
+reference answers. The component scorer now exposes a clearly labelled
+referenceComparison for agreement, reference-relative admission metrics and
+diagnosis confusion/F1 once all planned model outputs exist. It preserves AI
+authorship and exact evidence, keeps independent-human accuracy unavailable and
+does not treat a reviewed flag alone as overriding pending human-review metadata.
+Acceptance has not started a paid study or generated actual comparison scores.
+
 ## Experiment cleanup
 
 On 2026-10-28 the user requested deletion of previous experiments. Old-version

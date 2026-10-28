@@ -181,3 +181,11 @@ Policy v12 adds a request budget and optional mutation depth. Use
 C12–C16 add supported/unsupported exception assertions, a generated bad import,
 contradictory equality clauses and an undefined threshold. Their labels are
 unreviewed development drafts, not human ground truth.
+
+The AI-assisted annotations under experiments/annotations are accepted development
+reference answers. Supply that reference.ai-assisted.json with --reference to
+collect a new model study. Its referenceComparison fields measure agreement and
+classification metrics against those specified labels, with basis=ai_assisted.
+Independent-human accuracy fields remain unavailable. All planned model decisions
+must still be valid before comparison scores are produced; accepting references
+does not itself create model observations. Frozen references retain provenance.

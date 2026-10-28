@@ -7,8 +7,12 @@ import type { DecisionCase } from '../examples/benchmark/decision-cases';
 export const decisionHash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export const decisionReferenceSchema = z.object({
   datasetHash: z.string(), reviewed: z.boolean(), reviewer: z.string(),
-  labels: z.array(z.object({ id: z.string(), allowed: z.array(z.string()).min(1), rationale: z.string().min(1) })),
-});
+  annotation: z.object({
+    source: z.literal('ai_assisted'), annotator: z.string().min(1), completed: z.boolean(),
+    independentHumanReviewed: z.boolean(), acceptedAsDevelopmentReference: z.boolean().default(false),
+  }).passthrough().optional(),
+  labels: z.array(z.object({ id: z.string(), allowed: z.array(z.string()).min(1), rationale: z.string().min(1) }).passthrough()),
+}).passthrough();
 export type DecisionReference = z.infer<typeof decisionReferenceSchema>;
 export type DecisionAttempt = { caseId: string; repeat: number; inputHash: string; agentFingerprint: string; elapsedMs: number; output?: unknown; error?: string };
 export function decisionLabel(item: DecisionCase, attempt: DecisionAttempt) {
@@ -48,8 +52,10 @@ export function scoreDecisions(cases: DecisionCase[], reference: DecisionReferen
     return { id: item.id, kind: item.kind, predictions, draftAllowed: labels.allowed, complete: predictions.every(label => label !== null), unanimous: predictions.every(label => label !== null && label === predictions[0]) };
   });
   const total = cases.length * repeat, valid = rows.reduce((count, row) => count + row.predictions.filter(label => label !== null).length, 0);
-  const reviewed = reference.reviewed && !!reference.reviewer.trim();
-  const ready = reviewed && valid === total;
+  const reviewed = reference.reviewed && !!reference.reviewer.trim() && (!reference.annotation || reference.annotation.independentHumanReviewed);
+  const aiReference = reference.annotation?.completed === true && reference.annotation.acceptedAsDevelopmentReference === true;
+  const ready = (reviewed || aiReference) && valid === total;
+  const independentReady = reviewed && valid === total;
   const matches = (row: typeof rows[number]) => row.predictions.filter(label => label !== null && row.draftAllowed.includes(label)).length;
   const diagnoses = rows.filter(row => row.kind === 'diagnosis');
   const blocked = rows.filter(row => row.kind === 'test_review' && !row.draftAllowed.includes('supported'));
@@ -70,19 +76,33 @@ export function scoreDecisions(cases: DecisionCase[], reference: DecisionReferen
     return { label, tp: truePositive, fp: falsePositive, fn: falseNegative, precision: ratio(truePositive, truePositive + falsePositive), recall: ratio(truePositive, truePositive + falseNegative), f1: ratio(2 * truePositive, 2 * truePositive + falsePositive + falseNegative) };
   });
   const f1 = diagnosisClasses.flatMap(item => item.f1 === null ? [] : [item.f1]);
+  const admission = { tp, fp, fn, precision: ratio(tp, tp + fp), recall: ratio(tp, tp + fn), f1: ratio(2 * tp, 2 * tp + fp + fn) };
+  const macroF1 = diagnosisReady && f1.length ? f1.reduce((sum, value) => sum + value, 0) / f1.length : null;
   return {
-    referenceStatus: reviewed ? 'reviewed' : 'pending_independent_review', cases: cases.length, repeat, expectedDecisions: total,
+    referenceStatus: reviewed ? 'reviewed' : aiReference ? 'ai_assisted_reference' : 'pending_independent_review', cases: cases.length, repeat, expectedDecisions: total,
     validDecisions: valid, missingOrInvalid: total - valid, completionRate: ratio(valid, total),
     unanimousCaseRate: ratio(rows.filter(row => row.unanimous).length, rows.length),
-    classificationAccuracy: ready ? ratio(rows.reduce((count, row) => count + matches(row), 0), total) : null,
-    diagnosisAccuracy: ready ? ratio(diagnoses.reduce((count, row) => count + matches(row), 0), diagnoses.length * repeat) : null,
-    falseSupportRate: ready ? ratio(blocked.reduce((count, row) => count + row.predictions.filter(label => label === 'supported').length, 0), blocked.length * repeat) : null,
-    testAdmission: ready ? { tp, fp, fn, precision: ratio(tp, tp + fp), recall: ratio(tp, tp + fn), f1: ratio(2 * tp, 2 * tp + fp + fn) } : null,
-    diagnosisConfusion: diagnosisReady ? confusion : null,
-    diagnosisClasses: diagnosisReady ? diagnosisClasses : null,
-    diagnosisMacroF1: diagnosisReady && f1.length ? f1.reduce((sum, value) => sum + value, 0) / f1.length : null,
-    diagnosisScoredClasses: diagnosisReady ? f1.length : 0,
-    metricScope: 'Raw component classifications only. Confusion and Macro-F1 require single-label references; absent classes have unavailable F1 and are excluded. Missing/invalid attempts or unreviewed references prevent accuracy metrics.',
+    classificationAccuracy: independentReady ? ratio(rows.reduce((count, row) => count + matches(row), 0), total) : null,
+    diagnosisAccuracy: independentReady ? ratio(diagnoses.reduce((count, row) => count + matches(row), 0), diagnoses.length * repeat) : null,
+    falseSupportRate: independentReady ? ratio(fp, blocked.length * repeat) : null,
+    testAdmission: independentReady ? admission : null,
+    diagnosisConfusion: independentReady && diagnosisReady ? confusion : null,
+    diagnosisClasses: independentReady && diagnosisReady ? diagnosisClasses : null,
+    diagnosisMacroF1: independentReady ? macroF1 : null,
+    diagnosisScoredClasses: independentReady && diagnosisReady ? f1.length : 0,
+    referenceComparison: reviewed || aiReference ? {
+      basis: reviewed ? 'independent_human' : 'ai_assisted',
+      expectedDecisions: total, validDecisions: valid,
+      agreementRate: ready ? ratio(rows.reduce((count, row) => count + matches(row), 0), total) : null,
+      diagnosisAgreementRate: ready ? ratio(diagnoses.reduce((count, row) => count + matches(row), 0), diagnoses.length * repeat) : null,
+      falseSupportRate: ready ? ratio(fp, blocked.length * repeat) : null,
+      testAdmission: ready ? admission : null,
+      diagnosisConfusion: diagnosisReady ? confusion : null,
+      diagnosisClasses: diagnosisReady ? diagnosisClasses : null,
+      diagnosisMacroF1: macroF1,
+      diagnosisScoredClasses: diagnosisReady ? f1.length : 0,
+    } : null,
+    metricScope: 'Raw component classifications only. AI-assisted referenceComparison measures agreement with the specified development labels, not independent human accuracy. Independent accuracy fields require human-reviewed references. Missing/invalid attempts prevent scoring; confusion/Macro-F1 require single-label references and exclude absent classes.',
     rows,
   };
 }

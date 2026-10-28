@@ -15,7 +15,9 @@
       "Labels follow the declared admission and diagnosis definitions. C01/C03 depend on the policy requiring separately asserted semantic return types.",
       "These are development cases, not a held-out or representative industry sample.",
       "Application model-evaluation calls remain zero. AI-assisted labels cannot establish independent semantic accuracy."
-    ]
+    ],
+    "acceptedAsDevelopmentReference": true,
+    "referenceAcceptance": "Accepted for development-reference comparison at the project owner's request; AI authorship and pending independent human review are unchanged."
   },
   "labels": [
     {

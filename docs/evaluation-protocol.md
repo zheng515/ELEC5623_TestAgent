@@ -58,6 +58,26 @@ reported. Multiple acceptable diagnosis labels support accuracy but prevent
 single-label confusion/Macro-F1. These are raw decision metrics, not independently
 verified whole-Agent repair safety or a population reliability estimate.
 
+## Accepted AI development reference
+
+The project owner accepted the 16 AI-assisted annotations as reference answers.
+They retain source=ai_assisted, reviewed=false and independentHumanReviewed=false;
+acceptedAsDevelopmentReference=true enables a separate referenceComparison.
+This supports a model experiment without waiting for human labels, but measures
+agreement with these labels rather than independent human accuracy.
+
+```sh
+# Paid component calls; no study has been launched by accepting the reference.
+npm run evaluate:decisions -- 3 --reference experiments/annotations/2026-10-28-contract-decisions/reference.ai-assisted.json
+```
+
+The export names the comparison basis and preserves original annotation provenance
+and evidence. Its reference-relative agreement, admission Precision/Recall/F1 and
+diagnosis confusion/Macro-F1 require all planned valid decisions. Root independent
+accuracy fields stay unavailable until independent human review is recorded;
+a reviewed flag change alone cannot override explicit pending human-review
+metadata. Completed annotations are not model observations or an accuracy result.
+
 ## Whole-workflow and incremental value
 
 The existing shared-initial runner generates B1 once, then supplies exactly the
