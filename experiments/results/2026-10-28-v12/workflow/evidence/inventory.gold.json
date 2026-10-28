@@ -1,0 +1,67 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [
+    {
+      "id": "notification-contract",
+      "ruleId": "R5",
+      "description": "Low stock, quickly, recipients and notification interface are unspecified."
+    }
+  ],
+  "inconsistencies": [
+    {
+      "id": "equal-stock-code",
+      "ruleId": "R1",
+      "description": "The implementation rejects requested == stock although the requirement accepts it."
+    },
+    {
+      "id": "equal-stock-test",
+      "ruleId": "R1",
+      "description": "The existing equal-stock test expects an exception contrary to the requirement."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "partial",
+      "ruleId": "R1",
+      "description": "A request below stock returns stock minus requested.",
+      "initialGap": false
+    },
+    {
+      "id": "equal",
+      "ruleId": "R1",
+      "description": "Requesting exactly the available stock returns zero.",
+      "initialGap": true
+    },
+    {
+      "id": "zero",
+      "ruleId": "R1",
+      "description": "Zero stock and zero requested returns zero.",
+      "initialGap": true
+    },
+    {
+      "id": "excess",
+      "ruleId": "R2",
+      "description": "A request above stock raises ValueError.",
+      "initialGap": true
+    },
+    {
+      "id": "negative",
+      "ruleId": "R3",
+      "description": "Either negative integer argument raises ValueError.",
+      "initialGap": true
+    },
+    {
+      "id": "types",
+      "ruleId": "R4",
+      "description": "Either non-int argument, including bool, raises TypeError.",
+      "initialGap": true
+    }
+  ],
+  "fault": {
+    "id": "reject-equal-stock",
+    "file": "inventory.py",
+    "before": "requested >= stock",
+    "after": "requested > stock"
+  }
+}

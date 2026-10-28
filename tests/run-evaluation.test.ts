@@ -38,6 +38,56 @@ test('requirements aggregate behaviors without counting behaviors as requirement
   assert.deepEqual(result.outcomes.map(item => item.value), [1, 1, 0, 1]);
 });
 
+test('default-depth progress counts checked requirements including a retained failure without granting verification', () => {
+  const report = fixture(); report.policy = { mutationChecks: false, modelRequestLimit: 12 };
+  report.rules = Array.from({ length: 4 }, (_, index) => ({ id: `R${index + 1}`, text: 'Recorded contract' }));
+  report.analysis!.behaviors = Array.from({ length: 7 }, (_, index) => ({ ...fixture().analysis!.behaviors[0], id: `B${index + 1}`, ruleId: index < 3 ? `R${index + 1}` : 'R4' }));
+  report.states = report.analysis!.behaviors.map((behavior, index) => ({ id: behavior.id, status: index === 1 ? 'Uncertain' : 'Partially Verified', reason: index === 1 ? 'Failure retained.' : 'Mutation not assessed.', nodes: [`test_${index + 1}`] }));
+  report.measurements[0].outcomes = report.analysis!.behaviors.map((_, index) => ({ node: `test_${index + 1}`, file: 'tests.py', name: `test_${index + 1}`, status: index === 1 ? 'failed' : 'passed', message: '' }));
+  const original = structuredClone(report);
+  const result = verificationSummary(report);
+  assert.equal(result.requirementChecks.checked, 4); assert.equal(result.requirementChecks.passed, 3);
+  assert.equal(result.requirementChecks.investigate, 1); assert.equal(result.requirementChecks.remaining, 0);
+  assert.deepEqual(result.requirementChecks.items.map(item => item.label), ['Recorded checks passed', 'Needs investigation', 'Recorded checks passed', 'Recorded checks passed']);
+  assert.equal(result.distribution.find(item => item.name === 'Verified')!.value, 0);
+  assert.equal(result.mutationAssessment, 'Not performed (not requested)');
+  assert.deepEqual(report, original, 'Display summaries must not rewrite saved assurance or execution.');
+});
+
+test('progress excludes skipped, erroneous, absent and untrusted mapped checks', () => {
+  for (const change of [
+    (report: PythonReport) => { report.status = 'running'; },
+    (report: PythonReport) => { report.status = 'failed'; },
+    (report: PythonReport) => { report.status = 'cancelled'; },
+    (report: PythonReport) => { report.measurements = []; },
+    (report: PythonReport) => { report.measurements[0].integrity = false; },
+    (report: PythonReport) => { report.measurements[0].timedOut = true; },
+    (report: PythonReport) => { report.measurements[0].exitCode = 2; },
+    (report: PythonReport) => { report.collection = { exitCode: 2, log: 'Failed' }; },
+    (report: PythonReport) => { report.resources = { limit: 1, exhausted: true, requests: [] }; },
+  ]) {
+    const report = fixture(); change(report);
+    assert.equal(verificationSummary(report).requirementChecks.checked, 0);
+  }
+  const report = fixture();
+  assert.equal(verificationSummary(report).requirementChecks.checked, 1, 'Skipped R1 and unmapped R3 remain incomplete; failed R2 was checked.');
+  report.measurements[0].outcomes[1].status = 'error';
+  assert.equal(verificationSummary(report).requirementChecks.checked, 1);
+  report.measurements[0].outcomes[1].status = 'passed';
+  assert.equal(verificationSummary(report).requirementChecks.checked, 2);
+  report.states[1].nodes = ['missing'];
+  assert.equal(verificationSummary(report).requirementChecks.checked, 1);
+});
+
+test('mutation scope distinguishes unperformed, incomplete and recorded execution', () => {
+  const report = fixture();
+  assert.equal(verificationSummary(report).mutationAssessment, 'Not performed');
+  report.mutations = [{ log: '', mutants: [], incomplete: true, timedOut: false }];
+  assert.equal(verificationSummary(report).mutationAssessment, 'Incomplete');
+  report.mutations[0].incomplete = false;
+  assert.equal(verificationSummary(report).mutationAssessment, 'Execution recorded (0 mutants)');
+});
+
 test('workflow completion, passing checks and verification remain separate in user summaries', () => {
   const report = fixture();
   assert.equal(verificationSummary(report).failedCount, 1);

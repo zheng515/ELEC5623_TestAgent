@@ -1,0 +1,39 @@
+{
+  "outcomes": [
+    {
+      "node": "reqtest_generated/test_reqtest_T1.py::test_remaining_for_sufficient_stock",
+      "file": "reqtest_generated/test_reqtest_T1.py",
+      "name": "test_remaining_for_sufficient_stock",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T2.py::test_remaining_rejects_request_above_stock",
+      "file": "reqtest_generated/test_reqtest_T2.py",
+      "name": "test_remaining_rejects_request_above_stock",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T3.py::test_remaining_rejects_negative_arguments",
+      "file": "reqtest_generated/test_reqtest_T3.py",
+      "name": "test_remaining_rejects_negative_arguments",
+      "status": "passed",
+      "message": ""
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T4.py::test_remaining_rejects_non_builtin_int_arguments",
+      "file": "reqtest_generated/test_reqtest_T4.py",
+      "name": "test_remaining_rejects_non_builtin_int_arguments",
+      "status": "passed",
+      "message": ""
+    }
+  ],
+  "exitCode": 0,
+  "log": "....                                                                     [100%]\n--------------------- generated xml file: /tmp/results.xml ---------------------\n4 passed in 0.01s\n",
+  "timedOut": false,
+  "integrity": true,
+  "runtimeArtifacts": [],
+  "sourceFingerprint": "3fe290f5cc55b6a0ef7e81791cb91312ec91e9e2fc715f18fafd8a1730028115",
+  "suiteHash": "3b3a70696a1c140ed77a0d25d76797336508d97aa05c6fba9d111dc1f8ab3282"
+}

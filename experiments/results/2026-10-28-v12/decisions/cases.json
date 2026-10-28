@@ -1,0 +1,1038 @@
+[
+  {
+    "id": "C01",
+    "kind": "test_review",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "text": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      }
+    }
+  },
+  {
+    "id": "C02",
+    "kind": "test_review",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 1000\n",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "text": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      }
+    }
+  },
+  {
+    "id": "C03",
+    "kind": "test_review",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+        }
+      ],
+      "files": {
+        "calendar_window.py": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from datetime import datetime\nfrom calendar_window import window\ndef test_case():\n    start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n",
+          "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+            "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "calendar_window.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "calendar_window.py",
+                "quote": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      }
+    }
+  },
+  {
+    "id": "C04",
+    "kind": "test_review",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+        }
+      ],
+      "files": {
+        "calendar_window.py": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from datetime import datetime\nfrom zoneinfo import ZoneInfo\nfrom calendar_window import window\ndef test_case():\n    start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n    assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\n",
+          "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+            "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "calendar_window.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "calendar_window.py",
+                "quote": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      }
+    }
+  },
+  {
+    "id": "C05",
+    "kind": "diagnosis",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n",
+        "reqtest_generated/test_reqtest_T1.py": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 1\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 1\n",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "text": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      },
+      "phase": "execution",
+      "failedTestIds": [
+        "T1"
+      ],
+      "measurement": {
+        "outcomes": [
+          {
+            "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "name": "test_case",
+            "status": "failed",
+            "message": "AssertionError: assert 0 == 1"
+          }
+        ],
+        "log": "AssertionError: assert 0 == 1",
+        "exitCode": 1,
+        "timedOut": false,
+        "integrity": true
+      }
+    }
+  },
+  {
+    "id": "C06",
+    "kind": "diagnosis",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    return 0 if amount > 10000 else 1000\n",
+        "reqtest_generated/test_reqtest_T1.py": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "text": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    return 0 if amount > 10000 else 1000\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      },
+      "phase": "execution",
+      "failedTestIds": [
+        "T1"
+      ],
+      "measurement": {
+        "outcomes": [
+          {
+            "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "name": "test_case",
+            "status": "failed",
+            "message": "AssertionError: assert 1000 == 0"
+          }
+        ],
+        "log": "AssertionError: assert 1000 == 0",
+        "exitCode": 1,
+        "timedOut": false,
+        "integrity": true
+      }
+    }
+  },
+  {
+    "id": "C07",
+    "kind": "diagnosis",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+        }
+      ],
+      "files": {
+        "calendar_window.py": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n",
+        "reqtest_generated/test_reqtest_T1.py": "from datetime import datetime\nfrom zoneinfo import ZoneInfo\nfrom calendar_window import window\ndef test_case():\n    start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n    assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from datetime import datetime\nfrom zoneinfo import ZoneInfo\nfrom calendar_window import window\ndef test_case():\n    start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n    assert start.tzinfo == ZoneInfo(\"Australia/Sydney\")\n",
+          "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+            "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "calendar_window.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "calendar_window.py",
+                "quote": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      },
+      "phase": "execution",
+      "failedTestIds": [
+        "T1"
+      ],
+      "measurement": {
+        "outcomes": [
+          {
+            "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "name": "test_case",
+            "status": "failed",
+            "message": "AssertionError: assert datetime.timezone(datetime.timedelta(seconds=36000)) == zoneinfo.ZoneInfo(key='Australia/Sydney')"
+          }
+        ],
+        "log": "AssertionError: assert datetime.timezone(datetime.timedelta(seconds=36000)) == zoneinfo.ZoneInfo(key='Australia/Sydney')",
+        "exitCode": 1,
+        "timedOut": false,
+        "integrity": true
+      }
+    }
+  },
+  {
+    "id": "C08",
+    "kind": "diagnosis",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "The cancellation fee shall be reasonable."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    return 1000\n",
+        "reqtest_generated/test_reqtest_T1.py": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+          "quote": "The cancellation fee shall be reasonable.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "The cancellation fee shall be reasonable.",
+            "text": "The cancellation fee shall be reasonable.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    return 1000\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      },
+      "phase": "execution",
+      "failedTestIds": [
+        "T1"
+      ],
+      "measurement": {
+        "outcomes": [
+          {
+            "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "name": "test_case",
+            "status": "failed",
+            "message": "AssertionError: assert 1000 == 0"
+          }
+        ],
+        "log": "AssertionError: assert 1000 == 0",
+        "exitCode": 1,
+        "timedOut": false,
+        "integrity": true
+      }
+    }
+  },
+  {
+    "id": "C09",
+    "kind": "diagnosis",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "notify() returns integer 0 after delivery."
+        }
+      ],
+      "files": {
+        "delivery.py": "import delivery_transport\ndef notify():\n    return delivery_transport.send()\n",
+        "reqtest_generated/test_reqtest_T1.py": "from delivery import notify\ndef test_case():\n    assert notify() == 0\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from delivery import notify\ndef test_case():\n    assert notify() == 0\n",
+          "quote": "notify() returns integer 0 after delivery.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "notify() returns integer 0 after delivery.",
+            "text": "notify() returns integer 0 after delivery.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "delivery.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "delivery.py",
+                "quote": "import delivery_transport\ndef notify():\n    return delivery_transport.send()\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      },
+      "phase": "execution",
+      "failedTestIds": [
+        "T1"
+      ],
+      "measurement": {
+        "outcomes": [
+          {
+            "node": "reqtest_generated/test_reqtest_T1.py::<module>",
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "name": "<module>",
+            "status": "error",
+            "message": "ModuleNotFoundError: No module named 'delivery_transport'"
+          }
+        ],
+        "log": "ModuleNotFoundError: No module named 'delivery_transport'",
+        "exitCode": 2,
+        "timedOut": false,
+        "integrity": true
+      }
+    }
+  },
+  {
+    "id": "C10",
+    "kind": "test_review",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from shipping import fee\ndef test_case():\n    actual = fee(10000)\n    assert isinstance(actual, int) and not isinstance(actual, bool)\n    assert actual == 0\n",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "text": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      }
+    }
+  },
+  {
+    "id": "C11",
+    "kind": "test_review",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants."
+        }
+      ],
+      "files": {
+        "calendar_window.py": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from datetime import datetime\nfrom calendar_window import window\ndef test_case():\n    start, end = window(\"2026-09-24T09:00:00+10:00\", \"2026-09-24T10:00:00+10:00\")\n    assert isinstance(start, datetime)\n    assert isinstance(end, datetime)\n    assert start == datetime.fromisoformat(\"2026-09-24T09:00:00+10:00\")\n    assert end == datetime.fromisoformat(\"2026-09-24T10:00:00+10:00\")\n",
+          "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+            "text": "window(start, end) accepts two explicit ISO timestamps and returns datetimes preserving their respective instants.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "calendar_window.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "calendar_window.py",
+                "quote": "from datetime import datetime\ndef window(start, end):\n    return datetime.fromisoformat(start), datetime.fromisoformat(end)\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      }
+    }
+  },
+  {
+    "id": "C12",
+    "kind": "test_review",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "For a negative amount, fee(amount) raises ValueError."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    if amount < 0: raise ValueError(\"invalid amount\")\n    return 0\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "import pytest\nfrom shipping import fee\ndef test_case():\n    with pytest.raises(ValueError): fee(-1)\n",
+          "quote": "For a negative amount, fee(amount) raises ValueError.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "For a negative amount, fee(amount) raises ValueError.",
+            "text": "For a negative amount, fee(amount) raises ValueError.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    if amount < 0: raise ValueError(\"invalid amount\")\n    return 0\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      }
+    }
+  },
+  {
+    "id": "C13",
+    "kind": "test_review",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "For a negative amount, fee(amount) raises ValueError."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    if amount < 0: raise ValueError(\"invalid amount\")\n    return 0\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "import pytest\nfrom shipping import fee\ndef test_case():\n    with pytest.raises(ValueError, match=\"Amount must be positive\"): fee(-1)\n",
+          "quote": "For a negative amount, fee(amount) raises ValueError.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "For a negative amount, fee(amount) raises ValueError.",
+            "text": "For a negative amount, fee(amount) raises ValueError.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    if amount < 0: raise ValueError(\"invalid amount\")\n    return 0\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      }
+    }
+  },
+  {
+    "id": "C14",
+    "kind": "diagnosis",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "For integer amount >= 10000, fee(amount) returns integer 0."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n",
+        "reqtest_generated/test_reqtest_T1.py": "from invented_shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from invented_shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+          "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "text": "For integer amount >= 10000, fee(amount) returns integer 0.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      },
+      "phase": "execution",
+      "failedTestIds": [
+        "T1"
+      ],
+      "measurement": {
+        "outcomes": [
+          {
+            "node": "reqtest_generated/test_reqtest_T1.py::<module>",
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "name": "<module>",
+            "status": "error",
+            "message": "ModuleNotFoundError: No module named 'invented_shipping'"
+          }
+        ],
+        "log": "ModuleNotFoundError: No module named 'invented_shipping'",
+        "exitCode": 2,
+        "timedOut": false,
+        "integrity": true
+      }
+    }
+  },
+  {
+    "id": "C15",
+    "kind": "diagnosis",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "For amount >= 10000, fee(amount) returns 0. For amount <= 10000, fee(amount) returns 1000."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    return 1000 if amount <= 10000 else 0\n",
+        "reqtest_generated/test_reqtest_T1.py": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+          "quote": "For amount >= 10000, fee(amount) returns 0. For amount <= 10000, fee(amount) returns 1000.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "For amount >= 10000, fee(amount) returns 0. For amount <= 10000, fee(amount) returns 1000.",
+            "text": "For amount >= 10000, fee(amount) returns 0. For amount <= 10000, fee(amount) returns 1000.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    return 1000 if amount <= 10000 else 0\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      },
+      "phase": "execution",
+      "failedTestIds": [
+        "T1"
+      ],
+      "measurement": {
+        "outcomes": [
+          {
+            "node": "reqtest_generated/test_reqtest_T1.py::test_case",
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "name": "test_case",
+            "status": "failed",
+            "message": "AssertionError: assert 1000 == 0"
+          }
+        ],
+        "log": "AssertionError: assert 1000 == 0",
+        "exitCode": 1,
+        "timedOut": false,
+        "integrity": true
+      }
+    }
+  },
+  {
+    "id": "C16",
+    "kind": "test_review",
+    "context": {
+      "rules": [
+        {
+          "id": "R1",
+          "text": "For a large amount, fee(amount) returns zero."
+        }
+      ],
+      "files": {
+        "shipping.py": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+      },
+      "tests": [
+        {
+          "id": "T1",
+          "behaviorId": "B1",
+          "functionName": "test_case",
+          "code": "from shipping import fee\ndef test_case():\n    assert fee(10000) == 0\n",
+          "quote": "For a large amount, fee(amount) returns zero.",
+          "gapIndexes": [
+            0
+          ],
+          "purpose": "Check the stated behavior.",
+          "file": "reqtest_generated/test_reqtest_T1.py"
+        }
+      ],
+      "analysis": {
+        "behaviors": [
+          {
+            "id": "B1",
+            "ruleId": "R1",
+            "quote": "For a large amount, fee(amount) returns zero.",
+            "text": "For a large amount, fee(amount) returns zero.",
+            "category": "rule",
+            "issue": "none",
+            "reason": "Assess the original contract.",
+            "files": [
+              "shipping.py"
+            ],
+            "existingTests": [],
+            "evidence": [
+              {
+                "file": "shipping.py",
+                "quote": "def fee(amount):\n    return 0 if amount >= 10000 else 1000\n"
+              }
+            ],
+            "gaps": [
+              "Check the stated behavior."
+            ]
+          }
+        ],
+        "inconsistencies": []
+      }
+    }
+  }
+]
