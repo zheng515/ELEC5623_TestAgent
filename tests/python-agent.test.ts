@@ -7,7 +7,7 @@ import JSZip from 'jszip';
 import { execFileSync } from 'node:child_process';
 import { asSchema } from 'ai';
 import { createHash } from 'node:crypto';
-import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId, quoteReferences, mergeAnalyses, chunks, pool, pruneAnalysis } from '../lib/python-agent';
+import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId, quoteReferences, mergeAnalyses, chunks, pool, pruneAnalysis, alignRuleIds, restoreOmittedRules } from '../lib/python-agent';
 import { survivorReviews, mutationReviewContext, type MutationReviewPair } from '../lib/mutation-review';
 import { verificationGate } from '../lib/run-evaluation';
 import { importProject, measureProject, measureSeconds, mutateProject, dockerTool, type Inspection } from '../lib/python-tools';
@@ -378,6 +378,32 @@ test('pruning keeps grounded claims, follows the quoted requirement and removes 
   assert.deepEqual(a.inconsistencies, []);
   assert.ok(removed.some(item => item.includes('replaced by R2')) && removed.some(item => item.startsWith('B3:')) && removed.some(item => item.includes('evidence not found verbatim')));
   validateAnalysis(a, r, snapshot);
+});
+test('document requirement IDs map to their unique internal IDs before validation', () => {
+  const r = { ...report(), rules: [{ id: 'R1', text: rule, originalId: 'FR1' }, { id: 'R2', text: 'Prices use two decimals.', originalId: 'FR2' }, { id: 'R3', text: 'Totals are rounded.', originalId: 'FR2' }] };
+  const a = analysis(); a.behaviors[0].ruleId = 'fr1';
+  a.behaviors.push({ ...a.behaviors[0], id: 'B2', ruleId: 'FR2', quote: 'Prices use two decimals.', files: [], evidence: [] });
+  a.inconsistencies.push({ ruleId: 'FR1', behaviorIds: ['B1'], quote: rule, description: 'conflict', evidence: [{ file: 'shipping.py', quote: 'def fee(amount):' }] });
+  assert.throws(() => validateAnalysis(structuredClone(a), r, snapshot), /unknown requirement fr1/);
+  alignRuleIds(a, r);
+  assert.deepEqual(a.behaviors.map(item => item.ruleId), ['R1', 'FR2'], 'An ambiguous document ID is not guessed');
+  assert.equal(a.inconsistencies[0].ruleId, 'R1');
+});
+test('a correction that omits a requirement keeps its grounded first-response behaviors', () => {
+  const r = { ...report(), rules: [{ id: 'R1', text: rule, originalId: 'FR1' }, { id: 'R2', text: 'Prices use two decimals.', originalId: 'FR2' }] };
+  const original = analysis(); original.behaviors[0].ruleId = 'FR1';
+  original.behaviors.push({ ...original.behaviors[0], id: 'B2', ruleId: 'FR2', quote: 'Prices use two decimals.', evidence: [{ file: 'shipping.py', quote: 'invented line' }] });
+  original.behaviors.push({ ...original.behaviors[0], id: 'B3', ruleId: 'FR2', quote: 'Prices use two decimals.', files: ['shipping.py'], evidence: [{ file: 'shipping.py', quote: 'def fee(amount):' }] });
+  original.inconsistencies.push({ ruleId: 'FR2', behaviorIds: ['B3'], quote: 'Prices use two decimals.', description: 'conflict', evidence: [{ file: 'shipping.py', quote: 'def fee(amount):' }] });
+  const corrected = analysis();
+  const restored = restoreOmittedRules(corrected, original, r, snapshot);
+  assert.deepEqual(corrected.behaviors.map(item => item.id + ':' + item.ruleId), ['B1:R1', 'B2:R2', 'B3:R2']);
+  assert.deepEqual(corrected.behaviors[1].evidence, [], 'Ungrounded first-response evidence is still removed');
+  assert.deepEqual(corrected.inconsistencies[0].behaviorIds, ['B3']);
+  assert.deepEqual(restored, ['R2: kept 2 grounded behaviors from the first analysis response; the correction omitted this requirement.']);
+  validateAnalysis(corrected, r, snapshot);
+  assert.ok(corrected.behaviors.every(item => !item.gaps.includes('Behavior extraction incomplete.')));
+  assert.deepEqual(restoreOmittedRules(corrected, original, r, snapshot), [], 'Covered requirements are left unchanged');
 });
 test('retains omitted requirements as explicit unresolved behaviors', () => {
   const omitted=analysisSchema.parse({behaviors:[],inconsistencies:[]});validateAnalysis(omitted,report(),snapshot);

@@ -117,7 +117,7 @@ export type PythonReport = {
   initialSuite?: { reportId: string; executableHash: string };
   testAttempts?: TestAttempt[];
   stopReason?: string;
-  analysisCorrection?: { original: Analysis; error: string; removed?: string[] };
+  analysisCorrection?: { original: Analysis; corrected?: Analysis; error: string; removed?: string[]; restored?: string[] };
   runtime?: ProjectRuntime;
   execution?: { queueId: string; image: string; attempt: number; recovered: boolean };
   variant?: "B0" | "B1" | "B2" | "B3";
