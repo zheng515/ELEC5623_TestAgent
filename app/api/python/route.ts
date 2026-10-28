@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     const replay = form.get('mode') === 'saved_tests';
     const mutationChoice = form.get('mutationChecks');
     if (mutationChoice !== null && mutationChoice !== 'true' && mutationChoice !== 'false') throw new Error('Choose whether to run mutation checks.');
-    const policy = verificationPolicySchema.parse({ mutationChecks: mutationChoice === 'true', modelRequestLimit: Number(form.get('modelRequestLimit') ?? interactivePolicy.modelRequestLimit) });
+    const policy = verificationPolicySchema.parse({ mutationChecks: mutationChoice === 'true', modelRequestLimit: String(form.get('modelRequestLimit') ?? '').trim() ? Number(form.get('modelRequestLimit')) : interactivePolicy.modelRequestLimit });
     if (!replay && !process.env.OPENAI_API_KEY) throw new Error('Configure OPENAI_API_KEY in the root .env.local and restart.');
     const title = String(form.get('title') || 'Project verification').trim();
     const model = String(form.get('model') || process.env.REQTEST_LLM_MODEL || 'gpt-6-luna').trim().replace(/^openai\/(?=gpt-)/, '');
@@ -100,17 +100,13 @@ export async function POST(request: Request) {
         if (rules.some(rule => ruleSources(rule).some(source => source.documentId === documentId && !sourceMatches(rule, source, original)))) throw new Error('A saved requirement citation changed. Upload the original document again.');
       }
     }
-    if (rules.length > 24) throw new Error('This run supports up to 24 requirement items. Split the specification into smaller runs; no text is truncated automatically.');
     if (!title || title.length > 120 || model.length > 100) throw new Error('Use a title up to 120 characters and a valid model.');
     const clarification = String(form.get('clarification') || '').trim();
     if (replay && (!parent?.analysis || !parent.tests.some(test => test.approved) || clarification || form.get('reuseRequirements') !== 'true')) throw new Error('Saved-test execution requires an owned finished run with approved tests and unchanged requirements.');
-    if (clarification.length > 4000) throw new Error('Clarification exceeds 4000 characters.');
     if (clarification && !parent) throw new Error('Clarifications must reference a previous run.');
     // Clarifications are explicitly new user requirements, never retroactive edits to prior evidence.
     if (clarification) {
       const additions = clarification.split(/\r?\n/).filter(line => line.trim());
-      if (rules.length + additions.length > 24) throw new Error('Requirements plus clarification must fit 24 requirement items.');
-      if ([(requirementInput?.text || rules.map(rule => rule.text).join('\n')), ...additions].join('\n').length > 12000) throw new Error('Requirements plus clarification must fit 12,000 characters.');
       rules.push(...additions.map((text, index) => ({ id: 'R' + (rules.length + index + 1), text })));
       if (requirementInput) requirementInput = { ...requirementInput, text: requirementInput.text + '\n' + additions.join('\n') };
     }
@@ -119,7 +115,7 @@ export async function POST(request: Request) {
     if (parent) {
       await cp(join(dataDir, 'runs', parent.id, 'source'), join(root, 'source'), { recursive: true });
       source = parent.source; fingerprint = parent.fingerprint; projectSetup = parent.projectSetup;
-      await writeFile(join(root, 'runtime.json'), JSON.stringify({runtime: parent.runtime || 'python', services: projectSetup?.services || []}));
+      await writeFile(join(root, 'runtime.json'), JSON.stringify({runtime: parent.runtime || 'python', runDirectory: projectSetup?.runDirectory || '', services: projectSetup?.services || []}));
     } else {
       const setupId = String(form.get('preflightId') || '');
       const setup = setupId ? await copyPreparedProject(account.user.id, setupId, root) : await (async () => { const token = form.get('repository') ? await repositoryToken(request, form) : ''; const next = await prepareProject(account.user.id, form, signal, token); return copyPreparedProject(account.user.id, next.id, root); })();

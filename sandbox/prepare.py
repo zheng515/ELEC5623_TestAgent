@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from packaging.requirements import Requirement
 
 
-def prepare_project(runtime):
+def prepare_project(runtime, requirement_lines):
     if runtime == 'node':
         if not Path('package-lock.json').exists():
             raise ValueError('Automatic Node setup requires package-lock.json.')
@@ -32,14 +32,13 @@ def prepare_project(runtime):
             if 'dependencies' in project.get('dynamic', []):
                 raise ValueError('Dynamic Python dependencies cannot be installed automatically.')
             values.extend(project.get('dependencies', []))
-        for path in sorted(Path('.').glob('*requirements*.txt')):
-            values.extend(line.split(' #')[0].strip() for line in path.read_text().splitlines() if line.strip() and not line.strip().startswith('#'))
+        values.extend(requirement_lines())
         requirements = []
         for value in dict.fromkeys(values):
             try:
                 item = Requirement(value)
             except Exception:
-                raise ValueError('Use ordinary package/version requirements; include files, pip flags and editable dependencies are unsupported.')
+                raise ValueError('Use ordinary package/version requirements; pip flags and editable dependencies are unsupported.')
             if item.url:
                 raise ValueError('Direct URL dependencies are unsupported. Use PyPI packages.')
             if not item.marker or item.marker.evaluate():

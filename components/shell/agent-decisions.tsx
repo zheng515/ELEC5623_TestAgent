@@ -15,7 +15,7 @@ export function AgentDecisions({ report }: { report: PythonReport }) {
       <p><strong>{report.status === 'running' ? 'Current action: ' : 'Why the Agent stopped: '}</strong>{agentStopReason(report)}</p>
       <p className="text-muted-foreground">Applied means accepted into the active suite, not passed. Only approved tests can execute. Review decisions explain admission; they are not independent correctness labels.</p>
       {report.replay && <p>This run reused saved reviews. Open the original run to inspect its proposal history.</p>}
-      {report.resources && <details><summary>Model requests · {requestUsage(report).used}/{report.resources.limit}{report.resources.exhausted ? ' · budget exhausted' : ''}</summary>
+      {report.resources && <details><summary>Model requests · {requestUsage(report).used}/{report.resources.limit ?? 'no limit'}{report.resources.exhausted ? ' · budget exhausted' : ''}</summary>
         <p className="mt-2">Provider-reported tokens: {requestUsage(report).reportedTokens}. Usage is unavailable for {requestUsage(report).unknownUsage} requests; it is not counted as zero. Cached responses do not consume another request. Interrupted requests remain charged to the request limit.</p>
         {report.resources.requests.map((request, index) => <p key={index}>{index + 1}. {request.stage} · {request.status === 'started' ? 'Completion not recorded' : request.status} · {request.totalTokens === undefined ? 'tokens unavailable' : `${request.totalTokens} tokens`}</p>)}
       </details>}

@@ -9,7 +9,7 @@ export function VerificationGuide({ firstRun }: { firstRun: boolean }) {
     <details className="text-sm"><summary className="cursor-pointer">Supported projects and documents</summary>
       <ul className="list-disc pl-5 mt-3 space-y-2 text-muted-foreground">
         <li>Focused Python / pytest and JavaScript or TypeScript / node:test projects. Jest, Vitest, nested Node test suites and browser automation are outside the current scope.</li>
-        <li>PDF, DOC, DOCX, TXT and Markdown files up to 10 MB. Requirements support 12,000 characters and 24 input items. Larger specifications must be split; text is not silently shortened.</li>
+        <li>PDF, DOC, DOCX, TXT and Markdown files up to 10 MB. Requirements have no length or item limit, and text is never shortened.</li>
         <li>Scanned PDFs use English OCR. Check uncertain text against the original. Word references identify paragraphs or converted body blocks, not Word page numbers; complex layouts, headers and drawings are not fully extracted.</li>
         <li>Advanced settings can install compatible Python wheels or locked npm dependencies and start temporary PostgreSQL or Redis services. Native builds and install scripts need a prepared image. Setup checks do not prove application startup readiness.</li>
       </ul>

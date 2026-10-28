@@ -15,12 +15,13 @@ test('model requests use official Responses API even with a stale gateway settin
   process.env.OPENAI_API_KEY = 'official-test-fixture';
   process.env.OPENAI_BASE_URL = 'https://gateway.example.invalid/v1';
   let requests = 0;
+  let expectedCap: number | undefined = undefined;
   globalThis.fetch = async (input, init) => {
     requests++;
     assert.equal(String(input), 'https://api.openai.com/v1/responses');
     const body = JSON.parse(String(init?.body));
     assert.equal(body.model, 'gpt-6-luna');
-    assert.equal(body.max_output_tokens, 6000);
+    assert.equal(body.max_output_tokens, expectedCap, 'Only an explicit caller limit caps output');
     assert.equal(body.store, false);
     assert.equal(body.text.format.type, 'json_schema');
     assert.equal(body.text.format.strict, true);
@@ -31,6 +32,10 @@ test('model requests use official Responses API even with a stale gateway settin
   const result = await generateText({ ...options({ model: 'gpt-6-luna' }, new AbortController().signal),
     prompt: 'Connection fixture', output: Output.object({ schema: z.object({ ok: z.boolean() }) }) });
   assert.equal(result.output.ok, true); assert.equal(requests, 1);
+  expectedCap = 256;
+  await generateText({ ...options({ model: 'gpt-6-luna', maxOutputTokens: 256 }, new AbortController().signal),
+    prompt: 'Connection fixture', output: Output.object({ schema: z.object({ ok: z.boolean() }) }) });
+  assert.equal(requests, 2);
   process.env.OPENAI_API_KEY = 'sk-or-test-fixture';
   assert.throws(() => options({ model: 'gpt-6-luna' }, new AbortController().signal), /Use an OpenAI API key/);
 });

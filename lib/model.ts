@@ -14,9 +14,10 @@ export function options(input: { model: string; timeoutMs?: number; maxOutputTok
   if (process.env.OPENAI_API_KEY.startsWith('sk-or-')) throw new Error('Use an OpenAI API key from platform.openai.com. Third-party API keys are not supported.');
   return {
     model: createOpenAI({ apiKey: process.env.OPENAI_API_KEY, baseURL: 'https://api.openai.com/v1' }).responses(input.model),
-    abortSignal: AbortSignal.any([signal, AbortSignal.timeout(input.timeoutMs ?? 90000)]),
+    // Verification calls are unbounded; callers such as the connection check pass their own limits.
+    abortSignal: input.timeoutMs ? AbortSignal.any([signal, AbortSignal.timeout(input.timeoutMs)]) : signal,
     maxRetries: 0,
-    maxOutputTokens: input.maxOutputTokens ?? 6000,
+    ...(input.maxOutputTokens ? { maxOutputTokens: input.maxOutputTokens } : {}),
     providerOptions: { openai: { store: false } },
   };
 }

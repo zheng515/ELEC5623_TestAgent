@@ -6,7 +6,12 @@ not the academic report or a historical experiment-results archive.
 ## Implemented verification workflow
 
 - Import focused Python or Node.js source from GitHub or ZIP, retain a frozen
-  source identity, check dependencies and prepare a pinned sandbox image.
+  source identity, check dependencies and prepare a pinned sandbox image. A
+  Python run directory lets a full-stack project be analyzed whole, including
+  HTML/CSS/JS, while dependencies install and pytest runs in its server directory.
+- Check page behavior with generated headless-Chromium browser tests against the
+  project's own ASGI/WSGI application; failed browser tests keep a screenshot.
+  Frontend JavaScript is exercised but not mutation-tested.
 - Extract PDF/Word/text requirements with source locations, explicit extraction
   warnings and exact original citations. Supporting text is not automatically
   promoted into independently verified requirements.
@@ -28,7 +33,10 @@ Both retain original-contract admission, coverage review, grounded diagnosis and
 one eligible improvement. Without mutation assessment, passing checks remain
 Partially Verified. Strict CI stays conservative.
 
-A 1–24 model-request limit covers all stages and worker recovery. Reservations
+An optional model-request limit covers all stages and worker recovery; without
+one, interactive runs are unlimited and benchmarks keep a 12-request budget. Large
+specifications are analyzed five requirements and six behaviors per request, so a
+40-requirement specification needs roughly 40–60 requests. Reservations
 are persisted before dispatch; failed/interrupted attempts retain their slots,
 and cached responses consume no additional request. Reports show known token
 usage and unavailable usage separately. This is not a token or monetary ceiling.
@@ -94,3 +102,12 @@ in the test, preserving the behavior check without retaining the old experiment.
 
 See [experiment status](../experiments/README.md), [architecture](architecture.md),
 [evaluation protocol](evaluation-protocol.md) and [positioning](product-positioning.md).
+
+## Limits removed for full specifications
+
+Requirement text, input items, PDF pages, OCR pages, analyzed behaviors, generated
+tests and model output tokens are not capped, and runs have no time limit beyond
+pg-boss's 24-hour job expiry. Upload byte sizes, archive safety checks, project
+size limits and per-command sandbox timeouts remain. Test execution time scales
+with the selected suite (120 seconds plus 15 per test), and sandbox containers run
+with an init process so closed browsers cannot exhaust the process limit.

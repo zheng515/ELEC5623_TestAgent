@@ -7,10 +7,10 @@ import JSZip from 'jszip';
 import { execFileSync } from 'node:child_process';
 import { asSchema } from 'ai';
 import { createHash } from 'node:crypto';
-import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId } from '../lib/python-agent';
+import { validateAnalysis, updateStates, runPython, reviewSurvivingMutations, diagnosisTestId, quoteReferences, mergeAnalyses, chunks, pool, pruneAnalysis } from '../lib/python-agent';
 import { survivorReviews, mutationReviewContext, type MutationReviewPair } from '../lib/mutation-review';
 import { verificationGate } from '../lib/run-evaluation';
-import { importProject, measureProject, mutateProject, dockerTool, type Inspection } from '../lib/python-tools';
+import { importProject, measureProject, measureSeconds, mutateProject, dockerTool, type Inspection } from '../lib/python-tools';
 import { analysisSchema, groundedAnalysisSchema, groundedTestsSchema, groundedDiagnosisSchema, groundedRelevanceSchema, originalQuoteSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema, testsSchema, type PythonReport, type Measurement, type DiagnosisPhase } from '../lib/python-types';
 import { rule, code, artifact, report, analysis, recordCoverage } from './fixtures/python-agent';
 
@@ -342,6 +342,43 @@ test('multiline document quotes produce compatible provider schemas while exact 
   assert.equal(quote.parse('R1'), original);
   assert.equal(quote.safeParse('invented').success, false);
 });
+test('quotes that strict provider enums reject travel as rule IDs', () => {
+  assert.equal(quoteReferences([{ id: 'R1', text: 'Fees are zero.' }]), undefined);
+  for (const text of ['Line one\nLine two', 'Show "Out of stock".', 'Paths use \\ separators.']) assert.deepEqual(quoteReferences([{ id: 'R1', text: 'Fees are zero.' }, { id: 'R2', text }]), ['R1', 'R2']);
+});
+test('batched analyses get run-wide behavior IDs and keep their conflict links', () => {
+  const behavior = (id: string, ruleId: string) => ({ ...analysis().behaviors[0], id, ruleId });
+  const first = { behaviors: [behavior('B1', 'R1'), behavior('B2', 'R1')], inconsistencies: [{ ruleId: 'R1', behaviorIds: ['B2'], quote: 'q', description: 'first', evidence: [] }] };
+  const second = { behaviors: [behavior('B1', 'R6'), behavior('B2', 'R7')], inconsistencies: [{ ruleId: 'R7', behaviorIds: ['B2'], quote: 'q', description: 'second', evidence: [] }] };
+  const merged = mergeAnalyses([first, second]);
+  assert.deepEqual(merged.behaviors.map(item => item.id + ':' + item.ruleId), ['B1:R1', 'B2:R1', 'B3:R6', 'B4:R7']);
+  assert.deepEqual(merged.inconsistencies.map(item => item.description + ':' + item.behaviorIds.join()), ['first:B2', 'second:B4']);
+  assert.equal(mergeAnalyses([first]), first, 'A single batch is unchanged');
+  assert.deepEqual(chunks([1, 2, 3, 4, 5, 6, 7], 3), [[1, 2, 3], [4, 5, 6], [7]]);
+});
+test('the execution time budget grows with the number of selected tests', () => {
+  assert.equal(measureSeconds(0), 120);
+  assert.equal(measureSeconds(92), 1500, 'A 92-test full-stack suite is not cut off at a fixed limit');
+});
+test('the model call pool bounds concurrency and keeps input order', async () => {
+  let active = 0, peak = 0;
+  const results = await pool([30, 5, 20, 1, 10], 2, async (delay, index) => { active++; peak = Math.max(peak, active); await new Promise(resolve => setTimeout(resolve, delay)); active--; return index; });
+  assert.deepEqual(results, [0, 1, 2, 3, 4]); assert.equal(peak, 2);
+});
+test('pruning keeps grounded claims, follows the quoted requirement and removes the rest', () => {
+  const r = { ...report(), rules: [{ id: 'R1', text: rule }, { id: 'R2', text: 'Prices use two decimals.' }] };
+  const a = analysis();
+  a.behaviors.push({ ...a.behaviors[0], id: 'B2', ruleId: 'R1', quote: 'Prices use two decimals.', evidence: [{ file: 'shipping.py', quote: 'invented line' }] });
+  a.behaviors.push({ ...a.behaviors[0], id: 'B3', quote: 'Not in any requirement.' });
+  a.inconsistencies.push({ ruleId: 'R1', behaviorIds: ['B1'], quote: rule, description: 'unsupported', evidence: [{ file: 'shipping.py', quote: 'invented line' }] });
+  const removed = pruneAnalysis(a, r, snapshot);
+  assert.deepEqual(a.behaviors.map(item => item.id + ':' + item.ruleId), ['B1:R1', 'B2:R2']);
+  assert.deepEqual(a.behaviors[1].evidence, []); assert.deepEqual(a.behaviors[1].files, [], 'Code links need remaining exact evidence');
+  assert.equal(a.behaviors[0].evidence[0].quote, 'def fee(amount):');
+  assert.deepEqual(a.inconsistencies, []);
+  assert.ok(removed.some(item => item.includes('replaced by R2')) && removed.some(item => item.startsWith('B3:')) && removed.some(item => item.includes('evidence not found verbatim')));
+  validateAnalysis(a, r, snapshot);
+});
 test('retains omitted requirements as explicit unresolved behaviors', () => {
   const omitted=analysisSchema.parse({behaviors:[],inconsistencies:[]});validateAnalysis(omitted,report(),snapshot);
   assert.equal(omitted.behaviors[0].issue,'not_testable');
@@ -553,7 +590,9 @@ test('collection and baseline dependency errors are diagnosed even with no gener
       throw new Error('Unexpected repair or mutation action');
     };
     await runPython(r,root,new AbortController().signal,()=>{},ask);
-    assert.equal(r.collection?.exitCode,2);assert.equal(r.baseline?.exitCode,2);assert.equal(r.measurements[0].exitCode,5);
+    assert.equal(r.collection?.exitCode,2);
+    // Collection errors no longer stop the session; the unloadable module is its own error outcome.
+    assert.equal(r.baseline?.exitCode,1);assert.ok(r.baseline?.outcomes.some(outcome=>outcome.status==='error'&&outcome.file==='tests/test_missing.py'));assert.equal(r.measurements[0].exitCode,5);
     assert.equal(r.diagnoses.length,2);assert.ok(r.diagnoses.every(item=>item.category==='environment_failure'&&item.executionQuote));
     assert.equal(r.tests.length,0);assert.equal(r.improvements.length,0);assert.equal(r.states[0].status,'Uncertain');
     assert.equal(await readFile(join(root,'source/shipping.py'),'utf8'),code);
@@ -645,7 +684,7 @@ test('sandbox evidence detects generated-code tampering and preserves original m
   }finally{await rm(root,{recursive:true,force:true});}
 });
 
-test('one analysis correction preserves the rejected response and cannot bypass evidence validation', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 30000 }, async () => {
+test('one analysis correction preserves the rejected response, and evidence it cannot ground is removed', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 30000 }, async () => {
   for (const corrected of [true, false]) {
     const root = await mkdtemp(join(tmpdir(), 'reqtest-analysis-correction-'));
     let calls = 0;
@@ -664,10 +703,16 @@ test('one analysis correction preserves the rejected response and cannot bypass 
         throw new Error('Unexpected reasoning stage.');
       }) as typeof import('../lib/python-agent').reason;
       const run = () => runPython(r, root, AbortSignal.timeout(12000), () => {}, ask);
+      await run(); assert.equal(r.status, 'completed');
       if (corrected) {
-        await run(); assert.equal(r.status, 'completed');
         assert.equal(r.analysis!.behaviors[0].evidence[0].quote, 'def fee(amount):');
-      } else await assert.rejects(run, /unsupported/);
+        assert.equal(r.analysisCorrection!.removed, undefined);
+      } else {
+        const behavior = r.analysis!.behaviors[0];
+        assert.ok(behavior.evidence.every(item => item.quote !== code.replaceAll('\n', '\\n')), 'Ungrounded evidence never reaches the report');
+        assert.ok(behavior.evidence.length || !behavior.files.length, 'Code links require remaining exact evidence');
+        assert.ok(r.analysisCorrection!.removed!.some(item => item.includes('evidence not found verbatim')));
+      }
       assert.equal(calls, 2, 'Only one correction request is allowed');
       assert.match(r.analysisCorrection!.error, /unsupported/);
       assert.equal(r.analysisCorrection!.original.behaviors[0].evidence[0].quote, code.replaceAll('\n', '\\n'));

@@ -25,7 +25,17 @@ test('budget reserves durably before dispatch, counts failures and unknown inter
   const unsaved = report(); unsaved.resources = { limit: 1, requests: [] };
   await assert.rejects(budgetedRequest(unsaved, 'not-dispatched', () => { throw new Error('Database offline.'); }, async () => { calls++; }), /Database offline/);
   assert.equal(calls, 2, 'A failed reservation must prevent dispatch.');
-  for (const limit of [0, 1.5, 25, NaN]) assert.equal(verificationPolicySchema.safeParse({ modelRequestLimit: limit }).success, false);
+  for (const limit of [0, 1.5, NaN]) assert.equal(verificationPolicySchema.safeParse({ modelRequestLimit: limit }).success, false);
+  assert.equal(verificationPolicySchema.parse({ modelRequestLimit: 60 }).modelRequestLimit, 60, 'Large specifications may set any positive limit');
+});
+
+test('without a request limit every request is dispatched and still recorded', async () => {
+  assert.equal(verificationPolicySchema.parse({}).modelRequestLimit, undefined);
+  const r = report(); r.resources = { limit: null, requests: [] };
+  let calls = 0;
+  for (let index = 0; index < 60; index++) await budgetedRequest(r, 'request-' + index, () => {}, async request => { calls++; Object.assign(request, { totalTokens: 1 }); });
+  assert.equal(calls, 60); assert.equal(r.resources.exhausted, undefined);
+  assert.deepEqual(requestUsage(r), { used: 60, remaining: null, reportedTokens: 60, unknownUsage: 0 });
 });
 
 test('requesting less assurance or exhausting a budget cannot upgrade a saved positive state', () => {

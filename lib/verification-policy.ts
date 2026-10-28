@@ -3,17 +3,18 @@ import type { PythonReport } from './python-types';
 
 export const verificationPolicySchema = z.object({
   mutationChecks: z.boolean().default(true),
-  modelRequestLimit: z.number().int().min(1).max(24).default(12),
+  // Omitted means no request limit; usage is still recorded for every request.
+  modelRequestLimit: z.number().int().min(1).optional(),
 });
 export type VerificationPolicy = z.infer<typeof verificationPolicySchema>;
-export const interactivePolicy: VerificationPolicy = { mutationChecks: false, modelRequestLimit: 12 };
+export const interactivePolicy: VerificationPolicy = { mutationChecks: false };
 
 export function requestUsage(report: PythonReport) {
   const requests = report.resources?.requests || [];
   const known = requests.filter(request => request.totalTokens !== undefined);
   return {
     used: requests.length,
-    remaining: report.resources ? Math.max(0, report.resources.limit - requests.length) : null,
+    remaining: report.resources && report.resources.limit !== null ? Math.max(0, report.resources.limit - requests.length) : null,
     reportedTokens: known.reduce((sum, request) => sum + request.totalTokens!, 0),
     unknownUsage: requests.length - known.length,
   };
@@ -27,7 +28,7 @@ export class ModelBudgetError extends Error {
 export async function budgetedRequest<T>(report: PythonReport, key: string, save: () => void | Promise<void>, task: (request: NonNullable<PythonReport['resources']>['requests'][number]) => Promise<T>) {
   const resources = report.resources;
   if (!resources) throw new Error('Model request accounting is not initialized.');
-  if (resources.requests.length >= resources.limit) {
+  if (resources.limit !== null && resources.requests.length >= resources.limit) {
     resources.exhausted = true;
     report.stopReason = new ModelBudgetError(resources.limit).message;
     await save();

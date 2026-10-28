@@ -1,6 +1,5 @@
 import type { RequirementDocument, RequirementSource } from './requirements';
 
-export const requirementTextLimit = 12000;
 export const documentText = (document: RequirementDocument) => document.segments.map(segment => segment.text).join('\n\n');
 type Span = { start: number; end: number };
 type Rule = { id: string; text: string; originalId?: string; source?: RequirementSource; sources?: RequirementSource[] };
@@ -8,7 +7,6 @@ type Rule = { id: string; text: string; originalId?: string; source?: Requiremen
 export function parseRequirementInput(input: string, document?: RequirementDocument) {
   const text = input.trim();
   if (!text) throw new Error('Enter requirements or upload a requirement file.');
-  if (text.length > requirementTextLimit) throw new Error('Requirements exceed 12,000 characters. Shorten the text before running; nothing is truncated automatically.');
   // Explicit identifiers establish input boundaries, not semantic correctness.
   const events = [...text.matchAll(/^[ \t]*(?:(?:#{1,6}[ \t]+)?(?:\|[ \t]*)?(?:\*\*)?((?:N?FR(?:-[A-Z0-9]+)*[- ]?\d+|R\d+))(?:\*\*)?(?=\s*[:.)|\-]|[ \t]+|$)|#{1,6}[ \t]+[^\r\n]+)/gmi)];
   const identified = events.some(event => event[1]);
@@ -35,11 +33,14 @@ export function parseRequirementInput(input: string, document?: RequirementDocum
   } else {
     let sections = text.split(/\n\s*\n/).filter(section => section.trim());
     if (sections.length === 1 && !document) sections = text.split(/\r?\n/).filter(section => section.trim());
-    if (sections.length > 12) sections = [text];
+    // Markdown headings name a section; they state no requirement of their own.
+    const heading = (section: string) => section.trim().split(/\r?\n/).every(line => /^\s*#{1,6}\s/.test(line));
+    const statements = sections.some(section => !heading(section));
     let cursor = 0;
     for (const section of sections) {
       const start = text.indexOf(section, cursor); cursor = start + section.length;
-      groups.push({ spans: [span(start, cursor)] });
+      if (statements && heading(section)) context.push(section);
+      else groups.push({ spans: [span(start, cursor)] });
     }
   }
   const rules: Rule[] = groups.map((group, index) => {

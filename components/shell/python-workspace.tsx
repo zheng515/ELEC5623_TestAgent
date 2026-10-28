@@ -8,13 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { PythonReport } from "@/lib/python-types";
 import type { RequirementDocument } from "@/lib/requirements";
-import { documentText, requirementTextLimit, parseRequirementInput } from "@/lib/requirement-input";
+import { documentText, parseRequirementInput } from "@/lib/requirement-input";
 import { verificationSummary } from '@/lib/run-evaluation';
 import { uncertainOcr } from "@/lib/document-selection";
 import { DocumentExtraction } from "./document-extraction";
 import type { ProjectSetup } from "@/lib/project-setup";
 import Link from "next/link";
 import type { GitHubConnectionStatus } from "@/lib/github-config";
+import { browserTest } from "@/lib/runtime";
 import { RuntimeStatus, useRuntimeHealth } from "./runtime-health";
 import { VerificationGuide } from './verification-guide';
 import { interactivePolicy, requestUsage } from '@/lib/verification-policy';
@@ -133,7 +134,7 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
   }
   const summary = selected && verificationSummary(selected);
   let inputPreview: ReturnType<typeof parseRequirementInput> | undefined;
-  if (requirements.trim() && requirements.length <= requirementTextLimit) inputPreview = parseRequirementInput(requirements);
+  if (requirements.trim()) inputPreview = parseRequirementInput(requirements);
   useEffect(() => {
     if (!selected?.parentRunId) return;
     let active = true;
@@ -150,9 +151,9 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
         <label className="block space-y-2">Verification depth<NativeSelect name="mutationChecks" defaultValue={String(parent?.policy?.mutationChecks ?? interactivePolicy.mutationChecks)}>
           <NativeSelectOption value="false">Requirement checks</NativeSelectOption><NativeSelectOption value="true">Requirement and mutation checks</NativeSelectOption>
         </NativeSelect><span className="block text-xs text-muted-foreground">Both review original requirements, execute approved tests and investigate failures. Mutation checks examine test strength and may take longer. Without them, passing cases remain partially verified.</span></label>
-        <label className="block space-y-2">Maximum model requests<Input name="modelRequestLimit" type="number" min={1} max={24} step={1} required defaultValue={parent?.policy?.modelRequestLimit ?? interactivePolicy.modelRequestLimit} /><span className="block text-xs text-muted-foreground">Stop before exceeding this limit, including failed or interrupted requests. Partial results are saved. This limits request count, not a monetary charge.</span></label>
+        <label className="block space-y-2">Maximum model requests (optional)<Input name="modelRequestLimit" type="number" min={1} step={1} placeholder="No limit" defaultValue={parent?.policy?.modelRequestLimit ?? ''} /><span className="block text-xs text-muted-foreground">Leave empty for no limit; every request is still recorded. When set, the run stops before exceeding it, including failed or interrupted requests, and saves partial results. This limits request count, not a monetary charge.</span></label>
       </div>
-      {parent ? <div className="space-y-3 border rounded p-4"><p>Reusing the saved code snapshot from {parent.title}. The previous report stays unchanged.</p><p>{parent.source}</p><details><summary>Previous requirements</summary><div className="max-h-64 overflow-auto">{parent.rules.map(rule => <blockquote key={rule.id}>{rule.id}: {rule.text}</blockquote>)}</div></details><label className="block">Clarification — additional requirements, one per line<Textarea name="clarification" rows={4} maxLength={4000} placeholder="State the intended rule that resolves the earlier ambiguity. These statements become new requirements in this run." /></label></div> : <>
+      {parent ? <div className="space-y-3 border rounded p-4"><p>Reusing the saved code snapshot from {parent.title}. The previous report stays unchanged.</p><p>{parent.source}</p><details><summary>Previous requirements</summary><div className="max-h-64 overflow-auto">{parent.rules.map(rule => <blockquote key={rule.id}>{rule.id}: {rule.text}</blockquote>)}</div></details><label className="block">Clarification — additional requirements, one per line<Textarea name="clarification" rows={4} placeholder="State the intended rule that resolves the earlier ambiguity. These statements become new requirements in this run." /></label></div> : <>
         <fieldset aria-label="Project configuration" className="space-y-5" disabled={checking} onChange={() => setSetup(undefined)}>
           <div className="grid gap-5 md:grid-cols-2">
             <label className="block space-y-2">GitHub repository<Input name="repository" type="url" placeholder="https://github.com/owner/repository" /></label>
@@ -166,6 +167,7 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
             <summary className="cursor-pointer font-semibold">Advanced settings</summary>
             <div className="mt-3 space-y-4">
               <p className="text-sm text-muted-foreground">Defaults: automatic runtime detection, no dependency installation and no test services. Collapsing this panel keeps your selections.</p>
+              <label className="block space-y-2">Run directory (optional)<Input name="runDirectory" maxLength={200} placeholder="backend" /><span className="text-xs text-muted-foreground">Python only. Relative to the project directory. The whole project is analyzed, including frontend files, while dependencies are installed and pytest runs in this directory. Leave empty to use the project directory.</span></label>
               <div className="space-y-2"><label htmlFor="project-runtime">Runtime</label><NativeSelect id="project-runtime" name="runtime" defaultValue="auto"><NativeSelectOption value="auto">Detect automatically</NativeSelectOption><NativeSelectOption value="python">Python / pytest</NativeSelectOption><NativeSelectOption value="node">JavaScript or TypeScript / node:test</NativeSelectOption></NativeSelect></div>
               <p className="text-sm text-muted-foreground">Sandbox images are managed on the server. Each run records its pinned image.</p>
               <label className="flex gap-2"><input name="automaticSetup" type="checkbox" value="true" />Install declared registry dependencies automatically</label>
@@ -176,20 +178,19 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
           </details>
           <Button type="button" variant="outline" onClick={checkSetup}>{checking ? 'Checking project…' : 'Check project setup'}</Button>
         </fieldset>
-        {setup && <div className="border rounded p-4 space-y-2"><p>Project setup: {setup.setup.status} · {setup.runtime === "node" ? "Node.js" : "Python"} {setup.setup.python}</p>{setup.setup.checks.map((check, i) => <p key={i} className={check.status === 'failed' ? 'text-red-400' : 'text-muted-foreground'}>{check.status} · {check.label}: {check.detail}</p>)}{setup.automaticSetup && <details><summary>Installed dependency versions ({setup.installed.length})</summary>{setup.installed.map(dependency => <p className="text-xs" key={dependency}>{dependency}</p>)}{!setup.installed.length && <p>No additional declared dependencies were installed.</p>}</details>}{setup.setup.limitations.map(limit => <p className="text-xs text-muted-foreground" key={limit}>{limit}</p>)}{setup.setup.status === 'needs_setup' && <label className="flex gap-2"><input type="checkbox" name="allowEnvironmentFailure" value="true" />Run anyway to diagnose environment failures</label>}</div>}
+        {setup && <div className="border rounded p-4 space-y-2"><p>Project setup: {setup.setup.status} · {setup.runtime === "node" ? "Node.js" : "Python"} {setup.setup.python}{setup.runDirectory ? ' · runs in ' + setup.runDirectory + '/' : ''}</p>{setup.setup.checks.map((check, i) => <p key={i} className={check.status === 'failed' ? 'text-red-400' : 'text-muted-foreground'}>{check.status} · {check.label}: {check.detail}</p>)}{setup.automaticSetup && <details><summary>Installed dependency versions ({setup.installed.length})</summary>{setup.installed.map(dependency => <p className="text-xs" key={dependency}>{dependency}</p>)}{!setup.installed.length && <p>No additional declared dependencies were installed.</p>}</details>}{setup.setup.limitations.map(limit => <p className="text-xs text-muted-foreground" key={limit}>{limit}</p>)}{setup.setup.status === 'needs_setup' && <label className="flex gap-2"><input type="checkbox" name="allowEnvironmentFailure" value="true" />Run anyway to diagnose environment failures</label>}</div>}
         <label className="block space-y-2">Requirement file (optional)<FileInput accept=".pdf,.doc,.docx,.txt,.md" disabled={extracting} onChange={event => extract(event.target.files?.[0])} /></label>
         {extracting && <p role="status">Extracting requirement text…</p>}
         <label className="block space-y-2">Requirements<Textarea name="requirements" required value={requirements} onChange={event => setRequirements(event.target.value)} disabled={extracting} rows={10} placeholder="Upload a requirement file to fill this field, or describe intended behavior, boundaries and exception rules." /></label>
-        <p className={'text-sm ' + (requirements.length > requirementTextLimit ? 'text-red-400' : 'text-muted-foreground')}>{requirements.length.toLocaleString('en-US')} / 12,000 characters{requirements.length > requirementTextLimit ? ' · Shorten the text before running. The uploaded content has not been truncated.' : ''}</p>
+        <p className="text-sm text-muted-foreground">{requirements.length.toLocaleString('en-US')} characters</p>
         {inputPreview && <p className="text-sm text-muted-foreground">{inputPreview.mode === 'numbered' ? `${inputPreview.rules.length} numbered requirement items detected automatically.` : `${inputPreview.rules.length} input text sections; the Agent will derive testable behaviors.`} {inputPreview.context && 'Other document text is retained as context; it is not independently verified.'}</p>}
-        {inputPreview && inputPreview.rules.length > 24 && <p role="alert" className="text-sm text-red-400">This run supports 24 requirement items. Split the specification into smaller runs; no text has been truncated.</p>}
         {document && (document.warnings.length > 0 || document.segments.some(uncertainOcr)) && <p role="status" className="text-sm text-red-400">The document has extraction warnings or uncertain OCR text. Review source details and correct the text before running.</p>}
         {document && <details className="border rounded p-4 space-y-3"><summary className="cursor-pointer">{document.fileName} · Source and extraction details</summary><div className="mt-3 space-y-3"><p className="text-sm text-muted-foreground">{requirements === documentText(document) ? 'All extracted text was copied into Requirements. You can edit it directly.' : 'Requirements have been edited. Only unchanged original excerpts retain source citations.'}</p><DocumentExtraction document={document} /><a className="inline-block underline text-sm" href={'/api/requirements?id=' + document.id}>Download original document</a>{document.segments.some(segment => segment.extraction === 'ocr') && <p className="text-sm text-muted-foreground">OCR text may contain transcription errors. Compare uncertain excerpts with the original before running.</p>}</div></details>}
 
       </>}
       <p className="text-sm text-muted-foreground">Submit only approved project data. Source code, tests and project documentation are sent to the selected model. Tests execute in Docker. Automatic setup installs registry dependencies without running project install scripts.</p>
       {!modelReady && <p role="status">Configure OPENAI_API_KEY in the root .env.local, then restart.</p>}
-      <Button disabled={!canSubmit || !model.trim() || extracting || checking || (!parent && (!requirements.trim() || requirements.length > requirementTextLimit || (inputPreview?.rules.length || 0) > 24))}>{health?.worker === 'online' ? 'Run verification' : 'Queue verification'}</Button>
+      <Button disabled={!canSubmit || !model.trim() || extracting || checking || (!parent && !requirements.trim())}>{health?.worker === 'online' ? 'Run verification' : 'Queue verification'}</Button>
     </form>
     <div className="flex flex-wrap gap-3 items-center">
       <label htmlFor="python-history">Your runs</label><NativeSelect id="python-history" disabled={busy} value={selected?.id || ''} onChange={(event) => setSelected(runs.find((run) => run.id === event.target.value))}><NativeSelectOption value="">New verification</NativeSelectOption>{runs.map((run) => <NativeSelectOption key={run.id} value={run.id}>{run.title} · {run.status === 'running' && !busy ? 'Running / incomplete' : run.status}</NativeSelectOption>)}</NativeSelect>
@@ -211,14 +212,14 @@ export function PythonWorkspace({ model, configured, onRunningChange, onOpenEval
         </> : <>
         <h3 className="font-bold text-lg">{summary?.title}</h3>
         <p>{summary?.passed} passed · {summary?.failedCount} failed · {summary?.errors} errors · {summary?.skipped} skipped</p>
-        <p className="text-sm text-muted-foreground">{selected.rules.length} input items · {selected.analysis?.behaviors.length || 0} analyzed behaviors · {summary?.approved} approved test files · {summary?.blocked} blocked or awaiting review</p>
+        <p className="text-sm text-muted-foreground">{selected.rules.length} input items · {selected.analysis?.behaviors.length || 0} analyzed behaviors · {summary?.approved} approved test files ({selected.tests.filter(test => test.approved && browserTest(test.code)).length} browser) · {summary?.blocked} blocked or awaiting review</p>
         <p>{summary?.unresolved.length} of {selected.rules.length} requirement items still need verification.</p>
         <p><strong>Next action:</strong> {summary?.next}</p>
         {!!summary?.unmapped.length && <p role="status">{summary.unmapped.length} input items have no analyzed behavior. They are not verified.</p>}
         </>}
         <details className="text-sm text-muted-foreground"><summary className="cursor-pointer">Run details</summary><div className="mt-3 space-y-2">
           <p>Workflow: {selected.status}. This is separate from test and requirement results.</p>
-          {selected.resources && <p>Model requests: {requestUsage(selected).used}/{selected.resources.limit} · {requestUsage(selected).remaining} remaining. Reported tokens: {requestUsage(selected).reportedTokens}; usage unavailable for {requestUsage(selected).unknownUsage} requests.{selected.resources.exhausted ? ' Request budget exhausted; this run is incomplete.' : ''}</p>}
+          {selected.resources && <p>Model requests: {requestUsage(selected).used}/{selected.resources.limit ?? 'no limit'}{selected.resources.limit !== null && <> · {requestUsage(selected).remaining} remaining</>}. Reported tokens: {requestUsage(selected).reportedTokens}; usage unavailable for {requestUsage(selected).unknownUsage} requests.{selected.resources.exhausted ? ' Request budget exhausted; this run is incomplete.' : ''}</p>}
           {selected.policy && <p>Mutation checks: {selected.policy.mutationChecks ? 'Requested; inspect measurements for actual completion.' : 'Not requested. Test strength against mutations remains unassessed.'}</p>}
           {selected.execution && <p>{selected.execution.recovered ? `Worker recovery attempt ${selected.execution.attempt}. Saved checkpoints are reused when available.` : selected.execution.attempt ? 'Processed by the background verification worker.' : 'Queued. Waiting for an available background worker.'}</p>}
           {selected.replay && <p>Saved tests re-executed without model calls. Original analysis and reviews were reused; no new diagnosis or mutation analysis was performed.</p>}

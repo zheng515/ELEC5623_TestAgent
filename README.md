@@ -16,6 +16,7 @@ work](docs/product-positioning.md) for overlap, differences and evidence limits.
 - Check project dependencies before model calls and reuse the checked code snapshot.
 - Analyze requirement quality, behavior-level test gaps and code/test conflicts.
 - Generate reviewed pytest or node:test artifacts and execute them in a disposable Docker sandbox.
+- Verify full-stack Python web projects: server rules get API or unit tests, and page behavior gets headless Chromium browser tests against the project's own application, with screenshots of failures.
 - Install compatible Python wheels or locked npm packages in a reusable, pinned image; inspect actual installed versions.
 - Run checks against disposable PostgreSQL and Redis services on a private network.
 - Diagnose collection, existing-test and generated-test failures with recorded evidence.
@@ -39,7 +40,8 @@ mutation checks** to investigate additional test strength. Without mutation
 assessment, passing cases remain Partially Verified; strict CI still requires
 Verified. No check depth establishes exhaustive correctness.
 
-The request limit accepts 1–24 requests and covers all stages and worker retries.
+The optional request limit is empty by default, which means no limit; when set, it
+covers all stages and worker retries. Benchmarks keep a 12-request budget.
 Failed/interrupted attempts consume slots; cached responses do not. Each
 reservation is saved before provider dispatch. Exhaustion retains an incomplete
 run and partial evidence. Run details and Agent decisions show consumed/remaining
@@ -246,8 +248,8 @@ have one queued or active task; the worker runs at most two tasks concurrently.
 Closing a browser tab detaches progress without cancelling the task. A worker
 interruption permits up to two retries after heartbeat expiry. Saved analysis,
 model responses and completed tool results are reused; a model request interrupted
-before its checkpoint was saved may be sent again. Each attempt has a ten-minute
-time limit. Recovery requires the same database, source files, runtime settings,
+before its checkpoint was saved may be sent again. Attempts have no run time limit
+beyond pg-boss's 24-hour job expiry. Recovery requires the same database, source files, runtime settings,
 agent code and sandbox image. Changed inputs fail explicitly instead of mixing
 old execution evidence with new code. Stopping a task cancels its queue job and
 retains partial evidence; a cancelled task is not automatically resumed.
@@ -297,6 +299,13 @@ take precedence over both files.
    It becomes the project root for runtime detection, dependencies, imports and
    tests. Sibling directories are outside the analyzed scope; keep required shared
    code inside the selected project or select a broader root.
+   For a full-stack Python project whose server code, requirement files and pytest
+   configuration live in a subdirectory, leave **Project directory** at the root and
+   set **Advanced settings → Run directory** to that subdirectory, for example `backend`.
+   The whole project, including HTML, CSS and JavaScript, is analyzed and cited, while
+   dependencies are installed and pytest runs inside the run directory. Recorded paths
+   stay relative to the project root. Requirement files may include each other with
+   `-r other-requirements.txt` inside the run directory.
    Advanced settings are collapsed by default. Defaults detect the runtime and use
    the server sandbox without installing dependencies or starting test services.
    Collapsing the panel retains selections; changing project or environment inputs
@@ -304,17 +313,18 @@ take precedence over both files.
    services are separate from the PostgreSQL database that stores ReqTest accounts.
 2. Paste requirements, or upload PDF, DOC, DOCX, UTF-8 TXT or Markdown.
    All extracted text automatically fills the editable **Requirements** field;
-   no line or paragraph selection is required. The limit is 12,000 characters,
-   independent of line count. Oversized text remains visible and must be shortened
-   before running; it is never silently truncated. Original document hashes,
+   no line or paragraph selection is required. Requirement text has no length or
+   line-count limit and is never truncated. Original document hashes,
    page/paragraph locations and extraction warnings remain available under source
    details. Exact unchanged excerpts retain citations; edits are treated as
    user-provided text. Explicit IDs such as R1 and FR-CAL-02 are grouped
    automatically; repeated IDs share an input item. Other text is retained as
    supporting context and is not independently verified. Unnumbered text remains
-   available for behavior decomposition. A run supports at most 24 input items
-   and 24 analyzed behaviors; larger specifications need separate runs. All input
-   remains visible and no excess content is silently dropped.
+   available for behavior decomposition; each paragraph becomes one input item, and
+   paragraphs that are only Markdown headings become context. There is no limit on
+   input items or analyzed behaviors: large specifications are analyzed five items
+   at a time and tests are generated six behaviors at a time. All input remains
+   visible and no content is silently dropped.
 3. Select **Run verification**. Inspect behavior states, source quotes, mapped tests,
    recorded test outcomes, diagnoses, mutation results and improvements.
 4. Download the evidence JSON and generated-test ZIP. Extract the ZIP in the original
@@ -464,10 +474,27 @@ Discovery executes existing test bodies in a disposable copy; it is not static
 collection. Assertion failures are retained for baseline diagnosis, while import,
 unsupported-suite, duplicate-name and integrity errors prevent unsupported
 verification. Selected existing test IDs are executed individually by file/name.
-Jest/Vitest, nested suites, browser automation and arbitrary project layouts are
-not supported. Generated artifacts are stored under reqtest_generated; file-load
+Jest/Vitest, nested suites and arbitrary project layouts are not supported. Generated artifacts are stored under reqtest_generated; file-load
 errors are associated with their artifact for evidence-based diagnosis/repair,
 while positive verification still requires the exact registered test name.
+
+### Browser tests
+
+Python projects can verify page behavior in headless Chromium (Playwright 1.55).
+The model chooses the test level per behavior: server rules, data, validation and
+access control are checked through direct calls or the project's own test client;
+what a user sees in pages (defaults, navigation, redirects, client-side validation and
+messages) is checked in a browser. Browser tests request two sandbox fixtures:
+`live_server(app)` serves the project's own ASGI application (with uvicorn from the
+project's dependencies) or WSGI application on a loopback port and stops it after the
+test, and `page` is a Chromium page with five-second waits. Tests build the
+application through the project's public factory with temporary storage, use
+selectors present in the submitted frontend files and never reach an external
+network. A failed browser test records a JPEG of the page, shown under its failure in
+Evaluation. Exported test archives include the fixtures as
+`reqtest_generated/conftest.py`. Mutation testing covers Python sources only;
+frontend JavaScript is exercised by browser tests but not mutated. Browser tests make
+mutation runs slower, so fewer mutants finish within the mutation time budget.
 
 Optional PostgreSQL 17 and Redis 7 services start fresh for each tool invocation,
 on an internal Docker network with no published ports. Only their generated
@@ -483,8 +510,8 @@ a development tag does not remove an in-use execution image. Keep images referen
 by saved reports when cleaning Docker storage.
 
 Limits: 500 archive entries, 10 MB compressed, 3 MB expanded, 200 KB per retained
-source/configuration file, 1 MB for uv.lock/package-lock.json, 200 KB model context,
-24 extracted behaviors and 16 initially generated tests. These lockfiles remain
+source/configuration file, 1 MB for uv.lock/package-lock.json and 200 KB model context.
+The number of extracted behaviors and generated tests is not limited. These lockfiles remain
 in the fingerprinted snapshot but are excluded from model reasoning. Automatic
 Python setup uses declared compatible wheels, not uv.lock resolution; exact
 installed versions and the resulting sandbox image are retained.
@@ -557,8 +584,8 @@ The upload and report views show per-page extraction outcomes, with detailed
 warnings collapsed by default. Low-confidence OCR blocks (below 70, or with no
 confidence available) are retained in the editable text and flagged for review. This threshold
 is a transcription warning, not a calibrated accuracy or verification score.
-At most 20 pages are attempted within a bounded processing budget; unreadable,
-failed or unprocessed pages are listed in extraction warnings. OCR is not exact
+Every page is attempted, with no page-count, text-size or total OCR time limit;
+unreadable or failed pages are listed in extraction warnings. OCR is not exact
 transcription. PDF reading order and complex tables need visual review.
 DOCX citations retain body-block and table-row locations. Each table row stays
 together so requirement IDs, conditions and expected results are not separated.

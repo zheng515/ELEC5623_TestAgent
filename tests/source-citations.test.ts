@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { asSchema } from 'ai';
 import { createHash } from 'node:crypto';
-import { sourceEvidenceSchema, groundedAnalysisSchema, groundedDiagnosisSchema, originalQuoteSchema, analysisSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema } from '../lib/python-types';
+import { sourceEvidenceSchema, sourceEvidenceListSchema, groundedAnalysisSchema, groundedDiagnosisSchema, originalQuoteSchema, analysisSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema } from '../lib/python-types';
 import { reason, validateAnalysis, assertionPolicy, testReviewTask, mutationReviewTask, type ReasonUsage } from '../lib/python-agent';
 import { analysis, artifact, code, rule, report } from './fixtures/python-agent';
 
@@ -64,7 +64,7 @@ test('mocked official SDK requests send numbered files, restore originals and fa
     const system = body.input.find((message: { role: string }) => ['system', 'developer'].includes(message.role));
     const instructions = typeof system.content === 'string' ? system.content : system.content.find((item: { type: string }) => item.type === 'input_text').text;
     assert.equal(instructions.split(assertionPolicy).length - 1, 1, 'Every stage receives one shared assertion policy.');
-    assert.equal(body.max_output_tokens, 8000);
+    assert.equal(body.max_output_tokens, undefined, 'Verification calls carry no output cap');
     prompts.push(prompt);
     assert.equal(JSON.parse(prompt).files['shipping.py'], numbered ? '1: def fee(amount):\n2:     return 0 if amount >= 10000 else 1000\n3: ' : code);
     assert.equal(JSON.parse(prompt).rules[0].text, expectedRequirement, 'Encoding never rewrites requirement text.');
@@ -100,4 +100,18 @@ test('mocked official SDK requests send numbered files, restore originals and fa
   assert.equal(shared.mutants.length, 1);
   assert.deepEqual(shared.pairs, mutationContext.pairs);
   assert.deepEqual(context, before, 'Saved source and caller input remain unchanged.');
+});
+
+test('a response keeps resolvable line references and drops blank or out-of-file ones without replacement', async () => {
+  const files = { 'shipping.py': code, 'README.md': 'Heading\n\nOriginal wording.\n' };
+  const list = sourceEvidenceListSchema(files);
+  // README.md line 2 is blank; shipping.py has fewer lines than README.md.
+  assert.deepEqual(list.parse([{ file: 'shipping.py', line: 1 }, { file: 'README.md', line: 2 }, { file: 'shipping.py', line: 4 }, { file: 'README.md', line: 3 }]),
+    [{ file: 'shipping.py', line: 1, quote: 'def fee(amount):' }, { file: 'README.md', line: 3, quote: 'Original wording.' }]);
+  assert.equal(list.safeParse([{ file: 'invented.py', line: 1 }]).success, false, 'Unknown files are still rejected by the provider schema');
+  const source = analysis();
+  const encoded = { ...source, behaviors: source.behaviors.map(behavior => ({ ...behavior, quote: 'R1', evidence: [{ file: 'shipping.py', line: 1 }, { file: 'README.md', line: 2 }] })) };
+  const accepted = await asSchema(groundedAnalysisSchema(files, [], ['R1\n' + rule], ['R1'], true)).validate!(encoded);
+  assert.equal(accepted.success, true, 'One unresolvable reference does not reject the whole analysis');
+  if (accepted.success) assert.deepEqual(accepted.value.behaviors[0].evidence, [{ file: 'shipping.py', line: 1, quote: 'def fee(amount):' }]);
 });

@@ -1,16 +1,17 @@
 import { createHash, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { dockerTool, readRuntime, retainSandboxImage } from "./python-tools";
+import { dockerTool, readRunDirectory, readRuntime, retainSandboxImage } from "./python-tools";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 const docker = promisify(execFile);
 export async function prepareEnvironment(root: string, baseImage: string, signal: AbortSignal) {
-  const runtime = await readRuntime(root);
-  const names = [...new Set(["pyproject.toml", "package.json", "package-lock.json", ...(await readdir(join(root, "source"))).filter(name => /requirements.*[.]txt$/.test(name))])].sort();
-  const declarations = await Promise.all(names.map(async file => [file, await readFile(join(root, "source", file), "utf8").catch(() => "")]));
-  const key = createHash("sha256").update(JSON.stringify({ runtime, baseImage, declarations })).digest("hex");
+  const runtime = await readRuntime(root), runDirectory = await readRunDirectory(root), directory = join(root, "source", runDirectory);
+  // Requirement files may include each other, so every one in the run directory is part of the key.
+  const names = [...new Set(["pyproject.toml", "package.json", "package-lock.json", ...(await readdir(directory)).filter(name => /requirements.*[.]txt$/.test(name))])].sort();
+  const declarations = await Promise.all(names.map(async file => [file, await readFile(join(directory, file), "utf8").catch(() => "")]));
+  const key = createHash("sha256").update(JSON.stringify({ runtime, runDirectory, baseImage, declarations })).digest("hex");
   const tag = "reqtest-env:" + key, name = "reqtest-build-" + randomUUID();
   signal.throwIfAborted();
   try {

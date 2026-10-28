@@ -21,7 +21,8 @@ const manifestSchema = z.object({
   variants: z.array(z.enum(['B0', 'B1', 'B2', 'B3'])).min(1).max(4),
   sharedInitialSuite: z.boolean().default(false),
   followupRequestLimit: z.number().int().min(1).max(12).default(6),
-  policy: verificationPolicySchema.default(() => verificationPolicySchema.parse({})),
+  // Benchmarks keep their frozen 12-request budget; interactive runs default to no limit.
+  policy: verificationPolicySchema.default(() => verificationPolicySchema.parse({ modelRequestLimit: 12 })),
   cases: z.array(z.object({ id: z.string().regex(/^[\w-]+$/), project: z.string(), requirements: z.string(), gold: z.string(), oracle: z.string().optional() })).min(1).max(20),
 });
 async function main() {
@@ -72,7 +73,6 @@ async function main() {
     const requirementText = await readFile(item.requirements, 'utf8');
     const parsed = parseRequirementInput(requirementText);
     const { rules, ...requirementInput } = parsed;
-    if (rules.length > 24) throw new Error('Benchmark requirements must fit the supported input limits.');
     await writeFile(join(output, `${item.id}.gold.json`), JSON.stringify(gold, null, 2));
     await writeFile(join(output, `${item.id}.requirements.txt`), requirementText);
     index.inputs[item.id] = { archiveHash: createHash('sha256').update(archive).digest('hex'), requirementHash: createHash('sha256').update(requirementText).digest('hex') };
