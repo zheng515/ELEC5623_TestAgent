@@ -1,10 +1,9 @@
-# Pilot evaluation
+# Reusable evaluation fixtures
 
 This is a small synthetic development benchmark, not a held-out study or proof of
 product quality. The reference labels were prepared during implementation and are
-deliberately marked `reviewed: false`. A teammate must independently verify and
-correct them before they can be used as ground truth. Use additional held-out
-projects and repeated runs for the final evaluation.
+deliberately marked `reviewed: false`. AI-assisted reference inputs are not independent ground truth. No human review
+is planned; independent semantic accuracy remains unavailable.
 
 | Case | Purpose |
 | --- | --- |
@@ -12,20 +11,18 @@ projects and repeated runs for the final evaluation.
 | booking | Inclusive-boundary implementation fault; passing nominal test |
 | inventory | Ambiguous notification requirement; code/test conflict at equal stock |
 
-## Run
+## Current experiment entrypoint
 
-Start Docker, build `reqtest-python:1`, and configure the root `.env.local`. Then:
+Old synthetic study results and manifests were removed. These projects remain
+regression inputs. Use the [v16 setup](../real-projects-v16/README.md) and
+[current inventory](../../experiments/README.md) for retained observations.
+The active runner defaults to the complete-runtime v16 B1/B3 study:
 
 ```sh
-npm run evaluate -- examples/evaluation.json
+REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run experiment:run
 ```
 
-This explicitly makes paid model calls. Default: 3 cases, B0–B3, one repetition,
-no automatic model retries. Each invocation creates a new directory under
-`.evidence/evaluation/`; it preserves reports, frozen source copies, test artifacts,
-reference-probe results and output-review templates. The final log prints the
-`index.json` path. Ctrl-C cancels the active run and retains partial evidence.
-
+This makes new paid model calls; it does not recreate the deleted studies.
 The runner pins the Docker image ID and records the agent source fingerprint. All
 variants receive the same project snapshot, requirements and model for a case. B0 receives requirements
 and Python context; B1 also receives documentation. B2 includes analysis, execution
@@ -155,7 +152,7 @@ wrong-type outputs can pass the older equality-only tests and fail the positive
 controls. C08 now uses the documented precedence: an invented exact expectation in
 a generated test is a test-generation error, while the vague requirement remains
 context requiring clarification. These are revised development labels, not independent
-review. Earlier evidence retains its copied input cases, task text and draft labels.
+review. Earlier experiment outputs were removed at the owner's request.
 Compare unchanged overlapping input hashes when dataset versions differ; do not
 compare the sixteen-case aggregate directly with earlier eleven- or nine-case aggregates.
 
@@ -176,16 +173,15 @@ class count. Set-valued diagnosis references prevent single-label Macro-F1 while
 retaining acceptable-label accuracy. Classification remains separate from actual
 Agent admission/grounding and complete workflow outcomes.
 
-Policy v12 adds a request budget and optional mutation depth. Use
+The current policy supports a request budget and optional mutation depth. Use
 [the evaluation protocol](../../docs/evaluation-protocol.md) for current boundaries.
 C12–C16 add supported/unsupported exception assertions, a generated bad import,
 contradictory equality clauses and an undefined threshold. Their labels are
 unreviewed development drafts, not human ground truth.
 
-The AI-assisted annotations under experiments/annotations are accepted development
-reference answers. Supply that reference.ai-assisted.json with --reference to
-collect a new model study. Its referenceComparison fields measure agreement and
-classification metrics against those specified labels, with basis=ai_assisted.
-Independent-human accuracy fields remain unavailable. All planned model decisions
-must still be valid before comparison scores are produced; accepting references
-does not itself create model observations. Frozen references retain provenance.
+The AI-assisted reference is retained in
+`tests/fixtures/decision-reference.ai-assisted.json`, with its original trace pack
+at `tests/fixtures/decision-reference.cases.json`. They are reusable regression
+inputs. Old component results and review packs were deleted; no current model
+accuracy or human-review result is implied. AI authorship and unreviewed flags
+remain explicit. Independent-human accuracy is unavailable.

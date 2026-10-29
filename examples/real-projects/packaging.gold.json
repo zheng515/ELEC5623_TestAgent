@@ -1,0 +1,44 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "contract-1",
+      "ruleId": "R1",
+      "description": "packaging.version.Version('1.0a5') compares less than Version('1.0'); Version('1.0') equals Version('1.0.0'); Version('1.0').release is the tuple (1, 0) and its is_prerelease property is False.",
+      "initialGap": false
+    },
+    {
+      "id": "contract-2",
+      "ruleId": "R2",
+      "description": "packaging.version.Version('french toast') raises packaging.version.InvalidVersion.",
+      "initialGap": false
+    },
+    {
+      "id": "contract-3",
+      "ruleId": "R3",
+      "description": "packaging.specifiers.SpecifierSet('>=1.0,<2.0') contains version strings '1.0' and '1.5' and excludes '0.9' and '2.0'. Its filter over ['0.9', '1.0', '1.5', '2.0'] yields ['1.0', '1.5'] in that order.",
+      "initialGap": false
+    },
+    {
+      "id": "contract-4",
+      "ruleId": "R4",
+      "description": "Combining SpecifierSet('~=1.0') with SpecifierSet('>=1.0') and '!=1.1' using intersection produces a set that contains '1.0' and '1.4', excludes '1.1' and '2.0', and excludes the prerelease '1.0a5' by default.",
+      "initialGap": false
+    },
+    {
+      "id": "contract-5",
+      "ruleId": "R5",
+      "description": "packaging.requirements.Requirement('name[foo]>=2,<3; python_version>\"2.0\"') has name 'name', extras {'foo'}, url None, and a non-null marker. Its specifier contains '2.5' and excludes '3.0'; its marker evaluates True for environment {'python_version': '3.11'} and False for {'python_version': '2.0'}.",
+      "initialGap": false
+    },
+    {
+      "id": "contract-6",
+      "ruleId": "R6",
+      "description": "packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for both 'oslo.concurrency' and 'oslo_concurrency'.",
+      "initialGap": false
+    }
+  ]
+}

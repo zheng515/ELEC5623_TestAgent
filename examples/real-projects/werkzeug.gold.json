@@ -1,0 +1,44 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "contract-1",
+      "ruleId": "R1",
+      "description": "werkzeug.datastructures.MultiDict([('a', 'b'), ('a', 'c')]) returns 'b' for dictionary access at key 'a', and getlist('a') returns ['b', 'c'] in that order.",
+      "initialGap": false
+    },
+    {
+      "id": "contract-2",
+      "ruleId": "R2",
+      "description": "For an empty werkzeug.datastructures.MultiDict, getlist('missing') returns [] and get('missing', 'fallback') returns 'fallback'.",
+      "initialGap": false
+    },
+    {
+      "id": "contract-3",
+      "ruleId": "R3",
+      "description": "Starting with MultiDict([('a', 'b')]), add('a', 'c') appends the value, so getlist('a') returns ['b', 'c']. Subsequently assigning d['a'] = 'replacement' replaces all previous values, so getlist('a') returns ['replacement'].",
+      "initialGap": false
+    },
+    {
+      "id": "contract-4",
+      "ruleId": "R4",
+      "description": "For MultiDict([('n', '1'), ('n', 'invalid'), ('n', '2')]), getlist('n', type=int) returns [1, 2], dropping the value whose integer conversion raises ValueError.",
+      "initialGap": false
+    },
+    {
+      "id": "contract-5",
+      "ruleId": "R5",
+      "description": "For werkzeug.datastructures.Headers initialized from [('X-Tag', 'one')], add('X-Tag', 'two') preserves both values. Access using headers['x-tag'] returns 'one', and headers.getlist('x-tag') returns ['one', 'two']; header name lookup is case-insensitive in these cases.",
+      "initialGap": false
+    },
+    {
+      "id": "contract-6",
+      "ruleId": "R6",
+      "description": "For werkzeug.routing.Map([Rule('/user/<int:id>', endpoint='user')]) bound to 'example.com', adapter.match('/user/42') returns ('user', {'id': 42}); adapter.build('user', {'id': 42}) returns '/user/42'; adapter.match('/user/not-an-int') raises werkzeug.exceptions.NotFound.",
+      "initialGap": false
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+R1: tokens.values() returns an iterator yielding exactly the strings a then b, in that order.

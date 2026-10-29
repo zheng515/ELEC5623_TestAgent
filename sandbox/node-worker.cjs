@@ -45,8 +45,11 @@ function measure(job, discover = false) {
   } finally { if (job.generated) fs.rmSync(generated, { recursive: true, force: true }); }
 }
 function inspect() {
-  const files = {}, functions = [], errors = [];
+  const files = {}, functions = [], errors = [], assets = [];
   for (const file of fileList()) {
+    if (!/\.(py|[cm]?[jt]sx?|md|rst|txt|toml|cfg|ini|json|lock|html?|css|csv|xml|ya?ml|metadata|svg)$/.test(file) && !/(^|\/)(LICENSE([.][\w-]+)?|COPYING|NOTICE)$/.test(file)) {
+      const bytes = fs.readFileSync(file); assets.push({ file, bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') }); continue;
+    }
     const text = fs.readFileSync(file, 'utf8'); files[file] = text;
     if (!/\.[cm]?[jt]sx?$/.test(file)) continue;
     const ast = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
@@ -61,7 +64,7 @@ function inspect() {
   if (result.outcomes.length > 200) errors.push('More than 200 test cases were discovered. Submit a smaller test suite.');
   const failed = result.outcomes.length > 200 || ambiguous || result.timedOut || !result.integrity || result.outcomes.some(item => item.status === 'error') || result.exitCode !== 0 && result.exitCode !== 5 && !result.outcomes.length;
   const nodes = result.outcomes.filter(item => !item.nesting && counts.get(item.node) === 1).map(item => item.node);
-  return { files, functions, nodes: nodes.slice(0, 200), collection: { exitCode: failed ? 2 : 0, log: 'Node.js discovery executes existing node:test cases in a disposable sandbox.\n' + errors.join('\n') + '\n' + result.log, timedOut: result.timedOut }, errors, environment: { node: process.version, testRunner: 'node:test', typescript: ts.version, discovery: 'Existing tests execute during discovery; this is not static collection.' } };
+  return { files, assets, functions, nodes: nodes.slice(0, 200), collection: { exitCode: failed ? 2 : 0, log: 'Node.js discovery executes existing node:test cases in a disposable sandbox.\n' + errors.join('\n') + '\n' + result.log, timedOut: result.timedOut, totalNodes: nodes.length, complete: nodes.length <= 200 && !failed }, errors, environment: { node: process.version, testRunner: 'node:test', typescript: ts.version, discovery: 'Existing tests execute during discovery; this is not static collection.' } };
 }
 function mutate(job) {
   fs.cpSync('/generated', generated, { recursive: true });

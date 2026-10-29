@@ -43,7 +43,47 @@ def to_run(path):
 
 
 def pytest_args():
-    return ['-p', 'no:cacheprovider', '-p', 'reqtest_browser', *(['--rootdir', '.'] if RUN else [])]
+    plugins = []
+    for package, module in [('pytest-timeout', 'pytest_timeout'), ('pytest-xprocess', 'xprocess')]:
+        try:
+            importlib.metadata.version(package)
+            plugins.extend(['-p', module])
+        except importlib.metadata.PackageNotFoundError:
+            pass
+    # xprocess needs cacheprovider. Keep its files outside the fingerprinted source.
+    return ['-p', 'reqtest_browser', '-p', 'reqtest_collection', '-o', 'cache_dir=/tmp/reqtest-pytest-cache', *plugins, *(['--rootdir', '.'] if RUN else [])]
+
+
+def text_file(name):
+    import re
+    return bool(re.search(r'\.(py|[cm]?[jt]sx?|md|rst|txt|toml|cfg|ini|json|lock|html?|css|csv|xml|ya?ml|metadata|svg)$', name) or re.search(r'(?:^|/)(?:LICENSE(?:[.][\w-]+)?|COPYING|NOTICE)$', name))
+
+
+def collected_nodes():
+    path = Path('/tmp/reqtest-collection.json')
+    if not path.exists():
+        return {'nodes': [], 'totalNodes': 0, 'error': 'Structured collection evidence is missing.'}
+    return json.loads(path.read_text())
+
+
+def local_metadata():
+    """Expose only explicit static name/version metadata; never run build hooks."""
+    if not Path('pyproject.toml').is_file():
+        return None
+    try:
+        from packaging.version import Version
+        import re
+        project = tomllib.loads(Path('pyproject.toml').read_text()).get('project', {})
+        name, version = project.get('name', ''), project.get('version', '')
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', name) or not isinstance(version, str) or len(version) > 200 or '\n' in version or '\r' in version:
+            return None
+        Version(version)
+        directory = Path('/tmp/reqtest-local-metadata') / (re.sub(r'[-_.]+', '_', name) + '-' + version + '.dist-info')
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / 'METADATA').write_text(f'Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n')
+        return name + '==' + version + ' (static project declaration; no build/install)'
+    except (ValueError, TypeError):
+        return None
 
 
 def requirement_lines():
@@ -160,10 +200,13 @@ def fingerprint(excluded=()):
 
 
 def inspect():
-    files, functions, errors = {}, [], []
+    files, functions, errors, assets = {}, [], [], []
     for path in project_files():
         name = str(path.relative_to(PROJECT))
-        text = path.read_text(errors='replace')
+        if not text_file(name):
+            assets.append({'file': name, 'bytes': path.stat().st_size, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
+            continue
+        text = path.read_text()
         files[name] = text
         if path.suffix != '.py':
             continue
@@ -175,9 +218,18 @@ def inspect():
         except SyntaxError as error:
             errors.append(str(error))
     code, log, timed = command([sys.executable, '-m', 'pytest', '--collect-only', '-q', *pytest_args()], 30)
-    nodes = [to_project(line.strip()) for line in log.splitlines() if '::' in line]
-    nodes = [node for node in nodes if node.split('::')[0] in files]
-    return {'environment': {'python': platform.python_version(), 'pytest': importlib.metadata.version('pytest'), 'mutmut': importlib.metadata.version('mutmut')}, 'files': files, 'functions': functions, 'nodes': nodes[:200], 'collection': {'exitCode': code, 'log': log, 'timedOut': timed}, 'errors': errors}
+    catalog = collected_nodes()
+    nodes = [to_project(node) for node in catalog['nodes'] if to_project(node).split('::')[0] in files]
+    complete = not timed and not catalog.get('error') and len(nodes) == catalog['totalNodes']
+    if catalog.get('error'):
+        errors.append(catalog['error'])
+        log += '\n' + catalog['error']
+        code = code or 2
+    if not complete and code == 0:
+        code = 2
+        log += '\nSome collected nodes could not be mapped to imported files.'
+    environment = {'python': platform.python_version(), 'pytest': importlib.metadata.version('pytest'), 'mutmut': importlib.metadata.version('mutmut'), 'pytestPlugins': 'reqtest_browser, reqtest_collection; optional installed pytest-timeout / pytest-xprocess explicitly enabled', 'localMetadata': local_metadata() or 'No static name/version declaration'}
+    return {'environment': environment, 'files': files, 'assets': assets, 'functions': functions, 'nodes': nodes, 'testFiles': sorted({node.split('::')[0] for node in nodes}), 'collection': {'exitCode': code, 'log': log, 'timedOut': timed, 'totalNodes': catalog['totalNodes'], 'complete': complete}, 'errors': errors}
 
 
 def measure(job):
@@ -200,7 +252,14 @@ def measure(job):
         image = marker.with_suffix('.jpg')
         if image.is_file():
             screenshots[parts[0] + '::' + parts[-1]] = base64.b64encode(image.read_bytes()).decode()
+    catalog = collected_nodes()
     if Path('/tmp/results.xml').exists():
+        node_map = {}
+        for node in catalog['nodes']:
+            full = to_project(node)
+            head, bracket, parameters = full.partition('[')
+            name = head.split('::')[-1] + bracket + parameters
+            node_map.setdefault((full.split('::')[0], name), []).append(full)
         for case in ET.parse('/tmp/results.xml').iter('testcase'):
             status, message = 'passed', ''
             for tag, value in [('failure', 'failed'), ('error', 'error'), ('skipped', 'skipped')]:
@@ -209,9 +268,9 @@ def measure(job):
                     status, message = value, (detail.text or detail.get('message', ''))[-12000:]
             filename = to_project(case.get('file', ''))
             name = case.get('name', '')
-            candidates = [node for node in job.get('nodes', []) if node.startswith(filename + '::') and node.endswith('::' + name)]
-            class_name = case.get('classname', '').split('.')[-1]
-            matching = [node for node in candidates if len(node.split('::')) < 3 or node.split('::')[-2] == class_name]
+            candidates = node_map.get((filename, name), [])
+            class_name = case.get('classname', '')
+            matching = [node for node in candidates if len(node.partition('[')[0].split('::')) < 3 or class_name.endswith('.' + '.'.join(node.partition('[')[0].split('::')[1:-1]))]
             node_id = matching[0] if len(matching) == 1 else filename + '::' + name
             outcome = {'node': node_id, 'file': filename, 'name': name, 'status': status, 'message': message}
             if status in ('failed', 'error') and filename + '::' + name in screenshots:
@@ -228,6 +287,9 @@ def measure(job):
     outputs = {item['file'] for item in runtime_artifacts}
     unchanged = execution_fingerprint == fingerprint(outputs)
     shutil.rmtree(GENERATED, ignore_errors=True)
+    if catalog.get('error'):
+        log += '\n' + catalog['error']
+        code = code or 2
     return {'outcomes': outcomes, 'exitCode': code, 'log': log, 'timedOut': timed, 'integrity': unchanged and before == fingerprint(outputs), 'runtimeArtifacts': runtime_artifacts}
 
 
@@ -336,7 +398,12 @@ if __name__ == '__main__':
         print(json.dumps({'error': 'The run directory must be an existing directory inside the project.'}))
         sys.exit(1)
     os.chdir(PROJECT / RUN)
-    os.environ['PYTHONPATH'] = ':'.join(['/opt/reqtest-deps', str(PROJECT / RUN), str(PROJECT / RUN / 'src'), '/tool/plugins'])
+    active_paths = ['/opt/reqtest-deps', str(PROJECT / RUN), str(PROJECT / RUN / 'src'), '/tmp/reqtest-local-metadata', '/tool/plugins']
+    os.environ['PYTHONPATH'] = ':'.join(active_paths)
+    path_config = Path('/tmp/reqtest-python-paths')
+    path_config.mkdir(exist_ok=True)
+    (path_config / 'project.pth').write_text('\n'.join(active_paths) + '\n')
+    local_metadata()
     if job['action'] == 'prepare':
         from prepare import prepare_project
         try:

@@ -45,7 +45,7 @@ test('resource totals retain unknown usage, failures, zero usage and planned mis
 test('sealed CLI studies reject changed reference/tasks and retain separate justified revisions', async t => {
   const root = await mkdtemp(join(tmpdir(), 'reqtest-sealed-score-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const ai = decisionReferenceSchema.parse(JSON.parse(readFileSync('experiments/annotations/2026-10-28-contract-decisions/reference.ai-assisted.json', 'utf8')));
+  const ai = decisionReferenceSchema.parse(JSON.parse(readFileSync('tests/fixtures/decision-reference.ai-assisted.json', 'utf8')));
   const tasks = { testReviewTask: 'Frozen fixture', diagnosisTask: 'Frozen fixture' }, snapshot = [['fixture.ts', 'fixture']];
   const fingerprint = decisionHash(snapshot), data = attempts().map(item => ({ ...item, agentFingerprint: fingerprint }));
   await writeFile(join(root, 'index.json'), JSON.stringify({ schemaVersion: 2, model: 'offline-fixture', datasetHash: decisionHash(decisionCases), referenceHash: decisionHash(ai), tasksHash: decisionHash(tasks), agentFingerprint: fingerprint, repeat: 3 }));
@@ -80,7 +80,7 @@ test('sealed CLI studies reject changed reference/tasks and retain separate just
   await assert.rejects(run(), /snapshot is missing/);
 });
 test('accepted AI references produce scoped agreement without becoming independent human accuracy', () => {
-  const raw = JSON.parse(readFileSync('experiments/annotations/2026-10-28-contract-decisions/reference.ai-assisted.json', 'utf8'));
+  const raw = JSON.parse(readFileSync('tests/fixtures/decision-reference.ai-assisted.json', 'utf8'));
   const ai = decisionReferenceSchema.parse(raw);
   assert.equal(ai.reviewed, false); assert.equal(ai.annotation?.source, 'ai_assisted');
   assert.deepEqual(ai.labels[0].evidence, raw.labels[0].evidence, 'Exact annotation provenance survives freezing.');
@@ -108,7 +108,7 @@ test('accepted AI references produce scoped agreement without becoming independe
 test('offline CLI names AI-reference comparison and withholds scores when no model decisions exist', async t => {
   const root = await mkdtemp(join(tmpdir(), 'reqtest-ai-reference-score-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const ai = JSON.parse(readFileSync('experiments/annotations/2026-10-28-contract-decisions/reference.ai-assisted.json', 'utf8'));
+  const ai = JSON.parse(readFileSync('tests/fixtures/decision-reference.ai-assisted.json', 'utf8'));
   await writeFile(join(root, 'index.json'), JSON.stringify({ model: 'no-model-calls-fixture', datasetHash: decisionHash(decisionCases), agentFingerprint: 'fixture-v1', repeat: 3 }));
   await writeFile(join(root, 'cases.json'), JSON.stringify(decisionCases));
   await writeFile(join(root, 'reference.json'), JSON.stringify(ai));

@@ -1,145 +1,142 @@
-# Evaluation protocol and evidence boundaries
+# Evaluation protocol - policy v16
 
-Status: protocol with a [completed scoped development study](../experiments/results/2026-10-28-v12/README.md).
-This is not the academic report or an independent validation study. Previous old-version results were removed at the user's request on 2026-10-28. Policy v12 introduces request accounting and optional mutation
-checks; no old score is carried forward as current evidence.
+This technical protocol is not the academic report. The current inventory is
+[experiments/README.md](../experiments/README.md). Only v16 result exports and their matching private raw studies are retained;
+older results, model runs and preflights were deleted at the owner's request.
+Current studies freeze their own inputs, Agent sources, image and model identity.
 
-## Questions
+## Complete-runtime open-source studies (v16)
 
-1. Can raw model decisions distinguish unsupported tests, valid failures,
-   conflicting requirements and environment blockers?
-2. Do deterministic admission and state gates preserve original contracts when a
-   model returns unsupported, incomplete or stale evidence?
-3. Does additional diagnosis/mutation work improve an unchanged initial suite
-   enough to justify its resources, and under what conditions?
+`examples/experiments-real-projects-v16.json` uses complete runtime code from
+pinned Click 8.1.7, Packaging 24.2 and Werkzeug 3.0.6, six finite public API
+requirements each, shared B1/B3 candidates and three repeats (18 workflows).
+Sources are unmodified and full imported upstream baselines run by file.
+Structured catalogs and exact execution nodes are retained; a separately bounded
+model catalog is not an execution sample. No implementation defect is injected
+in this study, so generated failures on these sources are not assumed to be
+upstream defects. Passing fixed witnesses and separate replays support the
+specified cases only. Source versions are in the portable evidence archive.
 
-These are different questions. Component classifications, whole-Agent admission,
-mutation counts, user decisions and defect detection are not interchangeable.
+`examples/experiments-real-challenges-v16.json` specifies three controlled
+interventions on the same complete runtimes: Click inclusive-boundary source
+fault with a failing candidate, Packaging's wrong generated assertion, and
+Werkzeug's wrong generated import. It uses B1/B2/B3, three repeats and one frozen
+common preparation per case/repeat (27 workflows, nine preparations). Preparation
+holds analysis, admission and initial execution fixed; B2/B3 receive equal
+follow-up ceilings and alternating order. All are development interventions,
+not naturally occurring upstream bugs or an unseen held-out set.
 
-## Independent component review
+An initial candidate of this study stopped after actual provider context errors
+exposed an unbounded repair payload. Its 27 planned rows, missing observations,
+errors and cancellation remain separate. The repaired study has its own frozen
+source fingerprint. A regression checks that complete saved measurements reach
+the repair prompt as a bounded, explicitly scoped view.
 
-There are 16 development cases. They include semantic return types, value
-contradictions, unsupported timezone/message assertions, valid exceptions,
-invented imports, missing implementation dependencies, contradictory equality
-clauses and an undefined threshold. No independent reference review has been
-completed. The repository labels are explicitly unreviewed development drafts.
+C01's value-only assertions omit a witness for the stated integer callback type.
+Admission blocks do not earn runtime-diagnosis credit. The separate
+`examples/experiments-real-typed-v16.json` adds an explicit type assertion without
+changing its contract, source fault, model, image or budget (nine workflows).
+Its concrete `type(value) is int` assertion was itself overstrict: the unchanged
+contract promises integer semantics, not the exact built-in class. Its admission
+blocks remain visible. A further separate
+`examples/experiments-real-semantic-v16.json` uses `isinstance(value, int)` with
+boolean exclusion under the existing assertion policy (nine workflows). Both
+adaptive revisions are not additional independent projects or blind results.
+Fixture reference categories are developer/AI-assisted; independent semantic
+accuracy remains unavailable. No admission bypass or required B3 win is imposed.
 
-Prepare a separate reviewer pack without any model calls:
+Each study exports JSON/CSV, exact inputs, Agent/model/image identities, raw
+requests, reports and separate source-copy executions. Large exported evidence
+is optionally packaged into a byte-verified `evidence.zip`; unzipping restores
+the original relative paths and index. Original private run directories are not
+deleted. Report known provider usage once per actual request, including shared
+preparations once; unavailable usage stays unknown. Do not pool results across
+source revisions, repeated contexts or adaptive parent/child cases as independent
+product-accuracy estimates.
+
+A later execution-reference regression repeats the unchanged C05 manifest after
+provider-safe `E...` log-line encoding was added. Its preceding study retained
+two Uncertain decisions caused by malformed copied execution quotes. The new
+study has a distinct source fingerprint and is a targeted engineering regression,
+not a blind improvement estimate. Existing category/evidence gates remain active;
+the encoding restores original trace lines rather than accepting normalized or
+invented excerpts. Legacy images without explicit catalog completeness remain
+marked incomplete. Actual raw decisions and all earlier failures stay exported.
+
+## Controlled recovery and diagnosis ablation
+
+`examples/experiments-real-challenges-v16.json` declares three controlled cases
+on complete upstream runtimes, three repeats and B1/B2/B3. Candidates and fixed
+reference witnesses remain outside the model-visible project. The same protocol
+applies to the separate typed and semantic Click candidate revisions.
+
+1. B1 executes the frozen candidates unchanged, with no model generation.
+2. One shared preparation performs original-contract analysis, admission review
+   and initial execution, stopping before diagnosis or refinement.
+3. B2 and B3 clone that exact analysis and reviewed suite, then independently
+   execute the same source. B2 uses the explicit unconditional-repair baseline;
+   B3 obtains a grounded diagnosis before selecting repair eligibility.
+4. Other prompts, admission gates, model, image and follow-up request ceiling are
+   identical. Follow-up order alternates across repeats. Shared preparation is
+   not regenerated after an arm fails. Each arm permits at most one improvement.
+5. Original source integrity, exact initial-suite identity and shared-preparation
+   identity are checked. Failed, missing and budget-exhausted outcomes remain.
+
+This isolates diagnosis and its downstream repair selection within this controlled
+workflow. It does not isolate an arbitrary reasoning algorithm, provide a
+population accuracy estimate, or represent naturally generated error frequency.
+The baseline remains subject to original-contract admission; it is not permitted
+to bypass source integrity or change the implementation.
+
+## Objective measurements
+
+- Completion: all planned rows remain in denominators.
+- Missing boundary: a generated failure on original defective code must pass on
+  the separately corrected copy. Passing unrelated examples earns no detection.
+- Import/unsupported-assertion recovery: the original candidate ID must have an
+  approved changed artifact, passing generated execution, and usable passing
+  fixed-witness reference replay.
+- Valid-failure retention: approved original code/function remain unchanged and
+  still expose the seeded defect, with corrected-copy evidence.
+- Detection loss: an initially exposed seeded defect is no longer detected after
+  refinement. This is not general independently reviewed incorrect-repair accuracy.
+- Resources: actual requests, known/unknown provider token usage, context/source
+  bytes and wall time are recorded. Paired end-to-end totals include B1 and shared
+  preparation for each strategy. For actual billed totals, shared work is counted
+  once overall, not once per strategy. No currency estimate is inferred.
+
+`recovery-metrics.json`, `paired-comparison.json`, raw reports, request records,
+reference executions and frozen inputs are exported together. Missing evidence
+produces unavailable metrics rather than invented zeros. Literal unchanged-code
+retention is a narrower measurement than semantic assertion equivalence.
+
+## Component regression inputs
+
+The 16 development cases in `examples/benchmark/decision-cases.ts` and their
+AI-assisted reference in `tests/fixtures/decision-reference.ai-assisted.json`
+remain reusable test inputs. The original trace pack is preserved beside the
+reference; AI authorship, date, evidence hash and unreviewed flags remain explicit.
+Old component predictions, scores, audit exports and blank review packs were
+removed. These fixtures are not additional current experimental observations.
+No human review is planned; independent semantic accuracy remains unavailable.
+
+The optional `npm run evaluate:decisions -- 3 --reference PATH` command creates
+48 new paid component requests and freezes its own inputs and outcomes. It does
+not regenerate the deleted results or change the live Agent's workflow.
+
+## Run and analyze
+
+Follow [real-project preparation](../examples/real-projects-v16/README.md) first.
 
 ```sh
-# Supply a new directory; the command refuses to overwrite one.
-npm run evaluate:decisions -- prepare /tmp/reqtest-independent-review
+# No model calls.
+REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run evaluate -- examples/experiments-real-projects-v16.json --validate-only
+# New paid observations; existing retained results stay unchanged.
+REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run experiment:run
+npm run experiment:analyze -- .evidence/evaluation/RUN/index.json experiments/results/NEW-STUDY
 ```
 
-The pack includes actual Docker outcomes, original artifacts, dataset/image hashes
-and a blank reference template. It omits model predictions and draft labels.
-Give this pack to a teammate who did not implement the decision logic. Review
-before inspecting model outputs. Record requirement/file/trace evidence for each
-label, discuss disagreements and retain the initial annotations. The tool cannot
-verify that a named reviewer is independent; that is a team responsibility.
-
-After review, save a separate complete reference.json with reviewed=true and the
-reviewer name, retaining AI provenance if that file began as AI annotations.
-Do not change inputs or silently correct results after observing outputs.
-
-```sh
-# Paid calls: 16 cases x 3 repeats, at most 48 requests, no automatic retries.
-npm run evaluate:decisions -- 3 --reference /absolute/path/reference.json
-# Re-score a frozen result without model calls.
-npm run evaluate:decisions -- score .evidence/decision-evaluation/RUN
-```
-
-New decision studies seal the case data, parsed reference, task text and Agent
-snapshot with hashes. Offline scoring rejects a changed sealed reference, changed
-task text or missing/changed snapshot. Older studies are explicitly labelled
-legacy_reference_not_sealed; re-scoring cannot retroactively establish their
-original reference integrity. Hashes detect inconsistencies within recorded
-artifacts; they are not externally signed timestamps or tamper-proof storage.
-
-Later review must create a separate reference revision rather than overwrite the
-baseline. The command below makes no model calls. It writes a new directory under
-reference-revisions/ containing the revised labels, reason, changed labels, original
-and revised reference hashes, exact attempts hash, metrics and disagreements.
-The original reference and baseline metrics remain unchanged. Such revisions are
-post-hoc analyses and must not be described as predeclared independent labels.
-
-```sh
-npm run evaluate:decisions -- score .evidence/decision-evaluation/RUN --reference /absolute/path/reviewed-reference.json --reason "Reviewer name, evidence checked and reason for revision"
-```
-
-The runner freezes sources, production task text, cases and references. Case
-order rotates between repetitions; this does not remove API drift or caching.
-Report completion, missing/invalid decisions, admission Precision/Recall/F1,
-false-support rate, diagnosis confusion and Macro-F1. Accuracy metrics remain
-unavailable until references are reviewed and all planned decisions are valid.
-Unrepresented classes have unavailable F1 and are excluded with their count
-reported. Multiple acceptable diagnosis labels support accuracy but prevent
-single-label confusion/Macro-F1. These are raw decision metrics, not independently
-verified whole-Agent repair safety or a population reliability estimate.
-
-Each attempt retains elapsed time and provider-reported input/output/total tokens,
-prompt byte count and prompt hash when returned. Resource summaries show attempted,
-failed and missing requests, nearest-rank latency p50/p95, known token subtotals and usage
-availability separately. Complete token totals require every planned request to
-have reported that token field; unknown usage is never zero. No currency cost is
-inferred. disagreements.json retains every reference disagreement or incomplete
-case with raw attempts and reference rationale, without selectively rerunning it.
-
-## Accepted AI development reference
-
-The project owner accepted the 16 AI-assisted annotations as reference answers.
-They retain source=ai_assisted, reviewed=false and independentHumanReviewed=false;
-acceptedAsDevelopmentReference=true enables a separate referenceComparison.
-This supports a model experiment without waiting for human labels, but measures
-agreement with these labels rather than independent human accuracy.
-
-```sh
-# Starts a new paid component study; accepting a reference alone makes no calls.
-npm run evaluate:decisions -- 3 --reference experiments/annotations/2026-10-28-contract-decisions/reference.ai-assisted.json
-```
-
-The export names the comparison basis and preserves original annotation provenance
-and evidence. Its reference-relative agreement, admission Precision/Recall/F1 and
-diagnosis confusion/Macro-F1 require all planned valid decisions. Root independent
-accuracy fields stay unavailable until independent human review is recorded;
-a reviewed flag change alone cannot override explicit pending human-review
-metadata. Completed annotations are not model observations or an accuracy result.
-
-## Whole-workflow and incremental value
-
-The existing shared-initial runner generates B1 once, then supplies exactly the
-same executable candidates to B3. It preserves IDs, source, requirements, model
-and image and enforces a follow-up request limit. B1's direct-generator scaffolding
-is not a verified behavior assessment. Prefix-inclusive B3 costs belong in the
-comparison; counting only follow-up cost understates total resources.
-
-Use `examples/experiments-budgeted.json` for a separately named v12 development
-study. It requests requirement checks, three repeats and the same three existing
-projects. Deleted earlier results cannot serve as a simultaneous or equal-budget control. To compare depth causally, predeclare both policies on the
-same source/model/image and shared initial candidates in a new study. Do not infer
-efficiency from historical cross-version timings or higher Verified counts.
-
-For a controlled recovery challenge, freeze initial candidates that omit a stated
-boundary, contain an invented import or add an unsupported assertion. Disclose
-that these initial candidates are deliberately seeded, not naturally generated
-failures. `tests/shared-initial-suite.test.ts`, `tests/requirement-coverage.test.ts`
-and `tests/agent-safety.test.ts` exercise such control paths with scripted responses;
-they do not establish real-model recovery rates. A new model study must keep
-initial candidates identical across compared policies and retain all planned
-observations, including budget failures. No recovery-success rate is claimed here.
-
-Measure initial/final corrected-copy defect detection, preserved valid failures,
-reference disagreements, admitted changes, wall time, provider tokens, request
-counts and exhausted budgets. Investigate every changed valid failure and every
-incorrect Verified state. Finite reference replays do not establish a general
-false-positive rate; raw mutation counts do not establish semantic test coverage.
-
-## Product contribution and human task evaluation
-
-The contribution being evaluated is original-contract traceability and bounded
-failure handling. It is not a new generation algorithm or established detection
-advantage. A possible separate user task is choosing among investigating the
-implementation, correcting a test, fixing the environment or clarifying a rule.
-Predefine correct actions from independently reviewed artifacts, counterbalance
-output order, record decision accuracy and time, and disclose participants and
-small-sample limits. No user-study result exists until people perform those tasks.
+The source set is checked before each workflow. Code/model/prompt changes require
+a fresh frozen study. Do not silently replace disagreeing attempts or pool adaptive
+cases as independent samples. Current v16 archives retain all their successful,
+failed, cancelled, blocked and missing observations after the older-version cleanup.

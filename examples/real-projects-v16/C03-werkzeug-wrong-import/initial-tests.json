@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_multidict_values",
+      "gapIndexes": [
+        0
+      ],
+      "code": "from werkzeug.datastructure import MultiDict\ndef test_multidict_values():\n    d = MultiDict([('a', 'b'), ('a', 'c')])\n    assert d['a'] == 'b'\n    assert d.getlist('a') == ['b', 'c']\n    assert MultiDict().getlist('missing') == []\n",
+      "quote": "R1: werkzeug.datastructures.MultiDict([('a', 'b'), ('a', 'c')]) returns 'b' for dictionary access at key 'a', and getlist('a') returns ['b', 'c'] in that order. An empty MultiDict returns [] for getlist('missing').",
+      "purpose": "Controlled invented-import challenge, not natural generator-error frequency."
+    }
+  ]
+}

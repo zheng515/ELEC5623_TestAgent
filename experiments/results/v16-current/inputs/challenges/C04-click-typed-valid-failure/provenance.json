@@ -1,0 +1,7 @@
+{
+  "scope": "Separate adaptive revision after C01 was blocked for missing type assertions. Same complete Click runtime, original contract, source fault, model, image and budget. Not an independent project or held-out result.",
+  "parentCase": "C01-click-valid-failure",
+  "caseId": "C04-click-typed-valid-failure",
+  "onlyCandidateAddition": "assert all(type(value) is int for value in seen)",
+  "referenceSource": "AI-assisted developer-controlled intervention, not human annotation."
+}

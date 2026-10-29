@@ -1,0 +1,13 @@
+Scope: Werkzeug 3.0.6 public data structures and URL routing APIs. The complete upstream Python runtime is imported without patches. No development server or external network is needed. Only the explicitly specified cases below are required.
+
+R1: werkzeug.datastructures.MultiDict([('a', 'b'), ('a', 'c')]) returns 'b' for dictionary access at key 'a', and getlist('a') returns ['b', 'c'] in that order.
+
+R2: For an empty werkzeug.datastructures.MultiDict, getlist('missing') returns [] and get('missing', 'fallback') returns 'fallback'.
+
+R3: Starting with MultiDict([('a', 'b')]), add('a', 'c') appends the value, so getlist('a') returns ['b', 'c']. Subsequently assigning d['a'] = 'replacement' replaces all previous values, so getlist('a') returns ['replacement'].
+
+R4: For MultiDict([('n', '1'), ('n', 'invalid'), ('n', '2')]), getlist('n', type=int) returns [1, 2], dropping the value whose integer conversion raises ValueError.
+
+R5: For werkzeug.datastructures.Headers initialized from [('X-Tag', 'one')], add('X-Tag', 'two') preserves both values. Access using headers['x-tag'] returns 'one', and headers.getlist('x-tag') returns ['one', 'two']; header name lookup is case-insensitive in these cases.
+
+R6: For werkzeug.routing.Map([Rule('/user/<int:id>', endpoint='user')]) bound to 'example.com', adapter.match('/user/42') returns ('user', {'id': 42}); adapter.build('user', {'id': 42}) returns '/user/42'; adapter.match('/user/not-an-int') raises werkzeug.exceptions.NotFound.

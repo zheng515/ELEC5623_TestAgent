@@ -1,0 +1,14 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "contract-1",
+      "ruleId": "R1",
+      "description": "delivery.notify() returns integer 0 after sending a notification through its configured transport.",
+      "initialGap": true
+    }
+  ]
+}

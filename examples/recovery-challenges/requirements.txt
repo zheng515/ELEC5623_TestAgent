@@ -1,0 +1,1 @@
+For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.

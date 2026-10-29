@@ -1,0 +1,14 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "contract-1",
+      "ruleId": "R1",
+      "description": "werkzeug.datastructures.MultiDict([('a', 'b'), ('a', 'c')]) returns 'b' for dictionary access at key 'a', and getlist('a') returns ['b', 'c'] in that order. An empty MultiDict returns [] for getlist('missing').",
+      "initialGap": true
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "files": {
+    "index.json": "e1d4c18994356abee0704552865d3b7eff15ccac9130618007c22599c14f7ce2",
+    "packaging/runtime.json": "7cb4c7eabe8605d64380d6908cf41b466d7eb4808b5fa082aadab85ef3ce8dfc",
+    "packaging/baseline.json": "defb70d40732e3bdc4ccf0346951e5fffa87c2a581816033bcd443523f0aa035",
+    "packaging/inspection.json": "e6328d82df4d902b4d7de66a270f362e4a9020a7d04cd15aa55aaaede84b367d",
+    "werkzeug/runtime.json": "7cb4c7eabe8605d64380d6908cf41b466d7eb4808b5fa082aadab85ef3ce8dfc",
+    "werkzeug/baseline.json": "8a0674a4baf6558868ecc6ba8165e10ef0fd6241bfac1a6fd6b45a31ec9071e8",
+    "werkzeug/inspection.json": "d6bd08bea7d07843ac859cf3829a0cc8aa5b5c6b35b34a9ead826f64ea372777",
+    "click/runtime.json": "7cb4c7eabe8605d64380d6908cf41b466d7eb4808b5fa082aadab85ef3ce8dfc",
+    "click/baseline.json": "cf66e79862f994f9d1469c91978aedfac48f27f8d918d1f59e1975b4a510bbaf",
+    "click/inspection.json": "fae5c0bb8d3e375c3c226df9c298b7f3c6317ce6ccc01f798efc510a31c972ac"
+  }
+}

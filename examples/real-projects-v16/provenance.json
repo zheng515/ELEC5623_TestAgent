@@ -1,0 +1,41 @@
+[
+  {
+    "caseId": "C01-click-valid-failure",
+    "upstream": "pallets/click",
+    "commit": "874ca2bc1c30d93a4ac6e36a15ed685eafe89097",
+    "runtimeFiles": 16,
+    "runtimeLines": 10124,
+    "sourceEdits": [
+      {
+        "file": "src/click/types.py",
+        "original": "operator.le if self.min_open else operator.lt",
+        "injected": "operator.le if self.min_open else operator.le"
+      }
+    ],
+    "candidateInjection": "valid-failure",
+    "referenceCategory": "potential_implementation_defect",
+    "referenceSource": "Developer/AI-assisted controlled intervention, independently executable fixed witnesses; not human semantic review. Admission blocks are not runtime diagnosis exposure."
+  },
+  {
+    "caseId": "C02-packaging-wrong-assertion",
+    "upstream": "pypa/packaging",
+    "commit": "d8e3b31b734926ebbcaff654279f6855a73e052f",
+    "runtimeFiles": 16,
+    "runtimeLines": 5653,
+    "sourceEdits": [],
+    "candidateInjection": "unsupported-assertion",
+    "referenceCategory": "generated_test_error",
+    "referenceSource": "Developer/AI-assisted controlled intervention, independently executable fixed witnesses; not human semantic review. Admission blocks are not runtime diagnosis exposure."
+  },
+  {
+    "caseId": "C03-werkzeug-wrong-import",
+    "upstream": "pallets/werkzeug",
+    "commit": "5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624",
+    "runtimeFiles": 52,
+    "runtimeLines": 20672,
+    "sourceEdits": [],
+    "candidateInjection": "invented-import",
+    "referenceCategory": "generated_test_error",
+    "referenceSource": "Developer/AI-assisted controlled intervention, independently executable fixed witnesses; not human semantic review. Admission blocks are not runtime diagnosis exposure."
+  }
+]

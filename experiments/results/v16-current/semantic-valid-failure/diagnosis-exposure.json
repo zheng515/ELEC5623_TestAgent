@@ -1,0 +1,121 @@
+{
+  "scope": "Developer-constructed runtime cases; expected categories are fixture references, not independent semantic labels. Admission is never bypassed. B2 categories are unconditional baseline decisions, not model classifications. No exposure means diagnosis agreement is unavailable, not successful diagnosis.",
+  "rows": [
+    {
+      "caseId": "C05-click-semantic-valid-failure",
+      "variant": "B2",
+      "repeat": 1,
+      "referenceCategory": "potential_implementation_defect",
+      "preparationUsable": true,
+      "originalAdmitted": true,
+      "runtimeFailureExposed": true,
+      "category": "generated_test_error",
+      "diagnosisBasis": "unconditional_repair_baseline",
+      "agreesWithFixtureReference": null,
+      "improvementStageRequests": 1,
+      "acceptedImprovements": 0,
+      "originalArtifactUnchanged": true,
+      "status": "completed"
+    },
+    {
+      "caseId": "C05-click-semantic-valid-failure",
+      "variant": "B2",
+      "repeat": 2,
+      "referenceCategory": "potential_implementation_defect",
+      "preparationUsable": true,
+      "originalAdmitted": true,
+      "runtimeFailureExposed": true,
+      "category": "generated_test_error",
+      "diagnosisBasis": "unconditional_repair_baseline",
+      "agreesWithFixtureReference": null,
+      "improvementStageRequests": 1,
+      "acceptedImprovements": 0,
+      "originalArtifactUnchanged": true,
+      "status": "completed"
+    },
+    {
+      "caseId": "C05-click-semantic-valid-failure",
+      "variant": "B2",
+      "repeat": 3,
+      "referenceCategory": "potential_implementation_defect",
+      "preparationUsable": true,
+      "originalAdmitted": true,
+      "runtimeFailureExposed": true,
+      "category": "generated_test_error",
+      "diagnosisBasis": "unconditional_repair_baseline",
+      "agreesWithFixtureReference": null,
+      "improvementStageRequests": 1,
+      "acceptedImprovements": 0,
+      "originalArtifactUnchanged": true,
+      "status": "completed"
+    },
+    {
+      "caseId": "C05-click-semantic-valid-failure",
+      "variant": "B3",
+      "repeat": 1,
+      "referenceCategory": "potential_implementation_defect",
+      "preparationUsable": true,
+      "originalAdmitted": true,
+      "runtimeFailureExposed": true,
+      "category": "uncertain",
+      "diagnosisBasis": "grounded_model_assessment",
+      "agreesWithFixtureReference": false,
+      "improvementStageRequests": 0,
+      "acceptedImprovements": 0,
+      "originalArtifactUnchanged": true,
+      "status": "completed"
+    },
+    {
+      "caseId": "C05-click-semantic-valid-failure",
+      "variant": "B3",
+      "repeat": 2,
+      "referenceCategory": "potential_implementation_defect",
+      "preparationUsable": true,
+      "originalAdmitted": true,
+      "runtimeFailureExposed": true,
+      "category": "potential_implementation_defect",
+      "diagnosisBasis": "grounded_model_assessment",
+      "agreesWithFixtureReference": true,
+      "improvementStageRequests": 0,
+      "acceptedImprovements": 0,
+      "originalArtifactUnchanged": true,
+      "status": "completed"
+    },
+    {
+      "caseId": "C05-click-semantic-valid-failure",
+      "variant": "B3",
+      "repeat": 3,
+      "referenceCategory": "potential_implementation_defect",
+      "preparationUsable": true,
+      "originalAdmitted": true,
+      "runtimeFailureExposed": true,
+      "category": "uncertain",
+      "diagnosisBasis": "grounded_model_assessment",
+      "agreesWithFixtureReference": false,
+      "improvementStageRequests": 0,
+      "acceptedImprovements": 0,
+      "originalArtifactUnchanged": true,
+      "status": "completed"
+    }
+  ],
+  "summary": [
+    {
+      "variant": "B2",
+      "planned": 3,
+      "runtimeExposed": 3,
+      "admissionBlocked": 0,
+      "preparationUnavailable": 0,
+      "scoredFixtureDecisions": 0,
+      "matchesFixtureReference": 0
+    },
+    {
+      "variant": "B3",
+      "planned": 3,
+      "runtimeExposed": 3,
+      "admissionBlocked": 0,
+      "preparationUnavailable": 0,
+      "scoredFixtureDecisions": 3,
+      "matchesFixtureReference": 1
+    }
+  ]
+}

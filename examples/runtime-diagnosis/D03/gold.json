@@ -1,0 +1,14 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "contract-1",
+      "ruleId": "R1",
+      "description": "tokens.values() returns an iterator yielding exactly the strings a then b, in that order.",
+      "initialGap": true
+    }
+  ]
+}

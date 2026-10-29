@@ -1,0 +1,275 @@
+{
+  "authorship": "AI-assisted developer selection and paraphrase of pinned upstream public documentation/docstrings; not a native business proposal or independent human reference. Finite requirements were fixed before model calls; source index assembled afterward without changing those requirements. Witnesses stay outside model-visible projects.",
+  "projects": [
+    {
+      "id": "click",
+      "commit": "874ca2bc1c30d93a4ac6e36a15ed685eafe89097",
+      "rules": {
+        "R1": [
+          {
+            "file": "docs/options.rst",
+            "startLine": 36,
+            "endLine": 90,
+            "sha256": "6ef07a7fd827f7918533855a78d4d83ea0c46e25f9487e25bc55c2071ef91747",
+            "url": "https://github.com/pallets/click/blob/874ca2bc1c30d93a4ac6e36a15ed685eafe89097/docs/options.rst#L36",
+            "excerpt": "    @click.option('-s', '--string-to-echo')\n    def echo(string_to_echo):\n        click.echo(string_to_echo)\n\n.. code-block:: python\n\n    @click.command()\n    @click.option('-s', '--string-to-echo', 'string')\n    def echo(string):\n        click.echo(string)\n\n-   ``\"-f\", \"--foo-bar\"``, the name is ``foo_bar``\n-   ``\"-x\"``, the name is ``x``\n-   ``\"-f\", \"--filename\", \"dest\"``, the name is  ``dest``\n-   ``\"--CamelCase\"``, the name is ``camelcase``\n-   ``\"-f\", \"-fb\"``, the name is ``f``\n-   ``\"--f\", \"--foo-bar\"``, the name is ``f``\n-   ``\"---f\"``, the name is ``_f``\n\nBasic Value Options\n-------------------\n\nThe most basic option is a value option.  These options accept one\nargument which is a value.  If no type is provided, the type of the default\nvalue is used.  If no default value is provided, the type is assumed to be\n:data:`STRING`.  Unless a name is explicitly specified, the name of the\nparameter is the first long option defined; otherwise the first short one is\nused. By default, options are not required, however to make an option required,\nsimply pass in `required=True` as an argument to the decorator.\n\n.. click:example::\n\n    @click.command()\n    @click.option('--n', default=1)\n    def dots(n):\n        click.echo('.' * n)\n\n.. click:example::\n\n    # How to make an option required\n    @click.command()\n    @click.option('--n', required=True, type=int)\n    def dots(n):\n        click.echo('.' * n)\n\n.. click:example::\n\n    # How to use a Python reserved word such as `from` as a parameter\n    @click.command()\n    @click.option('--from', '-f', 'from_')\n    @click.option('--to', '-t')\n    def reserved_param_name(from_, to):\n        click.echo(f\"from {from_} to {to}\")\n\nAnd on the command line:"
+          },
+          {
+            "file": "docs/testing.rst",
+            "startLine": 1,
+            "endLine": 62,
+            "sha256": "6534c5f4e63a7c12055af659bae3f0a68d211f2d44f3945adb9b54a439eaa913",
+            "url": "https://github.com/pallets/click/blob/874ca2bc1c30d93a4ac6e36a15ed685eafe89097/docs/testing.rst#L1",
+            "excerpt": "Testing Click Applications\n==========================\n\n.. currentmodule:: click.testing\n\nFor basic testing, Click provides the :mod:`click.testing` module which\nprovides test functionality that helps you invoke command line\napplications and check their behavior.\n\nThese tools should really only be used for testing as they change\nthe entire interpreter state for simplicity and are not in any way\nthread-safe!\n\nBasic Testing\n-------------\n\nThe basic functionality for testing Click applications is the\n:class:`CliRunner` which can invoke commands as command line scripts.  The\n:meth:`CliRunner.invoke` method runs the command line script in isolation\nand captures the output as both bytes and binary data.\n\nThe return value is a :class:`Result` object, which has the captured output\ndata, exit code, and optional exception attached:\n\n.. code-block:: python\n   :caption: hello.py\n\n   import click\n\n   @click.command()\n   @click.argument('name')\n   def hello(name):\n      click.echo(f'Hello {name}!')\n\n.. code-block:: python\n   :caption: test_hello.py\n\n   from click.testing import CliRunner\n   from hello import hello\n\n   def test_hello_world():\n     runner = CliRunner()\n     result = runner.invoke(hello, ['Peter'])\n     assert result.exit_code == 0\n     assert result.output == 'Hello Peter!\\n'\n\nFor subcommand testing, a subcommand name must be specified in the `args` parameter of :meth:`CliRunner.invoke` method:\n\n.. code-block:: python\n   :caption: sync.py\n\n   import click\n\n   @click.group()\n   @click.option('--debug/--no-debug', default=False)\n   def cli(debug):\n      click.echo(f\"Debug mode is {'on' if debug else 'off'}\")\n\n   @cli.command()\n   def sync():\n      click.echo('Syncing')\n"
+          }
+        ],
+        "R2": [
+          {
+            "file": "docs/options.rst",
+            "startLine": 36,
+            "endLine": 90,
+            "sha256": "6ef07a7fd827f7918533855a78d4d83ea0c46e25f9487e25bc55c2071ef91747",
+            "url": "https://github.com/pallets/click/blob/874ca2bc1c30d93a4ac6e36a15ed685eafe89097/docs/options.rst#L36",
+            "excerpt": "    @click.option('-s', '--string-to-echo')\n    def echo(string_to_echo):\n        click.echo(string_to_echo)\n\n.. code-block:: python\n\n    @click.command()\n    @click.option('-s', '--string-to-echo', 'string')\n    def echo(string):\n        click.echo(string)\n\n-   ``\"-f\", \"--foo-bar\"``, the name is ``foo_bar``\n-   ``\"-x\"``, the name is ``x``\n-   ``\"-f\", \"--filename\", \"dest\"``, the name is  ``dest``\n-   ``\"--CamelCase\"``, the name is ``camelcase``\n-   ``\"-f\", \"-fb\"``, the name is ``f``\n-   ``\"--f\", \"--foo-bar\"``, the name is ``f``\n-   ``\"---f\"``, the name is ``_f``\n\nBasic Value Options\n-------------------\n\nThe most basic option is a value option.  These options accept one\nargument which is a value.  If no type is provided, the type of the default\nvalue is used.  If no default value is provided, the type is assumed to be\n:data:`STRING`.  Unless a name is explicitly specified, the name of the\nparameter is the first long option defined; otherwise the first short one is\nused. By default, options are not required, however to make an option required,\nsimply pass in `required=True` as an argument to the decorator.\n\n.. click:example::\n\n    @click.command()\n    @click.option('--n', default=1)\n    def dots(n):\n        click.echo('.' * n)\n\n.. click:example::\n\n    # How to make an option required\n    @click.command()\n    @click.option('--n', required=True, type=int)\n    def dots(n):\n        click.echo('.' * n)\n\n.. click:example::\n\n    # How to use a Python reserved word such as `from` as a parameter\n    @click.command()\n    @click.option('--from', '-f', 'from_')\n    @click.option('--to', '-t')\n    def reserved_param_name(from_, to):\n        click.echo(f\"from {from_} to {to}\")\n\nAnd on the command line:"
+          },
+          {
+            "file": "src/click/types.py",
+            "startLine": 457,
+            "endLine": 477,
+            "sha256": "4d9bf3de12af073b5ff87a5ad9e9ce98fe1ece748f2f38a38e28396ffd173311",
+            "url": "https://github.com/pallets/click/blob/874ca2bc1c30d93a4ac6e36a15ed685eafe89097/src/click/types.py#L457",
+            "excerpt": "        gt_max: bool = self.max is not None and (\n            operator.ge if self.max_open else operator.gt\n        )(rv, self.max)\n\n        if self.clamp:\n            if lt_min:\n                return self._clamp(self.min, 1, self.min_open)  # type: ignore\n\n            if gt_max:\n                return self._clamp(self.max, -1, self.max_open)  # type: ignore\n\n        if lt_min or gt_max:\n            self.fail(\n                _(\"{value} is not in the range {range}.\").format(\n                    value=rv, range=self._describe_range()\n                ),\n                param,\n                ctx,\n            )\n\n        return rv"
+          }
+        ],
+        "R3": [
+          {
+            "file": "docs/options.rst",
+            "startLine": 192,
+            "endLine": 230,
+            "sha256": "6ef07a7fd827f7918533855a78d4d83ea0c46e25f9487e25bc55c2071ef91747",
+            "url": "https://github.com/pallets/click/blob/874ca2bc1c30d93a4ac6e36a15ed685eafe89097/docs/options.rst#L192",
+            "excerpt": ".. _multiple-options:\n\nMultiple Options\n----------------\n\nSimilarly to ``nargs``, there is also the case of wanting to support a\nparameter being provided multiple times and have all the values recorded --\nnot just the last one.  For instance, ``git commit -m foo -m bar`` would\nrecord two lines for the commit message: ``foo`` and ``bar``. This can be\naccomplished with the ``multiple`` flag:\n\nExample:\n\n.. click:example::\n\n    @click.command()\n    @click.option('--message', '-m', multiple=True)\n    def commit(message):\n        click.echo('\\n'.join(message))\n\nAnd on the command line:\n\n.. click:run::\n\n    invoke(commit, args=['-m', 'foo', '-m', 'bar'])\n\nWhen passing a ``default`` with ``multiple=True``, the default value\nmust be a list or tuple, otherwise it will be interpreted as a list of\nsingle characters.\n\n.. code-block:: python\n\n    @click.option(\"--format\", multiple=True, default=[\"json\"])\n\n\nCounting\n--------\n\nIn some very rare circumstances, it is interesting to use the repetition"
+          }
+        ],
+        "R4": [
+          {
+            "file": "docs/options.rst",
+            "startLine": 244,
+            "endLine": 300,
+            "sha256": "6ef07a7fd827f7918533855a78d4d83ea0c46e25f9487e25bc55c2071ef91747",
+            "url": "https://github.com/pallets/click/blob/874ca2bc1c30d93a4ac6e36a15ed685eafe89097/docs/options.rst#L244",
+            "excerpt": "\n    invoke(log, args=['-vvv'])\n\nBoolean Flags\n-------------\n\nBoolean flags are options that can be enabled or disabled.  This can be\naccomplished by defining two flags in one go separated by a slash (``/``)\nfor enabling or disabling the option.  (If a slash is in an option string,\nClick automatically knows that it's a boolean flag and will pass\n``is_flag=True`` implicitly.)  Click always wants you to provide an enable\nand disable flag so that you can change the default later.\n\nExample:\n\n.. click:example::\n\n    import sys\n\n    @click.command()\n    @click.option('--shout/--no-shout', default=False)\n    def info(shout):\n        rv = sys.platform\n        if shout:\n            rv = rv.upper() + '!!!!111'\n        click.echo(rv)\n\nAnd on the command line:\n\n.. click:run::\n\n    invoke(info, args=['--shout'])\n    invoke(info, args=['--no-shout'])\n    invoke(info)\n\nIf you really don't want an off-switch, you can just define one and\nmanually inform Click that something is a flag:\n\n.. click:example::\n\n    import sys\n\n    @click.command()\n    @click.option('--shout', is_flag=True)\n    def info(shout):\n        rv = sys.platform\n        if shout:\n            rv = rv.upper() + '!!!!111'\n        click.echo(rv)\n\nAnd on the command line:\n\n.. click:run::\n\n    invoke(info, args=['--shout'])\n    invoke(info)\n"
+          }
+        ],
+        "R5": [
+          {
+            "file": "docs/options.rst",
+            "startLine": 370,
+            "endLine": 409,
+            "sha256": "6ef07a7fd827f7918533855a78d4d83ea0c46e25f9487e25bc55c2071ef91747",
+            "url": "https://github.com/pallets/click/blob/874ca2bc1c30d93a4ac6e36a15ed685eafe89097/docs/options.rst#L370",
+            "excerpt": "Choice Options\n--------------\n\nSometimes, you want to have a parameter be a choice of a list of values.\nIn that case you can use :class:`Choice` type.  It can be instantiated\nwith a list of valid values.  The originally passed choice will be returned,\nnot the str passed on the command line.  Token normalization functions and\n``case_sensitive=False`` can cause the two to be different but still match.\n\nExample:\n\n.. click:example::\n\n    @click.command()\n    @click.option('--hash-type',\n                  type=click.Choice(['MD5', 'SHA1'], case_sensitive=False))\n    def digest(hash_type):\n        click.echo(hash_type)\n\nWhat it looks like:\n\n.. click:run::\n\n    invoke(digest, args=['--hash-type=MD5'])\n    println()\n    invoke(digest, args=['--hash-type=md5'])\n    println()\n    invoke(digest, args=['--hash-type=foo'])\n    println()\n    invoke(digest, args=['--help'])\n\nOnly pass the choices as list or tuple. Other iterables (like\ngenerators) may lead to unexpected results.\n\nChoices work with options that have ``multiple=True``. If a ``default``\nvalue is given with ``multiple=True``, it should be a list or tuple of\nvalid choices.\n\nChoices should be unique after considering the effects of\n``case_sensitive`` and any specified token normalization function."
+          }
+        ],
+        "R6": [
+          {
+            "file": "docs/options.rst",
+            "startLine": 812,
+            "endLine": 847,
+            "sha256": "6ef07a7fd827f7918533855a78d4d83ea0c46e25f9487e25bc55c2071ef91747",
+            "url": "https://github.com/pallets/click/blob/874ca2bc1c30d93a4ac6e36a15ed685eafe89097/docs/options.rst#L812",
+            "excerpt": ".. _ranges:\n\nRange Options\n-------------\n\nThe :class:`IntRange` type extends the :data:`INT` type to ensure the\nvalue is contained in the given range. The :class:`FloatRange` type does\nthe same for :data:`FLOAT`.\n\nIf ``min`` or ``max`` is omitted, that side is *unbounded*. Any value in\nthat direction is accepted. By default, both bounds are *closed*, which\nmeans the boundary value is included in the accepted range. ``min_open``\nand ``max_open`` can be used to exclude that boundary from the range.\n\nIf ``clamp`` mode is enabled, a value that is outside the range is set\nto the boundary instead of failing. For example, the range ``0, 5``\nwould return ``5`` for the value ``10``, or ``0`` for the value ``-1``.\nWhen using :class:`FloatRange`, ``clamp`` can only be enabled if both\nbounds are *closed* (the default).\n\n.. click:example::\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(0, 20, clamp=True))\n    @click.option(\"--digit\", type=click.IntRange(0, 9))\n    def repeat(count, digit):\n        click.echo(str(digit) * count)\n\n.. click:run::\n\n    invoke(repeat, args=['--count=100', '--digit=5'])\n    invoke(repeat, args=['--count=6', '--digit=12'])\n\n\nCallbacks for Validation\n------------------------"
+          }
+        ]
+      }
+    },
+    {
+      "id": "packaging",
+      "commit": "d8e3b31b734926ebbcaff654279f6855a73e052f",
+      "rules": {
+        "R1": [
+          {
+            "file": "docs/version.rst",
+            "startLine": 12,
+            "endLine": 46,
+            "sha256": "7b85b501973e91a6ff0b9c6f54360ebb07e376e6474c5e2d689359ce94cdc790",
+            "url": "https://github.com/pypa/packaging/blob/d8e3b31b734926ebbcaff654279f6855a73e052f/docs/version.rst#L12",
+            "excerpt": "Usage\n-----\n\n.. doctest::\n\n    >>> from packaging.version import Version, parse\n    >>> v1 = parse(\"1.0a5\")\n    >>> v2 = Version(\"1.0\")\n    >>> v1\n    <Version('1.0a5')>\n    >>> v2\n    <Version('1.0')>\n    >>> v1 < v2\n    True\n    >>> v1.epoch\n    0\n    >>> v1.release\n    (1, 0)\n    >>> v1.pre\n    ('a', 5)\n    >>> v1.is_prerelease\n    True\n    >>> v2.is_prerelease\n    False\n    >>> Version(\"french toast\")\n    Traceback (most recent call last):\n        ...\n    InvalidVersion: Invalid version: 'french toast'\n    >>> Version(\"1.0\").post\n    >>> Version(\"1.0\").is_postrelease\n    False\n    >>> Version(\"1.0.post0\").post\n    0\n    >>> Version(\"1.0.post0\").is_postrelease\n    True"
+          },
+          {
+            "file": "src/packaging/version.py",
+            "startLine": 160,
+            "endLine": 214,
+            "sha256": "a257f2ba4fc33db7e5364278c0159eb57435edcef8c770c1e74d5d7a052fec36",
+            "url": "https://github.com/pypa/packaging/blob/d8e3b31b734926ebbcaff654279f6855a73e052f/src/packaging/version.py#L160",
+            "excerpt": "\nclass Version(_BaseVersion):\n    \"\"\"This class abstracts handling of a project's versions.\n\n    A :class:`Version` instance is comparison aware and can be compared and\n    sorted using the standard Python interfaces.\n\n    >>> v1 = Version(\"1.0a5\")\n    >>> v2 = Version(\"1.0\")\n    >>> v1\n    <Version('1.0a5')>\n    >>> v2\n    <Version('1.0')>\n    >>> v1 < v2\n    True\n    >>> v1 == v2\n    False\n    >>> v1 > v2\n    False\n    >>> v1 >= v2\n    False\n    >>> v1 <= v2\n    True\n    \"\"\"\n\n    _regex = re.compile(r\"^\\s*\" + VERSION_PATTERN + r\"\\s*$\", re.VERBOSE | re.IGNORECASE)\n    _key: CmpKey\n\n    def __init__(self, version: str) -> None:\n        \"\"\"Initialize a Version object.\n\n        :param version:\n            The string representation of a version which will be parsed and normalized\n            before use.\n        :raises InvalidVersion:\n            If the ``version`` does not conform to PEP 440 in any way then this\n            exception will be raised.\n        \"\"\"\n\n        # Validate the version and parse it into pieces\n        match = self._regex.search(version)\n        if not match:\n            raise InvalidVersion(f\"Invalid version: {version!r}\")\n\n        # Store the parsed out pieces of the version\n        self._version = _Version(\n            epoch=int(match.group(\"epoch\")) if match.group(\"epoch\") else 0,\n            release=tuple(int(i) for i in match.group(\"release\").split(\".\")),\n            pre=_parse_letter_version(match.group(\"pre_l\"), match.group(\"pre_n\")),\n            post=_parse_letter_version(\n                match.group(\"post_l\"), match.group(\"post_n1\") or match.group(\"post_n2\")\n            ),\n            dev=_parse_letter_version(match.group(\"dev_l\"), match.group(\"dev_n\")),\n            local=_parse_local_version(match.group(\"local\")),\n        )"
+          }
+        ],
+        "R2": [
+          {
+            "file": "docs/version.rst",
+            "startLine": 34,
+            "endLine": 39,
+            "sha256": "7b85b501973e91a6ff0b9c6f54360ebb07e376e6474c5e2d689359ce94cdc790",
+            "url": "https://github.com/pypa/packaging/blob/d8e3b31b734926ebbcaff654279f6855a73e052f/docs/version.rst#L34",
+            "excerpt": "    >>> v2.is_prerelease\n    False\n    >>> Version(\"french toast\")\n    Traceback (most recent call last):\n        ...\n    InvalidVersion: Invalid version: 'french toast'"
+          }
+        ],
+        "R3": [
+          {
+            "file": "docs/specifiers.rst",
+            "startLine": 12,
+            "endLine": 51,
+            "sha256": "b6f621d9bb96b44b27b3f1de185e0beb15cc8dd0c143fdb39c521f1cefada360",
+            "url": "https://github.com/pypa/packaging/blob/d8e3b31b734926ebbcaff654279f6855a73e052f/docs/specifiers.rst#L12",
+            "excerpt": "Usage\n-----\n\n.. doctest::\n\n    >>> from packaging.specifiers import SpecifierSet\n    >>> from packaging.version import Version\n    >>> spec1 = SpecifierSet(\"~=1.0\")\n    >>> spec1\n    <SpecifierSet('~=1.0')>\n    >>> spec2 = SpecifierSet(\">=1.0\")\n    >>> spec2\n    <SpecifierSet('>=1.0')>\n    >>> # We can combine specifiers\n    >>> combined_spec = spec1 & spec2\n    >>> combined_spec\n    <SpecifierSet('>=1.0,~=1.0')>\n    >>> # We can also implicitly combine a string specifier\n    >>> combined_spec &= \"!=1.1\"\n    >>> combined_spec\n    <SpecifierSet('!=1.1,>=1.0,~=1.0')>\n    >>> # We can iterate over the SpecifierSet to recover the\n    >>> # individual specifiers\n    >>> sorted(combined_spec, key=str)\n    [<Specifier('!=1.1')>, <Specifier('>=1.0')>, <Specifier('~=1.0')>]\n    >>> # Create a few versions to check for contains.\n    >>> v1 = Version(\"1.0a5\")\n    >>> v2 = Version(\"1.0\")\n    >>> # We can check a version object to see if it falls within a specifier\n    >>> v1 in combined_spec\n    False\n    >>> v2 in combined_spec\n    True\n    >>> # We can even do the same with a string based version\n    >>> \"1.4\" in combined_spec\n    True\n    >>> # Finally we can filter a list of versions to get only those which are\n    >>> # contained within our specifier.\n    >>> list(combined_spec.filter([v1, v2, \"1.4\"]))\n    [<Version('1.0')>, '1.4']"
+          },
+          {
+            "file": "src/packaging/specifiers.py",
+            "startLine": 886,
+            "endLine": 1000,
+            "sha256": "186d703cd31c2f47cc24eebcbc5e77c0a31dc277de84371a23eafd3694df8a50",
+            "url": "https://github.com/pypa/packaging/blob/d8e3b31b734926ebbcaff654279f6855a73e052f/src/packaging/specifiers.py#L886",
+            "excerpt": "    def contains(\n        self,\n        item: UnparsedVersion,\n        prereleases: bool | None = None,\n        installed: bool | None = None,\n    ) -> bool:\n        \"\"\"Return whether or not the item is contained in this SpecifierSet.\n\n        :param item:\n            The item to check for, which can be a version string or a\n            :class:`Version` instance.\n        :param prereleases:\n            Whether or not to match prereleases with this SpecifierSet. If set to\n            ``None`` (the default), it uses :attr:`prereleases` to determine\n            whether or not prereleases are allowed.\n\n        >>> SpecifierSet(\">=1.0.0,!=1.0.1\").contains(\"1.2.3\")\n        True\n        >>> SpecifierSet(\">=1.0.0,!=1.0.1\").contains(Version(\"1.2.3\"))\n        True\n        >>> SpecifierSet(\">=1.0.0,!=1.0.1\").contains(\"1.0.1\")\n        False\n        >>> SpecifierSet(\">=1.0.0,!=1.0.1\").contains(\"1.3.0a1\")\n        False\n        >>> SpecifierSet(\">=1.0.0,!=1.0.1\", prereleases=True).contains(\"1.3.0a1\")\n        True\n        >>> SpecifierSet(\">=1.0.0,!=1.0.1\").contains(\"1.3.0a1\", prereleases=True)\n        True\n        \"\"\"\n        # Ensure that our item is a Version instance.\n        if not isinstance(item, Version):\n            item = Version(item)\n\n        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # We can determine if we're going to allow pre-releases by looking to\n        # see if any of the underlying items supports them. If none of them do\n        # and this item is a pre-release then we do not allow it and we can\n        # short circuit that here.\n        # Note: This means that 1.0.dev1 would not be contained in something\n        #       like >=1.0.devabc however it would be in >=1.0.debabc,>0.0.dev0\n        if not prereleases and item.is_prerelease:\n            return False\n\n        if installed and item.is_prerelease:\n            item = Version(item.base_version)\n\n        # We simply dispatch to the underlying specs here to make sure that the\n        # given version is contained within all of them.\n        # Note: This use of all() here means that an empty set of specifiers\n        #       will always return True, this is an explicit design decision.\n        return all(s.contains(item, prereleases=prereleases) for s in self._specs)\n\n    def filter(\n        self, iterable: Iterable[UnparsedVersionVar], prereleases: bool | None = None\n    ) -> Iterator[UnparsedVersionVar]:\n        \"\"\"Filter items in the given iterable, that match the specifiers in this set.\n\n        :param iterable:\n            An iterable that can contain version strings and :class:`Version` instances.\n            The items in the iterable will be filtered according to the specifier.\n        :param prereleases:\n            Whether or not to allow prereleases in the returned iterator. If set to\n            ``None`` (the default), it will be intelligently decide whether to allow\n            prereleases or not (based on the :attr:`prereleases` attribute, and\n            whether the only versions matching are prereleases).\n\n        This method is smarter than just ``filter(SpecifierSet(...).contains, [...])``\n        because it implements the rule from :pep:`440` that a prerelease item\n        SHOULD be accepted if no other versions match the given specifier.\n\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.3\", \"1.5a1\"]))\n        ['1.3']\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.3\", Version(\"1.4\")]))\n        ['1.3', <Version('1.4')>]\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        []\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.3\", \"1.5a1\"], prereleases=True))\n        ['1.3', '1.5a1']\n        >>> list(SpecifierSet(\">=1.2.3\", prereleases=True).filter([\"1.3\", \"1.5a1\"]))\n        ['1.3', '1.5a1']\n\n        An \"empty\" SpecifierSet will filter items based on the presence of prerelease\n        versions in the set.\n\n        >>> list(SpecifierSet(\"\").filter([\"1.3\", \"1.5a1\"]))\n        ['1.3']\n        >>> list(SpecifierSet(\"\").filter([\"1.5a1\"]))\n        ['1.5a1']\n        >>> list(SpecifierSet(\"\", prereleases=True).filter([\"1.3\", \"1.5a1\"]))\n        ['1.3', '1.5a1']\n        >>> list(SpecifierSet(\"\").filter([\"1.3\", \"1.5a1\"], prereleases=True))\n        ['1.3', '1.5a1']\n        \"\"\"\n        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # If we have any specifiers, then we want to wrap our iterable in the\n        # filter method for each one, this will act as a logical AND amongst\n        # each specifier.\n        if self._specs:\n            for spec in self._specs:\n                iterable = spec.filter(iterable, prereleases=bool(prereleases))\n            return iter(iterable)\n        # If we do not have any specifiers, then we need to have a rough filter\n        # which will filter out any pre-releases, unless there are no final\n        # releases.\n        else:"
+          }
+        ],
+        "R4": [
+          {
+            "file": "docs/specifiers.rst",
+            "startLine": 12,
+            "endLine": 51,
+            "sha256": "b6f621d9bb96b44b27b3f1de185e0beb15cc8dd0c143fdb39c521f1cefada360",
+            "url": "https://github.com/pypa/packaging/blob/d8e3b31b734926ebbcaff654279f6855a73e052f/docs/specifiers.rst#L12",
+            "excerpt": "Usage\n-----\n\n.. doctest::\n\n    >>> from packaging.specifiers import SpecifierSet\n    >>> from packaging.version import Version\n    >>> spec1 = SpecifierSet(\"~=1.0\")\n    >>> spec1\n    <SpecifierSet('~=1.0')>\n    >>> spec2 = SpecifierSet(\">=1.0\")\n    >>> spec2\n    <SpecifierSet('>=1.0')>\n    >>> # We can combine specifiers\n    >>> combined_spec = spec1 & spec2\n    >>> combined_spec\n    <SpecifierSet('>=1.0,~=1.0')>\n    >>> # We can also implicitly combine a string specifier\n    >>> combined_spec &= \"!=1.1\"\n    >>> combined_spec\n    <SpecifierSet('!=1.1,>=1.0,~=1.0')>\n    >>> # We can iterate over the SpecifierSet to recover the\n    >>> # individual specifiers\n    >>> sorted(combined_spec, key=str)\n    [<Specifier('!=1.1')>, <Specifier('>=1.0')>, <Specifier('~=1.0')>]\n    >>> # Create a few versions to check for contains.\n    >>> v1 = Version(\"1.0a5\")\n    >>> v2 = Version(\"1.0\")\n    >>> # We can check a version object to see if it falls within a specifier\n    >>> v1 in combined_spec\n    False\n    >>> v2 in combined_spec\n    True\n    >>> # We can even do the same with a string based version\n    >>> \"1.4\" in combined_spec\n    True\n    >>> # Finally we can filter a list of versions to get only those which are\n    >>> # contained within our specifier.\n    >>> list(combined_spec.filter([v1, v2, \"1.4\"]))\n    [<Version('1.0')>, '1.4']"
+          }
+        ],
+        "R5": [
+          {
+            "file": "docs/requirements.rst",
+            "startLine": 15,
+            "endLine": 58,
+            "sha256": "7fd464e6a8df76da3a7e169564ec7d2c27acb91979bb8ce2bc538fe172d96104",
+            "url": "https://github.com/pypa/packaging/blob/d8e3b31b734926ebbcaff654279f6855a73e052f/docs/requirements.rst#L15",
+            "excerpt": "\n    >>> from packaging.requirements import Requirement\n    >>> simple_req = Requirement(\"name\")\n    >>> simple_req\n    <Requirement('name')>\n    >>> simple_req.name\n    'name'\n    >>> simple_req.url is None\n    True\n    >>> simple_req.extras\n    set()\n    >>> simple_req.specifier\n    <SpecifierSet('')>\n    >>> simple_req.marker is None\n    True\n    >>> # Requirements can be specified with extras, specifiers and markers\n    >>> req = Requirement('name[foo]>=2,<3; python_version>\"2.0\"')\n    >>> req.name\n    'name'\n    >>> req.extras\n    {'foo'}\n    >>> req.specifier\n    <SpecifierSet('<3,>=2')>\n    >>> req.marker\n    <Marker('python_version > \"2.0\"')>\n    >>> # Requirements can also be specified with a URL, but may not specify\n    >>> # a version.\n    >>> url_req = Requirement('name @ https://github.com/pypa ;os_name==\"a\"')\n    >>> url_req.name\n    'name'\n    >>> url_req.url\n    'https://github.com/pypa'\n    >>> url_req.extras\n    set()\n    >>> url_req.marker\n    <Marker('os_name == \"a\"')>\n    >>> # You can do simple comparisons between requirement objects:\n    >>> Requirement(\"packaging\") == Requirement(\"packaging\")\n    True\n    >>> # You can also perform simple comparisons between sets of requirements:\n    >>> requirements1 = {Requirement(\"packaging\"), Requirement(\"pip\")}\n    >>> requirements2 = {Requirement(\"pip\"), Requirement(\"packaging\")}\n    >>> requirements1 == requirements2\n    True"
+          },
+          {
+            "file": "docs/markers.rst",
+            "startLine": 12,
+            "endLine": 106,
+            "sha256": "f6773136277c9cd1767d0e7c8907d384a10cca452c2427de90c9865da96b1156",
+            "url": "https://github.com/pypa/packaging/blob/d8e3b31b734926ebbcaff654279f6855a73e052f/docs/markers.rst#L12",
+            "excerpt": "-----\n\n.. doctest::\n\n    >>> from packaging.markers import Marker, UndefinedEnvironmentName\n    >>> marker = Marker(\"python_version>'2'\")\n    >>> marker\n    <Marker('python_version > \"2\"')>\n    >>> # We can evaluate the marker to see if it is satisfied\n    >>> marker.evaluate()\n    True\n    >>> # We can also override the environment\n    >>> env = {'python_version': '1.5.4'}\n    >>> marker.evaluate(environment=env)\n    False\n    >>> # Multiple markers can be ANDed\n    >>> and_marker = Marker(\"os_name=='a' and os_name=='b'\")\n    >>> and_marker\n    <Marker('os_name == \"a\" and os_name == \"b\"')>\n    >>> # Multiple markers can be ORed\n    >>> or_marker = Marker(\"os_name=='a' or os_name=='b'\")\n    >>> or_marker\n    <Marker('os_name == \"a\" or os_name == \"b\"')>\n    >>> # Markers can be also used with extras, to pull in dependencies if\n    >>> # a certain extra is being installed\n    >>> extra = Marker('extra == \"bar\"')\n    >>> # You can do simple comparisons between marker objects:\n    >>> Marker(\"python_version > '3.6'\") == Marker(\"python_version > '3.6'\")\n    True\n    >>> # You can also perform simple comparisons between sets of markers:\n    >>> markers1 = {Marker(\"python_version > '3.6'\"), Marker('os_name == \"unix\"')}\n    >>> markers2 = {Marker('os_name == \"unix\"'), Marker(\"python_version > '3.6'\")}\n    >>> markers1 == markers2\n    True\n\n\nReference\n---------\n\n.. class:: Marker(markers)\n\n    This class abstracts handling markers for dependencies of a project. It can\n    be passed a single marker or multiple markers that are ANDed or ORed\n    together. Each marker will be parsed according to the specification.\n\n    :param str markers: The string representation of a marker or markers.\n    :raises InvalidMarker: If the given ``markers`` are not parseable, then\n                           this exception will be raised.\n\n    .. method:: evaluate(environment=None)\n\n    Evaluate the marker given the context of the current Python process.\n\n    :param dict environment: A dictionary containing keys and values to\n                             override the detected environment.\n    :raises: UndefinedComparison: If the marker uses a comparison on strings\n                                  which are not valid versions per the\n                                  :ref:`specification of version specifiers\n                                  <pypug:version-specifiers>`.\n    :raises: UndefinedEnvironmentName: If the marker accesses a value that\n                                       isn't present inside of the environment\n                                       dictionary.\n    :rtype: bool\n\n.. autotypeddict:: packaging.markers.Environment\n\n    A dictionary that represents a Python environment as captured by\n    :func:`default_environment`.\n\n.. function:: default_environment()\n\n    Returns a dictionary representing the current Python process. This is the\n    base environment that is used when evaluating markers in\n    :meth:`Marker.evaluate`.\n\n    :rtype: Environment\n\n.. exception:: InvalidMarker\n\n    Raised when attempting to create a :class:`Marker` with a string that\n    does not conform to the specification.\n\n\n.. exception:: UndefinedComparison\n\n    Raised when attempting to evaluate a :class:`Marker` with a\n    comparison operator against values that are not valid\n    versions per the :ref:`specification of version specifiers\n    <pypug:version-specifiers>`.\n\n\n.. exception:: UndefinedEnvironmentName\n\n    Raised when attempting to evaluate a :class:`Marker` with a value that is\n    missing from the evaluation environment."
+          }
+        ],
+        "R6": [
+          {
+            "file": "docs/utils.rst",
+            "startLine": 17,
+            "endLine": 43,
+            "sha256": "5d59633293b8eac93b14662885eb409f46b4d5c0497fd48c4b61c730eba936cc",
+            "url": "https://github.com/pypa/packaging/blob/d8e3b31b734926ebbcaff654279f6855a73e052f/docs/utils.rst#L17",
+            "excerpt": ".. function:: canonicalize_name(name, validate=False)\n\n    This function takes a valid Python package or extra name, and returns the\n    normalized form of it.\n\n    The return type is typed as :class:`NormalizedName`. This allows type\n    checkers to help require that a string has passed through this function\n    before use.\n\n    If **validate** is true, then the function will check if **name** is a valid\n    distribution name before normalizing.\n\n    :param str name: The name to normalize.\n    :param bool validate: Check whether the name is a valid distribution name.\n    :raises InvalidName: If **validate** is true and the name is not an\n        acceptable distribution name.\n\n    .. doctest::\n\n        >>> from packaging.utils import canonicalize_name\n        >>> canonicalize_name(\"Django\")\n        'django'\n        >>> canonicalize_name(\"oslo.concurrency\")\n        'oslo-concurrency'\n        >>> canonicalize_name(\"requests\")\n        'requests'\n"
+          }
+        ]
+      }
+    },
+    {
+      "id": "werkzeug",
+      "commit": "5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624",
+      "rules": {
+        "R1": [
+          {
+            "file": "src/werkzeug/datastructures/structures.py",
+            "startLine": 110,
+            "endLine": 151,
+            "sha256": "f2746abf01ccf26a198ff7c46b13aa17e37b960ba85e09cd25e4f697d2d7ef10",
+            "url": "https://github.com/pallets/werkzeug/blob/5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624/src/werkzeug/datastructures/structures.py#L110",
+            "excerpt": "class MultiDict(TypeConversionDict):\n    \"\"\"A :class:`MultiDict` is a dictionary subclass customized to deal with\n    multiple values for the same key which is for example used by the parsing\n    functions in the wrappers.  This is necessary because some HTML form\n    elements pass multiple values for the same key.\n\n    :class:`MultiDict` implements all standard dictionary methods.\n    Internally, it saves all values for a key as a list, but the standard dict\n    access methods will only return the first value for a key. If you want to\n    gain access to the other values, too, you have to use the `list` methods as\n    explained below.\n\n    Basic Usage:\n\n    >>> d = MultiDict([('a', 'b'), ('a', 'c')])\n    >>> d\n    MultiDict([('a', 'b'), ('a', 'c')])\n    >>> d['a']\n    'b'\n    >>> d.getlist('a')\n    ['b', 'c']\n    >>> 'a' in d\n    True\n\n    It behaves like a normal dict thus all dict functions will only return the\n    first value when multiple values for one key are found.\n\n    From Werkzeug 0.3 onwards, the `KeyError` raised by this class is also a\n    subclass of the :exc:`~exceptions.BadRequest` HTTP exception and will\n    render a page for a ``400 BAD REQUEST`` if caught in a catch-all for HTTP\n    exceptions.\n\n    A :class:`MultiDict` can be constructed from an iterable of\n    ``(key, value)`` tuples, a dict, a :class:`MultiDict` or from Werkzeug 0.2\n    onwards some keyword parameters.\n\n    :param mapping: the initial value for the :class:`MultiDict`.  Either a\n                    regular dict, an iterable of ``(key, value)`` tuples\n                    or `None`.\n    \"\"\"\n\n    def __init__(self, mapping=None):"
+          }
+        ],
+        "R2": [
+          {
+            "file": "src/werkzeug/datastructures/structures.py",
+            "startLine": 55,
+            "endLine": 85,
+            "sha256": "f2746abf01ccf26a198ff7c46b13aa17e37b960ba85e09cd25e4f697d2d7ef10",
+            "url": "https://github.com/pallets/werkzeug/blob/5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624/src/werkzeug/datastructures/structures.py#L55",
+            "excerpt": "    def get(self, key, default=None, type=None):\n        \"\"\"Return the default value if the requested data doesn't exist.\n        If `type` is provided and is a callable it should convert the value,\n        return it or raise a :exc:`ValueError` if that is not possible.  In\n        this case the function will return the default as if the value was not\n        found:\n\n        >>> d = TypeConversionDict(foo='42', bar='blub')\n        >>> d.get('foo', type=int)\n        42\n        >>> d.get('bar', -1, type=int)\n        -1\n\n        :param key: The key to be looked up.\n        :param default: The default value to be returned if the key can't\n                        be looked up.  If not further specified `None` is\n                        returned.\n        :param type: A callable that is used to cast the value in the\n                     :class:`MultiDict`.  If a :exc:`ValueError` or a\n                     :exc:`TypeError` is raised by this callable the default\n                     value is returned.\n\n        .. versionchanged:: 3.0.2\n           Returns the default value on :exc:`TypeError`, too.\n        \"\"\"\n        try:\n            rv = self[key]\n        except KeyError:\n            return default\n        if type is not None:\n            try:"
+          },
+          {
+            "file": "src/werkzeug/datastructures/structures.py",
+            "startLine": 209,
+            "endLine": 240,
+            "sha256": "f2746abf01ccf26a198ff7c46b13aa17e37b960ba85e09cd25e4f697d2d7ef10",
+            "url": "https://github.com/pallets/werkzeug/blob/5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624/src/werkzeug/datastructures/structures.py#L209",
+            "excerpt": "        .. versionadded:: 0.6\n\n        :param key: the key for the value.\n        :param value: the value to add.\n        \"\"\"\n        dict.setdefault(self, key, []).append(value)\n\n    def getlist(self, key, type=None):\n        \"\"\"Return the list of items for a given key. If that key is not in the\n        `MultiDict`, the return value will be an empty list.  Just like `get`,\n        `getlist` accepts a `type` parameter.  All items will be converted\n        with the callable defined there.\n\n        :param key: The key to be looked up.\n        :param type: A callable that is used to cast the value in the\n                     :class:`MultiDict`.  If a :exc:`ValueError` is raised\n                     by this callable the value will be removed from the list.\n        :return: a :class:`list` of all the values for the key.\n        \"\"\"\n        try:\n            rv = dict.__getitem__(self, key)\n        except KeyError:\n            return []\n        if type is None:\n            return list(rv)\n        result = []\n        for item in rv:\n            try:\n                result.append(type(item))\n            except ValueError:\n                pass\n        return result"
+          }
+        ],
+        "R3": [
+          {
+            "file": "src/werkzeug/datastructures/structures.py",
+            "startLine": 197,
+            "endLine": 218,
+            "sha256": "f2746abf01ccf26a198ff7c46b13aa17e37b960ba85e09cd25e4f697d2d7ef10",
+            "url": "https://github.com/pallets/werkzeug/blob/5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624/src/werkzeug/datastructures/structures.py#L197",
+            "excerpt": "\n    def __setitem__(self, key, value):\n        \"\"\"Like :meth:`add` but removes an existing key first.\n\n        :param key: the key for the value.\n        :param value: the value to set.\n        \"\"\"\n        dict.__setitem__(self, key, [value])\n\n    def add(self, key, value):\n        \"\"\"Adds a new value for the key.\n\n        .. versionadded:: 0.6\n\n        :param key: the key for the value.\n        :param value: the value to add.\n        \"\"\"\n        dict.setdefault(self, key, []).append(value)\n\n    def getlist(self, key, type=None):\n        \"\"\"Return the list of items for a given key. If that key is not in the\n        `MultiDict`, the return value will be an empty list.  Just like `get`,"
+          }
+        ],
+        "R4": [
+          {
+            "file": "src/werkzeug/datastructures/structures.py",
+            "startLine": 209,
+            "endLine": 241,
+            "sha256": "f2746abf01ccf26a198ff7c46b13aa17e37b960ba85e09cd25e4f697d2d7ef10",
+            "url": "https://github.com/pallets/werkzeug/blob/5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624/src/werkzeug/datastructures/structures.py#L209",
+            "excerpt": "        .. versionadded:: 0.6\n\n        :param key: the key for the value.\n        :param value: the value to add.\n        \"\"\"\n        dict.setdefault(self, key, []).append(value)\n\n    def getlist(self, key, type=None):\n        \"\"\"Return the list of items for a given key. If that key is not in the\n        `MultiDict`, the return value will be an empty list.  Just like `get`,\n        `getlist` accepts a `type` parameter.  All items will be converted\n        with the callable defined there.\n\n        :param key: The key to be looked up.\n        :param type: A callable that is used to cast the value in the\n                     :class:`MultiDict`.  If a :exc:`ValueError` is raised\n                     by this callable the value will be removed from the list.\n        :return: a :class:`list` of all the values for the key.\n        \"\"\"\n        try:\n            rv = dict.__getitem__(self, key)\n        except KeyError:\n            return []\n        if type is None:\n            return list(rv)\n        result = []\n        for item in rv:\n            try:\n                result.append(type(item))\n            except ValueError:\n                pass\n        return result\n"
+          }
+        ],
+        "R5": [
+          {
+            "file": "src/werkzeug/datastructures/headers.py",
+            "startLine": 13,
+            "endLine": 76,
+            "sha256": "f7bf8ff8b833b5eaf1130c4b6d0b01106899a423805f367b7c4c575dde2e1fea",
+            "url": "https://github.com/pallets/werkzeug/blob/5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624/src/werkzeug/datastructures/headers.py#L13",
+            "excerpt": "class Headers:\n    \"\"\"An object that stores some headers. It has a dict-like interface,\n    but is ordered, can store the same key multiple times, and iterating\n    yields ``(key, value)`` pairs instead of only keys.\n\n    This data structure is useful if you want a nicer way to handle WSGI\n    headers which are stored as tuples in a list.\n\n    From Werkzeug 0.3 onwards, the :exc:`KeyError` raised by this class is\n    also a subclass of the :class:`~exceptions.BadRequest` HTTP exception\n    and will render a page for a ``400 BAD REQUEST`` if caught in a\n    catch-all for HTTP exceptions.\n\n    Headers is mostly compatible with the Python :class:`wsgiref.headers.Headers`\n    class, with the exception of `__getitem__`.  :mod:`wsgiref` will return\n    `None` for ``headers['missing']``, whereas :class:`Headers` will raise\n    a :class:`KeyError`.\n\n    To create a new ``Headers`` object, pass it a list, dict, or\n    other ``Headers`` object with default values. These values are\n    validated the same way values added later are.\n\n    :param defaults: The list of default values for the :class:`Headers`.\n\n    .. versionchanged:: 2.1.0\n        Default values are validated the same as values added later.\n\n    .. versionchanged:: 0.9\n       This data structure now stores unicode values similar to how the\n       multi dicts do it.  The main difference is that bytes can be set as\n       well which will automatically be latin1 decoded.\n\n    .. versionchanged:: 0.9\n       The :meth:`linked` function was removed without replacement as it\n       was an API that does not support the changes to the encoding model.\n    \"\"\"\n\n    def __init__(self, defaults=None):\n        self._list = []\n        if defaults is not None:\n            self.extend(defaults)\n\n    def __getitem__(self, key, _get_mode=False):\n        if not _get_mode:\n            if isinstance(key, int):\n                return self._list[key]\n            elif isinstance(key, slice):\n                return self.__class__(self._list[key])\n        if not isinstance(key, str):\n            raise BadRequestKeyError(key)\n        ikey = key.lower()\n        for k, v in self._list:\n            if k.lower() == ikey:\n                return v\n        # micro optimization: if we are in get mode we will catch that\n        # exception one stack level down so we can raise a standard\n        # key error instead of our special one.\n        if _get_mode:\n            raise KeyError()\n        raise BadRequestKeyError(key)\n\n    def __eq__(self, other):\n        def lowered(item):\n            return (item[0].lower(),) + item[1:]"
+          },
+          {
+            "file": "src/werkzeug/datastructures/headers.py",
+            "startLine": 120,
+            "endLine": 154,
+            "sha256": "f7bf8ff8b833b5eaf1130c4b6d0b01106899a423805f367b7c4c575dde2e1fea",
+            "url": "https://github.com/pallets/werkzeug/blob/5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624/src/werkzeug/datastructures/headers.py#L120",
+            "excerpt": "    def getlist(self, key, type=None):\n        \"\"\"Return the list of items for a given key. If that key is not in the\n        :class:`Headers`, the return value will be an empty list.  Just like\n        :meth:`get`, :meth:`getlist` accepts a `type` parameter.  All items will\n        be converted with the callable defined there.\n\n        :param key: The key to be looked up.\n        :param type: A callable that is used to cast the value in the\n                     :class:`Headers`.  If a :exc:`ValueError` is raised\n                     by this callable the value will be removed from the list.\n        :return: a :class:`list` of all the values for the key.\n\n        .. versionchanged:: 3.0\n            The ``as_bytes`` parameter was removed.\n\n        .. versionchanged:: 0.9\n            The ``as_bytes`` parameter was added.\n        \"\"\"\n        ikey = key.lower()\n        result = []\n        for k, v in self:\n            if k.lower() == ikey:\n                if type is not None:\n                    try:\n                        v = type(v)\n                    except ValueError:\n                        continue\n                result.append(v)\n        return result\n\n    def get_all(self, name):\n        \"\"\"Return a list of all the values for the named field.\n\n        This method is compatible with the :mod:`wsgiref`\n        :meth:`~wsgiref.headers.Headers.get_all` method."
+          },
+          {
+            "file": "src/werkzeug/datastructures/headers.py",
+            "startLine": 255,
+            "endLine": 275,
+            "sha256": "f7bf8ff8b833b5eaf1130c4b6d0b01106899a423805f367b7c4c575dde2e1fea",
+            "url": "https://github.com/pallets/werkzeug/blob/5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624/src/werkzeug/datastructures/headers.py#L255",
+            "excerpt": "    def add(self, _key, _value, **kw):\n        \"\"\"Add a new header tuple to the list.\n\n        Keyword arguments can specify additional parameters for the header\n        value, with underscores converted to dashes::\n\n        >>> d = Headers()\n        >>> d.add('Content-Type', 'text/plain')\n        >>> d.add('Content-Disposition', 'attachment', filename='foo.png')\n\n        The keyword argument dumping uses :func:`dump_options_header`\n        behind the scenes.\n\n        .. versionadded:: 0.4.1\n            keyword arguments were added for :mod:`wsgiref` compatibility.\n        \"\"\"\n        if kw:\n            _value = _options_header_vkw(_value, kw)\n        _value = _str_header_value(_value)\n        self._list.append((_key, _value))\n"
+          }
+        ],
+        "R6": [
+          {
+            "file": "docs/routing.rst",
+            "startLine": 19,
+            "endLine": 80,
+            "sha256": "8a91f8a79bd4766aff39df3dc7a05cedd8b6d2fcbd47e971ff24bb97863eebcb",
+            "url": "https://github.com/pallets/werkzeug/blob/5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624/docs/routing.rst#L19",
+            "excerpt": "Quickstart\n==========\n\nHere is a simple example which could be the URL definition for a blog::\n\n    from werkzeug.routing import Map, Rule, NotFound, RequestRedirect\n\n    url_map = Map([\n        Rule('/', endpoint='blog/index'),\n        Rule('/<int:year>/', endpoint='blog/archive'),\n        Rule('/<int:year>/<int:month>/', endpoint='blog/archive'),\n        Rule('/<int:year>/<int:month>/<int:day>/', endpoint='blog/archive'),\n        Rule('/<int:year>/<int:month>/<int:day>/<slug>',\n             endpoint='blog/show_post'),\n        Rule('/about', endpoint='blog/about_me'),\n        Rule('/feeds/', endpoint='blog/feeds'),\n        Rule('/feeds/<feed_name>.rss', endpoint='blog/show_feed')\n    ])\n\n    def application(environ, start_response):\n        urls = url_map.bind_to_environ(environ)\n        try:\n            endpoint, args = urls.match()\n        except HTTPException, e:\n            return e(environ, start_response)\n        start_response('200 OK', [('Content-Type', 'text/plain')])\n        return [f'Rule points to {endpoint!r} with arguments {args!r}'.encode()]\n\nSo what does that do?  First of all we create a new :class:`Map` which stores\na bunch of URL rules.  Then we pass it a list of :class:`Rule` objects.\n\nEach :class:`Rule` object is instantiated with a string that represents a rule\nand an endpoint which will be the alias for what view the rule represents.\nMultiple rules can have the same endpoint, but should have different arguments\nto allow URL construction.\n\nThe format for the URL rules is straightforward, but explained in detail below.\n\nInside the WSGI application we bind the url_map to the current request which will\nreturn a new :class:`MapAdapter`.  This url_map adapter can then be used to match\nor build domains for the current request.\n\nThe :meth:`MapAdapter.match` method can then either return a tuple in the form\n``(endpoint, args)`` or raise one of the three exceptions\n:exc:`~werkzeug.exceptions.NotFound`, :exc:`~werkzeug.exceptions.MethodNotAllowed`,\nor :exc:`~werkzeug.exceptions.RequestRedirect`.  For more details about those\nexceptions have a look at the documentation of the :meth:`MapAdapter.match` method.\n\n\nRule Format\n===========\n\nRule strings are URL paths with placeholders for variable parts in the\nformat ``<converter(arguments):name>``. ``converter`` and ``arguments``\n(with parentheses) are optional. If no converter is given, the\n``default`` converter is used (``string`` by default). The available\nconverters are discussed below.\n\nRules that end with a slash are \"branches\", others are \"leaves\". If\n``strict_slashes`` is enabled (the default), visiting a branch URL\nwithout a trailing slash will redirect to the URL with a slash appended.\n"
+          },
+          {
+            "file": "src/werkzeug/routing/converters.py",
+            "startLine": 173,
+            "endLine": 199,
+            "sha256": "8aaa5e7bf9808ebd6819bab47adba3605f4f883bf953b0e03640111d79cc21dd",
+            "url": "https://github.com/pallets/werkzeug/blob/5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624/src/werkzeug/routing/converters.py#L173",
+            "excerpt": "class IntegerConverter(NumberConverter):\n    \"\"\"This converter only accepts integer values::\n\n        Rule(\"/page/<int:page>\")\n\n    By default it only accepts unsigned, positive values. The ``signed``\n    parameter will enable signed, negative values. ::\n\n        Rule(\"/page/<int(signed=True):page>\")\n\n    :param map: The :class:`Map`.\n    :param fixed_digits: The number of fixed digits in the URL. If you\n        set this to ``4`` for example, the rule will only match if the\n        URL looks like ``/0001/``. The default is variable length.\n    :param min: The minimal value.\n    :param max: The maximal value.\n    :param signed: Allow signed (negative) values.\n\n    .. versionadded:: 0.15\n        The ``signed`` parameter.\n    \"\"\"\n\n    regex = r\"\\d+\"\n\n\nclass FloatConverter(NumberConverter):\n    \"\"\"This converter only accepts floating point values::"
+          }
+        ]
+      }
+    }
+  ]
+}

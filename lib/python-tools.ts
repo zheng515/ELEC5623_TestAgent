@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile, rm } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import { join, basename } from "node:path";
 import { spawn, execFile } from "node:child_process";
@@ -7,20 +7,21 @@ import { promisify } from "node:util";
 import type { Measurement, Mutation, PythonTest } from "./python-types";
 import { testFile, type ProjectRuntime } from "./runtime";
 import { testServices } from "./test-services";
+import { projectTextFile, projectAssetFile, projectFingerprint } from './project-files';
 
-export type Inspection = { environment?: Record<string, string>; files: Record<string, string>; functions: { file: string; name: string; line: number; end: number }[]; nodes: string[]; collection: { exitCode: number; log: string; timedOut?: boolean }; errors: string[] };
+export type Inspection = { environment?: Record<string, string>; files: Record<string, string>; assets?: { file: string; bytes: number; sha256: string }[]; functions: { file: string; name: string; line: number; end: number }[]; nodes: string[]; testFiles?: string[]; collection: { exitCode: number; log: string; timedOut?: boolean; totalNodes?: number; complete?: boolean }; errors: string[] };
 export async function verifySavedSource(root: string, expected: string) {
-  const files: [string, string][] = [];
+  const files: [string, Buffer][] = [];
   async function visit(directory: string, prefix = '') {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       if (entry.isSymbolicLink()) throw new Error('Saved source contains a symbolic link. Import the project again.');
       const name = prefix + entry.name, path = join(directory, entry.name);
       if (entry.isDirectory()) await visit(path, name + '/');
-      else files.push([name, await readFile(path, 'utf8')]);
+      else files.push([name, await readFile(path)]);
     }
   }
   await visit(join(root, 'source'));
-  if (createHash('sha256').update(JSON.stringify(files.sort())).digest('hex') !== expected) throw new Error('The saved source fingerprint changed. Import the original project again.');
+  if (projectFingerprint(files) !== expected) throw new Error('The saved source fingerprint changed. Import the original project again.');
 }
 const dependencyLockFile = (name: string) => /(?:^|\/)(?:uv\.lock|package-lock\.json)$/.test(name);
 export function projectDirectory(value = "") {
@@ -36,6 +37,7 @@ export async function importProject(root: string, archive: Buffer, requested: Pr
   if (entries.length > 500) throw new Error("Use a small project (at most 500 files).");
   const prefix = entries.every((file) => file.name.includes('/') && file.name.split('/')[0] === entries[0]?.name.split('/')[0]) ? entries[0]?.name.split('/')[0] + '/' : '';
   const files: Record<string, string> = {};
+  const imported: [string, Buffer][] = [], assets: { file: string; bytes: number; sha256: string }[] = [];
   let size = 0;
   for (const entry of entries) {
     const unsafe = (entry as unknown as { unsafeOriginalName?: string }).unsafeOriginalName || entry.name;
@@ -44,25 +46,28 @@ export async function importProject(root: string, archive: Buffer, requested: Pr
     if (directory && !relative.startsWith(directory + '/')) continue;
     const name = directory ? relative.slice(directory.length + 1) : relative;
     if (!/^[\w./-]+$/.test(name) || name.split('/').some((part) => part.startsWith('.') || ['node_modules', '__pycache__', 'reqtest_generated'].includes(part))) continue;
-    if (!/\.(py|[cm]?[jt]sx?|md|txt|toml|cfg|ini|json|lock|html?|css)$/.test(name)) continue;
+    const textFile = projectTextFile(name);
+    if (!textFile && !projectAssetFile(name)) continue;
     // JSZip replaces each empty entry with in-memory empty data that has no declared size.
     const data = (entry as unknown as { _data?: { uncompressedSize?: number } })._data;
     const declared = data && 'uncompressedSize' in data ? Number(data.uncompressedSize) : 0;
-    const limit = dependencyLockFile(name) ? 1_000_000 : 200_000;
+    const limit = dependencyLockFile(name) ? 1_000_000 : textFile ? 200_000 : 500_000;
     if (!Number.isFinite(declared) || declared > limit || size + declared > 3_000_000) throw new Error("Expanded project exceeds 3 MB, a source file exceeds 200 KB, or a supported dependency lockfile exceeds 1 MB. Select a smaller project directory.");
-    const text = await entry.async('string'); size += Buffer.byteLength(text);
+    const bytes = await entry.async('nodebuffer'); size += bytes.length;
     if (size > 3_000_000) throw new Error("Expanded project is too large.");
-    files[name] = text;
+    imported.push([name, bytes]);
+    if (textFile) files[name] = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
+    else assets.push({ file: name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
   }
   const hasPython = Object.keys(files).some(name => name.endsWith(".py"));
   const hasNode = Object.keys(files).some(name => /\.[cm]?[jt]sx?$/.test(name));
   const runtime = requested === "auto" ? hasPython ? "python" : "node" : requested;
   if (runtime === "python" ? !hasPython : !hasNode) throw new Error("No source files found for the selected Python or Node.js runtime in the project directory.");
   const snapshot = join(root, 'source');
-  for (const [name, text] of Object.entries(files)) { await mkdir(join(snapshot, name, '..'), { recursive: true }); await writeFile(join(snapshot, name), text); }
-  const fingerprint = createHash('sha256').update(JSON.stringify(Object.entries(files).sort())).digest('hex');
+  for (const [name, bytes] of imported) { await mkdir(join(snapshot, name, '..'), { recursive: true }); await writeFile(join(snapshot, name), bytes); }
+  const fingerprint = projectFingerprint(imported);
   await writeFile(join(root, "runtime.json"), JSON.stringify({ runtime }));
-  return { files, fingerprint, runtime };
+  return { files, assets, fingerprint, runtime };
 }
 export async function githubArchive(url: string, ref = "HEAD", token = "") {
   const match = /^https:\/\/github\.com\/([\w-]+)\/([\w.-]+?)(?:\.git)?\/?$/.exec(url);
@@ -104,8 +109,8 @@ export async function sandboxImage() {
 export async function dockerTool<T>(root: string, job: object, signal: AbortSignal, image = process.env.REQTEST_SANDBOX_IMAGE || 'reqtest-python:1', buildName?: string): Promise<T> {
   signal.throwIfAborted();
   const name = buildName || 'reqtest-' + randomUUID();
-  const runtime = await readRuntime(root);
   const config = await readFile(join(root, "runtime.json"), "utf8").then(text => JSON.parse(text)).catch(() => ({}));
+  const runtime = config.runtime === 'node' ? 'node' : 'python';
   const service = !buildName && ["inspect", "measure", "mutate"].includes((job as {action?:string}).action || "") ? await testServices(config.services || [], signal, basename(root)) : await testServices([], signal);
   const runDirectory = typeof config.runDirectory === "string" ? config.runDirectory : "";
   if (signal.aborted) { await service.cleanup(); signal.throwIfAborted(); }
@@ -123,7 +128,7 @@ export async function dockerTool<T>(root: string, job: object, signal: AbortSign
   try {
     return await new Promise<T>((resolve, reject) => {
       child.on('error', reject);
-      child.stdout.on('data', (chunk) => { stdout += chunk; if (stdout.length > 4_000_000) { stopReason = 'Sandbox output exceeded its limit.'; stop(); } });
+      child.stdout.on('data', (chunk) => { stdout += chunk; if (stdout.length > 32_000_000) { stopReason = 'Sandbox output exceeded its 32 MB evidence limit.'; stop(); } });
       child.stderr.on('data', (chunk) => { stderr = (stderr + chunk).slice(-4000); });
       child.on('close', (code) => {
         if (signal.aborted) return reject(new Error('Run cancelled.'));
@@ -139,7 +144,6 @@ export async function dockerTool<T>(root: string, job: object, signal: AbortSign
   } finally { clearTimeout(timeout); signal.removeEventListener('abort', stop); await removal; await service.cleanup(); }
 }
 export async function writeTests(root: string, tests: PythonTest[]) {
-  const { rm } = await import('node:fs/promises');
   await mkdir(join(root, 'generated'), { recursive: true });
   for (const name of await readdir(join(root, 'generated'))) await rm(join(root, 'generated', name), { recursive: true, force: true });
   const runtime = await readRuntime(root);

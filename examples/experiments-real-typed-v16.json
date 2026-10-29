@@ -1,0 +1,29 @@
+{
+  "purpose": "pilot",
+  "repeat": 3,
+  "variants": [
+    "B1",
+    "B2",
+    "B3"
+  ],
+  "sharedInitialSuite": true,
+  "diagnosisAblation": true,
+  "followupRequestLimit": 12,
+  "policy": {
+    "mutationChecks": false,
+    "modelRequestLimit": 32,
+    "modelTimeoutSeconds": 300
+  },
+  "cases": [
+    {
+      "id": "C04-click-typed-valid-failure",
+      "project": ".evidence/real-projects-v16/challenges/C04-click-typed-valid-failure/project",
+      "requirements": "examples/real-projects-v16/C04-click-typed-valid-failure/requirements.txt",
+      "gold": "examples/real-projects-v16/C04-click-typed-valid-failure/gold.json",
+      "initialTests": "examples/real-projects-v16/C04-click-typed-valid-failure/initial-tests.json",
+      "oracle": "examples/real-projects-v16/C04-click-typed-valid-failure/oracle.py",
+      "challenge": "valid-failure",
+      "expectedDiagnosis": "potential_implementation_defect"
+    }
+  ]
+}

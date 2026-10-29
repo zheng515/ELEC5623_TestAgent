@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="521.503906pt" height="297.880594pt" viewBox="0 0 521.503906 297.880594" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-29T00:23:46.292175</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 297.880594
+L 521.503906 297.880594
+L 521.503906 0
+L 0 0
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 194.8925 215.125937
+L 485.72 215.125937
+L 485.72 23.229938
+L 194.8925 23.229938
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 197.800775 28.347164
+L 288.926725 28.347164
+L 288.926725 82.078044
+L 197.800775 82.078044
+z
+" clip-path="url(#pd834e83c99)" style="fill: #dbeafe; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 294.743275 28.347164
+L 385.869225 28.347164
+L 385.869225 82.078044
+L 294.743275 82.078044
+z
+" clip-path="url(#pd834e83c99)" style="fill: #dbeafe; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 391.685775 28.347164
+L 482.811725 28.347164
+L 482.811725 82.078044
+L 391.685775 82.078044
+z
+" clip-path="url(#pd834e83c99)" style="fill: #dbeafe; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 197.800775 92.312497
+L 288.926725 92.312497
+L 288.926725 146.043377
+L 197.800775 146.043377
+z
+" clip-path="url(#pd834e83c99)" style="fill: #f1f5f9; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 294.743275 92.312497
+L 385.869225 92.312497
+L 385.869225 146.043377
+L 294.743275 146.043377
+z
+" clip-path="url(#pd834e83c99)" style="fill: #f1f5f9; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 391.685775 92.312497
+L 482.811725 92.312497
+L 482.811725 146.043377
+L 391.685775 146.043377
+z
+" clip-path="url(#pd834e83c99)" style="fill: #f1f5f9; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 197.800775 156.277831
+L 288.926725 156.277831
+L 288.926725 210.008711
+L 197.800775 210.008711
+z
+" clip-path="url(#pd834e83c99)" style="fill: #f1f5f9; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 294.743275 156.277831
+L 385.869225 156.277831
+L 385.869225 210.008711
+L 294.743275 210.008711
+z
+" clip-path="url(#pd834e83c99)" style="fill: #f1f5f9; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 391.685775 156.277831
+L 482.811725 156.277831
+L 482.811725 210.008711
+L 391.685775 210.008711
+z
+" clip-path="url(#pd834e83c99)" style="fill: #f1f5f9; stroke: #ffffff; stroke-linejoin: miter"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1"/>
+     <g id="text_1">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="243.36375" y="233.483359" transform="rotate(-0 243.36375 233.483359)">B1</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_2"/>
+     <g id="text_2">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="340.30625" y="233.483359" transform="rotate(-0 340.30625 233.483359)">B2</text>
+     </g>
+    </g>
+    <g id="xtick_3">
+     <g id="line2d_3"/>
+     <g id="text_3">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="437.24875" y="233.483359" transform="rotate(-0 437.24875 233.483359)">B3</text>
+     </g>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_4"/>
+     <g id="text_4">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end" x="184.8925" y="59.391745" transform="rotate(-0 184.8925 59.391745)">C01-click-valid-failure</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_5"/>
+     <g id="text_5">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end" x="184.8925" y="123.357078" transform="rotate(-0 184.8925 123.357078)">C02-packaging-wrong-assertion</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_6"/>
+     <g id="text_6">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end" x="184.8925" y="187.322411" transform="rotate(-0 184.8925 187.322411)">C03-werkzeug-wrong-import</text>
+     </g>
+    </g>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #0f172a" x="243.36375" y="57.810651" transform="rotate(-0 243.36375 57.810651)">Detected 3/3</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #0f172a" x="340.30625" y="57.810651" transform="rotate(-0 340.30625 57.810651)">Detected 3/3</text>
+   </g>
+   <g id="text_9">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #0f172a" x="437.24875" y="57.810651" transform="rotate(-0 437.24875 57.810651)">Detected 3/3</text>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(210.5575 115.774617)">Executed 2/3</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(203.860625 127.777352)">No seeded fault</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(307.5 115.774617)">Executed 0/3</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(300.803125 127.777352)">No seeded fault</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(404.4425 115.774617)">Executed 0/3</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(397.745625 127.777352)">No seeded fault</text>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(210.5575 179.739951)">Executed 0/3</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(203.860625 191.742685)">No seeded fault</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(307.5 179.739951)">Executed 0/3</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(300.803125 191.742685)">No seeded fault</text>
+   </g>
+   <g id="text_15">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(404.4425 179.739951)">Executed 0/3</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #0f172a" transform="translate(397.745625 191.742685)">No seeded fault</text>
+   </g>
+   <g id="text_16">
+    <text style="font-weight: 700; font-size: 13.2px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #0f172a" x="340.30625" y="17.229938" transform="rotate(-0 340.30625 17.229938)">Per-case seeded-fault detection and execution</text>
+   </g>
+  </g>
+  <g id="text_17">
+   <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #475569" transform="translate(7.2 268.753562)">Denominators include every planned repeat. No seeded fault does not mean no possible</text>
+   <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #475569" transform="translate(7.2 278.35575)">bug. Detection requires the original failure and a matching pass on the corrected</text>
+   <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #475569" transform="translate(7.2 287.957937)">copy; this is not overall semantic accuracy.</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pd834e83c99">
+   <rect x="194.8925" y="23.229938" width="290.8275" height="191.896"/>
+  </clipPath>
+ </defs>
+</svg>

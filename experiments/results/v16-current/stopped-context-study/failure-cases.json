@@ -1,0 +1,1534 @@
+[
+  {
+    "caseId": "C01-click-valid-failure",
+    "variant": "B1",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "finalFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/C01-click-valid-failure-B1-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C01-click-valid-failure-B1-1/report.json"
+  },
+  {
+    "caseId": "C01-click-valid-failure",
+    "variant": "B1",
+    "repeat": 2,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "finalFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/C01-click-valid-failure-B1-2/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C01-click-valid-failure-B1-2/report.json"
+  },
+  {
+    "caseId": "C01-click-valid-failure",
+    "variant": "B1",
+    "repeat": 3,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "finalFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/C01-click-valid-failure-B1-3/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C01-click-valid-failure-B1-3/report.json"
+  },
+  {
+    "caseId": "C01-click-valid-failure",
+    "variant": "B2",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]"
+    ],
+    "finalFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "diagnoses": [
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "execution"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "execution"
+      },
+      {
+        "testId": "T1",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      }
+    ],
+    "improvements": 1,
+    "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [],
+            "code": "import click\nfrom click.testing import CliRunner\ndef test_inclusive_range():\n    seen = []\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        assert seen == ([number] if number in [1, 3] else [])\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Controlled valid-failure challenge, not natural generator-error frequency.",
+            "approved": false,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The exit-code and callback-invocation checks are grounded in the contract, but equality against integer literals does not verify the explicitly required integer type. Thus the test misses the assigned type checks for both accepted inputs. The contract does define the tested finite cases, so the other assertions can be evaluated without relying on unspecified behavior.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": {
+                "contractExcerpt": "the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+                "inputs": "'0', '1', '3', and '4'",
+                "reason": "The exit codes and whether the callback is called are specified for all four inputs, and callback-value equality is asserted for the accepted cases. However, the test does not establish that the callback values for '1' and '3' are integers."
+              }
+            },
+            "review": "No unique supported model review. The exit-code and callback-invocation checks are grounded in the contract, but equality against integer literals does not verify the explicitly required integer type. Thus the test misses the assigned type checks for both accepted inputs. The contract does define the tested finite cases, so the other assertions can be evaluated without relying on unspecified behavior."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": false,
+            "reason": "The exit-code and callback-invocation checks are grounded in the contract, but equality against integer literals does not verify the explicitly required integer type. Thus the test misses the assigned type checks for both accepted inputs. The contract does define the tested finite cases, so the other assertions can be evaluated without relying on unspecified behavior.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": {
+              "contractExcerpt": "the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "inputs": "'0', '1', '3', and '4'",
+              "reason": "The exit codes and whether the callback is called are specified for all four inputs, and callback-value equality is asserted for the accepted cases. However, the test does not establish that the callback values for '1' and '3' are integers."
+            }
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": false,
+            "reason": "The supported proposals and retained tests do not include a supported test. The candidate checks the specified exit codes and callback effects but does not verify the required integer type for either accepted input.",
+            "testIds": [],
+            "missingExamples": [
+              "the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_inclusive_range():\n    seen = []\n\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        if number in [1, 3]:\n            assert len(seen) == 1\n            assert isinstance(seen[0], int) and not isinstance(seen[0], bool)\n            assert seen[0] == number\n        else:\n            assert seen == []\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Check the specified accepted endpoint values are integers (not booleans), have the required values and exit code, and verify both rejected inputs exit with code 2 without invoking the callback.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test checks all four specified inputs. For '1' and '3', it verifies exit code 0, that the callback ran once, that its value is an int and not a bool, and that the value is correct. For '0' and '4', it verifies exit code 2 and that the callback did not run. These assertions are grounded in the quoted requirement and cover both assigned gaps.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "The test checks all four specified inputs. For '1' and '3', it verifies exit code 0, that the callback ran once, that its value is an int and not a bool, and that the value is correct. For '0' and '4', it verifies exit code 2 and that the callback did not run. These assertions are grounded in the quoted requirement and cover both assigned gaps."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test checks all four specified inputs. For '1' and '3', it verifies exit code 0, that the callback ran once, that its value is an int and not a bool, and that the value is correct. For '0' and '4', it verifies exit code 2 and that the callback did not run. These assertions are grounded in the quoted requirement and cover both assigned gaps.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": true,
+            "reason": "The supported test checks both explicitly accepted endpoint inputs and their integer values and exit codes, plus both explicitly rejected inputs, their exit codes, and absence of callback invocation.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/C01-click-valid-failure-B2-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C01-click-valid-failure-B2-1/report.json"
+  },
+  {
+    "caseId": "C01-click-valid-failure",
+    "variant": "B2",
+    "repeat": 2,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]"
+    ],
+    "finalFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "diagnoses": [
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "execution"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "execution"
+      },
+      {
+        "testId": "T1",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      }
+    ],
+    "improvements": 1,
+    "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [],
+            "code": "import click\nfrom click.testing import CliRunner\ndef test_inclusive_range():\n    seen = []\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        assert seen == ([number] if number in [1, 3] else [])\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Controlled valid-failure challenge, not natural generator-error frequency.",
+            "approved": false,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The test checks the required exit codes and whether the callback ran, but `seen == [number]` checks value equality only; it does not establish that the callback received values of type `int` for inputs '1' and '3', as the assigned behavior and claimed gaps require.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "No unique supported model review. The test checks the required exit codes and whether the callback ran, but `seen == [number]` checks value equality only; it does not establish that the callback received values of type `int` for inputs '1' and '3', as the assigned behavior and claimed gaps require."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": false,
+            "reason": "The test checks the required exit codes and whether the callback ran, but `seen == [number]` checks value equality only; it does not establish that the callback received values of type `int` for inputs '1' and '3', as the assigned behavior and claimed gaps require.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": false,
+            "reason": "No supported proposal checks this rule’s full set of explicit examples and callback requirements.",
+            "testIds": [],
+            "missingExamples": [
+              "The inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0.",
+              "The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [],
+            "code": "import click\nfrom click.testing import CliRunner\n\ndef test_inclusive_range():\n    seen = []\n\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        if number in [1, 3]:\n            assert len(seen) == 1\n            assert isinstance(seen[0], int)\n            assert not isinstance(seen[0], bool)\n            assert seen[0] == number\n        else:\n            assert seen == []\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Controlled valid-failure challenge, not natural generator-error frequency.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test checks the specified exit codes and callback behavior for all four inputs. For accepted inputs, it also explicitly verifies the callback receives an integer (not a boolean) equal to the required value.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "The test checks the specified exit codes and callback behavior for all four inputs. For accepted inputs, it also explicitly verifies the callback receives an integer (not a boolean) equal to the required value."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test checks the specified exit codes and callback behavior for all four inputs. For accepted inputs, it also explicitly verifies the callback receives an integer (not a boolean) equal to the required value.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": true,
+            "reason": "The supported test covers each explicitly specified input, including both accepted boundary values and both rejected values, and checks the required callback and exit-code outcomes.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/C01-click-valid-failure-B2-2/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C01-click-valid-failure-B2-2/report.json"
+  },
+  {
+    "caseId": "C01-click-valid-failure",
+    "variant": "B2",
+    "repeat": 3,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]"
+    ],
+    "finalFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "diagnoses": [
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "execution"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "execution"
+      },
+      {
+        "testId": "T1",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "generated_test_error",
+        "reason": "B2 evaluation baseline: unconditional repair, without evidence-based diagnosis.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      }
+    ],
+    "improvements": 1,
+    "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [],
+            "code": "import click\nfrom click.testing import CliRunner\ndef test_inclusive_range():\n    seen = []\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        assert seen == ([number] if number in [1, 3] else [])\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Controlled valid-failure challenge, not natural generator-error frequency.",
+            "approved": false,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The test checks exit codes and callback values for all four specified inputs, including that rejected inputs do not call the callback. However, its equality assertion does not check the required semantic integer type for accepted values, so it does not cover both claimed type gaps.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "No unique supported model review. The test checks exit codes and callback values for all four specified inputs, including that rejected inputs do not call the callback. However, its equality assertion does not check the required semantic integer type for accepted values, so it does not cover both claimed type gaps."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": false,
+            "reason": "The test checks exit codes and callback values for all four specified inputs, including that rejected inputs do not call the callback. However, its equality assertion does not check the required semantic integer type for accepted values, so it does not cover both claimed type gaps.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": false,
+            "reason": "There are no supported proposals or retained tests covering the rule. In particular, the accepted inputs' required integer values and types are not established.",
+            "testIds": [],
+            "missingExamples": [
+              "the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0",
+              "The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [],
+            "code": "import click\nfrom click.testing import CliRunner\n\ndef test_inclusive_range():\n    seen = []\n\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        assert seen == ([number] if number in [1, 3] else [])\n        if number in [1, 3]:\n            assert isinstance(seen[0], int)\n            assert not isinstance(seen[0], bool)\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Check the specified accepted and rejected inputs, including integer type for both accepted callback values.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "Checks all four specified inputs: '1' and '3' exit successfully and are delivered to the callback with the expected values; each callback value is also verified to be an integer and not a boolean. Inputs '0' and '4' exit with code 2 and leave the callback record empty.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "Checks all four specified inputs: '1' and '3' exit successfully and are delivered to the callback with the expected values; each callback value is also verified to be an integer and not a boolean. Inputs '0' and '4' exit with code 2 and leave the callback record empty."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "Checks all four specified inputs: '1' and '3' exit successfully and are delivered to the callback with the expected values; each callback value is also verified to be an integer and not a boolean. Inputs '0' and '4' exit with code 2 and leave the callback record empty.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": true,
+            "reason": "The supported proposal checks both stated accepted boundary inputs and both stated rejected inputs, including their required exit codes, callback values and callback non-invocation.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/C01-click-valid-failure-B2-3/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C01-click-valid-failure-B2-3/report.json"
+  },
+  {
+    "caseId": "C01-click-valid-failure",
+    "variant": "B3",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]"
+    ],
+    "finalFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "diagnoses": [
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "uncertain",
+        "reason": "The failure is at the assertion that invoking the command without options has no exception. The supplied R1 contract covers a different option configuration (`--count` with `IntRange(1, 3)`) and does not specify the default behavior for this `-v` count option with `IntRange(0, 3)`. The failure therefore cannot be classified as a violation of the supplied contract.",
+        "quote": "",
+        "executionQuote": "assert not result.exception\nE       assert not SystemExit(2)",
+        "evidence": [
+          {
+            "file": "tests/test_options.py",
+            "quote": "def test_counting(runner):",
+            "line": 57
+          },
+          {
+            "file": "tests/test_options.py",
+            "quote": "    result = runner.invoke(cli, [])",
+            "line": 71
+          },
+          {
+            "file": "src/click/types.py",
+            "quote": "    def convert(",
+            "line": 448
+          }
+        ],
+        "phase": "execution"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "uncertain",
+        "reason": "The traceback shows conversion of `'5'` by `IntRange(5)` fails where the test expects 5. R1 specifies acceptance of the endpoints for `IntRange(1, 3)` in a particular command-option scenario, but does not state a general inclusive-bound rule for `IntRange(5)`. Thus the supplied requirement does not decide whether this assertion is justified.",
+        "quote": "",
+        "executionQuote": "click.exceptions.BadParameter: 5 is not in the range x>=5.",
+        "evidence": [
+          {
+            "file": "tests/test_types.py",
+            "quote": "        (click.IntRange(0, 5), \"3\", 3),",
+            "line": 14
+          },
+          {
+            "file": "tests/test_types.py",
+            "quote": "    assert type.convert(value, None, None) == expect",
+            "line": 31
+          },
+          {
+            "file": "src/click/types.py",
+            "quote": "    def convert(",
+            "line": 448
+          }
+        ],
+        "phase": "execution"
+      },
+      {
+        "testId": "T1",
+        "category": "potential_implementation_defect",
+        "reason": "The generated test fails on the first valid input, '1': the command returns exit code 2 instead of the required 0. This violates R1, which also explicitly requires the valid boundary input '3' to be accepted; the issue is in the implementation’s range conversion, not an unsupported test expectation.",
+        "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+        "executionQuote": "assert 2 == 0\nE            +  where 2 = <Result SystemExit(2)>.exit_code",
+        "evidence": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "quote": "        assert result.exit_code == (0 if number in [1, 3] else 2)",
+            "line": 16
+          },
+          {
+            "file": "src/click/types.py",
+            "quote": "        lt_min: bool = self.min is not None and (",
+            "line": 454
+          },
+          {
+            "file": "src/click/types.py",
+            "quote": "        if lt_min or gt_max:",
+            "line": 468
+          }
+        ],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "uncertain",
+        "reason": "The failure occurs at the no-option invocation, where the test expects the command not to raise but receives SystemExit(2). The supplied R1 contract concerns a different option and inputs, and does not specify the default behavior of a counting option. The relevant original test source is omitted from context.files, so the failure cannot be compared to its full expectation or any applicable contract here.",
+        "quote": "",
+        "executionQuote": "assert not result.exception\nE       assert not SystemExit(2)",
+        "evidence": [],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "uncertain",
+        "reason": "Diagnosis lacks unique, grounded requirement/code/test/execution evidence; refinement is blocked.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      }
+    ],
+    "improvements": 1,
+    "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [],
+            "code": "import click\nfrom click.testing import CliRunner\ndef test_inclusive_range():\n    seen = []\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        assert seen == ([number] if number in [1, 3] else [])\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Controlled valid-failure challenge, not natural generator-error frequency.",
+            "approved": false,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The exit-code and callback-invocation checks are grounded in the contract, but equality against integer literals does not verify the explicitly required integer type. Thus the test misses the assigned type checks for both accepted inputs. The contract does define the tested finite cases, so the other assertions can be evaluated without relying on unspecified behavior.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": {
+                "contractExcerpt": "the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+                "inputs": "'0', '1', '3', and '4'",
+                "reason": "The exit codes and whether the callback is called are specified for all four inputs, and callback-value equality is asserted for the accepted cases. However, the test does not establish that the callback values for '1' and '3' are integers."
+              }
+            },
+            "review": "No unique supported model review. The exit-code and callback-invocation checks are grounded in the contract, but equality against integer literals does not verify the explicitly required integer type. Thus the test misses the assigned type checks for both accepted inputs. The contract does define the tested finite cases, so the other assertions can be evaluated without relying on unspecified behavior."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": false,
+            "reason": "The exit-code and callback-invocation checks are grounded in the contract, but equality against integer literals does not verify the explicitly required integer type. Thus the test misses the assigned type checks for both accepted inputs. The contract does define the tested finite cases, so the other assertions can be evaluated without relying on unspecified behavior.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": {
+              "contractExcerpt": "the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "inputs": "'0', '1', '3', and '4'",
+              "reason": "The exit codes and whether the callback is called are specified for all four inputs, and callback-value equality is asserted for the accepted cases. However, the test does not establish that the callback values for '1' and '3' are integers."
+            }
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": false,
+            "reason": "The supported proposals and retained tests do not include a supported test. The candidate checks the specified exit codes and callback effects but does not verify the required integer type for either accepted input.",
+            "testIds": [],
+            "missingExamples": [
+              "the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_inclusive_range():\n    seen = []\n\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        if number in [1, 3]:\n            assert len(seen) == 1\n            assert isinstance(seen[0], int) and not isinstance(seen[0], bool)\n            assert seen[0] == number\n        else:\n            assert seen == []\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Verify the specified accepted values' semantic integer type and value, plus the specified exit codes and callback behavior for all four inputs.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test checks both specified accepted inputs for exit code 0, verifies each callback value is an int but not a bool and equals the expected input, and checks both rejected inputs for exit code 2 with no callback invocation. These assertions are grounded in the requirement.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "The test checks both specified accepted inputs for exit code 0, verifies each callback value is an int but not a bool and equals the expected input, and checks both rejected inputs for exit code 2 with no callback invocation. These assertions are grounded in the requirement."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test checks both specified accepted inputs for exit code 0, verifies each callback value is an int but not a bool and equals the expected input, and checks both rejected inputs for exit code 2 with no callback invocation. These assertions are grounded in the requirement.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": true,
+            "reason": "The supported test checks every explicitly stated input, its expected exit code, the accepted callback values and their integer semantics, and the absence of callback calls for rejected inputs.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/C01-click-valid-failure-B3-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C01-click-valid-failure-B3-1/report.json"
+  },
+  {
+    "caseId": "C01-click-valid-failure",
+    "variant": "B3",
+    "repeat": 2,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]"
+    ],
+    "finalFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "diagnoses": [
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "uncertain",
+        "reason": "The failure occurs when the existing test invokes a different option (`-v`, `count=True`, with `IntRange(0, 3)`) without supplying it and expects the command to succeed. R1 concerns `--count` with `IntRange(1, 3)` and does not specify this invocation or its default, so the failure cannot be judged against the supplied contract.",
+        "quote": "",
+        "executionQuote": "assert not result.exception\nE       assert not SystemExit(2)",
+        "evidence": [
+          {
+            "file": "tests/test_options.py",
+            "quote": "    @click.option(\"-v\", count=True, help=\"Verbosity\", type=click.IntRange(0, 3))",
+            "line": 59
+          },
+          {
+            "file": "tests/test_options.py",
+            "quote": "    result = runner.invoke(cli, [])",
+            "line": 71
+          }
+        ],
+        "phase": "execution"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "uncertain",
+        "reason": "The traceback shows `IntRange(5)` rejecting the input `5` at its lower bound. R1 specifies that the endpoints `1` and `3` are accepted for `IntRange(1, 3)` on a command option, but it does not state a general rule for direct conversion with a different range configuration. The supplied contract therefore does not establish whether this specific failing assertion is required.",
+        "quote": "",
+        "executionQuote": "click.exceptions.BadParameter: 5 is not in the range x>=5.",
+        "evidence": [
+          {
+            "file": "tests/test_types.py",
+            "quote": "        (click.IntRange(5), \"5\", 5),",
+            "line": 15
+          },
+          {
+            "file": "tests/test_types.py",
+            "quote": "    assert type.convert(value, None, None) == expect",
+            "line": 31
+          },
+          {
+            "file": "src/click/types.py",
+            "quote": "        lt_min: bool = self.min is not None and (",
+            "line": 454
+          },
+          {
+            "file": "src/click/types.py",
+            "quote": "        if lt_min or gt_max:",
+            "line": 468
+          }
+        ],
+        "phase": "execution"
+      },
+      {
+        "testId": "T1",
+        "category": "uncertain",
+        "reason": "Diagnosis lacks unique, grounded requirement/code/test/execution evidence; refinement is blocked.",
+        "quote": "",
+        "executionQuote": "",
+        "evidence": [],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "uncertain",
+        "reason": "The failure occurs at the assertion that invoking the counting option without arguments succeeds. The supplied original requirement R1 only covers a separate '--count' option with IntRange(1, 3); it says nothing about '-v' counting defaults or behavior when omitted. Without the relevant contract and source context for this test, the failure cannot be justified as a contract violation or identified as an unsupported generated expectation.",
+        "quote": "",
+        "executionQuote": "assert not result.exception\nE       assert not SystemExit(2)",
+        "evidence": [],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "uncertain",
+        "reason": "The traceback shows conversion of '5' by IntRange(5) raises BadParameter, contrary to the test's expected value. The supplied R1 covers IntRange(1, 3), not IntRange(5) or general minimum-bound inclusivity. The available source shows the comparison but cannot establish the contract for this separate case, so the assertion's justification is unresolved.",
+        "quote": "",
+        "executionQuote": "click.exceptions.BadParameter: 5 is not in the range x>=5.",
+        "evidence": [],
+        "phase": "remeasurement"
+      }
+    ],
+    "improvements": 1,
+    "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [],
+            "code": "import click\nfrom click.testing import CliRunner\ndef test_inclusive_range():\n    seen = []\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        assert seen == ([number] if number in [1, 3] else [])\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Controlled valid-failure challenge, not natural generator-error frequency.",
+            "approved": false,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The test checks the required exit codes and whether the callback ran, but `seen == [number]` checks value equality only; it does not establish that the callback received values of type `int` for inputs '1' and '3', as the assigned behavior and claimed gaps require.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "No unique supported model review. The test checks the required exit codes and whether the callback ran, but `seen == [number]` checks value equality only; it does not establish that the callback received values of type `int` for inputs '1' and '3', as the assigned behavior and claimed gaps require."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": false,
+            "reason": "The test checks the required exit codes and whether the callback ran, but `seen == [number]` checks value equality only; it does not establish that the callback received values of type `int` for inputs '1' and '3', as the assigned behavior and claimed gaps require.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": false,
+            "reason": "No supported proposal checks this rule’s full set of explicit examples and callback requirements.",
+            "testIds": [],
+            "missingExamples": [
+              "The inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0.",
+              "The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_inclusive_range():\n    seen = []\n\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        if number in [1, 3]:\n            assert len(seen) == 1\n            assert isinstance(seen[0], int)\n            assert not isinstance(seen[0], bool)\n            assert seen[0] == number\n        else:\n            assert seen == []\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Verify both inclusive endpoints are accepted with the required integer callback values and exit code, and both outside witnesses are rejected without callback invocation.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test checks all four specified inputs. For accepted inputs, it asserts the callback runs once, receives a non-boolean int equal to the input, and the command exits with code 0; for rejected inputs, it asserts exit code 2 and no callback invocation. These assertions match the contract: “the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0” and “The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.” The test's `isinstance(seen[0], int)`, `not isinstance(seen[0], bool)`, and equality checks establish the promised integer values.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "The test checks all four specified inputs. For accepted inputs, it asserts the callback runs once, receives a non-boolean int equal to the input, and the command exits with code 0; for rejected inputs, it asserts exit code 2 and no callback invocation. These assertions match the contract: “the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0” and “The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.” The test's `isinstance(seen[0], int)`, `not isinstance(seen[0], bool)`, and equality checks establish the promised integer values."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test checks all four specified inputs. For accepted inputs, it asserts the callback runs once, receives a non-boolean int equal to the input, and the command exits with code 0; for rejected inputs, it asserts exit code 2 and no callback invocation. These assertions match the contract: “the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0” and “The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.” The test's `isinstance(seen[0], int)`, `not isinstance(seen[0], bool)`, and equality checks establish the promised integer values.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": true,
+            "reason": "The supported T1 checks every explicitly specified input: both inclusive endpoints ('1' and '3') with their integer values and successful exit code, and both outside examples ('0' and '4') with rejection exit code and no callback call.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/C01-click-valid-failure-B3-2/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C01-click-valid-failure-B3-2/report.json"
+  },
+  {
+    "caseId": "C01-click-valid-failure",
+    "variant": "B3",
+    "repeat": 3,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]"
+    ],
+    "finalFailedNodes": [
+      "tests/test_options.py::test_counting",
+      "tests/test_types.py::test_range[type1-5-5]",
+      "reqtest_generated/test_reqtest_T1.py::test_inclusive_range"
+    ],
+    "diagnoses": [
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "potential_implementation_defect",
+        "reason": "The failure occurs when invoking the count option with no input: the existing test expects its default boundary value 0 to succeed, but the command exits with status 2. More importantly, the linked range implementation uses a less-than-or-equal check for a closed lower bound, which rejects equality; that is inconsistent with R1’s explicit promise that the lower endpoint '1' is accepted for IntRange(1, 3).",
+        "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+        "executionQuote": "assert not result.exception\nE       assert not SystemExit(2)",
+        "evidence": [
+          {
+            "file": "src/click/types.py",
+            "quote": "        lt_min: bool = self.min is not None and (",
+            "line": 454
+          },
+          {
+            "file": "tests/test_options.py",
+            "quote": "    result = runner.invoke(cli, [])",
+            "line": 71
+          },
+          {
+            "file": "tests/test_options.py",
+            "quote": "    assert not result.exception",
+            "line": 72
+          }
+        ],
+        "phase": "execution"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "potential_implementation_defect",
+        "reason": "The failure is at the assertion that converting the closed lower-bound value 5 succeeds. The implementation’s lower-bound check rejects equality for a closed minimum. R1 explicitly requires the analogous closed lower endpoint, '1' for IntRange(1, 3), to be accepted, supporting an implementation defect in this boundary check.",
+        "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+        "executionQuote": "click.exceptions.BadParameter: 5 is not in the range x>=5.",
+        "evidence": [
+          {
+            "file": "src/click/types.py",
+            "quote": "        lt_min: bool = self.min is not None and (",
+            "line": 454
+          },
+          {
+            "file": "src/click/types.py",
+            "quote": "            operator.le if self.min_open else operator.le",
+            "line": 455
+          },
+          {
+            "file": "tests/test_types.py",
+            "quote": "        (click.IntRange(5), \"5\", 5),",
+            "line": 15
+          },
+          {
+            "file": "tests/test_types.py",
+            "quote": "    assert type.convert(value, None, None) == expect",
+            "line": 31
+          }
+        ],
+        "phase": "execution"
+      },
+      {
+        "testId": "T1",
+        "category": "potential_implementation_defect",
+        "reason": "The generated test fails on the specified accepted endpoint '1': it gets exit code 2 instead of 0. R1 explicitly requires this input to be accepted, so the failure is a potential implementation defect, not an unsupported test expectation.",
+        "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+        "executionQuote": "assert 2 == 0",
+        "evidence": [
+          {
+            "file": "src/click/types.py",
+            "quote": "            operator.le if self.min_open else operator.le",
+            "line": 455
+          },
+          {
+            "file": "src/click/types.py",
+            "quote": "        if lt_min or gt_max:",
+            "line": 468
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "quote": "        assert result.exit_code == (0 if number in [1, 3] else 2)",
+            "line": 15
+          }
+        ],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_options.py::test_counting",
+        "category": "uncertain",
+        "reason": "The failure occurs on the no-argument invocation, where the test expects success. The supplied R1 contract concerns a different option configuration and does not specify the behavior of this counting option when omitted. The traceback establishes the failing assertion but the supplied contract does not establish whether that expectation is required.",
+        "quote": "",
+        "executionQuote": "assert not SystemExit(2)",
+        "evidence": [
+          {
+            "file": "src/click/core.py",
+            "quote": "        # Counting",
+            "line": 2594
+          },
+          {
+            "file": "src/click/core.py",
+            "quote": "            if default_is_missing:",
+            "line": 2599
+          }
+        ],
+        "phase": "remeasurement"
+      },
+      {
+        "testId": "tests/test_types.py::test_range[type1-5-5]",
+        "category": "uncertain",
+        "reason": "The failing case is `click.IntRange(5)` with input '5', but R1 specifies only the range 1 through 3. The supplied contract therefore does not determine whether the one-sided lower bound includes 5, so this failure cannot be classified against a linked requirement.",
+        "quote": "",
+        "executionQuote": "click.exceptions.BadParameter: 5 is not in the range x>=5.",
+        "evidence": [
+          {
+            "file": "src/click/types.py",
+            "quote": "            operator.le if self.min_open else operator.le",
+            "line": 455
+          },
+          {
+            "file": "src/click/types.py",
+            "quote": "        if lt_min or gt_max:",
+            "line": 468
+          },
+          {
+            "file": "tests/test_types.py",
+            "quote": "        (click.IntRange(5), \"5\", 5),",
+            "line": 15
+          }
+        ],
+        "phase": "remeasurement"
+      }
+    ],
+    "improvements": 1,
+    "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [],
+            "code": "import click\nfrom click.testing import CliRunner\ndef test_inclusive_range():\n    seen = []\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        assert seen == ([number] if number in [1, 3] else [])\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Controlled valid-failure challenge, not natural generator-error frequency.",
+            "approved": false,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The test checks exit codes and callback values for all four specified inputs, including that rejected inputs do not call the callback. However, its equality assertion does not check the required semantic integer type for accepted values, so it does not cover both claimed type gaps.",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "No unique supported model review. The test checks exit codes and callback values for all four specified inputs, including that rejected inputs do not call the callback. However, its equality assertion does not check the required semantic integer type for accepted values, so it does not cover both claimed type gaps."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": false,
+            "reason": "The test checks exit codes and callback values for all four specified inputs, including that rejected inputs do not call the callback. However, its equality assertion does not check the required semantic integer type for accepted values, so it does not cover both claimed type gaps.",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": false,
+            "reason": "There are no supported proposals or retained tests covering the rule. In particular, the accepted inputs' required integer values and types are not established.",
+            "testIds": [],
+            "missingExamples": [
+              "the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0",
+              "The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_inclusive_range",
+            "gapIndexes": [],
+            "code": "import click\nfrom click.testing import CliRunner\n\ndef test_inclusive_range():\n    seen = []\n\n    @click.command()\n    @click.option('--count', type=click.IntRange(1, 3))\n    def command(count):\n        seen.append(count)\n\n    for number in [0, 1, 3, 4]:\n        seen.clear()\n        result = CliRunner().invoke(command, ['--count', str(number)])\n        assert result.exit_code == (0 if number in [1, 3] else 2)\n        assert seen == ([number] if number in [1, 3] else [])\n        if number in [1, 3]:\n            assert isinstance(seen[0], int)\n            assert not isinstance(seen[0], bool)\n",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Check the specified accepted endpoint inputs, their integer callback values and exit codes, and that the specified rejected inputs do not call the callback.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test covers all four specified inputs, checks the required exit codes and callback invocation behavior, and for both accepted inputs checks the callback value and that it is an integer but not a boolean. These assertions are grounded in the original requirement: “the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.”",
+              "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "The test covers all four specified inputs, checks the required exit codes and callback invocation behavior, and for both accepted inputs checks the callback value and that it is an integer but not a boolean. These assertions are grounded in the original requirement: “the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.”"
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test covers all four specified inputs, checks the required exit codes and callback invocation behavior, and for both accepted inputs checks the callback value and that it is an integer but not a boolean. These assertions are grounded in the original requirement: “the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.”",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": true,
+            "reason": "T1 checks both explicitly accepted inputs and their integer callback values, plus both explicitly rejected inputs, their exit codes, and the absence of callback calls.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/C01-click-valid-failure-B3-3/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C01-click-valid-failure-B3-3/report.json"
+  },
+  {
+    "caseId": "C02-packaging-wrong-assertion",
+    "variant": "B1",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_canonical_names"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_canonical_names"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/C02-packaging-wrong-assertion-B1-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C02-packaging-wrong-assertion-B1-1/report.json"
+  },
+  {
+    "caseId": "C02-packaging-wrong-assertion",
+    "variant": "B1",
+    "repeat": 2,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_canonical_names"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_canonical_names"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "referenceExecution": "evidence/C02-packaging-wrong-assertion-B1-2/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/C02-packaging-wrong-assertion-B1-2/report.json"
+  },
+  {
+    "caseId": "C02-packaging-wrong-assertion",
+    "variant": "B2",
+    "repeat": 1,
+    "status": "failed",
+    "stage": "Improve tests once",
+    "error": "Your input exceeds the context window of this model. Please adjust your input and try again.",
+    "initialFailedNodes": [],
+    "finalFailedNodes": [],
+    "diagnoses": [],
+    "improvements": 0,
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_canonical_names",
+            "gapIndexes": [],
+            "code": "from packaging.utils import canonicalize_name\ndef test_canonical_names():\n    assert canonicalize_name('Django') == 'django'\n    assert canonicalize_name('oslo.concurrency') == 'oslo_concurrency'\n",
+            "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+            "purpose": "Controlled unsupported-assertion challenge, not natural generator-error frequency.",
+            "approved": false,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The assertion for 'Django' matches the contract, but the second assertion expects 'oslo_concurrency'. The requirement explicitly specifies 'oslo-concurrency', so the test includes an unsupported expected value.",
+              "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+              "definedScope": null
+            },
+            "review": "No unique supported model review. The assertion for 'Django' matches the contract, but the second assertion expects 'oslo_concurrency'. The requirement explicitly specifies 'oslo-concurrency', so the test includes an unsupported expected value."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": false,
+            "reason": "The assertion for 'Django' matches the contract, but the second assertion expects 'oslo_concurrency'. The requirement explicitly specifies 'oslo-concurrency', so the test includes an unsupported expected value.",
+            "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+            "complete": false,
+            "reason": "There are no supported proposals or retained tests checking the stated examples.",
+            "testIds": [],
+            "missingExamples": [
+              "returns 'django' for 'Django'",
+              "returns 'oslo-concurrency' for 'oslo.concurrency'"
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again.",
+        "status": "failed",
+        "tests": [],
+        "error": "Your input exceeds the context window of this model. Please adjust your input and try again."
+      }
+    ],
+    "referenceExecution": null,
+    "blocked": [
+      {
+        "id": "T1",
+        "reason": "No unique supported model review. The assertion for 'Django' matches the contract, but the second assertion expects 'oslo_concurrency'. The requirement explicitly specifies 'oslo-concurrency', so the test includes an unsupported expected value."
+      }
+    ],
+    "evidence": "evidence/C02-packaging-wrong-assertion-B2-1/report.json"
+  },
+  {
+    "caseId": "C02-packaging-wrong-assertion",
+    "variant": "B3",
+    "repeat": 1,
+    "status": "failed",
+    "stage": "Improve tests once",
+    "error": "Your input exceeds the context window of this model. Please adjust your input and try again.",
+    "initialFailedNodes": [],
+    "finalFailedNodes": [],
+    "diagnoses": [],
+    "improvements": 0,
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_canonical_names",
+            "gapIndexes": [],
+            "code": "from packaging.utils import canonicalize_name\ndef test_canonical_names():\n    assert canonicalize_name('Django') == 'django'\n    assert canonicalize_name('oslo.concurrency') == 'oslo_concurrency'\n",
+            "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+            "purpose": "Controlled unsupported-assertion challenge, not natural generator-error frequency.",
+            "approved": false,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The assertion for 'Django' matches the contract, but the second assertion expects 'oslo_concurrency'. The requirement explicitly specifies 'oslo-concurrency', so the test includes an unsupported expected value.",
+              "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+              "definedScope": null
+            },
+            "review": "No unique supported model review. The assertion for 'Django' matches the contract, but the second assertion expects 'oslo_concurrency'. The requirement explicitly specifies 'oslo-concurrency', so the test includes an unsupported expected value."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": false,
+            "reason": "The assertion for 'Django' matches the contract, but the second assertion expects 'oslo_concurrency'. The requirement explicitly specifies 'oslo-concurrency', so the test includes an unsupported expected value.",
+            "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+            "complete": false,
+            "reason": "There are no supported proposals or retained tests checking the stated examples.",
+            "testIds": [],
+            "missingExamples": [
+              "returns 'django' for 'Django'",
+              "returns 'oslo-concurrency' for 'oslo.concurrency'"
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again.",
+        "status": "failed",
+        "tests": [],
+        "error": "Your input exceeds the context window of this model. Please adjust your input and try again."
+      }
+    ],
+    "referenceExecution": null,
+    "blocked": [
+      {
+        "id": "T1",
+        "reason": "No unique supported model review. The assertion for 'Django' matches the contract, but the second assertion expects 'oslo_concurrency'. The requirement explicitly specifies 'oslo-concurrency', so the test includes an unsupported expected value."
+      }
+    ],
+    "evidence": "evidence/C02-packaging-wrong-assertion-B3-1/report.json"
+  },
+  {
+    "caseId": "C02-packaging-wrong-assertion",
+    "variant": "B3",
+    "repeat": 2,
+    "status": "cancelled",
+    "stage": "Improve tests once",
+    "error": "This operation was aborted",
+    "initialFailedNodes": [],
+    "finalFailedNodes": [],
+    "diagnoses": [],
+    "improvements": 0,
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_canonical_names",
+            "gapIndexes": [],
+            "code": "from packaging.utils import canonicalize_name\ndef test_canonical_names():\n    assert canonicalize_name('Django') == 'django'\n    assert canonicalize_name('oslo.concurrency') == 'oslo_concurrency'\n",
+            "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+            "purpose": "Controlled unsupported-assertion challenge, not natural generator-error frequency.",
+            "approved": false,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": false,
+              "reason": "The assertion for 'Django' matches the stated requirement, but the second assertion expects 'oslo_concurrency' instead of the required 'oslo-concurrency'. That unsupported expected value makes the proposal invalid.",
+              "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+              "definedScope": null
+            },
+            "review": "No unique supported model review. The assertion for 'Django' matches the stated requirement, but the second assertion expects 'oslo_concurrency' instead of the required 'oslo-concurrency'. That unsupported expected value makes the proposal invalid."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": false,
+            "reason": "The assertion for 'Django' matches the stated requirement, but the second assertion expects 'oslo_concurrency' instead of the required 'oslo-concurrency'. That unsupported expected value makes the proposal invalid.",
+            "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.",
+            "complete": false,
+            "reason": "No supported proposal checks the required output for 'oslo.concurrency'.",
+            "testIds": [],
+            "missingExamples": [
+              "'oslo-concurrency' for 'oslo.concurrency'"
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Correct only the explicitly rejected generated artifacts using their recorded review reasons and original contracts. Keep their IDs and behavior links. Remove unsupported extra obligations and use contract-supported assertions for every claimed gap. Preserve all approved tests and valid failing assertions; leave genuinely unspecified behavior unresolved. Every replacement must pass the same review again.",
+        "status": "failed",
+        "tests": [],
+        "error": "This operation was aborted"
+      }
+    ],
+    "referenceExecution": null,
+    "blocked": [
+      {
+        "id": "T1",
+        "reason": "No unique supported model review. The assertion for 'Django' matches the stated requirement, but the second assertion expects 'oslo_concurrency' instead of the required 'oslo-concurrency'. That unsupported expected value makes the proposal invalid."
+      }
+    ],
+    "evidence": "evidence/C02-packaging-wrong-assertion-B3-2/report.json"
+  }
+]

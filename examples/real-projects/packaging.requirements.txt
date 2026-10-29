@@ -1,0 +1,13 @@
+Scope: Packaging 24.2 public version, specifier, requirement and name-normalization APIs. The complete upstream Python runtime is imported without patches. Only the cases expressly stated below form the contract.
+
+R1: packaging.version.Version('1.0a5') compares less than Version('1.0'); Version('1.0') equals Version('1.0.0'); Version('1.0').release is the tuple (1, 0) and its is_prerelease property is False.
+
+R2: packaging.version.Version('french toast') raises packaging.version.InvalidVersion.
+
+R3: packaging.specifiers.SpecifierSet('>=1.0,<2.0') contains version strings '1.0' and '1.5' and excludes '0.9' and '2.0'. Its filter over ['0.9', '1.0', '1.5', '2.0'] yields ['1.0', '1.5'] in that order.
+
+R4: Combining SpecifierSet('~=1.0') with SpecifierSet('>=1.0') and '!=1.1' using intersection produces a set that contains '1.0' and '1.4', excludes '1.1' and '2.0', and excludes the prerelease '1.0a5' by default.
+
+R5: packaging.requirements.Requirement('name[foo]>=2,<3; python_version>"2.0"') has name 'name', extras {'foo'}, url None, and a non-null marker. Its specifier contains '2.5' and excludes '3.0'; its marker evaluates True for environment {'python_version': '3.11'} and False for {'python_version': '2.0'}.
+
+R6: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for both 'oslo.concurrency' and 'oslo_concurrency'.

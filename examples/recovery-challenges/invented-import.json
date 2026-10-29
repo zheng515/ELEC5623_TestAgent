@@ -7,7 +7,7 @@
   "tests": [
     {
       "id": "T1",
-      "behaviorId": "B2",
+      "behaviorId": "B1",
       "functionName": "test_threshold",
       "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
       "gapIndexes": [],

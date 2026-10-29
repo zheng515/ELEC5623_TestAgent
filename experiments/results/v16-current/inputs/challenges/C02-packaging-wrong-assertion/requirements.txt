@@ -1,0 +1,3 @@
+Scope: controlled development challenge on the complete pinned upstream runtime. The original API contract below comes from the previously indexed public documentation. Seeded candidates are not trusted references.
+
+R1: packaging.utils.canonicalize_name returns 'django' for 'Django' and 'oslo-concurrency' for 'oslo.concurrency'.

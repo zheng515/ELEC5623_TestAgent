@@ -32,8 +32,7 @@
     "backup:restore": "tsx scripts/backup.ts restore",
     "test:queue": "REQTEST_DOCKER_TEST=1 node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx --test tests/run-queue.test.ts",
     "test:runtime": "REQTEST_DOCKER_TEST=1 node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx --test tests/runtime.test.ts",
-    "experiment:run": "tsx scripts/evaluate.ts examples/experiments.json",
-    "experiment:pilot": "tsx scripts/evaluate.ts examples/experiments-pilot.json",
+    "experiment:run": "tsx scripts/evaluate.ts examples/experiments-real-projects-v16.json",
     "experiment:analyze": "tsx scripts/analyze-experiment.ts"
   },
   "dependencies": {
@@ -54,8 +53,7 @@
     "radix-ui": "1.7.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "zod": "4.6.7",
-    "recharts": "^3.10.1"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
