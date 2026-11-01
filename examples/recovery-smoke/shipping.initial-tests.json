@@ -1,0 +1,13 @@
+{
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_free_shipping",
+      "gapIndexes": [],
+      "code": "from shipping_fee import fee\n\ndef test_free_shipping():\n    assert fee(10000) == 0\n",
+      "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+      "purpose": "Check the explicitly included equality boundary."
+    }
+  ]
+}

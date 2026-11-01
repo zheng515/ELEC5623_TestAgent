@@ -20,6 +20,7 @@
     "db:migrate:production": "NODE_ENV=production tsx scripts/database.ts",
     "db:import-sqlite": "node --import tsx scripts/import-sqlite.mjs",
     "mail:up": "docker compose --profile mail up -d mail",
+    "mail:check": "tsx scripts/check-mail.ts",
     "verify": "tsx scripts/verify.ts",
     "worker": "tsx scripts/worker.ts",
     "worker:production": "NODE_ENV=production tsx scripts/worker.ts",
@@ -32,7 +33,7 @@
     "backup:restore": "tsx scripts/backup.ts restore",
     "test:queue": "REQTEST_DOCKER_TEST=1 node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx --test tests/run-queue.test.ts",
     "test:runtime": "REQTEST_DOCKER_TEST=1 node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx --test tests/runtime.test.ts",
-    "experiment:run": "tsx scripts/evaluate.ts examples/experiments-real-projects-v16.json",
+    "experiment:run": "tsx scripts/evaluate.ts examples/experiments-baselines.json",
     "experiment:analyze": "tsx scripts/analyze-experiment.ts"
   },
   "dependencies": {

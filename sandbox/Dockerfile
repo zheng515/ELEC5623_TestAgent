@@ -17,6 +17,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONHASHSEED=0
 # The worker writes plain active paths here before starting project subprocesses.
 # This also supports upstream fixtures that intentionally replace PYTHONPATH.
 RUN python -c "import pathlib, site; (pathlib.Path(site.getsitepackages()[0]) / 'reqtest-paths.pth').write_text(\"import site; site.addsitedir('/tmp/reqtest-python-paths')\" + chr(10))"
+RUN pip install --no-cache-dir coverage==7.11.0
 WORKDIR /work
 USER 65534:65534
 ENTRYPOINT ["python", "/tool/worker.py"]

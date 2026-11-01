@@ -191,7 +191,7 @@ export function summarizeDiagnosisExposure(items: ExperimentItem[], references: 
     return { caseId: item.entry.caseId, variant: item.entry.variant, repeat: item.entry.repeat,
       referenceCategory: references[item.entry.caseId], preparationUsable: !!usable,
       originalAdmitted: usable && original ? !!admitted?.approved : null, runtimeFailureExposed: exposed,
-      category, diagnosisBasis: item.entry.variant === 'B2' ? 'unconditional_repair_baseline' : 'grounded_model_assessment',
+      category, diagnosisBasis: item.report?.configuration?.configuredFeatures?.failureDiagnosis === false ? 'not_performed' : item.entry.variant === 'B2' ? 'unconditional_repair_baseline' : 'grounded_model_assessment',
       agreesWithFixtureReference: item.entry.variant === 'B3' && exposed && complete ? category === references[item.entry.caseId] : null,
       improvementStageRequests: item.report?.resources?.requests.filter(request => request.stage === 'Improve tests once').length ?? null,
       acceptedImprovements: complete ? item.report!.improvements.length : null,

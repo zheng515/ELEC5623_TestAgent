@@ -656,6 +656,7 @@ test('existing assertion failures retain baseline and execution diagnoses withou
 });
 
 test('real mutmut survivors trigger one targeted improvement and re-measurement', {skip:process.env.REQTEST_DOCKER_TEST!=='1',timeout:180000}, async () => {
+  for (const variant of ['B2', 'B3'] as const) {
   const root=await mkdtemp(join(tmpdir(),'reqtest-mutation-'));
   try {
     await mkdir(join(root,'source'),{recursive:true});await mkdir(join(root,'generated'));
@@ -680,7 +681,7 @@ test('real mutmut survivors trigger one targeted improvement and re-measurement'
       }
       throw new Error('Unexpected diagnosis for a passing fixture');
     };
-    await runPython(r,root,new AbortController().signal,()=>{},ask);
+    await runPython(r,root,new AbortController().signal,()=>{},ask,variant);
     assert.ok(r.mutations[0].mutants.some(mutant=>mutant.status==='survived'));
     assert.ok(r.mutations.every(attempt=>attempt.mutants.every(mutant=>mutant.diff.trim())), 'Killed and surviving mutants must both retain reviewable differences');
     assert.equal(r.improvements.length,1);assert.equal(r.measurements.length,2);assert.equal(r.mutations.length,2);
@@ -694,6 +695,7 @@ test('real mutmut survivors trigger one targeted improvement and re-measurement'
     assert.equal(r.retrieval?.documents[0].text,'Shipping fee API: import fee from shipping.');
     assert.match(r.retrieval!.documents[0].sha256,/^[a-f0-9]{64}$/);
   } finally {await rm(root,{recursive:true,force:true});}
+  }
 });
 
 test('sandbox evidence detects generated-code tampering and preserves original mounts', {skip:process.env.REQTEST_DOCKER_TEST!=='1',timeout:30000}, async()=>{

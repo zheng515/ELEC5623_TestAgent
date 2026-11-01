@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { agentStopReason, runEvaluation, verificationSummary } from '../lib/run-evaluation';
+import { agentStopReason, improvementOutcomes, runEvaluation, verificationSummary } from '../lib/run-evaluation';
 import type { PythonReport } from '../lib/python-types';
 import { recordCoverage } from './fixtures/python-agent';
 
@@ -138,6 +138,75 @@ test('retained-failure summaries exclude changed assertions, stale phases and un
   assert.equal(verificationSummary(report).preserved.length, 0);
   report.diagnoses[0].phase = 'remeasurement'; report.measurements[1].integrity = false;
   assert.equal(verificationSummary(report).preserved.length, 0);
+});
+test('retained-failure totals reject replayed, duplicate and interrupted assessments', () => {
+  for (const change of [
+    (report: PythonReport) => { report.replay = { suiteHash: 'saved', states: report.states }; },
+    (report: PythonReport) => { report.diagnoses.push(structuredClone(report.diagnoses[0])); },
+    (report: PythonReport) => { report.tests.push(structuredClone(report.tests[0])); },
+    (report: PythonReport) => { report.collection = { exitCode: 2, log: 'Collection failed.' }; },
+    (report: PythonReport) => { report.measurements[0].exitCode = 2; },
+    (report: PythonReport) => { report.resources = { requests: [], limit: 1, exhausted: true }; },
+  ]) {
+    const report = fixture();
+    report.measurements[0].outcomes[0].status = 'failed';
+    report.diagnoses = [{ testId: 'T1', category: 'potential_implementation_defect', reason: '', quote: '', executionQuote: '', evidence: [] }];
+    assert.equal(verificationSummary(report).preserved.length, 1);
+    change(report);
+    assert.equal(verificationSummary(report).preserved.length, 0);
+  }
+});
+
+test('before/after evidence distinguishes recovered failures, new checks and unexecuted proposals', () => {
+  const report = fixture(), before = structuredClone(report.tests);
+  const replacement = { ...before[0], code: before[0].code.replace('fee()', 'fee(0)') };
+  const added = { ...replacement, id: 'T2', functionName: 'test_added' };
+  report.improvements = [{ reason: 'Correct the input and add a boundary check.', before, after: [replacement, added] }];
+  report.tests = [replacement, added];
+  report.measurements[0].outcomes[0].status = 'failed';
+  report.measurements.push({ ...report.measurements[0], outcomes: [
+    { ...report.measurements[0].outcomes[0], status: 'passed' },
+    { file: 'reqtest_generated/test_reqtest_T2.py', node: 'T2::test_added', name: 'test_added', status: 'passed', message: '' },
+  ] });
+  const saved = structuredClone(report);
+  assert.deepEqual(improvementOutcomes(report).map(({ before, after, recovered }) => ({ before, after, recovered })), [
+    { before: 'Failed', after: 'Passed', recovered: true },
+    { before: 'Not proposed', after: 'Passed', recovered: false },
+  ]);
+  assert.deepEqual(report, saved, 'Display comparisons must preserve original artifacts and executions.');
+  report.measurements.pop();
+  assert.ok(improvementOutcomes(report).every(change => change.after === 'Awaiting execution' && !change.recovered));
+  report.replay = { suiteHash: 'saved', states: report.states };
+  assert.deepEqual(improvementOutcomes(report), [], 'Replays must not claim a new improvement.');
+});
+
+test('before/after results never treat partial, skipped, duplicate or mismatched outcomes as recovery', () => {
+  for (const change of [
+    (report: PythonReport) => { report.measurements[1].integrity = false; },
+    (report: PythonReport) => { report.measurements[1].timedOut = true; },
+    (report: PythonReport) => { report.measurements[1].exitCode = 2; },
+    (report: PythonReport) => { report.measurements[1].outcomes[0].status = 'skipped'; },
+    (report: PythonReport) => { report.measurements[1].outcomes.push({ ...report.measurements[1].outcomes[0], node: 'T1::test_1[2]', status: 'failed' }); },
+    (report: PythonReport) => { report.measurements[1].outcomes.push(structuredClone(report.measurements[1].outcomes[0])); },
+    (report: PythonReport) => { report.measurements[1].outcomes[0].file = 'unrelated.py'; },
+    (report: PythonReport) => { report.measurements[1].outcomes[0].name = 'other_test'; },
+  ]) {
+    const report = fixture(), before = structuredClone(report.tests);
+    report.tests[0].code += '\n';
+    report.improvements = [{ reason: 'Change test', before, after: report.tests }];
+    report.measurements[0].outcomes[0].status = 'failed';
+    report.measurements.push({ ...report.measurements[0], outcomes: [{ ...report.measurements[0].outcomes[0], status: 'passed' }] });
+    assert.equal(improvementOutcomes(report)[0].recovered, true);
+    change(report);
+    assert.equal(improvementOutcomes(report)[0].recovered, false);
+  }
+  const report = fixture(), before = structuredClone(report.tests);
+  report.tests[0].approved = true;
+  report.improvements = [{ reason: 'No code change.', before, after: report.tests }];
+  assert.deepEqual(improvementOutcomes(report), []);
+  before[0].approved = false;
+  assert.equal(improvementOutcomes(report)[0].before, 'Not executed');
+  assert.equal(improvementOutcomes(report)[0].recovered, false);
 });
 test('all mapped behaviors must pass before a requirement is verified; unrelated failures stay visible', () => {
   const report = fixture(); report.measurements[0].outcomes[1].status = 'passed'; report.states[1].status = 'Verified';

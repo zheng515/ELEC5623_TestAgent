@@ -217,7 +217,7 @@ if recovery_path.exists():
                 raise ValueError("Every recovery cell requires one challenge/variant summary")
             item = matches[0]
             text = f"{item['succeeded']}/{item['planned']}" + (f"\n{item['unresolved']} unavailable" if item["unresolved"] else "")
-            color = "#dcfce7" if item["succeeded"] == item["planned"] else "#ffedd5"
+            color = "#dbeafe" if item["succeeded"] == item["planned"] else "#ffedd5"
             ax.add_patch(plt.Rectangle((j-.47, i-.42), .94, .84, facecolor=color, edgecolor="white"))
             ax.text(j, i, text, ha="center", va="center")
     ax.tick_params(length=0, pad=10)

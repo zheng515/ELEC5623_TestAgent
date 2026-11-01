@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { Pool } from "pg";
 import { signingSecret } from "./operations";
 
-export type ConfigurationCheck = { name: string; status: "passed" | "warning" | "failed"; detail: string };
+type ConfigurationCheck = { name: string; status: "passed" | "warning" | "failed"; detail: string };
 export function configurationChecks(env: NodeJS.ProcessEnv): ConfigurationCheck[] {
   const checks: ConfigurationCheck[] = [];
   const add = (name: string, valid: boolean, detail: string) => checks.push({ name, status: valid ? "passed" : "failed", detail });
@@ -23,6 +23,7 @@ export function configurationChecks(env: NodeJS.ProcessEnv): ConfigurationCheck[
   const localMail = env.REQTEST_LOCAL_MAIL === "true", smtp = !!env.SMTP_HOST && !!env.SMTP_FROM;
   add("SMTP configuration", !env.SMTP_HOST && !env.SMTP_FROM || smtp && Number.isInteger(Number(env.SMTP_PORT || 587)) && Number(env.SMTP_PORT || 587) > 0 && Number(env.SMTP_PORT || 587) <= 65535, "SMTP_HOST and SMTP_FROM must be paired, with a valid SMTP_PORT.");
   add("SMTP credentials", !!env.SMTP_USER === !!env.SMTP_PASSWORD, "Configure SMTP_USER and SMTP_PASSWORD together, or leave both empty for an unauthenticated relay.");
+  if (env.SMTP_HOST?.toLowerCase() === 'smtp.gmail.com' && !localMail) add('Gmail STARTTLS', Number(env.SMTP_PORT || 587) === 587 && env.SMTP_SECURE !== 'true' && !!env.SMTP_USER && !!env.SMTP_PASSWORD, 'Gmail requires port 587 with SMTP_SECURE=false, SMTP_USER and a Google App Password. STARTTLS is mandatory.');
   add("Email verification", env.AUTH_REQUIRE_EMAIL_VERIFICATION !== "true" || localMail || smtp, "Required email verification needs a configured mail service.");
   if (localMail || !smtp) checks.push({ name: "Email delivery", status: "warning", detail: localMail ? "Mailpit captures local emails. Start npm run mail:up; external delivery is disabled." : "Email verification and password recovery are unavailable until SMTP is configured." });
   for (const [name, value] of Object.entries(env)) if (value && /^NEXT_PUBLIC_.*(KEY|SECRET|PASSWORD|TOKEN|DATABASE_URL)/i.test(name)) add("Browser secret exposure", false, "Remove secret-bearing NEXT_PUBLIC_ variables. Credentials must remain server-side.");

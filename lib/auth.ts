@@ -6,7 +6,7 @@ import { getMigrations } from "better-auth/db/migration";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
-import { mailConfigured, sendAccountMail } from "./mail";
+import { mailConfigured, emailVerificationRequired, sendAccountMail } from "./mail";
 import { githubConfigured } from "./github-config";
 import { registerRuntime } from "./operations";
 
@@ -34,7 +34,7 @@ async function initialize() {
       try { writeFileSync(secretFile, randomBytes(48).toString("base64"), { flag: "wx", mode: 0o600 }); }
       catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
     }
-    if (process.env.AUTH_REQUIRE_EMAIL_VERIFICATION === "true" && !mailConfigured()) throw new Error("Configure email delivery before requiring email verification.");
+    if (emailVerificationRequired() && !mailConfigured()) throw new Error("Configure email delivery before requiring email verification.");
     instance = betterAuth({
       database,
       baseURL: process.env.BETTER_AUTH_URL || "http://127.0.0.1:3001",
@@ -45,11 +45,16 @@ async function initialize() {
       disabledPaths: ["/get-access-token", "/refresh-token"],
       emailAndPassword: {
         enabled: true, minPasswordLength: PASSWORD_MIN_LENGTH, maxPasswordLength: PASSWORD_MAX_LENGTH,
-        requireEmailVerification: process.env.AUTH_REQUIRE_EMAIL_VERIFICATION === "true",
+        requireEmailVerification: emailVerificationRequired(),
         revokeSessionsOnPasswordReset: true,
         ...(mailConfigured() ? { sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => { await sendAccountMail(user.email, "Reset your ReqTest password", "Use this link to reset your password:\n" + url + "\nIf you did not request this, ignore this email."); } } : {}),
       },
-      ...(mailConfigured() ? { emailVerification: { sendOnSignUp: true, sendVerificationEmail: async ({ user, url }: { user: { email: string }; url: string }) => { await sendAccountMail(user.email, "Verify your ReqTest email", "Confirm your email address:\n" + url); } } } : {}),
+      ...(mailConfigured() ? { emailVerification: { sendOnSignUp: true, autoSignInAfterVerification: false, expiresIn: 3600,
+        sendVerificationEmail: async ({ user, token }: { user: { email: string }; token: string }) => {
+          const link = new URL('/verify-email', process.env.BETTER_AUTH_URL || 'http://127.0.0.1:3001');
+          link.hash = new URLSearchParams({ token }).toString();
+          await sendAccountMail(user.email, "Verify your ReqTest email", "Confirm your email address by opening this link and selecting Verify email:\n" + link + "\nThis signed link expires in one hour. If you did not request this, ignore this email.");
+        } } } : {}),
       hooks: {
         before: createAuthMiddleware(async (ctx) => {
           let password: unknown;
@@ -78,5 +83,6 @@ async function initialize() {
   } catch (error) { await database?.end(); throw error; }
 }
 export async function session(request: Request) {
-  return (await getAuth()).api.getSession({ headers: request.headers });
+  const account = await (await getAuth()).api.getSession({ headers: request.headers });
+  return account && (!emailVerificationRequired() || account.user.emailVerified) ? account : null;
 }

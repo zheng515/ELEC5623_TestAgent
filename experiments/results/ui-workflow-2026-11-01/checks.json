@@ -1,0 +1,78 @@
+{
+  "scope": "Automated engineering acceptance on a local production build, not independent human usability, a new model experiment, or a complete new SRS-to-model website run.",
+  "realServices": {
+    "database": "PostgreSQL, isolated namespace",
+    "authentication": "Actual Better Auth HTTP registration/sign-in/sign-out",
+    "requirements": "Actual authenticated Markdown extraction and original-byte download",
+    "repository": "Actual public GitHub pinned-commit download and Docker preflight",
+    "execution": "Actual HTTP/SSE submission, PostgreSQL queue and Docker saved-suite replay",
+    "fixture": "Unchanged authentic v21 booking model report seeded only into the isolated account",
+    "modelCalls": 0,
+    "modelGuard": "Worker rejects every reasoning request; no rejection was attempted",
+    "locale": "zh-CN browser; English website content"
+  },
+  "realBrowserChecks": [
+    "Password rules change color and block weak registration",
+    "Real HTTP registration, PostgreSQL account and automatic sign-in",
+    "Wrong-password error, real sign-out and sign-in",
+    "Account navigation and email actions remain on Account",
+    "Real authenticated Markdown extraction, automatic editable text and exact original download",
+    "Requirement draft survives switching to Evaluation and back",
+    "Real public GitHub pinned-commit download and Docker project preflight",
+    "Real authenticated SSE submission, PostgreSQL queue and Docker saved-suite replay; zero model requests",
+    "Failing replay exposes requirement/assertion/execution/assessment tabs without refreshing the original diagnosis",
+    "Evidence and pytest ZIP download match the exact owned saved report and executable bytes",
+    "No horizontal overflow at 320/390/768px across all result tabs with details expanded",
+    "Cancelling Settings does not replace the selected model",
+    "A second real account receives an empty draft/history and cannot fetch the first account report"
+  ],
+  "pageErrors": [],
+  "mockedLargeResultChecks": {
+    "scope": "UI-only test with intercepted APIs including mock extraction; not real authentication, a new model observation or independent usability/semantic review.",
+    "reportId": "ecfac931-435d-4802-8749-1199cf357ef5",
+    "outcomeCount": 26927,
+    "checks": [
+      "Uploaded text automatically fills editable requirements; no block selection needed (mock extraction)",
+      "Uploaded requirements and their source details survive workspace navigation",
+      "Evidence JSON and test archive retain the exact selected report",
+      "Only 100 result rows render per page; navigation and filter reset work",
+      "Raw execution evidence is paginated without discarding exact saved outcomes",
+      "No horizontal overflow in all four tabs at 320px with details expanded",
+      "No horizontal overflow in all four tabs at 390px with details expanded",
+      "No horizontal overflow in all four tabs at 768px with details expanded"
+    ],
+    "pageErrors": []
+  },
+  "regression": {
+    "total": 216,
+    "passed": 214,
+    "skipped": 2,
+    "failed": 0
+  },
+  "productionBuild": "passed",
+  "typecheck": "passed",
+  "lint": "passed",
+  "sourceFileSha256": {
+    "app/page.tsx": "8468d74101c01eeb0cdc445fe2e551bca0a25e4d8eec03bb80196559572f7477",
+    "components/shell/account.tsx": "87c508bd02c7f59007103dfa3b4c3327b7f9136112ccec67cdcf2e38c4e5779e",
+    "scripts/check-large-evaluation.py": "8e7bcc4db2c83438f5c4ff5aeee0962f66987b9fb2976162c43bac3e995e09bd",
+    "docs/local-production.md": "a1b1fec2be51428ef1509ed7453725973e2025df5b0630af1331a867f83ab6a0",
+    "app/api/python/route.ts": "8068e66566c1303ce5e36f36df047343240c928892b3a65f8408f8a2f934b770",
+    "lib/run-queue.ts": "7056678b283545eea3eadab7da45d71cdba2dec123b78926a75fa394720c7084",
+    "package-lock.json": "053dc74affb081b51b64b675f309216c8a5766c0c79d7c9d0d5bc999e27a7f62"
+  },
+  "buildId": "wOpUDyxXqBj5RMenobMdh",
+  "limits": [
+    "No independent first-user study.",
+    "No new model-backed verification from uploaded requirements.",
+    "Email delivery and OAuth/private repositories were disabled for this acceptance account.",
+    "Large-result check intercepts APIs and does not execute 26927 real tests.",
+    "Draft retention is in memory across workspace tabs, not durable across reload/sign-out."
+  ],
+  "englishOnlyCheck": "passed",
+  "documentationLinks": "passed",
+  "diffWhitespaceCheck": "passed",
+  "isolatedTestSchemasAndDataRemoved": true,
+  "temporaryBrowserSessionRemoved": true,
+  "acceptanceServicesStopped": true
+}

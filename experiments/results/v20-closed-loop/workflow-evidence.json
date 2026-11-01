@@ -1,0 +1,68 @@
+{
+  "scope": "Observed workflow records on identical case inputs. Counts do not establish semantic correctness or superiority over external products.",
+  "baseline": "B0 is this repository's direct-generation configuration, not a measurement of Codex, Claude, CoverUp or TestGen-LLM.",
+  "rows": [
+    {
+      "caseId": "shipping-correct",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-correct-B2-1/report.json"
+    },
+    {
+      "caseId": "shipping-correct",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/shipping-correct-B3-1/report.json"
+    },
+    {
+      "caseId": "booking-boundary-fault",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/booking-boundary-fault-B2-1/report.json"
+    },
+    {
+      "caseId": "booking-boundary-fault",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 4,
+      "behaviorsWithArtifactQuotes": 4,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-boundary-fault-B3-1/report.json"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "variant": "B2",
+      "completed": 2,
+      "planned": 2,
+      "seededFaultDetection": 1,
+      "medianSeconds": 31.415,
+      "totalTokens": 37815
+    },
+    {
+      "variant": "B3",
+      "completed": 2,
+      "planned": 2,
+      "seededFaultDetection": 1,
+      "medianSeconds": 32.1005,
+      "totalTokens": 34041
+    }
+  ]
+}

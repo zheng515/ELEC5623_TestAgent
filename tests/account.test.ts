@@ -29,6 +29,12 @@ test('real registration, password verification, protected routes and per-user re
   const cookie = cookies(signup);
   assert.ok(cookie.includes('session_token'));
   assert.equal((await session(new Request(base, { headers: { Cookie: cookie } })))?.user.id, user.id);
+  process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = 'true';
+  try {
+    assert.equal(await session(new Request(base, { headers: { Cookie: cookie } })), null, 'Legacy unverified sessions cannot bypass a newly required verification policy');
+    const protectedRoute = await import('../app/api/model/route');
+    assert.equal((await protectedRoute.GET(new Request(base, { headers: { Cookie: cookie } }))).status, 401);
+  } finally { process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = 'false'; }
   assert.equal((await call('sign-in/email', { email, password: 'wrong-password' })).status, 401);
   assert.equal((await call('sign-in/email', { email, password })).status, 200);
   assert.notEqual((await database.query('SELECT password FROM account WHERE "userId"=$1', [user.id])).rows[0].password, password);

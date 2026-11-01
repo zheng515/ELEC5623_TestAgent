@@ -11,6 +11,7 @@ export async function authFixture(context: TestContext, prefix: string, beforeCl
   const namespace = prefix + '_' + randomUUID().replaceAll('-', '');
   process.env.REQTEST_DATA_NAMESPACE = namespace;
   process.env.REQTEST_LOCAL_MAIL = 'false';
+  process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = 'false';
   process.env.SMTP_HOST = '';
   const authModule = await import('../../lib/auth');
   const auth = await authModule.getAuth();

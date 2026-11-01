@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { RequirementSource, DocumentPage, RequirementDocument } from "./requirements";
 import type { ProjectSetup } from "./project-setup";
 import type { VerificationPolicy } from './verification-policy';
+import type { AgentVariant, ConfiguredAgentFeatures } from './agent-variants';
 import { sourceFile, type ProjectRuntime } from "./runtime";
 const evidence = z.object({ file: z.string(), quote: z.string().min(1), line: z.number().int().min(1).optional() });
 export function sourceEvidenceSchema(files: Record<string, string>) {
@@ -107,9 +108,9 @@ export type TestAttempt = {
 };
 export type Outcome = { node: string; file: string; name: string; status: "passed" | "failed" | "error" | "skipped"; message: string; screenshot?: string };
 export type Measurement = { outcomes: Outcome[]; exitCode: number; log: string; timedOut: boolean; integrity: boolean; runtimeArtifacts?: { file: string; kind: 'sqlite'; sha256: string }[] };
-export type Mutation = { incomplete: boolean; mutants: { id: string; file: string; line: number; status: string; diff: string }[]; log: string; timedOut: boolean; scope?: { file: string; functions: string[]; lines: number[]; kind: 'functions' | 'file'; suite: 'approved_generated'; setupFiles?: string[] }; totalMutants?: number };
+export type Mutation = { incomplete: boolean; mutants: { id: string; file: string; line: number; status: string; diff: string }[]; log: string; timedOut: boolean; scope?: { file: string; functions: string[]; lines: number[]; kind: 'functions' | 'file' | 'executed_lines'; suite: 'approved_generated'; setupFiles?: string[] }; totalMutants?: number; unassessedExecutedLines?: number[] };
 export type DiagnosisPhase = 'collection' | 'baseline' | 'execution' | 'remeasurement';
-export type Diagnosis = z.infer<typeof diagnosisSchema>["decisions"][number] & { phase?: DiagnosisPhase };
+type Diagnosis = z.infer<typeof diagnosisSchema>["decisions"][number] & { phase?: DiagnosisPhase };
 export type PythonReport = {
   testDiscovery?: { totalNodes: number; complete: boolean; modelSelectedNodes: number; modelOmittedNodes: number; catalogSha256: string; baselineFiles: string[]; assets: { file: string; bytes: number; sha256: string }[] };
   policy?: VerificationPolicy;
@@ -125,12 +126,12 @@ export type PythonReport = {
   analysisCorrection?: { original: Analysis; corrected?: Analysis; error: string; removed?: string[]; restored?: string[] };
   runtime?: ProjectRuntime;
   execution?: { queueId: string; image: string; attempt: number; recovered: boolean };
-  variant?: "B0" | "B1" | "B2" | "B3";
+  variant?: AgentVariant;
   environment?: Record<string, string>;
   collection?: { exitCode: number; log: string; timedOut?: boolean };
   elapsedMs?: number;
   retrieval?: { query: string; documents: { file: string; text: string; score: number; sha256: string }[] };
-  configuration?: { sandboxImage: string; improvementLimit: number; mutationSeconds: number; policyVersion?: string; modelTimeoutSeconds?: number; initialCandidateSource?: 'model' | 'seeded'; mode?: 'saved_tests' | 'regenerate' };
+  configuration?: { sandboxImage: string; improvementLimit: number; mutationSeconds: number; policyVersion?: string; modelTimeoutSeconds?: number; configuredFeatures?: ConfiguredAgentFeatures; initialCandidateSource?: 'model' | 'seeded'; mode?: 'saved_tests' | 'regenerate' };
   initialStates?: PythonReport["states"];
   id: string; title: string; createdAt: string; model: string; source: string; fingerprint: string;
   status: "running" | "completed" | "failed" | "cancelled"; stage: string; error?: string;

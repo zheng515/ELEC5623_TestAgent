@@ -1,0 +1,65 @@
+{
+  "scope": "Observed workflow records on identical case inputs. Counts do not establish semantic correctness or superiority over external products.",
+  "baseline": "B2 and B3 reuse identical B1 candidates plus frozen analysis, admission review and initial execution. Follow-up order alternates. Only diagnosis and its downstream repair decision differ; the same request ceiling applies to both arms.",
+  "rows": [
+    {
+      "caseId": "booking-typed-candidate",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-typed-candidate-B1-1/report.json"
+    },
+    {
+      "caseId": "booking-typed-candidate",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-typed-candidate-B2-1/report.json"
+    },
+    {
+      "caseId": "booking-typed-candidate",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/booking-typed-candidate-B3-1/report.json"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "variant": "B1",
+      "completed": 1,
+      "planned": 1,
+      "seededFaultDetection": 1,
+      "medianSeconds": 1.765,
+      "totalTokens": 0
+    },
+    {
+      "variant": "B2",
+      "completed": 1,
+      "planned": 1,
+      "seededFaultDetection": 1,
+      "medianSeconds": 7.82,
+      "totalTokens": 3851
+    },
+    {
+      "variant": "B3",
+      "completed": 1,
+      "planned": 1,
+      "seededFaultDetection": 1,
+      "medianSeconds": 5.122,
+      "totalTokens": 4110
+    }
+  ]
+}

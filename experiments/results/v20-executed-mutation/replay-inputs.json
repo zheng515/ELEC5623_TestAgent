@@ -1,0 +1,11 @@
+{
+  "sourceArchiveSha256": "424a9202d4e136cccb2337e11ffc894bcc93daec534c0c081bdd8bdb43e3a16f",
+  "scope": "Byte-identical subset of original saved inputs retained solely for the v20 tool replay; not retained v17 study results. The original index is unchanged and only the selected completed B2 report is available.",
+  "files": [
+    "index.json",
+    "agent-snapshot.json",
+    "click-full.zip",
+    "click-full-B2-1/report.json"
+  ],
+  "sha256": "5f3b278e970a279073899c08943992e52d64e8aba52c27111397336ab50d3121"
+}

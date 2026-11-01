@@ -1,0 +1,216 @@
+[
+  {
+    "caseId": "booking-typed-candidate",
+    "variant": "B1",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_free_cancellation"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_free_cancellation"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "stopReason": "B1: direct test generation and recorded execution completed without analysis, diagnosis or execution-driven refinement.",
+    "referenceExecution": "evidence/booking-typed-candidate-B1-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-typed-candidate-B1-1/report.json"
+  },
+  {
+    "caseId": "booking-typed-candidate",
+    "variant": "B2",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_free_cancellation"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_free_cancellation"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "stopReason": "The improvement was not admitted. Earlier approved tests remain active; the single improvement budget is exhausted.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_free_cancellation",
+            "gapIndexes": [],
+            "code": "from booking import cancellation_fee\n\ndef test_free_cancellation():\n    result = cancellation_fee(24)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check the explicitly included 24-hour boundary, the zero-cent result, and its promised integer return type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test uses the explicitly specified 24-hour boundary and checks the zero-cent result and promised integer return type, excluding bool. All assertions are supported by the requirement.",
+              "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+              "definedScope": null
+            },
+            "review": "The test uses the explicitly specified 24-hour boundary and checks the zero-cent result and promised integer return type, excluding bool. All assertions are supported by the requirement."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test uses the explicitly specified 24-hour boundary and checks the zero-cent result and promised integer return type, excluding bool. All assertions are supported by the requirement.",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "complete": true,
+            "reason": "T1 checks the explicitly stated 24-hour boundary, the zero-cent result, and the integer return type.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "B2 baseline: attempt to repair every failed generated artifact using the recorded execution feedback, without classifying the failure cause. Keep the original requirement as the oracle; the same admission checks still apply.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_free_cancellation",
+            "gapIndexes": [],
+            "code": "from booking import cancellation_fee\n\ndef test_free_cancellation():\n    result = cancellation_fee(24)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Retain the supported 24-hour boundary, zero-cent, and integer-return assertions unchanged.",
+            "approved": false,
+            "review": "Unchanged approved executable and mapping; the original artifact is retained without another review or execution."
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B1",
+            "functionName": "test_interior_free_cancellation_return_type",
+            "gapIndexes": [
+              0
+            ],
+            "code": "from booking import cancellation_fee\n\ndef test_interior_free_cancellation_return_type():\n    result = cancellation_fee(48)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check the promised semantic integer return type for the existing 48-hour witness.",
+            "approved": false,
+            "review": "Outside the permitted improvement scope; not sent for review or execution."
+          }
+        ],
+        "coverageRuleIds": [],
+        "decisions": [],
+        "coverage": []
+      }
+    ],
+    "referenceExecution": "evidence/booking-typed-candidate-B2-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-typed-candidate-B2-1/report.json"
+  },
+  {
+    "caseId": "booking-typed-candidate",
+    "variant": "B3",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_free_cancellation"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_free_cancellation"
+    ],
+    "diagnoses": [
+      {
+        "testId": "T1",
+        "category": "potential_implementation_defect",
+        "reason": "The generated test fails at its zero-value assertion for the explicitly specified 24-hour input. The implementation’s conditional returns 2500 at exactly 24, contrary to the requirement.",
+        "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+        "executionQuote": "E       assert 2500 == 0",
+        "evidence": [
+          {
+            "file": "booking.py",
+            "quote": "    return 0 if hours > 24 else 2500",
+            "line": 6
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "quote": "    assert result == 0",
+            "line": 7
+          }
+        ],
+        "phase": "execution"
+      }
+    ],
+    "improvements": 0,
+    "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_free_cancellation",
+            "gapIndexes": [],
+            "code": "from booking import cancellation_fee\n\ndef test_free_cancellation():\n    result = cancellation_fee(24)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check the explicitly included 24-hour boundary, the zero-cent result, and its promised integer return type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test uses the explicitly specified 24-hour boundary and checks the zero-cent result and promised integer return type, excluding bool. All assertions are supported by the requirement.",
+              "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+              "definedScope": null
+            },
+            "review": "The test uses the explicitly specified 24-hour boundary and checks the zero-cent result and promised integer return type, excluding bool. All assertions are supported by the requirement."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test uses the explicitly specified 24-hour boundary and checks the zero-cent result and promised integer return type, excluding bool. All assertions are supported by the requirement.",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "complete": true,
+            "reason": "T1 checks the explicitly stated 24-hour boundary, the zero-cent result, and the integer return type.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/booking-typed-candidate-B3-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-typed-candidate-B3-1/report.json"
+  }
+]

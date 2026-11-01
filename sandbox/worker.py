@@ -4,6 +4,7 @@ import base64
 import hashlib
 import importlib.metadata
 import platform
+import re
 import json
 import os
 from pathlib import Path
@@ -13,12 +14,14 @@ import sqlite3
 import subprocess
 import signal
 import sys
+from time import monotonic
 import site
 site.addsitedir("/opt/reqtest-deps")
 sys.path.remove("/opt/reqtest-deps")
 sys.path.insert(0, "/opt/reqtest-deps")
 import xml.etree.ElementTree as ET
 from mutmut.cache import get_unified_diff
+from coverage import CoverageData
 import tomllib
 import importlib.util
 from packaging.requirements import Requirement
@@ -293,7 +296,7 @@ def measure(job):
     return {'outcomes': outcomes, 'exitCode': code, 'log': log, 'timedOut': timed, 'integrity': unchanged and before == fingerprint(outputs), 'runtimeArtifacts': runtime_artifacts}
 
 
-def mutation_scope(job):
+def mutation_scope(job, executed=None):
     candidates = []
     tests = [ast.parse(path.read_text()) for path in Path(GENERATED).glob('*.py')]
     for filename in [to_run(file) for file in job.get('files') or [job['file']]]:
@@ -321,23 +324,40 @@ def mutation_scope(job):
         names = set(job['functions']) if job.get('functions') is not None else called
         selected = [node for name, node in definitions.items() if name in names]
         lines = sorted({line for node in selected for line in range(node.lineno, node.end_lineno + 1)})
-        candidates.append({'file': filename, 'functions': [node.name for node in selected], 'lines': lines, 'kind': 'functions' if selected else 'file', 'suite': 'approved_generated'})
-    return max(candidates, key=lambda scope: len(scope['functions']))
+        kind = 'functions' if selected else 'file'
+        if job.get('lines') is not None:
+            lines = job['lines']
+            if not lines or any(type(line) is not int or line < 1 or line > len(path.read_text().splitlines()) for line in lines):
+                raise ValueError('Frozen mutation lines must identify original source lines.')
+            kind = 'executed_lines'
+        elif executed is not None:
+            lines, kind = executed.get(filename, []), 'executed_lines'
+        candidates.append({'file': filename, 'functions': [node.name for node in selected], 'lines': sorted(set(lines)), 'kind': kind, 'suite': 'approved_generated'})
+    return max(candidates, key=lambda scope: len(scope['lines']) if executed is not None else len(scope['functions']))
+
+
+def mutation_execution_lines(job, runner, seconds):
+    files = [to_run(file) for file in job.get('files') or [job['file']]]
+    config = Path('/tmp/reqtest-mutation-coverage.ini')
+    config.write_text('[run]\ndata_file = /tmp/reqtest-mutation.coverage\ndynamic_context = test_function\ninclude =\n' + ''.join('    ' + str(Path(file).resolve()) + '\n' for file in files))
+    code, log, timed = command([sys.executable, '-m', 'coverage', 'run', '--rcfile=' + str(config), '-m', *runner[2:]], min(15, seconds))
+    if code or timed:
+        return {}, log + '\nExecution-line measurement failed; no whole-file fallback was used.', timed
+    try:
+        contexts = [r'(^|\.)' + re.escape(path.stem + '.' + node.name) + '$' for path in Path(GENERATED).glob('*.py') for node in ast.parse(path.read_text()).body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith('test_')]
+        data = CoverageData(basename='/tmp/reqtest-mutation.coverage')
+        data.read()
+        data.set_query_contexts(contexts or ['(?!)'])
+        return {file: sorted(data.lines(str(Path(file).resolve())) or []) for file in files}, log, False
+    except Exception as error:
+        return {}, log + '\nExecution-line evidence unavailable: ' + str(error), False
 
 
 def mutate(job):
     shutil.copytree('/generated', GENERATED, dirs_exist_ok=True)
     scope = mutation_scope(job)
-    selection = []
-    if scope['lines']:
-        # A selection patch supplies line numbers to mutmut; it is never applied to source.
-        source = Path(scope['file']).read_text().splitlines()
-        patch = '--- ' + scope['file'] + '\n+++ ' + scope['file'] + '\n'
-        for line in scope['lines']:
-            patch += f'@@ -0,0 +{line},1 @@\n+' + source[line - 1] + '\n'
-        Path('/tmp/mutation-selection.patch').write_text(patch)
-        selection = ['--use-patch-file', '/tmp/mutation-selection.patch']
     seconds = min(75, max(1, int(job.get('seconds', 75))))
+    started = monotonic()
     nodes = list(dict.fromkeys(to_run(node) for node in job.get('nodes') or []))
     for node in nodes:
         path = Path(node.split('::')[0])
@@ -351,34 +371,59 @@ def mutate(job):
     scope['setupFiles'] = list(setup.values())
     # Prefer each directory's conftest; otherwise collect a representative module.
     # All original assertions are deselected; unrelated modules need not be loaded.
-    runner = shlex.join([sys.executable, '-m', 'pytest', '-q', *pytest_args(), '-o', 'addopts=', *['--deselect=' + file for file in scope['setupFiles']], '--', *scope['setupFiles'], 'reqtest_generated'])
+    runner = [sys.executable, '-m', 'pytest', '-q', *pytest_args(), '-o', 'addopts=', *['--deselect=' + file for file in scope['setupFiles']], '--', *scope['setupFiles'], 'reqtest_generated']
+    trace_log, unassessed = '', []
+    if scope['kind'] == 'file' or job.get('lines') is not None:
+        executed, trace_log, trace_timed = mutation_execution_lines(job, runner, seconds)
+        scope = {**mutation_scope(job, executed), 'setupFiles': scope['setupFiles']}
+        if not executed or not scope['lines']:
+            return {'mutants': [], 'log': trace_log + '\nNo generated-test execution lines were available; mutation was not run.', 'timedOut': trace_timed, 'incomplete': True, 'scope': {**scope, 'file': to_project(scope['file']), 'setupFiles': [to_project(file) for file in scope['setupFiles']]}}
+        unassessed = sorted(set(executed.get(scope['file'], [])) - set(scope['lines']))
+        trace_log += '\nMutation selection uses generated-test contexts only; setup/import and unexecuted lines are outside the assessed scope.'
+        if unassessed:
+            trace_log += f'\n{len(unassessed)} newly executed lines lie outside the frozen mutation selection and remain unassessed.'
+    remaining = seconds - (monotonic() - started)
+    if remaining <= 0:
+        return {'mutants': [], 'log': trace_log + '\nMutation budget exhausted during scope preparation.', 'timedOut': True, 'incomplete': True}
+    selection = []
+    if scope['lines']:
+        # A selection patch supplies line numbers to mutmut; it is never applied to source.
+        source = Path(scope['file']).read_text().splitlines()
+        patch = '--- ' + scope['file'] + '\n+++ ' + scope['file'] + '\n'
+        for line in scope['lines']:
+            patch += f'@@ -0,0 +{line},1 @@\n+' + source[line - 1] + '\n'
+        Path('/tmp/mutation-selection.patch').write_text(patch)
+        selection = ['--use-patch-file', '/tmp/mutation-selection.patch']
     # CLI values override any project-supplied mutmut hooks/configuration.
-    code, log, timed = command(['mutmut', 'run', '--paths-to-mutate', scope['file'], *selection, '--tests-dir', 'reqtest_generated', '--runner', runner, '--pre-mutation', '', '--post-mutation', '', '--simple-output', '--no-progress', '--test-time-base', '1'], seconds)
-    _, xml, _ = command(['mutmut', 'junitxml'], 10)
-    mutants, diffs = [], {}
-    try:
-        for case in ET.fromstring(xml).iter('testcase'):
-            detail = case.find('failure')
-            if detail is not None:
-                diffs[case.get('name', '')] = (detail.text or '')[:8000]
-    except ET.ParseError:
-        log += '\nMutant XML unavailable; inspecting cached outcomes instead.'
+    code, log, timed = command(['mutmut', 'run', '--paths-to-mutate', scope['file'], *selection, '--tests-dir', 'reqtest_generated', '--runner', shlex.join(runner), '--pre-mutation', '', '--post-mutation', '', '--simple-output', '--no-progress', '--test-time-base', '1'], remaining)
+    log = trace_log + '\n' + log
+    mutants, sources, total = [], {}, 0
     try:
         with sqlite3.connect('.mutmut-cache', timeout=2) as cache:
-            rows = cache.execute('SELECT m.id, s.filename, l.line_number, m.status FROM Mutant m JOIN Line l ON m.line=l.id JOIN SourceFile s ON l.sourcefile=s.id').fetchall()
+            total = cache.execute('SELECT COUNT(*) FROM Mutant').fetchone()[0]
+            rows = cache.execute('SELECT m.id, s.filename, l.line_number, m.status FROM Mutant m JOIN Line l ON m.line=l.id JOIN SourceFile s ON l.sourcefile=s.id ORDER BY m.id LIMIT 200').fetchall()
+        # Diff reconstruction parses the target source per mutant. Bound work before extraction.
+        deadline = monotonic() + 10
         for ident, filename, line, status in rows:
             key = 'Mutant #' + str(ident)
-            diff = diffs.get(key, '')
-            if not diff:
+            diff = ''
+            if monotonic() < deadline:
                 try:
-                    diff = get_unified_diff(ident, [], update_cache=False)[:8000]
+                    # A killed mutation process may leave its working copy changed.
+                    # Reconstruct from the immutable input, not that interrupted copy.
+                    if filename not in sources:
+                        sources[filename] = (Path('/project') / to_project(filename)).read_text()
+                    diff = get_unified_diff(ident, [], update_cache=False, source=sources[filename])[:8000]
                 except Exception:
                     log += f'\nMutation diff unavailable for {key}.'
             mutants.append({'id': key, 'file': to_project(filename), 'line': line + 1, 'status': {'ok_killed': 'killed', 'bad_survived': 'survived'}.get(status, 'unknown'), 'diff': diff})
     except sqlite3.Error:
         log += '\nMutation evidence unavailable. No score can be established.'
     scope = {**scope, 'file': to_project(scope['file']), 'setupFiles': [to_project(file) for file in scope['setupFiles']]}
-    return {'mutants': mutants[:200], 'log': log, 'timedOut': timed, 'scope': scope, 'totalMutants': len(mutants), 'incomplete': timed or bool(code & 1) or not mutants or len(mutants) > 200 or any(not mutant['diff'] or mutant['status'] == 'unknown' for mutant in mutants)}
+    missing_diffs = sum(not mutant['diff'] for mutant in mutants)
+    if total > len(mutants) or missing_diffs:
+        log += f'\nMutation evidence is bounded: {len(mutants)}/{total} outcomes returned; {missing_diffs} returned differences unavailable after the extraction budget. Unreturned outcomes remain unassessed.'
+    return {'mutants': mutants, 'log': log, 'timedOut': timed, 'scope': scope, 'totalMutants': total, 'unassessedExecutedLines': unassessed, 'incomplete': timed or bool(code & 1) or bool(unassessed) or not mutants or total > len(mutants) or any(not mutant['diff'] or mutant['status'] == 'unknown' for mutant in mutants)}
 
 
 

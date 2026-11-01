@@ -15,11 +15,13 @@ import { parseRequirementInput } from '../lib/requirement-input';
 import type { ExperimentEntry } from '../lib/experiment-metrics';
 import { verificationPolicySchema, verificationPolicyVersion } from '../lib/verification-policy';
 import { testsSchema } from '../lib/python-types';
+import { agentVariants } from '../lib/agent-variants';
 
 const manifestSchema = z.object({
   purpose: z.enum(['pilot', 'held-out']).default('pilot'),
   repeat: z.number().int().min(1).max(5).default(1),
   variants: z.array(z.enum(['B0', 'B1', 'B2', 'B3'])).min(1).max(4),
+  baselineProtocol: z.enum(['proposal', 'custom']).default('custom'),
   sharedInitialSuite: z.boolean().default(false),
   diagnosisAblation: z.boolean().default(false),
   followupRequestLimit: z.number().int().min(1).max(12).default(6),
@@ -31,22 +33,23 @@ async function main() {
   loadEnvConfig(process.cwd(), true);
   const validateOnly = process.argv.includes('--validate-only');
   if (!validateOnly && !process.env.OPENAI_API_KEY) throw new Error('Configure OPENAI_API_KEY first. This command makes paid model requests.');
-  const manifestText = await readFile(process.argv[2] || 'examples/experiments-real-projects-v16.json', 'utf8');
+  const manifestText = await readFile(process.argv[2] || 'examples/experiments-baselines.json', 'utf8');
   const manifest = manifestSchema.parse(JSON.parse(manifestText));
+  if (manifest.baselineProtocol === 'proposal' && (manifest.variants.length !== 4 || !Object.keys(agentVariants).every(variant => manifest.variants.includes(variant as keyof typeof agentVariants)) || !manifest.policy.mutationChecks || manifest.sharedInitialSuite || manifest.diagnosisAblation || manifest.cases.some(item => item.initialTests))) throw new Error('The proposal protocol requires independent B0-B3 workflows, mutation checks enabled, and model-generated initial candidates. Shared or seeded studies are supplementary custom protocols.');
   if (manifest.diagnosisAblation && (!manifest.sharedInitialSuite || manifest.policy.mutationChecks || manifest.variants.length !== 3 || !['B1', 'B2', 'B3'].every(variant => manifest.variants.includes(variant as 'B1' | 'B2' | 'B3')))) throw new Error('Diagnosis ablation requires shared B1/B2/B3 and mutation checks disabled.');
   if (manifest.sharedInitialSuite && !manifest.diagnosisAblation && (manifest.variants.length !== 2 || !manifest.variants.includes('B1') || !manifest.variants.includes('B3'))) throw new Error('Shared initial suites require exactly B1 and B3.');
   if (manifest.cases.some(item => item.initialTests) && !manifest.sharedInitialSuite) throw new Error('Seeded recovery challenges require shared B1/B3 initial suites.');
   if (new Set(manifest.variants).size !== manifest.variants.length || new Set(manifest.cases.map((item) => item.id)).size !== manifest.cases.length) throw new Error('Benchmark variants and case IDs must be unique.');
   const sandboxImage = execFileSync('docker', ['image', 'inspect', '--format', '{{.Id}}', process.env.REQTEST_SANDBOX_IMAGE || 'reqtest-python:1'], { encoding: 'utf8' }).trim();
   process.env.REQTEST_SANDBOX_IMAGE = sandboxImage;
-  const agentPaths = ['lib/python-agent.ts', 'lib/project-context.ts', 'lib/project-files.ts', 'lib/test-context.ts', 'lib/execution-evidence.ts', 'lib/python-types.ts', 'lib/verification-policy.ts', 'lib/requirement-coverage.ts', 'lib/test-suite.ts', 'lib/python-tools.ts', 'lib/model.ts', 'lib/runtime.ts', 'lib/mutation-review.ts', 'lib/test-services.ts', 'lib/evaluation.ts', 'lib/evaluation-tools.ts', 'lib/experiment-metrics.ts', 'lib/requirement-input.ts', 'lib/requirements.ts', 'lib/run-evaluation.ts', 'scripts/evaluate.ts', 'scripts/analyze-experiment.ts', 'sandbox/worker.py', 'sandbox/node-worker.cjs', 'sandbox/plugins/reqtest_collection.py', 'sandbox/Dockerfile', 'package-lock.json'];
+  const agentPaths = ['lib/python-agent.ts', 'lib/agent-variants.ts', 'lib/project-context.ts', 'lib/project-files.ts', 'lib/test-context.ts', 'lib/execution-evidence.ts', 'lib/python-types.ts', 'lib/verification-policy.ts', 'lib/requirement-coverage.ts', 'lib/test-suite.ts', 'lib/python-tools.ts', 'lib/model.ts', 'lib/runtime.ts', 'lib/mutation-review.ts', 'lib/test-services.ts', 'lib/evaluation.ts', 'lib/evaluation-tools.ts', 'lib/experiment-metrics.ts', 'lib/requirement-input.ts', 'lib/requirements.ts', 'lib/run-evaluation.ts', 'lib/finding-evidence.ts', 'scripts/evaluate.ts', 'scripts/analyze-experiment.ts', 'sandbox/worker.py', 'sandbox/node-worker.cjs', 'sandbox/plugins/reqtest_collection.py', 'sandbox/Dockerfile', 'package-lock.json'];
   const agentFiles = await Promise.all(agentPaths.map(async file => [file, await readFile(file, 'utf8')]));
   const agentFingerprint = createHash('sha256').update(JSON.stringify(agentFiles)).digest('hex');
   const output = resolve('.evidence/evaluation', new Date().toISOString().replaceAll(/[:.]/g, '-') + '-' + randomUUID().slice(0, 8));
   await mkdir(output, { recursive: true });
   await writeFile(join(output, 'manifest.json'), manifestText);
   await writeFile(join(output, 'agent-snapshot.json'), JSON.stringify(agentFiles));
-  const index: { purpose: 'pilot' | 'held-out'; policyVersion: string; createdAt: string; model: string; manifestHash: string; sandboxImage: string; agentFingerprint: string; expectedRuns: number; status: string; inputs: Record<string, { archiveHash: string; requirementHash: string; initialTestsHash?: string }>; preparations: { caseId: string; repeat: number; report: string; requests: string; elapsedMs: number }[]; runs: ExperimentEntry[] } = { purpose: manifest.purpose, policyVersion: verificationPolicyVersion, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', manifestHash: createHash('sha256').update(manifestText).digest('hex'), sandboxImage, agentFingerprint, expectedRuns: validateOnly ? 0 : manifest.cases.length * manifest.variants.length * manifest.repeat, status: 'preflight', inputs: {}, preparations: [], runs: [] };
+  const index: { purpose: 'pilot' | 'held-out'; baselineProtocol: string; variantDefinitions: typeof agentVariants; policyVersion: string; createdAt: string; model: string; manifestHash: string; sandboxImage: string; agentFingerprint: string; expectedRuns: number; status: string; inputs: Record<string, { archiveHash: string; requirementHash: string; initialTestsHash?: string }>; preparations: { caseId: string; repeat: number; report: string; requests: string; elapsedMs: number }[]; runs: ExperimentEntry[] } = { purpose: manifest.purpose, baselineProtocol: manifest.baselineProtocol, variantDefinitions: agentVariants, policyVersion: verificationPolicyVersion, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', manifestHash: createHash('sha256').update(manifestText).digest('hex'), sandboxImage, agentFingerprint, expectedRuns: validateOnly ? 0 : manifest.cases.length * manifest.variants.length * manifest.repeat, status: 'preflight', inputs: {}, preparations: [], runs: [] };
   await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
   console.log(`Experiment: ${output}; ${index.expectedRuns} planned runs. ${validateOnly ? 'Reference validation only; no model requests.' : 'Paid model requests; no automatic retries.'}`);
   const interrupted = new AbortController();

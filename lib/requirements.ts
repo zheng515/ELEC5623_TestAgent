@@ -5,10 +5,10 @@ import { z } from "zod";
 import { dataDir } from "./auth";
 import { dockerTool } from "./python-tools";
 
-export const segmentSchema = z.object({ id: z.string(), text: z.string(), location: z.string(), page: z.number().int().positive().optional(), paragraph: z.number().int().positive().optional(), line: z.number().int().positive().optional(), extraction: z.enum(["ocr", "text"]).optional(), confidence: z.number().min(0).max(100).optional() });
-export const pageSchema = z.object({ page: z.number().int().positive(), status: z.enum(["text", "ocr", "mixed", "partial", "unreadable", "failed", "skipped"]), detail: z.string(), confidence: z.number().min(0).max(100).optional() });
+const segmentSchema = z.object({ id: z.string(), text: z.string(), location: z.string(), page: z.number().int().positive().optional(), paragraph: z.number().int().positive().optional(), line: z.number().int().positive().optional(), extraction: z.enum(["ocr", "text"]).optional(), confidence: z.number().min(0).max(100).optional() });
+const pageSchema = z.object({ page: z.number().int().positive(), status: z.enum(["text", "ocr", "mixed", "partial", "unreadable", "failed", "skipped"]), detail: z.string(), confidence: z.number().min(0).max(100).optional() });
 export type DocumentPage = z.infer<typeof pageSchema>;
-export const documentSchema = z.object({ id: z.string().uuid(), fileName: z.string(), sha256: z.string(), format: z.enum(["pdf", "doc", "docx", "txt", "md"]), segments: z.array(segmentSchema), warnings: z.array(z.string()), pages: z.array(pageSchema).default([]) });
+const documentSchema = z.object({ id: z.string().uuid(), fileName: z.string(), sha256: z.string(), format: z.enum(["pdf", "doc", "docx", "txt", "md"]), segments: z.array(segmentSchema), warnings: z.array(z.string()), pages: z.array(pageSchema).default([]) });
 export type RequirementDocument = z.infer<typeof documentSchema>;
 export type RequirementSource = { documentId: string; segmentId: string; fileName: string; sha256: string; location: string; page?: number; paragraph?: number; line?: number; extraction?: "ocr" | "text"; confidence?: number; quote?: string; start?: number };
 export class DocumentIntegrityError extends Error {}

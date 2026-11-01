@@ -1,0 +1,455 @@
+[
+  {
+    "caseId": "booking-boundary-fault",
+    "variant": "B2",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours"
+    ],
+    "diagnoses": [],
+    "improvements": 1,
+    "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_cancellation_fee_at_and_above_24_hours",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_and_above_24_hours():\n    for hours in (24, 25, 48):\n        result = cancellation_fee(hours)\n        assert isinstance(result, int) and not isinstance(result, bool)\n        assert result == 0\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check the specified equality boundary (24), an above-boundary input, and the supplied acceptance example (48), including the promised integer return type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test uses built-in integer inputs 24, 25, and 48 and checks both the required zero value and integer return semantics. The exact-boundary check is contract-grounded: “including exactly 24.” The implementation line `    return 0 if hours > 24 else 2500` conflicts at 24, which is a defect and does not weaken the requirement.",
+              "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+              "definedScope": null
+            },
+            "review": "The test uses built-in integer inputs 24, 25, and 48 and checks both the required zero value and integer return semantics. The exact-boundary check is contract-grounded: “including exactly 24.” The implementation line `    return 0 if hours > 24 else 2500` conflicts at 24, which is a defect and does not weaken the requirement."
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B2",
+            "functionName": "test_cancellation_fee_from_0_through_23_hours",
+            "gapIndexes": [
+              0,
+              1,
+              2
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_from_0_through_23_hours():\n    for hours in (0, 12, 23):\n        result = cancellation_fee(hours)\n        assert isinstance(result, int) and not isinstance(result, bool)\n        assert result == 2500\n",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "purpose": "Check the listed lower-boundary, interior, and upper-boundary witnesses, including the promised integer return type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T2",
+              "supported": true,
+              "reason": "The test checks the required fee and integer return semantics for built-in integer witnesses at both endpoints and in the interior of the specified range. The implementation line `    return 0 if hours > 24 else 2500` is consistent with these cases.",
+              "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+              "definedScope": null
+            },
+            "review": "The test checks the required fee and integer return semantics for built-in integer witnesses at both endpoints and in the interior of the specified range. The implementation line `    return 0 if hours > 24 else 2500` is consistent with these cases."
+          },
+          {
+            "id": "T3",
+            "behaviorId": "B3",
+            "functionName": "test_negative_hours_raise_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\n\nfrom booking import cancellation_fee\n\n\ndef test_negative_hours_raise_value_error():\n    with pytest.raises(ValueError):\n        cancellation_fee(-1)\n",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+            "purpose": "Check that a negative built-in integer raises the required exception.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T3",
+              "supported": true,
+              "reason": "The test supplies a negative built-in integer and asserts the contractually required ValueError. The implementation contains `    if hours < 0:` and `        raise ValueError(\"hours must be nonnegative\")`.",
+              "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+              "definedScope": null
+            },
+            "review": "The test supplies a negative built-in integer and asserts the contractually required ValueError. The implementation contains `    if hours < 0:` and `        raise ValueError(\"hours must be nonnegative\")`."
+          },
+          {
+            "id": "T4",
+            "behaviorId": "B4",
+            "functionName": "test_non_builtin_int_arguments_raise_type_error",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "import pytest\n\nfrom booking import cancellation_fee\n\n\ndef test_non_builtin_int_arguments_raise_type_error():\n    for hours in (True, 1.0):\n        with pytest.raises(TypeError):\n            cancellation_fee(hours)\n",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "purpose": "Check the required exception for the explicitly identified bool case and a float argument.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T4",
+              "supported": true,
+              "reason": "Both inputs are not built-in int, including the explicitly named bool case, and the test asserts the required TypeError. The implementation contains `    if type(hours) is not int:` and `        raise TypeError(\"hours must be an integer\")`.",
+              "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+              "definedScope": null
+            },
+            "review": "Both inputs are not built-in int, including the explicitly named bool case, and the test asserts the required TypeError. The implementation contains `    if type(hours) is not int:` and `        raise TypeError(\"hours must be an integer\")`."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1",
+          "R2",
+          "R3",
+          "R4"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test uses built-in integer inputs 24, 25, and 48 and checks both the required zero value and integer return semantics. The exact-boundary check is contract-grounded: “including exactly 24.” The implementation line `    return 0 if hours > 24 else 2500` conflicts at 24, which is a defect and does not weaken the requirement.",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "definedScope": null
+          },
+          {
+            "testId": "T2",
+            "supported": true,
+            "reason": "The test checks the required fee and integer return semantics for built-in integer witnesses at both endpoints and in the interior of the specified range. The implementation line `    return 0 if hours > 24 else 2500` is consistent with these cases.",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "definedScope": null
+          },
+          {
+            "testId": "T3",
+            "supported": true,
+            "reason": "The test supplies a negative built-in integer and asserts the contractually required ValueError. The implementation contains `    if hours < 0:` and `        raise ValueError(\"hours must be nonnegative\")`.",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+            "definedScope": null
+          },
+          {
+            "testId": "T4",
+            "supported": true,
+            "reason": "Both inputs are not built-in int, including the explicitly named bool case, and the test asserts the required TypeError. The implementation contains `    if type(hours) is not int:` and `        raise TypeError(\"hours must be an integer\")`.",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "complete": true,
+            "reason": "T1 checks the explicitly stated equality case (24), an above-threshold witness (25), and the suite’s existing 48-hour witness; each assertion checks the required value and integer semantics.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R2",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "complete": true,
+            "reason": "T2 checks both range endpoints (0 and 23) and an interior witness (12), with the required value and integer semantics.",
+            "testIds": [
+              "T2"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R3",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+            "complete": true,
+            "reason": "T3 checks a negative built-in integer witness and asserts the required exception.",
+            "testIds": [
+              "T3"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R4",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "complete": true,
+            "reason": "T4 checks the explicitly identified bool case and a float input, asserting the required exception for each.",
+            "testIds": [
+              "T4"
+            ],
+            "missingExamples": []
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "B2 baseline: attempt to repair every failed generated artifact using the recorded execution feedback, without classifying the failure cause. Keep the original requirement as the oracle; the same admission checks still apply.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_cancellation_fee_at_and_above_24_hours",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_and_above_24_hours():\n    for hours in (24, 25, 48):\n        result = cancellation_fee(hours)\n        assert isinstance(result, int) and not isinstance(result, bool)\n        assert result == 0\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check the specified equality boundary (24), an above-boundary input, and the supplied acceptance example (48), including the promised integer return type.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test uses built-in integer inputs 24, 25, and 48, all within the stated domain of at least 24. It checks both the required zero-cent value and the promised integer return type, excluding bool. These inputs cover the claimed equality-boundary and above-boundary gaps; the requirement does not require additional assertions.",
+              "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+              "definedScope": null
+            },
+            "review": "The test uses built-in integer inputs 24, 25, and 48, all within the stated domain of at least 24. It checks both the required zero-cent value and the promised integer return type, excluding bool. These inputs cover the claimed equality-boundary and above-boundary gaps; the requirement does not require additional assertions."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test uses built-in integer inputs 24, 25, and 48, all within the stated domain of at least 24. It checks both the required zero-cent value and the promised integer return type, excluding bool. These inputs cover the claimed equality-boundary and above-boundary gaps; the requirement does not require additional assertions.",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "complete": true,
+            "reason": "The supported proposal checks the explicitly stated equality boundary, 24, and the requirement's specified zero-cent integer return. It also checks above-boundary values, including 48. Together these cover the stated acceptance example and equality boundary.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/booking-boundary-fault-B2-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-boundary-fault-B2-1/report.json"
+  },
+  {
+    "caseId": "booking-boundary-fault",
+    "variant": "B3",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours"
+    ],
+    "diagnoses": [
+      {
+        "testId": "T1",
+        "category": "potential_implementation_defect",
+        "reason": "The failed value assertion is supported by the contract: input 24 is explicitly included in the at-least-24 rule and must return integer 0 cents. The implementation returns 2500 at 24 because its condition checks hours > 24. The test’s integer-type assertions are also consistent with the promised integer return.",
+        "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+        "executionQuote": "E           assert 2500 == 0",
+        "evidence": [
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "quote": "        assert result == 0",
+            "line": 9
+          },
+          {
+            "file": "booking.py",
+            "quote": "    return 0 if hours > 24 else 2500",
+            "line": 6
+          }
+        ],
+        "phase": "execution"
+      }
+    ],
+    "improvements": 0,
+    "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_cancellation_fee_at_and_above_24_hours",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_at_and_above_24_hours():\n    for hours in (24, 48):\n        result = cancellation_fee(hours)\n        assert isinstance(result, int)\n        assert not isinstance(result, bool)\n        assert result == 0\n",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "purpose": "Check the specified equality boundary and an above-boundary input, asserting both the integer return type and required fee.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "Checks the explicitly required equality boundary (24) and an above-boundary built-in int (48), with semantic integer and non-bool checks plus the required value. The original contract states: “For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.”",
+              "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+              "definedScope": null
+            },
+            "review": "Checks the explicitly required equality boundary (24) and an above-boundary built-in int (48), with semantic integer and non-bool checks plus the required value. The original contract states: “For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.”"
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B2",
+            "functionName": "test_cancellation_fee_from_zero_through_23_hours",
+            "gapIndexes": [
+              0,
+              1,
+              2
+            ],
+            "code": "from booking import cancellation_fee\n\n\ndef test_cancellation_fee_from_zero_through_23_hours():\n    for hours in (0, 12, 23):\n        result = cancellation_fee(hours)\n        assert isinstance(result, int)\n        assert not isinstance(result, bool)\n        assert result == 2500\n",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "purpose": "Check the lower boundary, an interior value, and the upper boundary of the specified range, asserting integer return type and fee.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T2",
+              "supported": true,
+              "reason": "Checks both range boundaries (0 and 23) and an interior built-in int (12), with semantic integer and non-bool checks plus the required value. The original contract states: “For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.”",
+              "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+              "definedScope": null
+            },
+            "review": "Checks both range boundaries (0 and 23) and an interior built-in int (12), with semantic integer and non-bool checks plus the required value. The original contract states: “For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.”"
+          },
+          {
+            "id": "T3",
+            "behaviorId": "B3",
+            "functionName": "test_negative_hours_raise_value_error",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import pytest\n\nfrom booking import cancellation_fee\n\n\ndef test_negative_hours_raise_value_error():\n    with pytest.raises(ValueError):\n        cancellation_fee(-1)\n",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+            "purpose": "Check the required exception for a negative built-in integer input.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T3",
+              "supported": true,
+              "reason": "Checks that the negative built-in int input -1 raises the explicitly required ValueError. The original contract states: “For negative built-in int hours, booking.cancellation_fee raises ValueError.”",
+              "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+              "definedScope": null
+            },
+            "review": "Checks that the negative built-in int input -1 raises the explicitly required ValueError. The original contract states: “For negative built-in int hours, booking.cancellation_fee raises ValueError.”"
+          },
+          {
+            "id": "T4",
+            "behaviorId": "B4",
+            "functionName": "test_non_builtin_int_arguments_raise_type_error",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "import pytest\n\nfrom booking import cancellation_fee\n\n\ndef test_non_builtin_int_arguments_raise_type_error():\n    for hours in (True, \"12\"):\n        with pytest.raises(TypeError):\n            cancellation_fee(hours)\n",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "purpose": "Check the required TypeError for bool and for a non-bool argument that is not a built-in integer.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T4",
+              "supported": true,
+              "reason": "Checks the explicitly included bool case and a non-bool, non-built-in-int case; both are required to raise TypeError. The original contract states: “For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.”",
+              "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+              "definedScope": null
+            },
+            "review": "Checks the explicitly included bool case and a non-bool, non-built-in-int case; both are required to raise TypeError. The original contract states: “For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.”"
+          }
+        ],
+        "coverageRuleIds": [
+          "R1",
+          "R2",
+          "R3",
+          "R4"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "Checks the explicitly required equality boundary (24) and an above-boundary built-in int (48), with semantic integer and non-bool checks plus the required value. The original contract states: “For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.”",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "definedScope": null
+          },
+          {
+            "testId": "T2",
+            "supported": true,
+            "reason": "Checks both range boundaries (0 and 23) and an interior built-in int (12), with semantic integer and non-bool checks plus the required value. The original contract states: “For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.”",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "definedScope": null
+          },
+          {
+            "testId": "T3",
+            "supported": true,
+            "reason": "Checks that the negative built-in int input -1 raises the explicitly required ValueError. The original contract states: “For negative built-in int hours, booking.cancellation_fee raises ValueError.”",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+            "definedScope": null
+          },
+          {
+            "testId": "T4",
+            "supported": true,
+            "reason": "Checks the explicitly included bool case and a non-bool, non-built-in-int case; both are required to raise TypeError. The original contract states: “For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.”",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+            "complete": true,
+            "reason": "T1 checks the explicit equality boundary 24 and an above-boundary input, asserting both semantic integer return type and the required value.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R2",
+            "quote": "For built-in int hours from 0 to 23, booking.cancellation_fee(hours) returns integer 2500 cents.",
+            "complete": true,
+            "reason": "T2 checks both range boundaries, 0 and 23, and an interior input, asserting both semantic integer return type and the required value.",
+            "testIds": [
+              "T2"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R3",
+            "quote": "For negative built-in int hours, booking.cancellation_fee raises ValueError.",
+            "complete": true,
+            "reason": "T3 checks a negative built-in int input and the required ValueError.",
+            "testIds": [
+              "T3"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R4",
+            "quote": "For any argument whose type is not built-in int, including bool, booking.cancellation_fee raises TypeError.",
+            "complete": true,
+            "reason": "T4 checks the explicitly included bool case and a non-bool argument whose type is not built-in int, asserting TypeError for both.",
+            "testIds": [
+              "T4"
+            ],
+            "missingExamples": []
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/booking-boundary-fault-B3-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/booking-boundary-fault-B3-1/report.json"
+  }
+]

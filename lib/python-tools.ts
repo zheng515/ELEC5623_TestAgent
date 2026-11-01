@@ -170,7 +170,13 @@ export async function measureProject(root: string, nodes: string[], generated: b
   }
   return measurement;
 }
-export const mutateProject = (root: string, files: string | string[], signal: AbortSignal, image?: string, functions?: string[], nodes: string[] = []) => dockerTool<Mutation>(root, { action: 'mutate', file: typeof files === 'string' ? files : files[0], files: typeof files === 'string' ? [files] : files, functions, nodes }, signal, image);
+export async function mutateProject(root: string, files: string | string[], signal: AbortSignal, image?: string, functions?: string[], nodes: string[] = [], lines?: number[]): Promise<Mutation> {
+  try { return await dockerTool<Mutation>(root, { action: 'mutate', file: typeof files === 'string' ? files : files[0], files: typeof files === 'string' ? [files] : files, functions, nodes, lines }, signal, image); }
+  catch (error) {
+    if (signal.aborted || !(error instanceof Error) || error.message !== 'Sandbox execution exceeded its time limit.') throw error;
+    return { mutants: [], log: error.message + ' No mutation outcomes were returned; adequacy remains unassessed.', timedOut: true, incomplete: true };
+  }
+}
 
 
 export async function readRunDirectory(root: string) {

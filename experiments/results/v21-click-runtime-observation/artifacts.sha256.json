@@ -1,0 +1,22 @@
+{
+  "algorithm": "sha256",
+  "scope": "Exact bounded Click observation including zero runtime-error opportunities, immutable evidence archive and separate validation; excludes this inventory.",
+  "files": {
+    "README.md": "486d17b0a2955b62352264ef07ab9043f925718a5f8f12617f563027796994e0",
+    "analysis-notes.json": "20c8fba7092c1c990961dee3901c7f0b62d39a7652b972b5bf522df3f09b0a3f",
+    "evidence-files.sha256.json": "8a14ef484a14de14100890a2b4280679d83556065190559eb7d40225883cbf6f",
+    "evidence.zip": "879c801cff05b9b0d1ced01a93723d337abee1f4a3cb7faf8d58c46833fbd321",
+    "failure-cases.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "figures/03-latency-and-tokens.png": "9dab4837618037c7404229a394108e8dfe1cd678f3df10d5716ab6433e850e96",
+    "figures/03-latency-and-tokens.svg": "1c5605c7e9b69e9e2948ae9fb55c672e07bdaaec7b87c5c0e0d669225ca8fd31",
+    "figures/05-test-outcomes.png": "bfd43b0f263f8f56519ae25eac76edf149a8a99da1faacc84f1757794d03896b",
+    "figures/05-test-outcomes.svg": "6e287e1ca491f34c2d32bb5c7c3fd4b6878b58605bd3edbcc10e9c00a8a5c383",
+    "metrics.json": "e496af53cc08c2b8980a89fecccfa48759622478f0bd41d7cf2a12ae1dc8db7c",
+    "paired-comparison.json": "a901d74d08a49658c1bd7ffbf71bf1e3c30741c42ae0e4c0c5f30b8f5ae7491f",
+    "runs.csv": "c3586b1aa9bd39d1c6cabeccaaa1c6b00959ec3426d550e857c737337a344247",
+    "runtime-observations.json": "e210b3e14fc501be49cb7be85c43ca242611f0c990fe5296f90f27d9332e537f",
+    "validation.json": "187e827b287212590bc2a33f1391747e3c1b0565a3740eb03f74a75d33e37ae3",
+    "variants.csv": "874df26437a203649f7923ea6350dac158108739c94cddaf6fca825b026bb400",
+    "workflow-evidence.json": "66cc38c11115f813f4941e22592c97f929607e7f3a409f4f4c6850c97cac714e"
+  }
+}

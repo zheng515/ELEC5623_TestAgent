@@ -1,0 +1,28 @@
+{
+  "scope": "Original uncompressed bytes and logical paths inside evidence.zip. Unzip to an evidence directory to use the frozen index.",
+  "files": {
+    "agent-snapshot.json": "7d772a13a4ff39564b713135726ee027f4df9278748daace4134e3f73ebd472f",
+    "booking-typed-candidate-B1-1/reference-execution.json": "d460c61db9f6c28a5101a6537713c538fd310e7cb5d555ef8af7c074c2980fac",
+    "booking-typed-candidate-B1-1/report.json": "d6aa0126c7eed2288ff87025aae679b4d13a4b5ef167e4dd4d7b7509e5674ba8",
+    "booking-typed-candidate-B1-1/requests.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "booking-typed-candidate-B1-1/review.json": "c5a07cfaf31af91a108b58923508877016344e0f4af9f24791e78a8d3ba5ec41",
+    "booking-typed-candidate-B2-1/reference-execution.json": "d460c61db9f6c28a5101a6537713c538fd310e7cb5d555ef8af7c074c2980fac",
+    "booking-typed-candidate-B2-1/report.json": "62b4618416debd7357e8c696ce1872081f3886ef95c38cf043e72d194a23fd95",
+    "booking-typed-candidate-B2-1/requests.json": "d356afef9b889af9e7b9011c110ede9b1c61698284128fbcd9654c03d40cb36f",
+    "booking-typed-candidate-B2-1/review.json": "8159871c82c1241c71ca2ff9ee5d991cc3229532111102dc20e1d79b8474d9a3",
+    "booking-typed-candidate-B3-1/reference-execution.json": "d460c61db9f6c28a5101a6537713c538fd310e7cb5d555ef8af7c074c2980fac",
+    "booking-typed-candidate-B3-1/report.json": "a32e84eba12eff56f10d655d32c7011cd84cebd6035a47d33a34f2a44ecec38f",
+    "booking-typed-candidate-B3-1/requests.json": "fb9830e6c067a8059b0f98f6b1424fe71835616a814fa0688a6ff72c4cd397b9",
+    "booking-typed-candidate-B3-1/review.json": "52b43cdbde6f9ec1c46fb106152d338c7ea55a8b34779f789190b91c42cd21d8",
+    "booking-typed-candidate-prepared-1/report.json": "eb300cbb7262f2da416b5f5d2f1f64bfe21c1d74a98698034d0452f1beba2732",
+    "booking-typed-candidate-prepared-1/requests.json": "4f6802303fd20a19a7411225ad470146039bf6f430e3678ab4e43d6c76b18f8d",
+    "booking-typed-candidate.gold.json": "76c9d34e889ff884790b165f56b317044e5c53ea2bc475c81936acf1546ba670",
+    "booking-typed-candidate.initial-tests.json": "dd6fa4fafd44f8bc9b8a4b30749a246eb2fcb3d74c86b61cbe1899a958a6bd4e",
+    "booking-typed-candidate.oracle.py": "5a7bfc65c05c99644df1c1d3257442ef36c080c573352411043489fabcae0fb5",
+    "booking-typed-candidate.reference.json": "c322328ce0a40b7b454883d32551d21a6883648ea17332606397d3b54ff39f8f",
+    "booking-typed-candidate.requirements.txt": "e74656b7b88fe51842bb580e34c6596e5120a83afcd6fdbfdff2234c11d479cd",
+    "booking-typed-candidate.zip": "1e8e0373ede8db0a12acd18ecaf553f9e2e2265d4d7611af06d8791b669a1d76",
+    "index.json": "95e443cd67a2b482029e65d980e0135a7279e6353c8261c919c52b4c2ff6d9a1",
+    "manifest.json": "f71ac14c17e9095562ae3095669aa5e1691d37484cc9849b4d0e3e417a368a9e"
+  }
+}

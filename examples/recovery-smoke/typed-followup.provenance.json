@@ -1,0 +1,10 @@
+{
+  "scope": "Adaptive single-case follow-up, not an independent sample. Reuses the complete candidate produced in the preceding controlled study, with no source or requirement changes.",
+  "parentEvidence": "experiments/results/v21-controlled-recovery/evidence.zip",
+  "parentEvidenceSha256": "310c33d5962c2b9181842747591ab0aa27d029ddb5c7491027dc1901c5bd5523",
+  "parentReport": "booking-candidate-B3-1/report.json",
+  "candidate": "T1",
+  "candidateSha256": "dd6fa4fafd44f8bc9b8a4b30749a246eb2fcb3d74c86b61cbe1899a958a6bd4e",
+  "changeFromOriginalSeed": "Adds integer-result witnesses while retaining cancellation_fee(24) == 0. The original value-only seed was admission-blocked.",
+  "reviewed": false
+}

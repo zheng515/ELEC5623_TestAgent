@@ -1,41 +1,68 @@
 # Pinned real-project inputs
 
-This directory contains the reusable pinned inputs for the current studies.
-The [v16 workflow](../real-projects-v16/README.md) now preserves fixture bytes and
-executes the full imported Python suite; its model node selection is separate.
-Use that page for current commands and the latest source revisions.
+These inputs support the current independent B0-B3 matrix. Complete pinned
+upstream archives supply the source; the production importer applies its
+supported-file and hidden-path filters. Source exclusions, hashes and the exact
+Python test catalog are recorded separately from bounded model context.
 
-The project owner confirms the Track A Business Proposal was approved and
-submitted. These are additional technical tests; no academic report is authored.
+| Project | Version / commit | Public API scope |
+| --- | --- | --- |
+| Click | 8.1.7 / `874ca2bc1c30d93a4ac6e36a15ed685eafe89097` | CLI defaults, invalid input, repeated options, flags, choices and integer bounds |
+| Packaging | 24.2 / `d8e3b31b734926ebbcaff654279f6855a73e052f` | Versions, specifiers, markers and normalized names |
+| Werkzeug | 3.0.6 / `5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624` | Multi-value dictionaries, headers and integer routing |
 
-| Project | Fixed version / commit | Runtime Python files | Physical lines, including comments and blanks | Public API scope |
-| --- | --- | ---: | ---: | --- |
-| [Click](https://github.com/pallets/click) | 8.1.7 / `874ca2bc1c30d93a4ac6e36a15ed685eafe89097` | 16 | 10,124 | CLI defaults, invalid input, repeated options, flags, choices, integer bounds |
-| [Packaging](https://github.com/pypa/packaging) | 24.2 / `d8e3b31b734926ebbcaff654279f6855a73e052f` | 16 | 5,653 | Versions, specifiers, requirement markers, normalized names |
-| [Werkzeug](https://github.com/pallets/werkzeug) | 3.0.6 / `5eaefc3996aa5cc8c5237d8b82f1b89eed6ea624` | 52 | 20,672 | Multi-value dictionaries, HTTP headers and integer routing |
+Six finite requirements per project derive from pinned documentation and public
+docstrings. [Original excerpts](requirement-sources.json), licenses, fixed
+witnesses and unreviewed labels are retained. They are developer/AI-assisted
+inputs, not native upstream SRS files or independently checked accuracy labels.
+These cases inject no implementation fault. They are older pinned versions,
+not claims about current upstream releases.
 
-These are pinned older releases, not claims about the newest release. The entire
-upstream archives are downloaded and all runtime `.py` files are retained without
-patches. The existing importer excludes hidden paths and unsupported file types;
-this is **not** a byte-for-byte import of every repository asset. Exclusions and
-hashes are exported. JMESPath was inspected but not selected: its 1,668 runtime
-lines provided a smaller scale challenge than the three selected projects.
+## Prepare and validate
 
-Each project has six finite requirements derived from its pinned documentation
-and public docstrings. [Source excerpts and links](requirement-sources.json)
-record their origins. These requirements and executable witnesses were fixed
-before model calls. They are developer/AI-assisted test inputs, not native
-upstream SRS documents or independent human labels. Gold/review flags stay false.
-The unmodified-project study injects no source defects and disables mutation checks.
+Node 22, Python 3 and Docker are required. Preparation downloads pinned archives
+and registry dependencies; project execution uses disposable offline sandboxes.
 
-## Current use
+```sh
+python3 scripts/prepare-real-projects.py
+docker build -t reqtest-python:1 sandbox
+docker build -f examples/real-projects/Dockerfile -t reqtest-real-projects:2 examples/real-projects
+# Fresh destination required; imports and runs complete suites, without a model.
+REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npx tsx scripts/preflight-real-projects.ts
+REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run evaluate -- examples/experiments-baselines.json --validate-only
+```
 
-These pinned sources, requirements, licenses and fixed witnesses are shared by
-[current v16 studies](../real-projects-v16/README.md). The initial one-repeat
-pilot, schema-fix experiment, saved candidates and historical results were
-removed. This directory supplies inputs, not retained pilot observations.
+The prepared sources live in `.evidence/opensource-candidates/`. For another
+full-suite preflight, pass a fresh destination to `scripts/preflight-real-projects.ts`.
 
-Use the current preparation and full-suite preflight commands. Current Python
-execution retains supported binary fixtures and the exact full node catalog;
-model context is bounded separately. Passing six API checks does not establish
-complete repository or requirement coverage.
+```sh
+# Four new paid Click workflows, one per B0-B3 configuration.
+REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run evaluate -- examples/experiments-smoke.json
+# 36 new paid workflows: three projects, four configurations, three repeats.
+REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run experiment:run
+```
+
+Retired studies and their dedicated manifests were deleted. These reusable inputs
+are not retained observations. Passing six specified API checks does not establish
+whole-repository coverage. See [current evidence](../../experiments/README.md)
+and [the protocol](../../docs/evaluation-protocol.md).
+
+## Bounded runtime-error observation
+
+`examples/experiments-click-runtime-smoke.json` runs one pinned Click case and
+one repeat, without seeded tests or injected faults. B1 generates naturally from
+the six fixed contracts and project context. A common preparation applies normal
+analysis, admission and execution before B2/B3 reuse the same reviewed suite.
+This custom shared-prefix study is not independent full-website B3 generation.
+
+Six model requests each for B1, preparation, B2 and B3 cap the whole experiment
+at 24 requests; failed calls consume slots and are not automatically retried.
+Mutation is disabled to focus on failure handling. If no approved generated
+runtime failure appears, retain that absence and stop without trying other
+projects or new candidates. An upstream project is not presumed bug-free:
+remaining failures need original-contract, source and execution investigation.
+Unresolved causes do not count as confirmed generated-test errors or repair wins.
+
+```sh
+REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run evaluate -- examples/experiments-click-runtime-smoke.json
+```

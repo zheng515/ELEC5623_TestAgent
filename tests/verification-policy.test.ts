@@ -1,11 +1,57 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { budgetedRequest, ModelBudgetError, requestUsage, usageNotice, verificationPolicySchema, verificationPolicyVersion } from '../lib/verification-policy';
+import { budgetedRequest, ModelBudgetError, mutationExecutionReady, requestUsage, usageNotice, verificationPolicySchema, verificationPolicyVersion } from '../lib/verification-policy';
 import { ModelTimeoutError } from '../lib/model';
 import { runPython, type Reason } from '../lib/python-agent';
 import { verificationGate, runEvaluation } from '../lib/run-evaluation';
-import { analysisSchema, testsSchema, reviewTestsSchema } from '../lib/python-types';
-import { report, project, analysis, artifact, approval, recordCoverage } from './fixtures/python-agent';
+import { analysisSchema, testsSchema, reviewTestsSchema, relevanceSchema } from '../lib/python-types';
+import { report, project, analysis, artifact, approval, recordCoverage, scripted } from './fixtures/python-agent';
+
+test('mutation readiness tolerates only exact existing baseline skips and requires every approved test', () => {
+  const fixture = () => {
+    const r = report(); r.tests = [structuredClone(artifact)];
+    const skipped = { node: 'tests/test_platform.py::test_platform', file: 'tests/test_platform.py', name: 'test_platform', status: 'skipped' as const, message: 'Different platform' };
+    r.baseline = { integrity: true, timedOut: false, exitCode: 0, log: '', outcomes: [skipped] };
+    r.measurements = [{ ...r.baseline, outcomes: [structuredClone(skipped), { node: 'reqtest_generated/test_reqtest_T1.py::test_threshold', file: 'reqtest_generated/test_reqtest_T1.py', name: 'test_threshold', status: 'passed', message: '' }] }];
+    return r;
+  };
+  const r = fixture();
+  assert.equal(mutationExecutionReady(r, r.measurements[0]), true);
+  for (const change of [
+    (r: ReturnType<typeof fixture>) => { r.baseline = undefined; },
+    (r: ReturnType<typeof fixture>) => { r.baseline!.integrity = false; },
+    (r: ReturnType<typeof fixture>) => { r.baseline!.timedOut = true; },
+    (r: ReturnType<typeof fixture>) => { r.baseline!.outcomes[0].status = 'passed'; },
+    (r: ReturnType<typeof fixture>) => { r.measurements[0].outcomes[0].node += '[new]'; },
+    (r: ReturnType<typeof fixture>) => { r.measurements[0].outcomes[1].status = 'skipped'; },
+    (r: ReturnType<typeof fixture>) => { r.measurements[0].outcomes[1].status = 'failed'; },
+    (r: ReturnType<typeof fixture>) => { r.measurements[0].outcomes[1].status = 'error'; },
+    (r: ReturnType<typeof fixture>) => { r.measurements[0].outcomes.pop(); },
+    (r: ReturnType<typeof fixture>) => { r.measurements[0].integrity = false; },
+    (r: ReturnType<typeof fixture>) => { r.measurements[0].timedOut = true; },
+    (r: ReturnType<typeof fixture>) => { r.measurements[0].exitCode = 2; },
+    (r: ReturnType<typeof fixture>) => { r.measurements[0].outcomes.push(structuredClone(r.measurements[0].outcomes[1])); },
+    (r: ReturnType<typeof fixture>) => { r.tests.push({ ...artifact, id: 'T2' }); },
+  ]) {
+    const r = fixture(); change(r);
+    assert.equal(mutationExecutionReady(r, r.measurements[0]), false);
+  }
+});
+
+test('existing platform skips do not suppress real B2/B3 mutation execution', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 120000 }, async t => {
+  for (const variant of ['B2', 'B3'] as const) {
+    const root = await project(t, { 'source/tests/test_platform.py': 'import pytest\n@pytest.mark.skip(reason="Requires another platform")\ndef test_platform():\n    assert True\n' });
+    const r = report(), answer = scripted(analysis(), { tests: [artifact] }, approval('T1'));
+    await runPython(r, root, new AbortController().signal, () => {}, async (...args) =>
+      Object.is(args[0], relevanceSchema) ? args[0].parse({ decisions: [] }) : answer(...args), variant);
+    assert.equal(r.status, 'completed');
+    assert.equal(r.baseline!.outcomes.filter(outcome => outcome.status === 'skipped').length, 1);
+    assert.equal(r.measurements[0].outcomes.find(outcome => outcome.file.startsWith('reqtest_generated/'))!.status, 'passed');
+    assert.equal(r.mutations.length, 1, 'The real mutation tool must execute despite the unchanged existing skip.');
+    assert.ok(r.mutations[0].mutants.length > 0);
+    assert.equal(verificationGate(r, true), false, 'Allowing mutation must not silently relax the CI skip policy.');
+  }
+});
 
 test('budget reserves durably before dispatch, counts failures and unknown interrupted usage', async () => {
   const r = report(); r.resources = { limit: 2, requests: [] };
@@ -75,9 +121,26 @@ test('requesting less assurance or exhausting a budget cannot upgrade a saved po
   assert.equal(runEvaluation(r).requirements[0].status, 'Partially Verified');
   assert.equal(verificationGate(r, true), false);
   assert.equal(verificationGate(r, false), true, 'Explicit non-strict gates can accept supported partial checks.');
+  r.policy.mutationChecks = true;
+  assert.equal(runEvaluation(r).requirements[0].status, 'Partially Verified', 'Requesting mutation without any measurement cannot grant Verified.');
+  assert.equal(verificationGate(r, true), false);
   r.resources = { limit: 3, requests: [], exhausted: true };
   assert.equal(runEvaluation(r).requirements[0].status, 'Uncertain');
   assert.equal(verificationGate(r, false), false);
+});
+
+test('execution-scoped mutation cannot verify a behavior mapped to an unassessed file', () => {
+  const r = report(); r.status = 'completed'; r.policy = { mutationChecks: true }; r.analysis = analysis(); r.tests = [structuredClone(artifact)];
+  const node = 'reqtest_generated/test_reqtest_T1.py::test_threshold';
+  r.measurements = [{ integrity: true, timedOut: false, exitCode: 0, log: '', outcomes: [{ node, file: node.split('::')[0], name: 'test_threshold', status: 'passed', message: '' }] }];
+  r.states = [{ id: 'B1', status: 'Verified', reason: 'Controlled completed assessment.', nodes: [node] }]; recordCoverage(r);
+  r.mutations = [{ incomplete: false, timedOut: false, log: '', mutants: [], scope: { file: 'shipping.py', kind: 'executed_lines', lines: [2], functions: [], suite: 'approved_generated' } }];
+  assert.equal(runEvaluation(r).requirements[0].status, 'Verified');
+  r.analysis.behaviors[0].files.push('tests/test_existing.py');
+  assert.equal(runEvaluation(r).requirements[0].status, 'Verified', 'Existing-test evidence is not an implementation mutation target.');
+  r.analysis.behaviors[0].files.push('unassessed.py');
+  assert.equal(runEvaluation(r).requirements[0].status, 'Partially Verified');
+  assert.equal(verificationGate(r, true), false);
 });
 
 test('requirement checks retain admission while skipping mutation; cached responses consume no new requests', { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 45000 }, async t => {

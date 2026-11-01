@@ -1,0 +1,28 @@
+{
+  "purpose": "pilot",
+  "repeat": 1,
+  "variants": [
+    "B0",
+    "B1",
+    "B2",
+    "B3"
+  ],
+  "sharedInitialSuite": false,
+  "followupRequestLimit": 12,
+  "policy": {
+    "mutationChecks": true,
+    "modelRequestLimit": 32,
+    "modelTimeoutSeconds": 300
+  },
+  "cases": [
+    {
+      "id": "click-full",
+      "project": ".evidence/opensource-candidates/click/source",
+      "requirements": "examples/real-projects/click.requirements.txt",
+      "gold": "examples/real-projects/click.gold.json",
+      "oracle": "examples/real-projects/click.oracle.py"
+    }
+  ],
+  "baselineProtocol": "proposal",
+  "diagnosisAblation": false
+}

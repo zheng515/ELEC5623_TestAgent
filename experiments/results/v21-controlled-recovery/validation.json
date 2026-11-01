@@ -1,0 +1,25 @@
+{
+  "scope": "Engineering checks after the recorded controlled model study. Scripted Docker tests are separate from model observations.",
+  "policyVersion": "contract-witness-v21-unchanged-proposal-stop",
+  "targetedDockerTests": {
+    "total": 30,
+    "passed": 30,
+    "failed": 0,
+    "skipped": 0,
+    "files": [
+      "tests/shared-initial-suite.test.ts",
+      "tests/experiment-metrics.test.ts",
+      "tests/review-recovery.test.ts"
+    ]
+  },
+  "typecheck": "passed",
+  "lint": "passed",
+  "englishOnlyCheck": "passed",
+  "localDocumentationLinks": "passed",
+  "figureReview": [
+    "03-latency-and-tokens.png",
+    "09-recovery-challenges.png"
+  ],
+  "archivedEvidenceFiles": 43,
+  "modelRequestsDuringEngineeringChecks": 0
+}

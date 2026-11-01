@@ -14,21 +14,27 @@ is planned; independent semantic accuracy remains unavailable.
 ## Current experiment entrypoint
 
 Old synthetic study results and manifests were removed. These projects remain
-regression inputs. Use the [v16 setup](../real-projects-v16/README.md) and
+regression inputs. Use the [real-project setup](../real-projects/README.md) and
 [current inventory](../../experiments/README.md) for retained observations.
-The active runner defaults to the complete-runtime v16 B1/B3 study:
+The active runner defaults to the independent four-configuration v21 protocol:
 
 ```sh
 REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run experiment:run
 ```
 
-This makes new paid model calls; it does not recreate the deleted studies.
+This plans 36 new paid workflows (three projects, four configurations, three
+repeats); it does not recreate the deleted studies. Run the same manifest with
+`--validate-only` through `npm run evaluate -- examples/experiments-baselines.json`
+to validate references without model calls. Retired B1/B3 and recovery manifests were deleted; controlled shared-preparation
+modes remain covered by regression tests.
 The runner pins the Docker image ID and records the agent source fingerprint. All
 variants receive the same project snapshot, requirements and model for a case. B0 receives requirements
-and Python context; B1 also receives documentation. B2 includes analysis, execution
+and implementation code, excluding existing tests and repository documents; B1
+also receives repository evidence and retrieved document bodies. B2 includes analysis, execution
 feedback and repair selection without failure diagnosis. The same original-contract
 admission gates still apply; unsupported replacements remain blocked. B3 requires failure diagnosis
-before repair. Existing tests are measured for reporting in every variant, but
+before repair. B2 has no diagnostic classifications or diagnosis Macro-F1; repair
+attempts and actual incorrect repairs are separate measurements. Existing tests are measured for reporting in every variant, but
 B0/B1 generation receives no execution feedback. Their behavior IDs are scaffolding;
 they are not credited as gap-detection findings or semantic verification claims.
 

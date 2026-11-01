@@ -32,7 +32,7 @@ separate:
 | Diagnosis before replacement | Grounded failure categories, one reviewed improvement and retained prior artifacts | Are valid failures preserved and generated errors corrected? Scripted regression establishes control paths; model accuracy needs independent labels. |
 | Conservative scoped states | Suite-bound coverage audits, stale-evidence rejection and explicit unassessed mutation scope | Does the system avoid unsupported Verified states? A minimal equality-boundary regression exercises stale-positive rejection; the guard is not general semantic proof. |
 
-Policy v16 makes mutation checks optional and records an enforced model-request
+The current policy makes mutation checks optional and records an enforced model-request
 budget across worker recovery. Both depths keep original-contract admission and
 failure handling. Passing checks without requested mutation assessment remain
 partially verified. No efficiency or quality advantage is established for this
@@ -53,6 +53,7 @@ system generates more tests.
 | Why did a test fail? | Phase-specific diagnoses with requirement, source, test and traceback quotes. | Saved evidence links, not the diagnosis label alone. |
 | Why was a failure retained? | Only diagnosed generated-test errors can replace approved tests. | Current failing node, potential-defect diagnosis, unchanged artifact and before/after history. The defect remains a hypothesis until investigated. |
 | What happens after a proposal is rejected? | One bounded improvement can correct an explicitly rejected proposal with unique, valid original citations. A supported behavior without any proposal can receive a new reviewed check. | Original blocked proposal, replacement review and actual re-execution. Duplicate or ungrounded reviews do not authorize correction. |
+| What did the feedback actually change? | Evaluation compares changed test files with their own initial and subsequent execution; exact before/after assertions remain inspectable. | Added checks and revisions awaiting execution are not recovered failures. A passing revision is an observation, not proof that its semantics improved. |
 | Is a passing suite strong enough? | Selected mutation execution and original-contract survivor review. | Exact mutant differences and raw outcomes. Unreviewed relevance/equivalence judgments are not a gold mutation score. |
 
 ## Inspectable development scenarios
@@ -72,28 +73,30 @@ semantic coverage, user benefit or an advantage over other products.
 
 ## Current evaluation status
 
-The v16 complete-runtime study adds three pinned upstream projects and three
-shared B1/B3 repeats per project. Full imported baselines collect and execute
-611 Click, 26,921 Packaging and 914 Werkzeug nodes, with exact catalog matching.
-All 18 workflows completed. B1 generated 53 passing and one failing case across
-54 artifacts; B3's final suites recorded 54 passing cases. In the single natural
-Click failure, two callbacks had appended values before the test asserted a
-one-element list. B3 diagnosed the generated test's execution-order error and
-its revised suite passed on a separate unmodified source copy. This is one
-traceable observation, not a population accuracy estimate or external-tool win.
+The retained four-run B2/B3 pilot uses two existing synthetic fixtures and one
+repeat. Both configurations pass the correct shipping cases and expose the same
+booking equality-boundary fault. B3 supplies a traceable diagnosis and retains the
+original failing assertion. B2's unchanged-code proposal was incorrectly counted
+as an improvement; the current policy filters it before extra review or execution.
+The exact no-op correction has offline/Docker validation; subsequent model
+proposals did not exercise that path.
 
-This study supports the implemented execution/context boundary and one concrete
-diagnosis-and-repair trace. B1/B3 adds several stages simultaneously, so the
-observation does not isolate diagnosis. A separate shared-preparation B2/B3
-challenge study tests that mechanism; rejected candidates, unexposed categories,
-failed attempts and source revisions remain separate in the
-[current inventory](../experiments/README.md). Mutation checks were disabled and
-passing requirement cases retain partial assurance.
+This supports a concrete inspectable decision trace, not superior defect detection:
+B3 found no extra defect in this pilot. No natural generated-test error exposed a
+repair opportunity. Independent semantic accuracy, diagnosis F1, repeat stability
+and user-task benefit remain unmeasured. The complete independent B0-B3 matrix
+is configured but has not been run under the current policy. A separate v21
+controlled study shows admission-driven import correction in both full arms and
+retained fault detection after type witnesses are added. It does not expose the
+intended initial runtime diagnosis cases, and neither full arm retains the
+boundary artifact literally unchanged. These are distinct unsuccessful or
+unavailable measures, not evidence to suppress.
+A separately frozen, type-complete adaptive candidate then reaches runtime
+diagnosis: both full arms retain the failing test unchanged, and B3 provides
+grounded defect evidence. This supports a specific decision trace, not a B3
+detection advantage or a population accuracy estimate.
 
-See [the current inventory](../experiments/README.md) for frozen observations and
-limits. Older-version experiment exports and raw runs were deleted at the owner's
-request. Their numbers are not current evidence. The current protocol isolates
-failure diagnosis using a shared preparation and measures controlled recovery,
-reference replay, valid-failure retention and prefix-inclusive resources.
-Independent semantic accuracy and user-task benefit remain unmeasured until
-appropriate reviewers or users supply evidence. See [the protocol](evaluation-protocol.md).
+The retained Click mutation-scope check is tool-only, incomplete and shows no
+latency advantage. Retired studies were deleted in full and contribute no current
+claims. See [the current evidence inventory](../experiments/README.md) and
+[the protocol](evaluation-protocol.md).

@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import type { PythonReport } from './python-types';
+import type { Measurement, PythonReport } from './python-types';
+import { testFile, projectTestFile } from './runtime';
 
-export const verificationPolicyVersion = 'contract-witness-v16-exact-execution-references';
+export const verificationPolicyVersion = 'contract-witness-v21-unchanged-proposal-stop';
 export const defaultModelResponseSeconds = 300;
 
 export const verificationPolicySchema = z.object({
@@ -62,6 +63,20 @@ export async function budgetedRequest<T>(report: PythonReport, key: string, save
   }
 }
 
-export function mutationAssessmentMissing(report: PythonReport) {
-  return report.policy?.mutationChecks === false && !report.mutations.length;
+export function mutationAssessmentMissing(report: PythonReport, files: string[] = []) {
+  // A request is not execution evidence. Fresh runs always record their policy.
+  const mutation = report.mutations.at(-1);
+  return report.policy !== undefined && !mutation || mutation?.scope?.kind === 'executed_lines' && files.some(file => !projectTestFile(file, report.testDiscovery?.baselineFiles) && file !== mutation.scope!.file);
+}
+
+// Existing platform skips are not generated-test failures, but newly skipped checks are unsafe.
+export function mutationExecutionReady(report: PythonReport, measurement: Measurement) {
+  const approved = report.tests.filter(test => test.approved), baseline = report.baseline;
+  if (!measurement.integrity || measurement.timedOut || measurement.exitCode !== 0 || !approved.length ||
+    new Set(measurement.outcomes.map(outcome => outcome.node)).size !== measurement.outcomes.length) return false;
+  return approved.every(test => measurement.outcomes.some(outcome => outcome.file === testFile(test.id, report.runtime) &&
+    outcome.name.split('[')[0] === test.functionName && outcome.status === 'passed')) && measurement.outcomes.every(outcome =>
+      outcome.status === 'passed' || outcome.status === 'skipped' && !outcome.file.startsWith('reqtest_generated/') &&
+      !!baseline?.integrity && !baseline.timedOut && baseline.exitCode === 0 && baseline.outcomes.some(previous =>
+        previous.node === outcome.node && previous.file === outcome.file && previous.name === outcome.name && previous.status === 'skipped'));
 }

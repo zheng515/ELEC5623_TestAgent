@@ -30,8 +30,10 @@ npm run dev:all
 ```
 
 Open http://127.0.0.1:3001, register/sign in, and check model access in Settings.
-For email verification or recovery, configure SMTP; local development supports
-Mailpit. See [local deployment](docs/local-production.md).
+For real email verification and recovery, configure SMTP. Configured mail requires
+verification by default; signed links expire after one hour and can be resent from
+sign-in. Local development supports Mailpit. See
+[Gmail STARTTLS setup and testing](docs/local-production.md#real-email-verification-with-gmail).
 
 For a production build on this machine:
 
@@ -50,15 +52,21 @@ npm run production:start
 4. Open Evaluation. Requirement-check progress, test outcomes and verification
    states have separate interactive charts. Follow findings through original
    requirements, saved tests, execution output and phase-specific assessments.
+   Applied improvements include a before/after table with inspectable assertions;
+   new tests and unexecuted revisions are separate from previously failing files
+   that now pass. Each finding includes a cause-specific next step.
 5. Export approved tests/evidence, clarify requirements or replay a saved suite.
    Saved-suite replay makes no model calls and does not refresh old diagnoses.
+
+Switching between Project verification and Evaluation retains the current draft
+in memory. Reloading, leaving the dashboard or signing out resets unsaved inputs.
 
 PDF/Word/text extraction retains source references and explicit OCR warnings.
 Python page checks use sandbox Chromium with the project's own ASGI/WSGI app;
 failed page checks retain screenshots. Node.js uses `node:test`. Jest, Vitest and
 nested Node suites are outside the current supported scope.
 
-## Policy v16 and evidence boundaries
+## Policy and evidence boundaries
 
 - Requirement checks are the default; mutation checks are optional. Without
   mutation adequacy assessment, passing cases remain Partially Verified.
@@ -96,25 +104,45 @@ npm run build
 
 Engineering checks and mocked UI checks are separate from model-quality evidence.
 Current observations and reviewer status have one index: [experiments/README.md](experiments/README.md).
-The [v16 real-project workflow](examples/real-projects-v16/README.md) imports the
-complete Python runtime sources of pinned Click, Packaging and Werkzeug;
-exact full-suite execution is separate from bounded model context. Repeated
-observations and controlled follow-ups retain their own source revisions.
-Superseded experimental results and matching private runs were removed. Only the
-v16 results are retained; reusable regression inputs retain truthful AI provenance.
+The [real-project setup](examples/real-projects/README.md) imports pinned Click,
+Packaging and Werkzeug sources and prepares their test dependencies. Full-suite
+execution is separate from bounded model context. Retired studies and their
+dedicated inputs/scripts have been removed; their results are not current evidence.
 
 ```sh
 # After the real-project setup above; reference validation makes no model calls.
-REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run evaluate -- examples/experiments-real-projects-v16.json --validate-only
+REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run evaluate -- examples/experiments-baselines.json --validate-only
+
+# Small paid acceptance check: Click, four independent configurations, one repeat.
+REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run evaluate -- examples/experiments-smoke.json
 
 # New paid observations, with every planned outcome retained.
 REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run experiment:run
 ```
 
-The recovery protocol shares B1 candidates and one frozen preparation between B2
-and B3. It measures controlled recovery and valid-failure retention, with the same
-follow-up ceiling and prefix-inclusive costs. It does not estimate natural-error
-frequency or external-product superiority. See [evaluation protocol](docs/evaluation-protocol.md).
+The default v21 matrix uses independent B0/B1/B2/B3 configurations, three projects
+and three repeats (36 new workflows). B0 receives implementation code without
+existing tests or repository documents; B1 adds repository evidence. B2 selects
+failed generated tests for repair without diagnosis; B3 first obtains a grounded
+diagnosis. Both full configurations enable mutation guidance and share safety
+and stopping rules. See [baseline definitions and evidence requirements](docs/baseline-configurations.md).
+Mutation uses generated-test execution lines when static function mapping is
+unavailable. Trace collection is inside the mutation budget. Tool-only checks do
+not replace a repeated model comparison. The retained v20 four-run B2/B3 pilot
+checks a correct fixture and a boundary fault.
+It exposed unchanged proposals being counted as improvements; v21 stops them
+before extra review or execution. Existing observations retain their identities.
+
+The runner also supports a controlled recovery protocol with shared candidates
+and a frozen preparation. The v21 controlled study shows correction of a rejected
+bad import in both full arms. Its original runtime diagnosis cases were blocked
+by admission, and strict unchanged-artifact retention did not succeed. This is
+not natural-error or superiority evidence. A separately frozen type-complete
+follow-up admits the boundary test; both full arms retain its code unchanged,
+and B3 records a grounded defect diagnosis. The earlier blocked result remains.
+A single natural Click observation then found no approved generated runtime
+failure among six tests; runtime test-error repair remains unmeasured.
+See [evaluation protocol](docs/evaluation-protocol.md).
 
 The AI-assisted reference and original trace inputs are retained only as regression
 fixtures under `tests/fixtures/decision-reference*`. Earlier component experiment

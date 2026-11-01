@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { findingEvidence } from '../lib/finding-evidence';
+import { findingEvidence, findingNextStep } from '../lib/finding-evidence';
 import type { PythonReport } from '../lib/python-types';
 import { testFile } from '../lib/runtime';
 
@@ -89,4 +89,21 @@ test('node runtime artifacts use the recorded runtime path', () => {
   assert.equal(findingEvidence(report)[0].test?.id, 'T1');
   outcome.file = testFile('T1', 'python');
   assert.equal(findingEvidence(report)[0].test, undefined);
+});
+
+test('finding next steps distinguish contract, implementation, generated test and setup problems', () => {
+  const report = fixture();
+  const cases = [
+    ['potential_implementation_defect', /Preserve the failing assertion/],
+    ['generated_test_error', /contract supports it/],
+    ['environment_failure', /re-run saved tests/],
+    ['requirement_ambiguity', /regenerate with the updated requirements/],
+    ['uncertain', /No supported repair decision/],
+  ] as const;
+  for (const [category, expected] of cases) {
+    report.diagnoses[0].category = category;
+    assert.match(findingNextStep(findingEvidence(report)[0]), expected);
+  }
+  report.replay = { suiteHash: 'saved', states: report.states };
+  assert.match(findingNextStep(findingEvidence(report)[0]), /No supported repair decision/);
 });

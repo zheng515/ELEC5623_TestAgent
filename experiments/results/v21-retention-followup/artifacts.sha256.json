@@ -1,0 +1,29 @@
+{
+  "algorithm": "sha256",
+  "scope": "Adaptive v21 typed-candidate follow-up, exact recorded model evidence and separately identified engineering checks; excludes this inventory.",
+  "files": {
+    "README.md": "d89ee49912387efc058e79ef22c6170203b80dface80fdb6617354374ecd7630",
+    "analysis-notes.json": "251e116145ab55d511422c13a560dc94d96f5388eca2bf16f7b0f1b7769ced5b",
+    "candidate-provenance.json": "fe932d6c11cb3348f0e6875e26a05f7553d42d369afb0acec7d5270ed9a01044",
+    "controlled-observations.json": "81d614906dd6815d69f5b8d5ad20f3ebba2343950bb192f4acd45fc4e152b217",
+    "diagnosis-exposure.json": "b1fee66d983d4ffa42d2f3936b0d7efd4e8e04d806f47d439533a285d1daabcc",
+    "evidence-files.sha256.json": "b6f7f606b55505580d5e7e8b84c5b0906de170abd98c0d72205fd0846663fdaf",
+    "evidence.zip": "fbcf7dc0977d57bc1db65a735cccde7c2f2e7fcc016bea836e6cdba062d751dd",
+    "failure-cases.json": "2937fb42c1e686f2c5b03efeec26d963070073e22e8717a9c7b2101fe56f3d59",
+    "figures/02-fault-detection.png": "1f16f43a4778ec76d66d63fbcf1ba8b13db0688cbdbede8ececab3c43a7fbf2c",
+    "figures/02-fault-detection.svg": "37a92fd99aa7b2f253064c53c1ea9885fbbb3665291afb765afc17e793981b69",
+    "figures/03-latency-and-tokens.png": "15e536e43e6dec7f5fe74b5779e2b1bab66b8847c1a53663a93bad1e12e5f600",
+    "figures/03-latency-and-tokens.svg": "f6f3bde59e6204e4de33029abf7d81718b0e0859249902e68479e09671ab3987",
+    "figures/09-recovery-challenges.png": "652f34bf5213b23444a9af433f4d37b035e2f798bc630e1ab8447bcbb087cf67",
+    "figures/09-recovery-challenges.svg": "d2875dc0b8d9b8fb1144f4df67a33bcedb0830575b68c743aa7f3fbe0cd2fd0f",
+    "figures/10-diagnosis-exposure.png": "1d48ba7acff8938bfeeaa1609e16d3aa6ef1ddc35d108ff1fc79d712759314e1",
+    "figures/10-diagnosis-exposure.svg": "489d00abdf78ed6b48334f8568455d6f0cef7d18c8c13aa208c97a7466b36c51",
+    "metrics.json": "719c1273857d3619e1ee3476d5844cd7c0b70889e5dbbbf87b8ce50d2b0abbd0",
+    "paired-comparison.json": "d019a2bd6a00a1799cb39333197247bef2f510e93c412bfd6f50be310a41f04b",
+    "recovery-metrics.json": "f8aa1b7936f94bcd36f061f0824397722f721b480283059d0240605a9dabd9bd",
+    "runs.csv": "43e456ebf6ee96f08bcd525b63f22335cea294bdfaeabcdd53508c70db172feb",
+    "validation.json": "10d3094b969be6b1177c74b4d93a295ccc739b9d20b7f5b58d444e4d8ccf2e34",
+    "variants.csv": "5cde546ca0f43258b9b5308647d9f34d3d03fc5abc5e37a6c976375a7ffdb4ba",
+    "workflow-evidence.json": "3ef523fc93ca673de8afb667f3142e122fd75b836d4eb01a104fe5d0e21b9acb"
+  }
+}
