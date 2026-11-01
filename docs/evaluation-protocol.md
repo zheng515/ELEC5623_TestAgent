@@ -1,6 +1,6 @@
 # Evaluation protocol
 
-Current policy: `contract-witness-v21-unchanged-proposal-stop`.
+Current policy: `contract-witness-v22-bounded-mutation-review`.
 The default independent B0-B3 matrix is `examples/experiments-baselines.json`.
 See [baseline definitions](baseline-configurations.md) and the
 [current evidence inventory](../experiments/README.md). This is a technical
@@ -13,6 +13,19 @@ per case: Click 8.1.7, Packaging 24.2 and Werkzeug 3.0.6, four independently
 generated configurations and three repeats (36 workflows). Requirements and fixed
 witnesses are developer/AI-assisted, not native upstream SRS files or independent
 human labels. The current repeated matrix has not been executed.
+
+The retained v21 [2026-11-02 independent Click smoke](../experiments/results/v21-independent-smoke-2026-11-02/README.md)
+uses frozen commit `b16b7ac` and the unchanged four-row proposal manifest.
+No-model validation and all three complete original suites pass. B0/B1 complete,
+but B2/B3 fail at the 32-request cap during remaining mutation review after their
+generated tests pass. All four rows, 66 actual requests and 3,643,104 known tokens
+are retained. The smoke acceptance gate did not pass; a completed runner index
+is not a successful workflow result. Inspect its deterministic pair-budget
+conflict before authorizing the full study. No policy or manifest was changed
+during that observation. The current v22 follow-up bounds review allocation and
+separates limited assurance from execution failure; see the
+[policy change](mutation-review-budget.md). Its updated manifests require a new
+freeze and separate paid evidence. The v21 failures are not replaced or pooled.
 
 B0 uses requirements and bounded implementation code. B1 adds retrieved project
 evidence. B2 adds analysis, admission, execution and bounded refinement without

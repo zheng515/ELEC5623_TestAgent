@@ -1,6 +1,6 @@
 # Baseline configurations and evidence requirements
 
-Policy v21 uses `examples/experiments-baselines.json` as the default CLI matrix:
+Policy v22 uses `examples/experiments-baselines.json` as the default CLI matrix:
 three projects, four independent configurations, three repeats and 36 planned
 workflows. Source, requirements, model, image and request budget are fixed per
 case. The `proposal` protocol rejects omitted configurations, disabled mutation
@@ -11,6 +11,17 @@ on Click 8.1.7 with one repeat: four paid workflows and at most 32 model request
 per workflow. It checks configuration and execution paths, not repeat stability,
 held-out effectiveness or superiority. The complete repeated matrix remains a
 separate command; a smoke run does not silently start it.
+
+The [retained v21 smoke](../experiments/results/v21-independent-smoke-2026-11-02/README.md)
+attempted all four configurations on frozen `b16b7ac`. B0/B1 completed; B2/B3
+exhausted their 32-request caps during mutation-pair review, with incomplete
+mutation evidence. This is a failed acceptance gate, not a completed repeated
+matrix or evidence of B3 superiority. See its budget analysis before spending on
+the full matrix; changed budgets or review policy require a separate study.
+Current manifests declare the same four-request, 60-second review budget for
+B2/B3 inside the unchanged 32-request global cap. See the
+[v22 semantics and engineering validation](mutation-review-budget.md).
+This change does not replace v21 failures or establish v22 model effectiveness.
 
 | Configuration | Model input and control flow |
 | --- | --- |

@@ -1,0 +1,28 @@
+{
+  "scope": "Original uncompressed bytes and logical paths inside evidence.zip. Unzip to an evidence directory to use the frozen index.",
+  "files": {
+    "agent-snapshot.json": "83f17e6885b8466bbbbae086da80c58c0127c8771b7f4c58bb21039d4cc25260",
+    "click-full-B0-1/reference-execution.json": "e3273d33496f59eabd05a14efdd38d46738f858f210711e7e3f6a07195e0eefd",
+    "click-full-B0-1/report.json": "c610e2ad57f3a4f543d6c6fc46eb6d3533ce4d6da775077bcfe9fe3cd702f673",
+    "click-full-B0-1/requests.json": "97936aec1da68b492976b256c6b35d8889633cfb22bdfee8ee597b236b96198a",
+    "click-full-B0-1/review.json": "c6ee2e70cede6d309e74df2fcd151171052a8694c32e239e8ef618456730c621",
+    "click-full-B1-1/reference-execution.json": "8526404a0ffe065d72a95c145c52651f2c7132e6c79487410073dceabeb93be7",
+    "click-full-B1-1/report.json": "6380d195d45f3a7eaf6faedf36e79ae458513fb3d8197c0805a38ce94de468da",
+    "click-full-B1-1/requests.json": "a063949a1bda503147d96802959655adb64a5604f689e7e79fd14c52f29ccab0",
+    "click-full-B1-1/review.json": "70a85b3379d880f986f2b87650687d417dd3de90e3a50a3484a77b42eaa59888",
+    "click-full-B2-1/report.json": "367fea58bc1f271cec9cd729133e556f1ce533c110072784e38713b35b7bc978",
+    "click-full-B2-1/requests.json": "d6541ce31ed34bb18f5ac291685356742eb736fd84be1c5dbfc041fdb8a2c63d",
+    "click-full-B2-1/review.json": "c3cf06a2d80b5de51f3dcacb7a3a4467b5380788ca7422dd685f3492bc76eee0",
+    "click-full-B3-1/report.json": "9442fed2b5179ca99fdcad3491626f3027bb99d102fb38a89773794ae9a3bfe1",
+    "click-full-B3-1/requests.json": "a65b0c9281e8b6d3b4e5dad59935fd84ecc43a2401be160eafd1de8357f9df74",
+    "click-full-B3-1/review.json": "9d7d03e60b993407c5b0d403c98e9900875846ea744128634d6c284508cd9a5b",
+    "click-full.gold.json": "a59fcec3fa249ff1988ff54cf4063369b26da30e77f98e061328219145607ac7",
+    "click-full.oracle.py": "7370d7f9e1bc6c0fdac5caf193e36ec7db361f5eee65abb4700cf63b79dc4932",
+    "click-full.reference.json": "e83fecaddb2ecad4d69f379de003e9a99319f6830becdf231ac895fca40ebff0",
+    "click-full.requirements.txt": "ae909c3fb850bbd57e5bf4d3dc818626d6f040ef3c6152a6eeff25cb120c49f8",
+    "click-full.zip": "72dc1f9c361f0e31338f5737579a7be66af9b546ca47d11d51caf65fa928e9ff",
+    "index.json": "cceb9e1c3a8a0b2634c40a1761e81695e321bb12dad69730a0879f709bdeb580",
+    "manifest.json": "0d289fe941c6d99bf4885ed86365ca320227af1115d6be07853275b927ae93b5",
+    "source-equivalence.json": "c08b89116bf646bd5e97eb39a02ded6920ed30091b3aac6570fafa2beda17bd2"
+  }
+}

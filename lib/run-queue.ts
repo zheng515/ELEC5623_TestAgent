@@ -2,7 +2,7 @@ import { PgBoss, type Job } from "pg-boss";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { database, dataDir, getAuth } from "./auth";
-import { runPython, reason, type Reason, type Checkpoint } from "./python-agent";
+import { runPython, reason, finalizeIncompleteRun, type Reason, type Checkpoint } from "./python-agent";
 import { interruptedReport } from "./python-jobs";
 import type { PythonReport } from "./python-types";
 import { readFile, readdir } from "node:fs/promises";
@@ -113,7 +113,7 @@ async function executeRun(job: RunJob, ask: Reason = reason) {
     const stopped = (await database.query("SELECT cancel_requested FROM runs WHERE id=$1", [runId])).rows[0]?.cancel_requested;
     report.status = stopped ? "cancelled" : "failed";
     report.error = stopped ? "Run stopped by its owner." : modelError(error);
-    report.states = report.states.map(state => ({ ...state, status: "Uncertain" }));
+    finalizeIncompleteRun(report);
     await database.query(`UPDATE runs SET report=$1 WHERE id=$2 AND user_id=$3 AND cancel_requested=false AND report->>'status'='running' AND ${heldLease}`, [JSON.stringify(report), runId, userId, job.retryCount]);
   } finally { clearInterval(timer); }
 }

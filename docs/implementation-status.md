@@ -1,7 +1,10 @@
 # Current implementation status
 
-Policy: `contract-witness-v21-unchanged-proposal-stop`.
+Policy: `contract-witness-v22-bounded-mutation-review`.
 This inventory describes code, not the academic report.
+The [v22 review policy](mutation-review-budget.md) adds shared stage budgets,
+limited-assurance reporting and independent reference replay after failed optional
+assessment. Retained v21 model evidence is unchanged; v22 has no new paid study.
 
 The default CLI evaluates all four independent B0-B3 configurations with recorded
 effective capabilities. B0 excludes test/document context; B1 adds repository

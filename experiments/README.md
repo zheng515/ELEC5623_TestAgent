@@ -1,6 +1,9 @@
 # Current experiments
 
-Implementation policy: `contract-witness-v21-unchanged-proposal-stop`.
+Implementation policy: `contract-witness-v22-bounded-mutation-review`.
+The [v22 policy change](../docs/mutation-review-budget.md) follows the retained
+v21 smoke failures. Current manifests bound optional review separately. No v22
+paid model observation is claimed; retained archives keep their original policies.
 
 [Local production workflow acceptance](results/ui-workflow-2026-11-01/README.md)
 records real authentication, document upload, public GitHub preflight, queue/Docker
@@ -11,6 +14,7 @@ or a new model observation; this acceptance made zero provider calls.
 
 | Retained evidence | What it establishes | Limits |
 | --- | --- | --- |
+| [v21 independent Click smoke](results/v21-independent-smoke-2026-11-02/README.md) | Frozen `b16b7ac` inputs pass no-model validation and full original suites. All four independent B0-B3 rows are attempted; B0/B1 complete, while both full arms exhaust 32 requests in mutation-pair review. | Smoke acceptance fails: 2/4 completed, 2 failed, no replacements. 66 requests / 3,643,104 known tokens. Mutation evidence is timed out/incomplete; zero admitted runtime failures, no diagnosis-accuracy or runtime-repair result. One repeat; the 36-workflow matrix remains unrun. |
 | [v21 natural Click observation](results/v21-click-runtime-observation/README.md) | Six naturally generated tests all pass common admission, execution and reference replay; no diagnosis or repair requests in either continuation. | One shared suite and one repeat. Zero qualifying runtime-error opportunities; repair effectiveness stays unavailable. Search stopped without new projects or seeds. |
 | [v21 admitted-failure follow-up](results/v21-retention-followup/README.md) | The type-complete candidate is admitted and executed; both full arms retain its code and defect detection. B3 records a grounded execution-phase defect diagnosis. | Adaptive reuse of the preceding B3 correction, one case/repeat. No extra B3 detection, natural runtime test-error repair or exact no-op-filter observation. |
 | [v21 controlled recovery](results/v21-controlled-recovery/README.md) | Six seeded workflow rows and two common preparations; both full arms correct a rejected bad import and retain boundary-fault detection after adding type checks. | Both initial candidates were admission-blocked, so initial runtime diagnosis was not exposed. Strict unchanged-artifact retention fails in both arms. One repeat; no B3 superiority or natural-error repair rate. |
@@ -23,6 +27,10 @@ It has not been run under the current policy. The [Click smoke manifest](../exam
 plans four workflows; the [closed-loop smoke manifest](../examples/experiments-closed-loop-smoke.json)
 plans four B2/B3 workflows on the two synthetic fixtures. Running a manifest now
 creates new paid observations, not a replay of retained results.
+The retained v21 independent Click smoke was attempted once and
+failed its acceptance gate: B2/B3 reach 792/715 mutation-behavior pairs that cannot
+fit the unchanged 32-request workflow budget. Preserve those failures and inspect
+the budget design before authorizing the complete repeated matrix.
 The [controlled recovery manifest](../examples/experiments-recovery-smoke.json)
 uses two seeded candidates, six workflow rows and shared preparation. Its B1
 rows are zero-model execution controls, not independent B1 generation results.

@@ -34,6 +34,7 @@ function MutationReview({ report }: { report: PythonReport }) {
   const rows = survivorReviews(report);
   if (!rows.length) return report.mutations.at(-1)?.incomplete ? <p>No surviving outcomes were recorded in the incomplete latest attempt. Missing outcomes do not resolve earlier survivors or gaps.</p> : null;
   return <section className="my-3 space-y-2">
+    {report.mutationReview && <p>Behavior pairs reviewed: {report.mutationReview.reviewedPairs}/{report.mutationReview.totalPairs}; {report.mutationReview.pendingPairs} remain unreviewed.{report.mutationReview.stopReason && ' Review stopped within the configured assessment limits; unreviewed pairs remain unresolved.'}</p>}
     <p>Current surviving mutants: {rows.length}. {Object.entries(survivorLabels).map(([category, label]) => `${label}: ${rows.filter(row => row.category === category).length}`).join(' · ')}.</p>
     <p className="text-sm text-muted-foreground">Model judgments apply only to the cited behavior and exact saved diff. Each mapped behavior is reviewed separately; missing or duplicate pairs remain unresolved. Unspecified details are not equivalent code; independent review is still required.</p>
     {rows.map(({ mutant, reviews, category }) => <details key={mutant.id}><summary className="cursor-pointer">{mutant.id} · {survivorLabels[category]} · {reviews.filter(review => review.decision).length}/{reviews.length} behavior pairs reviewed</summary>

@@ -126,12 +126,16 @@ REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run evaluate -- examples/exper
 REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run experiment:run
 ```
 
-The default v21 matrix uses independent B0/B1/B2/B3 configurations, three projects
+The default v22 matrix uses independent B0/B1/B2/B3 configurations, three projects
 and three repeats (36 new workflows). B0 receives implementation code without
 existing tests or repository documents; B1 adds repository evidence. B2 selects
 failed generated tests for repair without diagnosis; B3 first obtains a grounded
 diagnosis. Both full configurations enable mutation guidance and share safety
 and stopping rules. See [baseline definitions and evidence requirements](docs/baseline-configurations.md).
+Both full arms share four requests and 60 seconds for mutation review inside the
+unchanged 32-request workflow cap. Limited assurance remains explicit; see
+[review allocation and reporting](docs/mutation-review-budget.md).
+The retained v21 smoke failed its budget gate; no v22 paid study is claimed.
 Mutation uses generated-test execution lines when static function mapping is
 unavailable. Trace collection is inside the mutation budget. Tool-only checks do
 not replace a repeated model comparison. The retained v20 four-run B2/B3 pilot

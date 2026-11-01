@@ -6,14 +6,14 @@ import { randomUUID, createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import JSZip from 'jszip';
 import { z } from 'zod';
-import { runPython, reason, type Reason, type ReasonUsage } from '../lib/python-agent';
+import { runPython, reason, finalizeIncompleteRun, type Reason, type ReasonUsage } from '../lib/python-agent';
 import { importProject } from '../lib/python-tools';
 import { goldSchema, reviewTemplate } from '../lib/evaluation';
 import { probeFault, probeReferenceSuite, validateReference } from '../lib/evaluation-tools';
 import type { PythonReport, Measurement } from '../lib/python-types';
 import { parseRequirementInput } from '../lib/requirement-input';
-import type { ExperimentEntry } from '../lib/experiment-metrics';
-import { verificationPolicySchema, verificationPolicyVersion } from '../lib/verification-policy';
+import { experimentCompletion, type ExperimentEntry } from '../lib/experiment-metrics';
+import { verificationPolicySchema, verificationPolicyVersion, referenceReplayEligible } from '../lib/verification-policy';
 import { testsSchema } from '../lib/python-types';
 import { agentVariants } from '../lib/agent-variants';
 
@@ -52,6 +52,7 @@ async function main() {
   const index: { purpose: 'pilot' | 'held-out'; baselineProtocol: string; variantDefinitions: typeof agentVariants; policyVersion: string; createdAt: string; model: string; manifestHash: string; sandboxImage: string; agentFingerprint: string; expectedRuns: number; status: string; inputs: Record<string, { archiveHash: string; requirementHash: string; initialTestsHash?: string }>; preparations: { caseId: string; repeat: number; report: string; requests: string; elapsedMs: number }[]; runs: ExperimentEntry[] } = { purpose: manifest.purpose, baselineProtocol: manifest.baselineProtocol, variantDefinitions: agentVariants, policyVersion: verificationPolicyVersion, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', manifestHash: createHash('sha256').update(manifestText).digest('hex'), sandboxImage, agentFingerprint, expectedRuns: validateOnly ? 0 : manifest.cases.length * manifest.variants.length * manifest.repeat, status: 'preflight', inputs: {}, preparations: [], runs: [] };
   await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
   console.log(`Experiment: ${output}; ${index.expectedRuns} planned runs. ${validateOnly ? 'Reference validation only; no model requests.' : 'Paid model requests; no automatic retries.'}`);
+  const outcomes: { status: PythonReport['status']; limited: boolean }[] = [];
   const interrupted = new AbortController();
   process.once('SIGINT', () => interrupted.abort());
   process.once('SIGTERM', () => interrupted.abort());
@@ -151,10 +152,11 @@ async function main() {
       } catch (error) {
         report.status = interrupted.signal.aborted ? 'cancelled' : 'failed';
         report.error = (error instanceof Error ? error.message : 'Failed').replaceAll(process.env.OPENAI_API_KEY!, '[redacted]');
+        finalizeIncompleteRun(report);
         if (/invalid.api.key|incorrect.api.key|insufficient.quota|authentication|status.?401/i.test(report.error)) interrupted.abort();
       }
       entry.elapsedMs = Date.now() - started;
-      if (report.status === 'completed' && !interrupted.signal.aborted) {
+      if (referenceReplayEligible(report) && !interrupted.signal.aborted) {
         let referenceExecution: Measurement | undefined;
         try {
           referenceExecution = await probeReferenceSuite(join(root, 'final-reference'), archive, gold, report, AbortSignal.any([interrupted.signal, AbortSignal.timeout(120000)]));
@@ -182,11 +184,15 @@ async function main() {
         }
       }
       await writeFile(join(root, 'review.json'), JSON.stringify(reviewTemplate(report, gold), null, 2));
+      outcomes.push({ status: report.status, limited: !!report.mutationReview?.stopReason });
       await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
       console.log(name, report.status, `${report.tests.filter((test) => test.approved).length} approved tests`);
     }
   }
-  index.status = 'completed';
+  const completion = experimentCompletion(index.expectedRuns, outcomes);
+  Object.assign(index, { status: completion.status, completion });
+  console.log('Workflow outcomes:', JSON.stringify(completion));
+  if (completion.completed !== completion.planned) process.exitCode = 1;
   console.log(`Saved experiment: ${join(output, 'index.json')}`);
   console.log('Review the copied gold labels and review.json files independently, then run npm run score -- <index.json>.');
   } catch (error) { index.status = interrupted.signal.aborted ? 'cancelled' : 'failed'; throw error; }
