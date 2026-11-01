@@ -96,6 +96,9 @@ and [related work and contribution](docs/product-positioning.md).
 
 ## Verification and experiments
 
+For unused-code analysis and dynamic entry points, see
+[code maintenance](docs/maintenance.md).
+
 ```sh
 npm run quality:check
 ```

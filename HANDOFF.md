@@ -20,7 +20,8 @@ analysis, byte-verified export and whole-study retirement. Read
 - Plan: `experiments/v22-benchmark-plan.md`, declared before v22 paid observations.
 - No Agent source or policy changed during these studies. Later result/document
   commits do not replace the assessed source revision.
-- No push or merge to main was authorized or performed.
+- The owner subsequently authorized cleanup and pushing the integration branch.
+  Do not merge into or push to main without a separate instruction.
 
 ## Completed observations
 
@@ -103,6 +104,12 @@ Do not remove dynamic entry scripts merely because a static unused-file tool
 reports them unused.
 
 ## Product and architecture
+
+Maintenance after benchmarking is documented in `docs/maintenance.md`. The Knip
+configuration declares five required dynamic entry points. No unused application
+code/dependency removal or Agent policy change was warranted. Three redundant
+temporary archive-check directories were removed after archive verification;
+retained evidence, raw runs, application data and credentials were preserved.
 
 ReqTest is a Track A requirement-to-test agent for focused Python and Node.js
 projects. It accepts GitHub/ZIP sources and pasted or PDF/Word/text requirements;
