@@ -50,7 +50,9 @@ npm run production:start
 3. Run verification. The Agent analyzes requirements, proposes and reviews tests,
    executes them in Docker, diagnoses failures and allows one reviewed improvement.
 4. Open Evaluation. Requirement-check progress, test outcomes and verification
-   states have separate interactive charts. Follow findings through original
+   states have separate interactive charts. The evidence chain shows each original
+   requirement, mapped behaviors, admitted tests, executed outcomes and final state.
+   Follow findings through original
    requirements, saved tests, execution output and phase-specific assessments.
    Applied improvements include a before/after table with inspectable assertions;
    new tests and unexecuted revisions are separate from previously failing files
@@ -95,12 +97,16 @@ and [related work and contribution](docs/product-positioning.md).
 ## Verification and experiments
 
 ```sh
-npm run typecheck
-npm run lint
-npm run check:english
-REQTEST_DOCKER_TEST=1 npm test
-npm run build
+npm run quality:check
 ```
+
+`quality:check` runs type checking, linting, the English-only source check, unit
+and integration regressions, and a production build. With local production and
+Gmail SMTP configured, run `npm run acceptance:local` to validate deployment
+configuration and authenticate with the mail server without sending a message.
+Before freezing a demonstrated revision, run `npm run acceptance:full`; it adds
+the Docker-only sandbox regressions and local production checks. This command
+requires the configured database, sandbox image and SMTP credentials.
 
 Engineering checks and mocked UI checks are separate from model-quality evidence.
 Current observations and reviewer status have one index: [experiments/README.md](experiments/README.md).

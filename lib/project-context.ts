@@ -1,23 +1,6 @@
 import { createHash } from 'node:crypto';
 import { posix } from 'node:path';
 
-// A mapped file alone is insufficient when a recorded local dependency remains unseen.
-export function hasUninspectedContext(selections: { selectedFiles: string[]; complete: boolean; dependencyLinks?: { from: string; to: string }[] }[] | undefined, mapped: string[]) {
-  if (!selections?.some(selection => !selection.complete)) return false;
-  if (!mapped.length) return true;
-  const inspected = new Set(selections.flatMap(selection => selection.selectedFiles));
-  const links = selections.flatMap(selection => selection.dependencyLinks || []);
-  const pending = [...mapped], visited = new Set<string>();
-  while (pending.length) {
-    const file = pending.pop()!;
-    if (visited.has(file)) continue;
-    visited.add(file);
-    if (!inspected.has(file)) return true;
-    pending.push(...links.filter(link => link.from === file).map(link => link.to));
-  }
-  return false;
-}
-
 // Static local-import candidates only. No code is evaluated and no external module is fetched.
 // Dynamic imports, aliases and runtime configuration can still require uninspected files.
 function localDependencyGraph(files: Record<string, string>) {

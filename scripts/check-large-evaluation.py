@@ -53,6 +53,9 @@ with sync_playwright() as playwright:
     expect(page.locator('textarea[name=requirements]')).to_have_value(text)
     checks.append('Uploaded requirements and their source details survive workspace navigation')
     page.get_by_role('button', name='Evaluation', exact=True).click()
+    expect(page.get_by_role('heading', name='Requirement evidence chain', exact=True)).to_be_visible()
+    expect(page.get_by_role('button', name=re.compile(r'^Review the complete trace'))).to_be_visible()
+    checks.append('Overview exposes a requirement-to-behavior-to-test-to-outcome evidence chain')
     changes = page.get_by_role('heading', name='What changed after feedback', exact=True)
     if report.get('improvements') and not report.get('replay'):
         expect(changes).to_be_visible()
@@ -110,7 +113,11 @@ with sync_playwright() as playwright:
         for section in ['Overview', 'Requirements', 'Findings', 'Evidence']:
             page.get_by_role('tab', name=section, exact=True).click()
             page.locator('[role=tabpanel][data-state=active] details').evaluate_all('(items) => items.forEach(item => item.open = true)')
-            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2'), f'Horizontal overflow in {section} at {width}'
+            page_overflow = page.evaluate('document.documentElement.scrollWidth > innerWidth + 2')
+            overflow = page.evaluate("""[...document.querySelectorAll('*')]
+                .filter(item => item.getBoundingClientRect().right > innerWidth + 2)
+                .slice(0, 5).map(item => { const box = item.getBoundingClientRect(); const parents = []; for (let parent = item.parentElement, depth = 0; parent && depth < 5; parent = parent.parentElement, depth++) { const parentBox = parent.getBoundingClientRect(); parents.push({tag: parent.tagName, className: parent.className, left: parentBox.left, right: parentBox.right, width: parentBox.width}); } return {tag: item.tagName, className: item.className, left: box.left, right: box.right, width: box.width, clientWidth: item.clientWidth, scrollWidth: item.scrollWidth, text: item.textContent.slice(0, 120), parents} })""") if page_overflow else []
+            assert not page_overflow, f'Horizontal overflow in {section} at {width}: {overflow}'
         page.screenshot(path=str(output / f'large-results-{width}.png'), full_page=True)
         checks.append(f'No horizontal overflow in all four tabs at {width}px with details expanded')
     assert not errors, errors
