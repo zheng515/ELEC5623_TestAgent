@@ -5,6 +5,7 @@ import { requirementCoverage } from './requirement-coverage';
 import { mutationAssessmentMissing } from './verification-policy';
 import { hasUninspectedContext } from './context-assurance';
 import { findingEvidence } from './finding-evidence';
+import { mutationBehaviorReviews } from './mutation-review';
 
 export const requirementStates = ['Verified', 'Partially Verified', 'Unverified', 'Uncertain', 'Pending'] as const;
 type RequirementState = typeof requirementStates[number];
@@ -50,7 +51,7 @@ export function verificationSummary(report: PythonReport) {
   const checksPassedAwaitingAssurance = evaluation.requirements.filter(rule => rule.status !== 'Verified' && !needsAttention.some(item => item.id === rule.id) && checkItems.some(item => item.id === rule.id && item.checked && !item.investigate));
   const mutation = report.mutations.at(-1);
   const mutationAssessment = !mutation ? report.policy?.mutationChecks === false ? 'Not performed (not requested)' : 'Not performed'
-    : mutation.incomplete || mutation.timedOut || mutation.mutants.some(item => item.status === 'unknown') ? 'Incomplete' : `Execution recorded (${mutation.mutants.length} mutants)`;
+    : mutation.incomplete || mutation.timedOut || report.mutationReview?.incomplete || mutation.mutants.some(item => item.status === 'unknown') ? 'Incomplete' : `Execution recorded (${mutation.mutants.length} mutants)`;
   const initialFailure = report.collection && (report.collection.timedOut || ![0, 5].includes(report.collection.exitCode)) ||
     report.baseline && (report.baseline.timedOut || report.baseline.integrity !== true || ![0, 5].includes(report.baseline.exitCode) || report.baseline.outcomes.some(outcome => ['failed', 'error'].includes(outcome.status)));
   const preserved = trustedChecks ? findingEvidence(report).filter(({ outcome, test, diagnosis }) => test && outcome.status === 'failed' &&
@@ -66,6 +67,7 @@ export function verificationSummary(report: PythonReport) {
   else if (latest.timedOut || latest.integrity !== true || ![0, 1].includes(latest.exitCode)) { title = 'Execution evidence incomplete'; next = 'Inspect time limits, integrity and execution errors before relying on the recorded outcomes.'; }
   else if (failed || errors) { title = `${failed + errors} ${failed + errors === 1 ? 'check needs' : 'checks need'} investigation`; next = 'Compare failing assertions and Agent diagnoses with the original requirements. A failure is not automatically a software defect.'; }
   else if (initialFailure) { title = 'Existing-test checks need attention'; next = 'Inspect collection and baseline diagnoses and logs. Later passing checks do not resolve earlier setup or existing-test failures.'; }
+  else if (report.mutationReview?.stopReason) { title = 'Checks recorded; mutation review limited'; next = `${report.mutationReview.pendingPairs} mutation-behavior pairs remain unreviewed. Inspect the retained execution and review evidence; incomplete mutation assurance does not establish full verification.`; }
   else { title = `${passed} ${passed === 1 ? 'test' : 'tests'} passed${skipped ? `; ${skipped} skipped` : ''}`; next = 'Review unresolved behavior states and blocked tests. Passing cases do not establish complete specification coverage.'; }
   if (report.status === 'completed' && evaluation.blocked) next = `${evaluation.blocked} blocked test proposals need attention. Inspect their review reasons and uncovered requirements before regenerating. ` + next;
   if (report.replay) next += ' Saved-test execution does not regenerate analysis or diagnoses.';
@@ -126,6 +128,10 @@ export function runEvaluation(report: PythonReport) {
       const saved = report.states.find(state => state.id === behavior.id);
       const nodes = saved?.nodes || [];
       const outcomes = nodes.flatMap(node => latest?.outcomes.filter(outcome => outcome.node === node) || []);
+      const mutation = report.mutations.at(-1);
+      const unresolvedMutation = mutation?.incomplete || mutation?.timedOut || mutation?.mutants.some(mutant =>
+        behavior.files.includes(mutant.file) && (mutant.status === 'unknown' || mutant.status === 'survived' &&
+          mutationBehaviorReviews(report, mutant).some(review => review.behavior.id === behavior.id && (!review.decision || review.decision.relevant))));
       let status: RequirementState = saved?.status || 'Unverified';
       let reason = saved?.reason || 'No saved behavior assessment.';
       if (report.status === 'running') { status = 'Pending'; reason = 'This run has not finished.'; }
@@ -139,6 +145,8 @@ export function runEvaluation(report: PythonReport) {
         status = 'Partially Verified'; reason = 'Some mapped checks did not pass.';
       } else if (status === 'Verified' && mutationAssessmentMissing(report, behavior.files)) {
         status = 'Partially Verified'; reason = 'Recorded checks passed; mutation adequacy was not assessed for every mapped source file.';
+      } else if (status === 'Verified' && unresolvedMutation) {
+        status = 'Partially Verified'; reason = 'Mutation execution or behavior-pair review is incomplete or retains a relevant survivor.';
       } else if (status === 'Verified' && hasUninspectedContext(report.contextSelections, behavior.files)) {
         status = 'Partially Verified'; reason = 'A mapped source file or recorded local dependency remains uninspected.';
       } else if (status === 'Verified' && !requirementCoverage(report, rule.id).complete) {

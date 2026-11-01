@@ -1,44 +1,48 @@
 # Evaluation protocol
 
-Current policy: `contract-witness-v21-unchanged-proposal-stop`.
+Current policy: `contract-witness-v22-bounded-mutation-review`.
 The default independent B0-B3 matrix is `examples/experiments-baselines.json`.
 See [baseline definitions](baseline-configurations.md) and the
 [current evidence inventory](../experiments/README.md). This is a technical
 protocol, not the academic report. Deleted studies contribute no current results.
 
-## Study design
+## Study design and completed observations
 
-The default matrix fixes source, requirements, model, image and request budgets
-per case: Click 8.1.7, Packaging 24.2 and Werkzeug 3.0.6, four independently
-generated configurations and three repeats (36 workflows). Requirements and fixed
-witnesses are developer/AI-assisted, not native upstream SRS files or independent
-human labels. The current repeated matrix has not been executed.
+The predeclared [v22 plan](../experiments/v22-benchmark-plan.md) uses frozen commit
+`bd12d23`, gpt-6-luna and one pinned sandbox image. Source, contracts, manifests
+and Agent identities are retained in each study archive.
 
-B0 uses requirements and bounded implementation code. B1 adds retrieved project
-evidence. B2 adds analysis, admission, execution and bounded refinement without
-failure diagnosis. B3 obtains grounded diagnoses before selecting repair. Both
-full configurations use the same admission, mutation and stopping rules. B0/B1
-are internal alternatives, not measurements of commercial coding products.
+- Click smoke: four independent workflows, one repeat; 4/4 completed, two limited.
+- Main matrix: Click 8.1.7, Packaging 24.2 and Werkzeug 3.0.6; independent B0-B3,
+  three repeats; 36/36 completed with 12 limited mutation assessments. All final
+  generated nodes and reference replays pass. These inputs inject no source fault.
+- Fault supplement: existing Booking and Inventory synthetic boundary faults;
+  independent B0-B3, one repeat; 8/8 completed. All configurations detect both
+  faults on original/corrected copies. B2's unchanged proposals are stopped;
+  B3 records two grounded defect diagnoses and retains the failures.
 
-The retained four-run v20 pilot uses two existing synthetic fixtures and B2/B3,
-one repeat each. Both configurations detect its boundary fault; no natural test
-error exposed a repair opportunity. The observed unchanged-code improvement was
-fixed in v21 and validated offline. A separate controlled v21 study runs two
-seeded candidates through six B1/B2/B3 rows and two common preparations. Both
-full arms correct the rejected import and retain boundary-fault detection after
-adding type witnesses. Both initial candidates were admission-blocked: initial
-runtime diagnosis was not exposed, and literal unchanged-artifact retention
-fails in both full arms. It does not establish superiority or natural-error repair.
-An adaptive type-complete candidate then passes admission in a separate follow-up;
-both full arms retain its original executable and detection, and B3 records an
-execution-phase defect diagnosis. This uses the preceding B3 correction and is
-not an independent project or a replacement observation.
-A bounded natural Click follow-up generated six tests without seeds or source
-faults. All passed normal common admission and execution in B2/B3, so approved
-runtime-failure exposure was zero. The run stopped without another project or
-candidate search; repair effectiveness remains unavailable rather than successful.
-The retained Click execution-scope check is tool-only and remains incomplete;
-it does not establish model quality or a latency advantage.
+See [full results and limitations](../experiments/results/v22-summary/README.md).
+Only actual resource usage is added across studies: 286 requests / 16,994,380
+known tokens, zero unknown usage. Effectiveness denominators remain separate.
+There are no observed admitted generated runtime-error repair opportunities.
+Independent semantic/diagnosis accuracy and reviewed mutation strength are
+unavailable. Requirements, faults and witnesses are developer/AI-assisted inputs,
+not independently reviewed native SRS labels. All observations are development
+cases; repeated runs share projects. Node/browser model effectiveness is outside
+this Python benchmark.
+
+B0 uses requirements and bounded implementation code. B1 adds repository evidence.
+B2 adds analysis, admission, execution and one bounded improvement without
+failure classification. B3 obtains grounded diagnoses before repair selection.
+The same admission, mutation and stopping safeguards apply to both full arms.
+They share four mutation-review requests and 60 seconds inside the global cap
+of 32. Limited assessment is explicit and cannot establish full assurance.
+
+The owner retired v20/v21 studies after these new archives were verified. Whole
+studies, including successes and failures, are excluded from current metrics;
+[cleanup](../experiments/cleanup-v22.json) records hashes and Git recovery.
+They are not pooled with v22. Current results show a decision-trace difference,
+not B3 superiority or natural runtime-error repair success.
 
 ## Controlled recovery modes
 
@@ -54,8 +58,8 @@ full independent matrix and remain covered by scripted regression tests:
 5. Preserve blocked, failed, missing, interrupted and budget-exhausted outcomes.
 
 Controlled interventions measure recovery paths, not natural-error frequency.
-The retained controlled study establishes one admission-driven import correction
-per full arm, not post-admission runtime test-error repair effectiveness.
+Retired controlled observations are not current results. These modes remain
+regression-tested and do not create natural-error frequency measurements.
 
 ## Objective measurements
 

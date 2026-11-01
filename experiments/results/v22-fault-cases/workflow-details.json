@@ -1,0 +1,321 @@
+{
+  "scope": "Objective records and unreviewed model judgments. Admission correction is not admitted-runtime repair; passing tests are not semantic accuracy. Studies are not pooled.",
+  "planned": 8,
+  "rows": [
+    {
+      "caseId": "booking-boundary-fault",
+      "variant": "B0",
+      "repeat": 1,
+      "status": "completed",
+      "error": null,
+      "stopReason": "B0: direct test generation and recorded execution completed without analysis, diagnosis or execution-driven refinement.",
+      "rules": 4,
+      "behaviors": 4,
+      "initialApproved": 4,
+      "initialBlocked": 0,
+      "finalApproved": 4,
+      "finalBlocked": 0,
+      "initialGeneratedRuntimeFailures": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours",
+          "status": "failed"
+        }
+      ],
+      "admissionRejectedArtifactsCorrected": [],
+      "improvements": 0,
+      "diagnoses": [],
+      "mutationReview": null,
+      "mutationIncomplete": null,
+      "behaviorStates": {
+        "Uncertain": 4
+      },
+      "requests": 1,
+      "unknownUsageRequests": 0,
+      "knownTokens": 2904,
+      "fault": {
+        "id": "exclusive-threshold",
+        "beforeDetected": true,
+        "afterDetected": true
+      },
+      "referenceReplay": "booking-boundary-fault-B0-1/reference-execution.json"
+    },
+    {
+      "caseId": "booking-boundary-fault",
+      "variant": "B1",
+      "repeat": 1,
+      "status": "completed",
+      "error": null,
+      "stopReason": "B1: direct test generation and recorded execution completed without analysis, diagnosis or execution-driven refinement.",
+      "rules": 4,
+      "behaviors": 4,
+      "initialApproved": 4,
+      "initialBlocked": 0,
+      "finalApproved": 4,
+      "finalBlocked": 0,
+      "initialGeneratedRuntimeFailures": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_least_24_hours",
+          "status": "failed"
+        }
+      ],
+      "admissionRejectedArtifactsCorrected": [],
+      "improvements": 0,
+      "diagnoses": [],
+      "mutationReview": null,
+      "mutationIncomplete": null,
+      "behaviorStates": {
+        "Uncertain": 4
+      },
+      "requests": 1,
+      "unknownUsageRequests": 0,
+      "knownTokens": 3176,
+      "fault": {
+        "id": "exclusive-threshold",
+        "beforeDetected": true,
+        "afterDetected": true
+      },
+      "referenceReplay": "booking-boundary-fault-B1-1/reference-execution.json"
+    },
+    {
+      "caseId": "booking-boundary-fault",
+      "variant": "B2",
+      "repeat": 1,
+      "status": "completed",
+      "error": null,
+      "stopReason": "The improvement proposal repeated unchanged approved tests. No additional review or execution was performed; original test evidence remains active.",
+      "rules": 4,
+      "behaviors": 4,
+      "initialApproved": 4,
+      "initialBlocked": 0,
+      "finalApproved": 4,
+      "finalBlocked": 0,
+      "initialGeneratedRuntimeFailures": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_zero_fee_at_and_above_24_hours",
+          "status": "failed"
+        }
+      ],
+      "admissionRejectedArtifactsCorrected": [],
+      "improvements": 0,
+      "diagnoses": [],
+      "mutationReview": null,
+      "mutationIncomplete": null,
+      "behaviorStates": {
+        "Uncertain": 1,
+        "Partially Verified": 3
+      },
+      "requests": 4,
+      "unknownUsageRequests": 0,
+      "knownTokens": 18674,
+      "fault": {
+        "id": "exclusive-threshold",
+        "beforeDetected": true,
+        "afterDetected": true
+      },
+      "referenceReplay": "booking-boundary-fault-B2-1/reference-execution.json"
+    },
+    {
+      "caseId": "booking-boundary-fault",
+      "variant": "B3",
+      "repeat": 1,
+      "status": "completed",
+      "error": null,
+      "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+      "rules": 4,
+      "behaviors": 4,
+      "initialApproved": 4,
+      "initialBlocked": 0,
+      "finalApproved": 4,
+      "finalBlocked": 0,
+      "initialGeneratedRuntimeFailures": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_cancellation_fee_at_and_above_24_hours",
+          "status": "failed"
+        }
+      ],
+      "admissionRejectedArtifactsCorrected": [],
+      "improvements": 0,
+      "diagnoses": [
+        {
+          "testId": "T1",
+          "phase": "execution",
+          "category": "potential_implementation_defect"
+        }
+      ],
+      "mutationReview": null,
+      "mutationIncomplete": null,
+      "behaviorStates": {
+        "Uncertain": 1,
+        "Partially Verified": 3
+      },
+      "requests": 4,
+      "unknownUsageRequests": 0,
+      "knownTokens": 17081,
+      "fault": {
+        "id": "exclusive-threshold",
+        "beforeDetected": true,
+        "afterDetected": true
+      },
+      "referenceReplay": "booking-boundary-fault-B3-1/reference-execution.json"
+    },
+    {
+      "caseId": "inventory-contract-fault",
+      "variant": "B0",
+      "repeat": 1,
+      "status": "completed",
+      "error": null,
+      "stopReason": "B0: direct test generation and recorded execution completed without analysis, diagnosis or execution-driven refinement.",
+      "rules": 5,
+      "behaviors": 5,
+      "initialApproved": 4,
+      "initialBlocked": 0,
+      "finalApproved": 4,
+      "finalBlocked": 0,
+      "initialGeneratedRuntimeFailures": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_remaining_returns_integer_for_valid_requests",
+          "status": "failed"
+        }
+      ],
+      "admissionRejectedArtifactsCorrected": [],
+      "improvements": 0,
+      "diagnoses": [],
+      "mutationReview": null,
+      "mutationIncomplete": null,
+      "behaviorStates": {
+        "Uncertain": 5
+      },
+      "requests": 1,
+      "unknownUsageRequests": 0,
+      "knownTokens": 3266,
+      "fault": {
+        "id": "reject-equal-stock",
+        "beforeDetected": true,
+        "afterDetected": true
+      },
+      "referenceReplay": "inventory-contract-fault-B0-1/reference-execution.json"
+    },
+    {
+      "caseId": "inventory-contract-fault",
+      "variant": "B1",
+      "repeat": 1,
+      "status": "completed",
+      "error": null,
+      "stopReason": "B1: direct test generation and recorded execution completed without analysis, diagnosis or execution-driven refinement.",
+      "rules": 5,
+      "behaviors": 5,
+      "initialApproved": 4,
+      "initialBlocked": 0,
+      "finalApproved": 4,
+      "finalBlocked": 0,
+      "initialGeneratedRuntimeFailures": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_remaining_for_nonnegative_counts",
+          "status": "failed"
+        }
+      ],
+      "admissionRejectedArtifactsCorrected": [],
+      "improvements": 0,
+      "diagnoses": [],
+      "mutationReview": null,
+      "mutationIncomplete": null,
+      "behaviorStates": {
+        "Uncertain": 5
+      },
+      "requests": 1,
+      "unknownUsageRequests": 0,
+      "knownTokens": 3534,
+      "fault": {
+        "id": "reject-equal-stock",
+        "beforeDetected": true,
+        "afterDetected": true
+      },
+      "referenceReplay": "inventory-contract-fault-B1-1/reference-execution.json"
+    },
+    {
+      "caseId": "inventory-contract-fault",
+      "variant": "B2",
+      "repeat": 1,
+      "status": "completed",
+      "error": null,
+      "stopReason": "The improvement proposal repeated unchanged approved tests. No additional review or execution was performed; original test evidence remains active.",
+      "rules": 5,
+      "behaviors": 5,
+      "initialApproved": 9,
+      "initialBlocked": 0,
+      "finalApproved": 9,
+      "finalBlocked": 0,
+      "initialGeneratedRuntimeFailures": [
+        {
+          "node": "reqtest_generated/test_reqtest_T2.py::test_equal_reservation_returns_zero",
+          "status": "failed"
+        }
+      ],
+      "admissionRejectedArtifactsCorrected": [],
+      "improvements": 0,
+      "diagnoses": [],
+      "mutationReview": null,
+      "mutationIncomplete": null,
+      "behaviorStates": {
+        "Uncertain": 2,
+        "Partially Verified": 3
+      },
+      "requests": 4,
+      "unknownUsageRequests": 0,
+      "knownTokens": 21927,
+      "fault": {
+        "id": "reject-equal-stock",
+        "beforeDetected": true,
+        "afterDetected": true
+      },
+      "referenceReplay": "inventory-contract-fault-B2-1/reference-execution.json"
+    },
+    {
+      "caseId": "inventory-contract-fault",
+      "variant": "B3",
+      "repeat": 1,
+      "status": "completed",
+      "error": null,
+      "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+      "rules": 5,
+      "behaviors": 7,
+      "initialApproved": 6,
+      "initialBlocked": 0,
+      "finalApproved": 6,
+      "finalBlocked": 0,
+      "initialGeneratedRuntimeFailures": [
+        {
+          "node": "reqtest_generated/test_reqtest_T2.py::test_equal_inputs_return_zero_integer",
+          "status": "failed"
+        }
+      ],
+      "admissionRejectedArtifactsCorrected": [],
+      "improvements": 0,
+      "diagnoses": [
+        {
+          "testId": "T2",
+          "phase": "execution",
+          "category": "potential_implementation_defect"
+        }
+      ],
+      "mutationReview": null,
+      "mutationIncomplete": null,
+      "behaviorStates": {
+        "Partially Verified": 5,
+        "Uncertain": 2
+      },
+      "requests": 5,
+      "unknownUsageRequests": 0,
+      "knownTokens": 23147,
+      "fault": {
+        "id": "reject-equal-stock",
+        "beforeDetected": true,
+        "afterDetected": true
+      },
+      "referenceReplay": "inventory-contract-fault-B3-1/reference-execution.json"
+    }
+  ],
+  "actualRequests": 21,
+  "knownTokens": 93709,
+  "unknownUsageRequests": 0
+}

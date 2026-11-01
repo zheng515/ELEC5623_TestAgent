@@ -113,12 +113,13 @@ async function main() {
     finalFailedNodes: report.measurements.at(-1)?.outcomes.filter(outcome => ['failed', 'error'].includes(outcome.status)).map(outcome => outcome.node) || [],
     diagnoses: report.diagnoses, improvements: report.improvements.length,
     stopReason: report.stopReason,
+    mutationReview: report.mutationReview,
     proposalRounds: report.testAttempts,
     referenceExecution: entry.referenceExecution ? 'evidence/' + entry.referenceExecution : null,
     blocked: report.tests.filter(test => !test.approved).map(test => ({ id: test.id, reason: test.review })),
     evidence: 'evidence/' + entry.report,
   }] : []);
-  await writeFile(join(output, 'failure-cases.json'), JSON.stringify(failures.filter(item => item.status !== 'completed' || item.finalFailedNodes.length || item.blocked.length || item.improvements), null, 2));
+  await writeFile(join(output, 'failure-cases.json'), JSON.stringify(failures.filter(item => item.status !== 'completed' || item.finalFailedNodes.length || item.blocked.length || item.improvements || item.mutationReview?.incomplete), null, 2));
   await writeFile(join(output, 'analysis-notes.json'), JSON.stringify({
     scope: 'Automatic observations for a development pilot, not a final report or external product benchmark.',
     repeatability: manifest.repeat > 1 ? 'Repeated development cases; inspect per-case observations, not population accuracy.' : 'One run per case/configuration. Stability and run-to-run variance are not assessed.',

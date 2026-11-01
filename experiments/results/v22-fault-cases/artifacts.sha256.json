@@ -1,0 +1,20 @@
+{
+  "scope": "Final retained artifact bytes, excluding this checksum manifest itself.",
+  "files": {
+    "README.md": "fd8426b93b77f3823a877b8bdf1798d0aa47803e8f122353c873d522932c89e0",
+    "analysis-notes.json": "04f869edc9d24c6b28d2eca5d09525c48be1d472d97a82b4f547bcbba63efcb3",
+    "evidence-files.sha256.json": "7462028369e05b17ddbda0ee87fdc81c6d461067210c5ee72b2f1e015461b118",
+    "evidence.zip": "929d96ed0815f2cae6df2559ba112e1851b3c4a04bc3e332e0706f145744dced",
+    "failure-cases.json": "9a52858c3ce0f0d8d95fc3a11f7eb34927dd9342c22db888612366023c6b0b03",
+    "figures/resources.png": "82d32d9e48e4474876c8740032f1eb0cc7c7d9f1522428deefb531baf94f5f02",
+    "figures/resources.svg": "141a810e843bdba18e668c1e72b80aba02ef58f84b8e5d89eb5581db6b6b4701",
+    "identity.json": "30b83a86f4c3abd7fa2689fc0d591aa41cbdae7260acb7acd47e91083d2d061c",
+    "metrics.json": "b3183fbde06d03c20607787929b2be3088899e219a2d5a70ba14bed16ceac5e0",
+    "runner.log": "443d0211383e0459daae8b76b6dd9a757c57b0401430d8d4c3eac44b8b549644",
+    "runs.csv": "5642083e9b06cd0ff7825662fcd899702068bf87b48936403da7f171aaa7ae7f",
+    "validation.json": "054d274f127eabc7a8badfcfe0d9bb0f3f958da765fcc945309a757674c406a3",
+    "variants.csv": "e780a8bc008e482d001115a3b8330c6f19d9be933f8716b8afc009141a4515f6",
+    "workflow-details.json": "e5c0c2b6358b3a4fa6b72aac008eca9b4832acc321ffc847a65bae32c4f6e268",
+    "workflow-evidence.json": "59980a189bbd02b82b38bf5de45189c67aee64612a007123e550a9e832fc50ca"
+  }
+}

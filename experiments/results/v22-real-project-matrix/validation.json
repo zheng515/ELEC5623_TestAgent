@@ -1,0 +1,15 @@
+{
+  "scope": "Offline archive and source validation; no provider calls.",
+  "archiveReanalysisOutputs": [
+    "metrics.json",
+    "runs.csv",
+    "variants.csv",
+    "workflow-evidence.json",
+    "failure-cases.json",
+    "analysis-notes.json"
+  ],
+  "byteIdentical": true,
+  "providerCalls": 0,
+  "sourceChecks": "All imported run source fingerprints verified against original fixed-witness validation.",
+  "frozenCommit": "bd12d236fe65009ba02655f48556b0b397e3f575"
+}

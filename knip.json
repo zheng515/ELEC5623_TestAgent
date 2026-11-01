@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@6.44.1/schema.json",
+  "entry": [
+    "sandbox/node-reporter.mjs",
+    "sandbox/node-worker.cjs",
+    "scripts/check-mutation-runtime.ts",
+    "scripts/preflight-real-projects.ts",
+    "tests/fixtures/queue-worker.ts"
+  ]
+}

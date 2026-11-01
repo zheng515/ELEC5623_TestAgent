@@ -106,11 +106,22 @@ test('seeded paired CLI freezes candidates, stops at its follow-up budget and ex
     const output = context.initialTests ? { behaviors: [{ id: 'B1', ruleId: 'R1', quote: context.rules[0].text, text: 'Threshold', category: 'boundary', issue: 'none', reason: 'Scripted budget fixture.', files: ['shipping.py'], existingTests: [], evidence: [{ file: 'shipping.py', line: 1 }], gaps: [] }], inconsistencies: [] } : { tests: [{ id: 'T1', behaviorId: 'B1', functionName: 'test_threshold', code: ${JSON.stringify(artifact.code)}, gapIndexes: [0], quote: context.rules[0].text, purpose: 'Threshold' }] };
     return Response.json({ id: 'resp_fixture', object: 'response', created_at: 1, status: 'completed', model: body.model, output: [{ id: 'msg_fixture', type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify(output), annotations: [] }] }], usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } });
   };`);
-  const { stdout } = await promisify(execFile)(process.execPath, ['--import', 'tsx', '--import', transport, 'scripts/evaluate.ts', manifest], { cwd: process.cwd(), timeout: 35000, env: { ...process.env, OPENAI_API_KEY: 'scripted-fixture-not-a-key', REQTEST_LLM_MODEL: 'scripted-fixture' } });
+  let stdout = '';
+  // An intentionally budget-stopped workflow must fail the CLI, while retaining its exports.
+  await assert.rejects(promisify(execFile)(process.execPath, ['--import', 'tsx', '--import', transport, 'scripts/evaluate.ts', manifest], { cwd: process.cwd(), timeout: 35000, env: { ...process.env, OPENAI_API_KEY: 'scripted-fixture-not-a-key', REQTEST_LLM_MODEL: 'scripted-fixture' } }), (error: unknown) => {
+    const failure = error as Error & { code: number; killed: boolean; signal: string | null; stdout: string };
+    assert.equal(failure.code, 1);
+    assert.equal(failure.killed, false);
+    assert.equal(failure.signal, null);
+    stdout = failure.stdout;
+    return true;
+  });
   const output = /Experiment: (.*); 2 planned runs/.exec(stdout)?.[1];
   assert.ok(output?.startsWith(join(process.cwd(), '.evidence/evaluation/')));
   t.after(() => rm(output!, { recursive: true, force: true }));
   const index = JSON.parse(await readFile(join(output!, 'index.json'), 'utf8'));
+  assert.equal(index.status, 'completed_with_failures');
+  assert.deepEqual(index.completion, { planned: 2, completed: 1, failed: 1, cancelled: 0, missing: 0, limited: 0, status: 'completed_with_failures' });
   const initial = JSON.parse(await readFile(join(output!, index.runs[0].report), 'utf8'));
   const stopped = JSON.parse(await readFile(join(output!, index.runs[1].report), 'utf8'));
   const requests = JSON.parse(await readFile(join(output!, index.runs[1].requests), 'utf8'));

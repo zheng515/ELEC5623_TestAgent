@@ -47,22 +47,11 @@ are not retained observations. Passing six specified API checks does not establi
 whole-repository coverage. See [current evidence](../../experiments/README.md)
 and [the protocol](../../docs/evaluation-protocol.md).
 
-## Bounded runtime-error observation
+## Current observations
 
-`examples/experiments-click-runtime-smoke.json` runs one pinned Click case and
-one repeat, without seeded tests or injected faults. B1 generates naturally from
-the six fixed contracts and project context. A common preparation applies normal
-analysis, admission and execution before B2/B3 reuse the same reviewed suite.
-This custom shared-prefix study is not independent full-website B3 generation.
-
-Six model requests each for B1, preparation, B2 and B3 cap the whole experiment
-at 24 requests; failed calls consume slots and are not automatically retried.
-Mutation is disabled to focus on failure handling. If no approved generated
-runtime failure appears, retain that absence and stop without trying other
-projects or new candidates. An upstream project is not presumed bug-free:
-remaining failures need original-contract, source and execution investigation.
-Unresolved causes do not count as confirmed generated-test errors or repair wins.
-
-```sh
-REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run evaluate -- examples/experiments-click-runtime-smoke.json
-```
+The [v22 repeated matrix](../../experiments/results/v22-real-project-matrix/README.md)
+completed 36 independent workflows. Its smoke is separate, and the
+[synthetic fault supplement](../../experiments/results/v22-fault-cases/README.md)
+adds declared source-fault cases without treating them as upstream repositories.
+Old dedicated manifests/results were retired. Rerunning commands above creates
+new paid observations; it does not reproduce exact model outputs.

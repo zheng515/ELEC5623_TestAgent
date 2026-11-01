@@ -2,14 +2,19 @@ import { z } from 'zod';
 import type { Measurement, PythonReport } from './python-types';
 import { testFile, projectTestFile } from './runtime';
 
-export const verificationPolicyVersion = 'contract-witness-v21-unchanged-proposal-stop';
+export const verificationPolicyVersion = 'contract-witness-v22-bounded-mutation-review';
 export const defaultModelResponseSeconds = 300;
+export const defaultMutationReviewRequests = 4;
+export const defaultMutationReviewSeconds = 60;
+export const mutationImprovementRequestReserve = 4;
 
 export const verificationPolicySchema = z.object({
   mutationChecks: z.boolean().default(true),
   // Omitted means no request limit; usage is still recorded for every request.
   modelRequestLimit: z.number().int().min(1).optional(),
   modelTimeoutSeconds: z.number().int().min(0).max(86400).optional(),
+  mutationReviewRequestLimit: z.number().int().min(0).optional(),
+  mutationReviewTimeoutSeconds: z.number().int().min(1).max(86400).optional(),
 });
 export type VerificationPolicy = z.infer<typeof verificationPolicySchema>;
 export const interactivePolicy: VerificationPolicy = { mutationChecks: false };
@@ -67,6 +72,15 @@ export function mutationAssessmentMissing(report: PythonReport, files: string[] 
   // A request is not execution evidence. Fresh runs always record their policy.
   const mutation = report.mutations.at(-1);
   return report.policy !== undefined && !mutation || mutation?.scope?.kind === 'executed_lines' && files.some(file => !projectTestFile(file, report.testDiscovery?.baselineFiles) && file !== mutation.scope!.file);
+}
+
+/** A failed optional assessment does not erase an already executed, saved suite. */
+export function referenceReplayEligible(report: PythonReport) {
+  const measured = report.measurements.at(-1), approved = report.tests.filter(test => test.approved);
+  const terminal = report.status === 'completed' || report.status === 'failed' && /mutation relevance batch|(?:Re-)?[Mm]easure selected mutations/.test(report.stage);
+  return terminal && !!measured?.integrity && !measured.timedOut && [0, 1].includes(measured.exitCode) && approved.length > 0 &&
+    new Set(measured.outcomes.map(outcome => outcome.node)).size === measured.outcomes.length && approved.every(test =>
+      measured.outcomes.some(outcome => outcome.file === testFile(test.id, report.runtime) && outcome.name.split('[')[0] === test.functionName && ['passed', 'failed'].includes(outcome.status)));
 }
 
 // Existing platform skips are not generated-test failures, but newly skipped checks are unsafe.

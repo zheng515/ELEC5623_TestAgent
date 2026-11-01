@@ -1,0 +1,31 @@
+{
+  "purpose": "pilot",
+  "baselineProtocol": "proposal",
+  "repeat": 1,
+  "variants": ["B0", "B1", "B2", "B3"],
+  "sharedInitialSuite": false,
+  "diagnosisAblation": false,
+  "policy": {
+    "mutationChecks": true,
+    "modelRequestLimit": 32,
+    "mutationReviewRequestLimit": 4,
+    "mutationReviewTimeoutSeconds": 60,
+    "modelTimeoutSeconds": 300
+  },
+  "cases": [
+    {
+      "id": "booking-boundary-fault",
+      "project": "examples/benchmark/booking/project",
+      "requirements": "examples/benchmark/booking/SRS.txt",
+      "gold": "examples/benchmark/booking/gold.json",
+      "oracle": "examples/closed-loop-smoke/booking.oracle.py"
+    },
+    {
+      "id": "inventory-contract-fault",
+      "project": "examples/benchmark/inventory/project",
+      "requirements": "examples/benchmark/inventory/SRS.txt",
+      "gold": "examples/benchmark/inventory/gold.json",
+      "oracle": "examples/experiments/oracles/inventory.py"
+    }
+  ]
+}

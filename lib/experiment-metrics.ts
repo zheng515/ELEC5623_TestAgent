@@ -3,6 +3,16 @@ import { testFile } from './runtime';
 import type { Gold, FaultProbe } from './evaluation';
 import type { PythonReport, Mutation, Measurement } from './python-types';
 import { executableSuiteHash } from './test-suite';
+import { referenceReplayEligible } from './verification-policy';
+
+export function experimentCompletion(planned: number, runs: { status: PythonReport['status']; limited: boolean }[]) {
+  const completed = runs.filter(run => run.status === 'completed').length;
+  const failed = runs.filter(run => run.status === 'failed').length;
+  const cancelled = runs.filter(run => run.status === 'cancelled').length;
+  const missing = planned - runs.length, limited = runs.filter(run => run.limited).length;
+  return { planned, completed, failed, cancelled, missing, limited,
+    status: completed !== planned ? 'completed_with_failures' : limited ? 'completed_with_limits' : 'completed' };
+}
 
 export type ExperimentEntry = { caseId: string; variant: string; repeat: number; report: string; gold: string; review: string; requests?: string; reference?: string; referenceExecution?: string; elapsedMs?: number; fault?: FaultProbe; initialReport?: string; preparationReport?: string };
 export type RequestRecord = { elapsedMs: number; usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number }; error?: string };
@@ -56,7 +66,7 @@ export function experimentRow({ entry, report, gold, reference, referenceExecuti
   const referenceValid = !!report && !!reference?.valid && reference.sourceFingerprint === report.fingerprint && reference.faultHash === faultHash;
   const suiteHash = report ? createHash('sha256').update(JSON.stringify(report.tests.filter(test => test.approved).map(test => ({ id: test.id, code: test.code })))).digest('hex') : null;
   const referenceOutcomes = referenceExecution?.outcomes.filter(outcome => report?.tests.some(test => test.approved && outcome.file === testFile(test.id, report.runtime))) || [];
-  const referenceUsable = referenceValid && report?.status === 'completed' && referenceExecution?.sourceFingerprint === report.fingerprint && referenceExecution?.suiteHash === suiteHash && referenceExecution?.integrity === true && !referenceExecution.timedOut && [0, 1].includes(referenceExecution.exitCode) && referenceOutcomes.length > 0 && !referenceExecution.outcomes.some(outcome => ['error', 'skipped'].includes(outcome.status));
+  const referenceUsable = referenceValid && !!report && referenceReplayEligible(report) && referenceExecution?.sourceFingerprint === report.fingerprint && referenceExecution?.suiteHash === suiteHash && referenceExecution?.integrity === true && !referenceExecution.timedOut && [0, 1].includes(referenceExecution.exitCode) && referenceOutcomes.length > 0 && !referenceExecution.outcomes.some(outcome => ['error', 'skipped'].includes(outcome.status));
   const faultDetection = (phase: 'before' | 'after') => {
     if (!referenceValid || report?.status !== 'completed' || !gold?.fault || entry.fault?.id !== gold.fault.id) return null;
     const measurement = phase === 'before' ? report.measurements[0] : latest;
@@ -94,6 +104,9 @@ export function experimentRow({ entry, report, gold, reference, referenceExecuti
     executionRecorded: !!latest, executionIntegrity: latest ? latest.integrity === true && !latest.timedOut : null,
     completedWithExecution: report?.status === 'completed' && !!latest?.integrity && !latest.timedOut && outcomes.some(outcome => ['passed', 'failed'].includes(outcome.status) && outcome.name !== '<module>'),
     improvementActions: report?.improvements.length ?? null,
+    mutationReviewLimited: !!report?.mutationReview?.stopReason,
+    mutationReviewPendingPairs: report?.mutationReview?.pendingPairs ?? null,
+    mutationReviewRequests: report?.mutationReview?.requestsUsed ?? null,
     faultCase: !!gold?.fault, referenceValid,
     faultBefore: faultDetection('before'),
     faultAfter: faultDetection('after'),
@@ -118,6 +131,7 @@ export function summarizeExperiment(items: ExperimentItem[]) {
     return {
       variant, plannedRuns: runs.length, completed: runs.filter(row => row.status === 'completed').length,
       failed: runs.filter(row => row.status === 'failed').length, missing: runs.filter(row => row.status === 'missing').length,
+      mutationReviewLimitedRuns: runs.filter(row => row.mutationReviewLimited).length,
       completionRate: ratio(runs.filter(row => row.status === 'completed').length, runs.length),
       completedWithExecutionRate: ratio(runs.filter(row => row.completedWithExecution).length, runs.length),
       medianSeconds: elapsed.length ? elapsed.length % 2 ? elapsed[Math.floor(elapsed.length / 2)] : (elapsed[elapsed.length / 2 - 1] + elapsed[elapsed.length / 2]) / 2 : null,

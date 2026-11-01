@@ -43,7 +43,11 @@ improvement budget prevents repeated optimization against the same implementatio
 
 ## Depth and stopping policy
 
-Policy v21 retains requirement checks with no request-count limit by default. Users may set any positive request limit; experiment manifests keep explicit budgets.
+Policy v22 retains requirement checks with no global request-count limit by default. Users may set any positive request limit; experiment manifests keep explicit budgets.
+Optional mutation review shares four requests and 60 seconds across its phases,
+with four global requests reserved before improvement. Terminal review is skipped
+after an applied improvement when mutation execution is incomplete. Unreviewed
+pairs remain unknown; see [the budget policy](mutation-review-budget.md).
 An improvement repeating an already approved test's executable, behavior link,
 quote and gap mapping is retained as a non-applied proposal. It causes no new
 model review or execution and cannot count as a repair. Previously blocked tests

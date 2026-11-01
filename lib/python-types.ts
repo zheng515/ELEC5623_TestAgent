@@ -112,6 +112,11 @@ export type Mutation = { incomplete: boolean; mutants: { id: string; file: strin
 export type DiagnosisPhase = 'collection' | 'baseline' | 'execution' | 'remeasurement';
 type Diagnosis = z.infer<typeof diagnosisSchema>["decisions"][number] & { phase?: DiagnosisPhase };
 export type PythonReport = {
+  mutationReview?: {
+    requestLimit: number; timeoutSeconds: number; requestsUsed: number; elapsedMs: number;
+    totalPairs: number; reviewedPairs: number; pendingPairs: number; incomplete: boolean;
+    stopReason?: 'request_limit' | 'time_limit' | 'global_budget' | 'improvement_reserve' | 'incomplete_execution';
+  };
   testDiscovery?: { totalNodes: number; complete: boolean; modelSelectedNodes: number; modelOmittedNodes: number; catalogSha256: string; baselineFiles: string[]; assets: { file: string; bytes: number; sha256: string }[] };
   policy?: VerificationPolicy;
   resources?: {

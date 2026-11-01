@@ -1,0 +1,928 @@
+[
+  {
+    "caseId": "click-full",
+    "variant": "B2",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [],
+    "finalFailedNodes": [],
+    "diagnoses": [],
+    "improvements": 0,
+    "stopReason": "No further improvement was selected under this run's policy. Recorded passes do not resolve any remaining verification gaps. Mutation review stopped (request_limit); 1168 behavior pairs remain unreviewed. Mutation assurance is incomplete.",
+    "mutationReview": {
+      "requestLimit": 4,
+      "timeoutSeconds": 60,
+      "requestsUsed": 4,
+      "elapsedMs": 46104,
+      "totalPairs": 1232,
+      "reviewedPairs": 64,
+      "pendingPairs": 1168,
+      "incomplete": true,
+      "stopReason": "request_limit"
+    },
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps (batch 1 of 3).",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_count_default_is_integer_one",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_count_default_is_integer_one():\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", default=1, type=int)\n    def cli(count):\n        received.append(count)\n        click.echo(count)\n\n    result = CliRunner().invoke(cli, [])\n    assert result.exit_code == 0\n    assert received == [1]\n    assert isinstance(received[0], int) and not isinstance(received[0], bool)\n    assert result.output == \"1\\n\"",
+            "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+            "purpose": "Checks the documented absent-option default value, callback argument type, exit code, and echoed output.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test uses the specified option declaration and no-option input, then checks the callback value and integer type, successful exit, and exact output required by R1.",
+              "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+              "definedScope": null
+            },
+            "review": "The test uses the specified option declaration and no-option input, then checks the callback value and integer type, successful exit, and exact output required by R1."
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B2",
+            "functionName": "test_count_explicit_value_is_integer_three",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_count_explicit_value_is_integer_three():\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", default=1, type=int)\n    def cli(count):\n        received.append(count)\n        click.echo(count)\n\n    result = CliRunner().invoke(cli, [\"--count\", \"3\"])\n    assert result.exit_code == 0\n    assert received == [3]\n    assert isinstance(received[0], int) and not isinstance(received[0], bool)\n    assert result.output == \"3\\n\"",
+            "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+            "purpose": "Checks the documented supplied integer value, callback receipt, exit code, and echoed output.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T2",
+              "supported": true,
+              "reason": "The test checks the specified --count input, callback value and integer type, successful exit, and exact output required by R1.",
+              "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+              "definedScope": null
+            },
+            "review": "The test checks the specified --count input, callback value and integer type, successful exit, and exact output required by R1."
+          },
+          {
+            "id": "T3",
+            "behaviorId": "B3",
+            "functionName": "test_non_integer_count_is_rejected_without_callback",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_non_integer_count_is_rejected_without_callback():\n    called = []\n\n    @click.command()\n    @click.option(\"--count\", type=int)\n    def cli(count):\n        called.append(count)\n\n    result = CliRunner().invoke(cli, [\"--count\", \"not-an-integer\"])\n    assert result.exit_code == 2\n    assert called == []",
+            "quote": "R2: For a command with '--count' of type=int, invoking ['--count', 'not-an-integer'] rejects the input with exit_code 2 and does not call the command callback.",
+            "purpose": "Checks rejection of the specified invalid integer input and confirms that the callback was not invoked.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T3",
+              "supported": true,
+              "reason": "The test checks the specified invalid integer input, exit code 2, and that the callback was not called, as required by R2.",
+              "quote": "R2: For a command with '--count' of type=int, invoking ['--count', 'not-an-integer'] rejects the input with exit_code 2 and does not call the command callback.",
+              "definedScope": null
+            },
+            "review": "The test checks the specified invalid integer input, exit code 2, and that the callback was not called, as required by R2."
+          },
+          {
+            "id": "T4",
+            "behaviorId": "B4",
+            "functionName": "test_multiple_message_default_is_empty_tuple",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_multiple_message_default_is_empty_tuple():\n    received = []\n\n    @click.command()\n    @click.option(\"--message\", multiple=True)\n    def cli(message):\n        received.append(message)\n\n    result = CliRunner().invoke(cli, [])\n    assert result.exit_code == 0\n    assert received == [()]\n    assert isinstance(received[0], tuple)",
+            "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+            "purpose": "Checks the documented empty tuple delivered to the callback when the repeatable option is absent, and successful invocation.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T4",
+              "supported": true,
+              "reason": "The test checks that omitting the repeatable option passes an empty tuple to the callback and succeeds, as required by R3.",
+              "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+              "definedScope": null
+            },
+            "review": "The test checks that omitting the repeatable option passes an empty tuple to the callback and succeeds, as required by R3."
+          },
+          {
+            "id": "T5",
+            "behaviorId": "B5",
+            "functionName": "test_multiple_messages_preserve_order",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_multiple_messages_preserve_order():\n    received = []\n\n    @click.command()\n    @click.option(\"--message\", multiple=True)\n    def cli(message):\n        received.append(message)\n\n    result = CliRunner().invoke(\n        cli, [\"--message\", \"first\", \"--message\", \"second\"]\n    )\n    assert result.exit_code == 0\n    assert received == [(\"first\", \"second\")]\n    assert isinstance(received[0], tuple)",
+            "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+            "purpose": "Checks that repeated message options reach the callback as the documented ordered tuple and the invocation succeeds.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T5",
+              "supported": true,
+              "reason": "The test checks that the specified repeated options produce the ordered callback tuple and a successful exit, as required by R3.",
+              "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+              "definedScope": null
+            },
+            "review": "The test checks that the specified repeated options produce the ordered callback tuple and a successful exit, as required by R3."
+          },
+          {
+            "id": "T6",
+            "behaviorId": "B6",
+            "functionName": "test_verbose_flag_defaults_to_false",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_verbose_flag_defaults_to_false():\n    received = []\n\n    @click.command()\n    @click.option(\"--verbose\", is_flag=True, default=False)\n    def cli(verbose):\n        received.append(verbose)\n\n    result = CliRunner().invoke(cli, [])\n    assert result.exit_code == 0\n    assert received == [False]\n    assert isinstance(received[0], bool)",
+            "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+            "purpose": "Checks the documented callback value and successful exit when the flag is omitted.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T6",
+              "supported": true,
+              "reason": "The test checks the specified omitted-flag callback value and successful exit. The bool assertion also verifies the promised boolean value's semantic type.",
+              "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+              "definedScope": null
+            },
+            "review": "The test checks the specified omitted-flag callback value and successful exit. The bool assertion also verifies the promised boolean value's semantic type."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1",
+          "R2",
+          "R3",
+          "R4"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test uses the specified option declaration and no-option input, then checks the callback value and integer type, successful exit, and exact output required by R1.",
+            "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+            "definedScope": null
+          },
+          {
+            "testId": "T2",
+            "supported": true,
+            "reason": "The test checks the specified --count input, callback value and integer type, successful exit, and exact output required by R1.",
+            "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+            "definedScope": null
+          },
+          {
+            "testId": "T3",
+            "supported": true,
+            "reason": "The test checks the specified invalid integer input, exit code 2, and that the callback was not called, as required by R2.",
+            "quote": "R2: For a command with '--count' of type=int, invoking ['--count', 'not-an-integer'] rejects the input with exit_code 2 and does not call the command callback.",
+            "definedScope": null
+          },
+          {
+            "testId": "T4",
+            "supported": true,
+            "reason": "The test checks that omitting the repeatable option passes an empty tuple to the callback and succeeds, as required by R3.",
+            "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+            "definedScope": null
+          },
+          {
+            "testId": "T5",
+            "supported": true,
+            "reason": "The test checks that the specified repeated options produce the ordered callback tuple and a successful exit, as required by R3.",
+            "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+            "definedScope": null
+          },
+          {
+            "testId": "T6",
+            "supported": true,
+            "reason": "The test checks the specified omitted-flag callback value and successful exit. The bool assertion also verifies the promised boolean value's semantic type.",
+            "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+            "complete": true,
+            "reason": "The supported tests cover both explicitly stated cases: no option supplied and --count set to 3.",
+            "testIds": [
+              "T1",
+              "T2"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R2",
+            "quote": "R2: For a command with '--count' of type=int, invoking ['--count', 'not-an-integer'] rejects the input with exit_code 2 and does not call the command callback.",
+            "complete": true,
+            "reason": "The supported test covers the specified invalid input, rejection exit code, and callback non-invocation.",
+            "testIds": [
+              "T3"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R3",
+            "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+            "complete": true,
+            "reason": "The supported tests cover both explicitly stated cases: no message supplied and the two repeated message options in order.",
+            "testIds": [
+              "T4",
+              "T5"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R4",
+            "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+            "complete": false,
+            "reason": "The supported test covers the omitted-flag case, but the explicitly stated enabled-flag case has no supported test.",
+            "testIds": [
+              "T6"
+            ],
+            "missingExamples": [
+              "True for ['--verbose']"
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps (batch 2 of 3).",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T7",
+            "behaviorId": "B7",
+            "functionName": "test_verbose_flag_true",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_verbose_flag_true():\n    received = []\n\n    @click.command()\n    @click.option(\"--verbose\", is_flag=True, default=False)\n    def cli(verbose):\n        received.append(verbose)\n\n    result = CliRunner().invoke(cli, [\"--verbose\"])\n\n    assert result.exit_code == 0\n    assert received == [True]\n",
+            "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+            "purpose": "Check that supplying --verbose succeeds and the callback receives True.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T7",
+              "supported": true,
+              "reason": "Defines the specified command and checks that supplying `--verbose` exits successfully and delivers `True` to the callback, as required for this assigned case.",
+              "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+              "definedScope": null
+            },
+            "review": "Defines the specified command and checks that supplying `--verbose` exits successfully and delivers `True` to the callback, as required for this assigned case."
+          },
+          {
+            "id": "T8",
+            "behaviorId": "B8",
+            "functionName": "test_case_insensitive_choice_canonical_value",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_case_insensitive_choice_canonical_value():\n    received = []\n\n    @click.command()\n    @click.option(\n        \"--hash-type\", type=click.Choice([\"MD5\", \"SHA1\"], case_sensitive=False)\n    )\n    def cli(hash_type):\n        received.append(hash_type)\n\n    result = CliRunner().invoke(cli, [\"--hash-type\", \"md5\"])\n\n    assert result.exit_code == 0\n    assert received == [\"MD5\"]\n",
+            "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+            "purpose": "Check that lowercase md5 is accepted and delivered to the callback in canonical form.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T8",
+              "supported": true,
+              "reason": "Defines the specified case-insensitive choice and checks successful invocation with the canonical callback value `MD5` for input `md5`.",
+              "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+              "definedScope": null
+            },
+            "review": "Defines the specified case-insensitive choice and checks successful invocation with the canonical callback value `MD5` for input `md5`."
+          },
+          {
+            "id": "T9",
+            "behaviorId": "B9",
+            "functionName": "test_invalid_hash_choice_rejected",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_invalid_hash_choice_rejected():\n    received = []\n\n    @click.command()\n    @click.option(\n        \"--hash-type\", type=click.Choice([\"MD5\", \"SHA1\"], case_sensitive=False)\n    )\n    def cli(hash_type):\n        received.append(hash_type)\n\n    result = CliRunner().invoke(cli, [\"--hash-type\", \"sha256\"])\n\n    assert result.exit_code == 2\n    assert received == []\n",
+            "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+            "purpose": "Check that sha256 is rejected with exit code 2 and does not invoke the callback.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T9",
+              "supported": true,
+              "reason": "Checks that the specified invalid input exits with code 2 and leaves the callback's received values empty, showing it was not called.",
+              "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+              "definedScope": null
+            },
+            "review": "Checks that the specified invalid input exits with code 2 and leaves the callback's received values empty, showing it was not called."
+          },
+          {
+            "id": "T10",
+            "behaviorId": "B10",
+            "functionName": "test_intrange_inclusive_lower_boundary",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_intrange_inclusive_lower_boundary():\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(1, 3))\n    def cli(count):\n        received.append(count)\n\n    result = CliRunner().invoke(cli, [\"--count\", \"1\"])\n\n    assert result.exit_code == 0\n    assert received == [1]\n    assert isinstance(received[0], int) and not isinstance(received[0], bool)\n",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Check acceptance and integer callback value at the inclusive lower bound.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T10",
+              "supported": true,
+              "reason": "Checks the explicitly specified lower-bound input, success code, callback value, and integer semantic type (excluding bool).",
+              "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "Checks the explicitly specified lower-bound input, success code, callback value, and integer semantic type (excluding bool)."
+          },
+          {
+            "id": "T11",
+            "behaviorId": "B11",
+            "functionName": "test_intrange_inclusive_upper_boundary",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_intrange_inclusive_upper_boundary():\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(1, 3))\n    def cli(count):\n        received.append(count)\n\n    result = CliRunner().invoke(cli, [\"--count\", \"3\"])\n\n    assert result.exit_code == 0\n    assert received == [3]\n    assert isinstance(received[0], int) and not isinstance(received[0], bool)\n",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Check acceptance and integer callback value at the inclusive upper bound.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T11",
+              "supported": true,
+              "reason": "Checks the explicitly specified upper-bound input, success code, callback value, and integer semantic type (excluding bool).",
+              "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "Checks the explicitly specified upper-bound input, success code, callback value, and integer semantic type (excluding bool)."
+          },
+          {
+            "id": "T12",
+            "behaviorId": "B12",
+            "functionName": "test_intrange_below_lower_bound_rejected",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_intrange_below_lower_bound_rejected():\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(1, 3))\n    def cli(count):\n        received.append(count)\n\n    result = CliRunner().invoke(cli, [\"--count\", \"0\"])\n\n    assert result.exit_code == 2\n    assert received == []\n",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Check rejection below the range and that the callback is not called.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T12",
+              "supported": true,
+              "reason": "Checks the specified below-range input exits with code 2 and does not call the callback.",
+              "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "Checks the specified below-range input exits with code 2 and does not call the callback."
+          }
+        ],
+        "coverageRuleIds": [
+          "R4",
+          "R5",
+          "R6"
+        ],
+        "decisions": [
+          {
+            "testId": "T7",
+            "supported": true,
+            "reason": "Defines the specified command and checks that supplying `--verbose` exits successfully and delivers `True` to the callback, as required for this assigned case.",
+            "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+            "definedScope": null
+          },
+          {
+            "testId": "T8",
+            "supported": true,
+            "reason": "Defines the specified case-insensitive choice and checks successful invocation with the canonical callback value `MD5` for input `md5`.",
+            "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+            "definedScope": null
+          },
+          {
+            "testId": "T9",
+            "supported": true,
+            "reason": "Checks that the specified invalid input exits with code 2 and leaves the callback's received values empty, showing it was not called.",
+            "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+            "definedScope": null
+          },
+          {
+            "testId": "T10",
+            "supported": true,
+            "reason": "Checks the explicitly specified lower-bound input, success code, callback value, and integer semantic type (excluding bool).",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          },
+          {
+            "testId": "T11",
+            "supported": true,
+            "reason": "Checks the explicitly specified upper-bound input, success code, callback value, and integer semantic type (excluding bool).",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          },
+          {
+            "testId": "T12",
+            "supported": true,
+            "reason": "Checks the specified below-range input exits with code 2 and does not call the callback.",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R4",
+            "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+            "complete": false,
+            "reason": "The supported test checks the supplied-flag case, but the rule also explicitly requires the no-arguments case to deliver `False` and succeed.",
+            "testIds": [
+              "T7"
+            ],
+            "missingExamples": [
+              "the callback receives False with no arguments"
+            ]
+          },
+          {
+            "ruleId": "R5",
+            "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+            "complete": true,
+            "reason": "The supported tests cover both explicitly stated inputs: `md5` is accepted and delivered canonically, and `sha256` is rejected with exit code 2 without calling the callback.",
+            "testIds": [
+              "T8",
+              "T9"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R6",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": false,
+            "reason": "The supported tests cover the two accepted endpoints and the lower rejected input, but omit the explicitly stated upper rejected input.",
+            "testIds": [
+              "T10",
+              "T11",
+              "T12"
+            ],
+            "missingExamples": [
+              "The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps (batch 3 of 3).",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T13",
+            "behaviorId": "B13",
+            "functionName": "test_intrange_rejects_above_maximum",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_intrange_rejects_above_maximum():\n    callback_calls = []\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(1, 3))\n    def command(count):\n        callback_calls.append(count)\n\n    result = CliRunner().invoke(command, [\"--count\", \"4\"])\n\n    assert result.exit_code == 2\n    assert callback_calls == []\n",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Check that the specified value above the IntRange maximum is rejected with exit code 2 and the command callback is not called.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T13",
+              "supported": true,
+              "reason": "The test uses the required `click.IntRange(1, 3)` option and input `'4'`, then checks both specified outcomes: exit code 2 and no callback invocation. These assertions are explicitly supported by the requirement.",
+              "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "The test uses the required `click.IntRange(1, 3)` option and input `'4'`, then checks both specified outcomes: exit code 2 and no callback invocation. These assertions are explicitly supported by the requirement."
+          }
+        ],
+        "coverageRuleIds": [
+          "R6"
+        ],
+        "decisions": [
+          {
+            "testId": "T13",
+            "supported": true,
+            "reason": "The test uses the required `click.IntRange(1, 3)` option and input `'4'`, then checks both specified outcomes: exit code 2 and no callback invocation. These assertions are explicitly supported by the requirement.",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R6",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": false,
+            "reason": "The supported proposal checks the specified above-maximum rejection case only. The requirement also explicitly specifies acceptance at both inclusive boundaries and rejection below the minimum; those cases are not covered by the supported proposal or retained tests.",
+            "testIds": [
+              "T13"
+            ],
+            "missingExamples": [
+              "The inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0.",
+              "The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback."
+            ]
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/click-full-B2-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/click-full-B2-1/report.json"
+  },
+  {
+    "caseId": "click-full",
+    "variant": "B3",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [],
+    "finalFailedNodes": [],
+    "diagnoses": [],
+    "improvements": 0,
+    "stopReason": "The improvement was not admitted. Earlier approved tests remain active; the single improvement budget is exhausted. Mutation review stopped (request_limit); 840 behavior pairs remain unreviewed. Mutation assurance is incomplete.",
+    "mutationReview": {
+      "requestLimit": 4,
+      "timeoutSeconds": 60,
+      "requestsUsed": 4,
+      "elapsedMs": 44452,
+      "totalPairs": 904,
+      "reviewedPairs": 64,
+      "pendingPairs": 840,
+      "incomplete": true,
+      "stopReason": "request_limit"
+    },
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps (batch 1 of 2).",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_count_default_and_explicit_value",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_count_default_and_explicit_value():\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", default=1, type=int)\n    def cli(count):\n        received.append(count)\n        click.echo(count)\n\n    runner = CliRunner()\n    omitted = runner.invoke(cli, [])\n    assert omitted.exit_code == 0\n    assert received[-1] == 1\n    assert omitted.output == \"1\\n\"\n\n    explicit = runner.invoke(cli, [\"--count\", \"3\"])\n    assert explicit.exit_code == 0\n    assert received[-1] == 3\n    assert explicit.output == \"3\\n\"",
+            "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+            "purpose": "Checks the default and explicit integer values delivered to the callback, along with successful exit and exact echoed output for both required invocations.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test defines the required option and callback, checks callback values for both specified inputs, and verifies both exit codes and exact output strings.",
+              "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+              "definedScope": null
+            },
+            "review": "The test defines the required option and callback, checks callback values for both specified inputs, and verifies both exit codes and exact output strings."
+          },
+          {
+            "id": "T2",
+            "behaviorId": "B2",
+            "functionName": "test_non_integer_count_is_rejected_without_callback",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_non_integer_count_is_rejected_without_callback():\n    called = []\n\n    @click.command()\n    @click.option(\"--count\", type=int)\n    def cli(count):\n        called.append(count)\n\n    result = CliRunner().invoke(cli, [\"--count\", \"not-an-integer\"])\n    assert result.exit_code == 2\n    assert called == []",
+            "quote": "R2: For a command with '--count' of type=int, invoking ['--count', 'not-an-integer'] rejects the input with exit_code 2 and does not call the command callback.",
+            "purpose": "Verifies the specified invalid integer input exits with code 2 and never invokes the callback.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T2",
+              "supported": true,
+              "reason": "The test checks the specified invalid input, exit code 2, and that the callback was not called.",
+              "quote": "R2: For a command with '--count' of type=int, invoking ['--count', 'not-an-integer'] rejects the input with exit_code 2 and does not call the command callback.",
+              "definedScope": null
+            },
+            "review": "The test checks the specified invalid input, exit code 2, and that the callback was not called."
+          },
+          {
+            "id": "T3",
+            "behaviorId": "B3",
+            "functionName": "test_multiple_message_values",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_multiple_message_values():\n    received = []\n\n    @click.command()\n    @click.option(\"--message\", multiple=True)\n    def cli(message):\n        received.append(message)\n\n    runner = CliRunner()\n    omitted = runner.invoke(cli, [])\n    assert omitted.exit_code == 0\n    assert received[-1] == ()\n\n    supplied = runner.invoke(cli, [\"--message\", \"first\", \"--message\", \"second\"])\n    assert supplied.exit_code == 0\n    assert received[-1] == (\"first\", \"second\")",
+            "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+            "purpose": "Checks both the empty tuple default and ordered tuple of repeated values, with successful exits.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T3",
+              "supported": true,
+              "reason": "The test checks the callback receives the empty tuple when omitted and the ordered tuple for the two repeated values, with exit code 0 in each case.",
+              "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+              "definedScope": null
+            },
+            "review": "The test checks the callback receives the empty tuple when omitted and the ordered tuple for the two repeated values, with exit code 0 in each case."
+          },
+          {
+            "id": "T4",
+            "behaviorId": "B4",
+            "functionName": "test_verbose_flag_default_and_enabled",
+            "gapIndexes": [
+              0,
+              1
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_verbose_flag_default_and_enabled():\n    received = []\n\n    @click.command()\n    @click.option(\"--verbose\", is_flag=True, default=False)\n    def cli(verbose):\n        received.append(verbose)\n\n    runner = CliRunner()\n    omitted = runner.invoke(cli, [])\n    assert omitted.exit_code == 0\n    assert received[-1] is False\n\n    enabled = runner.invoke(cli, [\"--verbose\"])\n    assert enabled.exit_code == 0\n    assert received[-1] is True",
+            "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+            "purpose": "Checks the flag's false default and true enabled value, and success for each invocation.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T4",
+              "supported": true,
+              "reason": "The test checks both specified callback boolean values and verifies successful exit for each invocation.",
+              "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+              "definedScope": null
+            },
+            "review": "The test checks both specified callback boolean values and verifies successful exit for each invocation."
+          },
+          {
+            "id": "T5",
+            "behaviorId": "B5",
+            "functionName": "test_case_insensitive_choice_returns_canonical_value",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_case_insensitive_choice_returns_canonical_value():\n    received = []\n\n    @click.command()\n    @click.option(\"--hash-type\", type=click.Choice([\"MD5\", \"SHA1\"], case_sensitive=False))\n    def cli(hash_type):\n        received.append(hash_type)\n\n    result = CliRunner().invoke(cli, [\"--hash-type\", \"md5\"])\n    assert result.exit_code == 0\n    assert received == [\"MD5\"]",
+            "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+            "purpose": "Verifies lowercase input is accepted and the callback receives the specified canonical choice.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T5",
+              "supported": true,
+              "reason": "The test uses the specified case-insensitive choices and input, then checks successful exit and the canonical callback value.",
+              "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+              "definedScope": null
+            },
+            "review": "The test uses the specified case-insensitive choices and input, then checks successful exit and the canonical callback value."
+          },
+          {
+            "id": "T6",
+            "behaviorId": "B6",
+            "functionName": "test_invalid_hash_choice_is_rejected_without_callback",
+            "gapIndexes": [
+              0
+            ],
+            "code": "import click\nfrom click.testing import CliRunner\n\n\ndef test_invalid_hash_choice_is_rejected_without_callback():\n    called = []\n\n    @click.command()\n    @click.option(\"--hash-type\", type=click.Choice([\"MD5\", \"SHA1\"], case_sensitive=False))\n    def cli(hash_type):\n        called.append(hash_type)\n\n    result = CliRunner().invoke(cli, [\"--hash-type\", \"sha256\"])\n    assert result.exit_code == 2\n    assert called == []",
+            "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+            "purpose": "Verifies the specified unsupported choice exits with code 2 without invoking the callback.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T6",
+              "supported": true,
+              "reason": "The test checks the specified rejected choice, exit code 2, and callback non-invocation.",
+              "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+              "definedScope": null
+            },
+            "review": "The test checks the specified rejected choice, exit code 2, and callback non-invocation."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test defines the required option and callback, checks callback values for both specified inputs, and verifies both exit codes and exact output strings.",
+            "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+            "definedScope": null
+          },
+          {
+            "testId": "T2",
+            "supported": true,
+            "reason": "The test checks the specified invalid input, exit code 2, and that the callback was not called.",
+            "quote": "R2: For a command with '--count' of type=int, invoking ['--count', 'not-an-integer'] rejects the input with exit_code 2 and does not call the command callback.",
+            "definedScope": null
+          },
+          {
+            "testId": "T3",
+            "supported": true,
+            "reason": "The test checks the callback receives the empty tuple when omitted and the ordered tuple for the two repeated values, with exit code 0 in each case.",
+            "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+            "definedScope": null
+          },
+          {
+            "testId": "T4",
+            "supported": true,
+            "reason": "The test checks both specified callback boolean values and verifies successful exit for each invocation.",
+            "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+            "definedScope": null
+          },
+          {
+            "testId": "T5",
+            "supported": true,
+            "reason": "The test uses the specified case-insensitive choices and input, then checks successful exit and the canonical callback value.",
+            "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+            "definedScope": null
+          },
+          {
+            "testId": "T6",
+            "supported": true,
+            "reason": "The test checks the specified rejected choice, exit code 2, and callback non-invocation.",
+            "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "R1: For a command with option '--count' declared with default=1 and type=int, the callback receives the integer 1 when no option is supplied and the integer 3 for ['--count', '3']. A callback that echoes the count has exit_code 0 and output '1\\n' and '3\\n', respectively.",
+            "complete": true,
+            "reason": "T1 covers both explicitly specified inputs, callback values, successful exits, and exact output strings.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R2",
+            "quote": "R2: For a command with '--count' of type=int, invoking ['--count', 'not-an-integer'] rejects the input with exit_code 2 and does not call the command callback.",
+            "complete": true,
+            "reason": "T2 covers the specified invalid input, exit code, and callback non-invocation.",
+            "testIds": [
+              "T2"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R3",
+            "quote": "R3: For a command with click.option('--message', multiple=True), the callback receives an empty tuple when no message is supplied and the ordered tuple ('first', 'second') for ['--message', 'first', '--message', 'second']; both invocations succeed with exit_code 0.",
+            "complete": true,
+            "reason": "T3 covers both the omitted-option case and the specified ordered repeated-value case, including successful exits.",
+            "testIds": [
+              "T3"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R4",
+            "quote": "R4: For a command with click.option('--verbose', is_flag=True, default=False), the callback receives False with no arguments and True for ['--verbose']; both invocations succeed with exit_code 0.",
+            "complete": true,
+            "reason": "T4 covers both the omitted-flag and enabled-flag cases, including callback values and successful exits.",
+            "testIds": [
+              "T4"
+            ],
+            "missingExamples": []
+          },
+          {
+            "ruleId": "R5",
+            "quote": "R5: For a command with option '--hash-type' using click.Choice(['MD5', 'SHA1'], case_sensitive=False), the input 'md5' is accepted and delivered to the callback as the canonical choice 'MD5'. An input of 'sha256' is rejected with exit_code 2 and does not call the callback.",
+            "complete": true,
+            "reason": "T5 and T6 together cover the accepted canonical-choice case and rejected-choice case, including the required exit and callback behavior.",
+            "testIds": [
+              "T5",
+              "T6"
+            ],
+            "missingExamples": []
+          }
+        ]
+      },
+      {
+        "phase": "generation",
+        "reason": "Generate checks from the original requirements and identified gaps (batch 2 of 2).",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T7",
+            "behaviorId": "B7",
+            "functionName": "test_intrange_accepts_lower_inclusive_boundary",
+            "gapIndexes": [
+              0
+            ],
+            "code": "def test_intrange_accepts_lower_inclusive_boundary():\n    import click\n    from click.testing import CliRunner\n\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(1, 3))\n    def cli(count):\n        received.append(count)\n\n    result = CliRunner().invoke(cli, [\"--count\", \"1\"])\n\n    assert result.exit_code == 0\n    assert received == [1]\n    assert isinstance(received[0], int)\n    assert not isinstance(received[0], bool)",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Checks that the lower inclusive IntRange boundary is accepted, delivered as an integer, and exits successfully.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T7",
+              "supported": true,
+              "reason": "Uses an explicitly defined inclusive lower-bound input and checks successful exit, callback delivery of the required value, and integer semantics excluding bool.",
+              "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "Uses an explicitly defined inclusive lower-bound input and checks successful exit, callback delivery of the required value, and integer semantics excluding bool."
+          },
+          {
+            "id": "T8",
+            "behaviorId": "B8",
+            "functionName": "test_intrange_accepts_upper_inclusive_boundary",
+            "gapIndexes": [
+              0
+            ],
+            "code": "def test_intrange_accepts_upper_inclusive_boundary():\n    import click\n    from click.testing import CliRunner\n\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(1, 3))\n    def cli(count):\n        received.append(count)\n\n    result = CliRunner().invoke(cli, [\"--count\", \"3\"])\n\n    assert result.exit_code == 0\n    assert received == [3]\n    assert isinstance(received[0], int)\n    assert not isinstance(received[0], bool)",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Checks that the upper inclusive IntRange boundary is accepted, delivered as an integer, and exits successfully.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T8",
+              "supported": true,
+              "reason": "Uses an explicitly defined inclusive upper-bound input and checks successful exit, callback delivery of the required value, and integer semantics excluding bool.",
+              "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "Uses an explicitly defined inclusive upper-bound input and checks successful exit, callback delivery of the required value, and integer semantics excluding bool."
+          },
+          {
+            "id": "T9",
+            "behaviorId": "B9",
+            "functionName": "test_intrange_rejects_value_below_lower_boundary",
+            "gapIndexes": [
+              0
+            ],
+            "code": "def test_intrange_rejects_value_below_lower_boundary():\n    import click\n    from click.testing import CliRunner\n\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(1, 3))\n    def cli(count):\n        received.append(count)\n\n    result = CliRunner().invoke(cli, [\"--count\", \"0\"])\n\n    assert result.exit_code == 2\n    assert received == []",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Checks that a value immediately below the range is rejected with exit code 2 and the callback is not called.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T9",
+              "supported": true,
+              "reason": "Uses an explicitly specified out-of-range value and checks exit code 2 and that the callback was not called.",
+              "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "Uses an explicitly specified out-of-range value and checks exit code 2 and that the callback was not called."
+          },
+          {
+            "id": "T10",
+            "behaviorId": "B10",
+            "functionName": "test_intrange_rejects_value_above_upper_boundary",
+            "gapIndexes": [
+              0
+            ],
+            "code": "def test_intrange_rejects_value_above_upper_boundary():\n    import click\n    from click.testing import CliRunner\n\n    received = []\n\n    @click.command()\n    @click.option(\"--count\", type=click.IntRange(1, 3))\n    def cli(count):\n        received.append(count)\n\n    result = CliRunner().invoke(cli, [\"--count\", \"4\"])\n\n    assert result.exit_code == 2\n    assert received == []",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "purpose": "Checks that a value immediately above the range is rejected with exit code 2 and the callback is not called.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T10",
+              "supported": true,
+              "reason": "Uses an explicitly specified out-of-range value and checks exit code 2 and that the callback was not called.",
+              "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+              "definedScope": null
+            },
+            "review": "Uses an explicitly specified out-of-range value and checks exit code 2 and that the callback was not called."
+          }
+        ],
+        "coverageRuleIds": [
+          "R6"
+        ],
+        "decisions": [
+          {
+            "testId": "T7",
+            "supported": true,
+            "reason": "Uses an explicitly defined inclusive lower-bound input and checks successful exit, callback delivery of the required value, and integer semantics excluding bool.",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          },
+          {
+            "testId": "T8",
+            "supported": true,
+            "reason": "Uses an explicitly defined inclusive upper-bound input and checks successful exit, callback delivery of the required value, and integer semantics excluding bool.",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          },
+          {
+            "testId": "T9",
+            "supported": true,
+            "reason": "Uses an explicitly specified out-of-range value and checks exit code 2 and that the callback was not called.",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          },
+          {
+            "testId": "T10",
+            "supported": true,
+            "reason": "Uses an explicitly specified out-of-range value and checks exit code 2 and that the callback was not called.",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R6",
+            "quote": "R6: For a command with option '--count' using click.IntRange(1, 3), the inputs '1' and '3' are accepted as integers 1 and 3 with exit_code 0. The inputs '0' and '4' are rejected with exit_code 2 and do not call the callback.",
+            "complete": true,
+            "reason": "The supported proposals collectively check every explicitly stated case: accepted inclusive bounds 1 and 3 with their required integer values and success status, and rejected values 0 and 4 with exit code 2 and no callback invocation.",
+            "testIds": [
+              "T7",
+              "T8",
+              "T9",
+              "T10"
+            ],
+            "missingExamples": []
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Add contract-grounded tests for reviewed relevant surviving mutants; keep all existing tests. Cover the reviewed independent behavior gaps rather than repeating checks for only the earliest mutant IDs. Assert only supported expectations, without incidental timezone identity, exact message text or precision requirements.",
+        "status": "rejected",
+        "tests": [],
+        "coverageRuleIds": [],
+        "decisions": [],
+        "coverage": []
+      }
+    ],
+    "referenceExecution": "evidence/click-full-B3-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/click-full-B3-1/report.json"
+  }
+]

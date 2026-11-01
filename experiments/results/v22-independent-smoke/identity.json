@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-02",
+  "timezone": "Australia/Sydney",
+  "frozenCommit": "bd12d236fe65009ba02655f48556b0b397e3f575",
+  "tag": "v22-benchmark-freeze",
+  "policyVersion": "contract-witness-v22-bounded-mutation-review",
+  "model": "gpt-6-luna",
+  "sandboxImage": "sha256:b64182700c09f1552bc215dc2d3cfdb933893e46138391140ecc306e562928da",
+  "agentFingerprint": "a8aa7515772720ec0546031fc576601bf2797173fb233f7d854166b08863daf2",
+  "manifestHash": "5a03c1065da8d4076499ec2aed8471b402bd89c8d32325fc24215bd17270877d",
+  "node": "v22.23.2",
+  "originalRun": ".evidence/evaluation/2026-11-01T15-11-26-365Z-6e9e58a5",
+  "plannedRuns": 4,
+  "status": "completed_with_limits",
+  "completion": {
+    "planned": 4,
+    "completed": 4,
+    "failed": 0,
+    "cancelled": 0,
+    "missing": 0,
+    "limited": 2,
+    "status": "completed_with_limits"
+  },
+  "planSha256": "0ba98c8a894c095eff0b0bd18577388b69da1a4cb28ff83d22a56d680fa69a27"
+}

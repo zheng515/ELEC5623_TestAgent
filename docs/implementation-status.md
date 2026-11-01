@@ -1,30 +1,21 @@
 # Current implementation status
 
-Policy: `contract-witness-v21-unchanged-proposal-stop`.
+Policy: `contract-witness-v22-bounded-mutation-review`.
 This inventory describes code, not the academic report.
+The [v22 review policy](mutation-review-budget.md) adds shared stage budgets,
+limited-assurance reporting and independent reference replay after failed optional
+assessment. The v22 studies are separately archived; old studies were retired as whole studies.
 
-The default CLI evaluates all four independent B0-B3 configurations with recorded
-effective capabilities. B0 excludes test/document context; B1 adds repository
-evidence without refinement. B2 repairs from generated failures without diagnostic
-classifications; B3 uses grounded diagnosis. Common admission/sandbox safeguards
-remain, with mutation enabled for both full profiles in the default matrix.
-Mutation evidence processing is bounded, and unresolved function mappings use
-observed execution lines. A four-run v20 model pilot completed on two existing
-fixtures; v21 rejects unchanged approved proposals. Retired v16-v19 studies and
-their dedicated inputs/scripts were removed. The exact no-op path remains covered
-by scripted regression rather than observed model proposals. A six-row v21 controlled study
-checks admission-driven recovery: both full arms correct the bad import and
-retain fault detection after strengthening the boundary candidate. Both initial
-candidates were blocked, so initial runtime diagnosis and strict unchanged
-retention are not successful measurements there. A separate adaptive typed-candidate
-follow-up admits the boundary test: both full arms retain it unchanged, and B3
-diagnoses its executed failure as a potential implementation defect. Neither
-study establishes runtime generated-test-error repair or a B3 detection advantage.
-A separate bounded Click observation naturally generated six tests; all passed
-shared admission and execution, so it exposed no runtime diagnosis/repair case.
-No further search was started and the missing effectiveness measure stays unavailable.
-[Rubric traceability](baseline-configurations.md) lists the code
-evidence and remaining annotation, usability and delivery requirements.
+The default CLI implements independent B0-B3 workflows with recorded effective
+capabilities. The frozen v22 studies are complete: 4 smoke + 36 repeated real-
+project + 8 synthetic fault workflows. See the
+[benchmark summary](../experiments/results/v22-summary/README.md).
+All real-project final generated nodes pass, and every configuration detects both
+synthetic faults. B3 provides grounded traces without additional fault detection.
+The full profiles cost more on measured real-project contracts; limited mutation
+assessment stays visible. No admitted generated runtime-error repair opportunity
+or independent semantic accuracy is established. Retired v20/v21 studies are
+excluded; reusable fixtures and deterministic regressions remain.
 
 ## Implemented
 
@@ -112,8 +103,9 @@ evidence and remaining annotation, usability and delivery requirements.
 
 See [current experiment and validation inventory](../experiments/README.md).
 Engineering tests and intercepted-API browser checks are separate from actual
-model observations. Deleted studies contribute no current scores. The retained
-v20 model pilot and tool check remain tied to their original frozen inputs.
+model observations. Deleted studies contribute no current scores. Retired
+model studies and tool checks are excluded from current results; their exported
+evidence is available through Git history recorded in the cleanup inventory.
 
 The 16-case AI-assisted reference and original trace inputs are retained as
 regression fixtures under `tests/fixtures/decision-reference*`. Old component

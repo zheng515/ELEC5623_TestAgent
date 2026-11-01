@@ -6,5 +6,7 @@
   "candidate": "T1",
   "candidateSha256": "dd6fa4fafd44f8bc9b8a4b30749a246eb2fcb3d74c86b61cbe1899a958a6bd4e",
   "changeFromOriginalSeed": "Adds integer-result witnesses while retaining cancellation_fee(24) == 0. The original value-only seed was admission-blocked.",
-  "reviewed": false
+  "reviewed": false,
+  "parentEvidenceRevision": "bd12d236fe65009ba02655f48556b0b397e3f575",
+  "parentEvidenceStatus": "Retired whole study; recover exported archive from the recorded Git revision. Not current v22 evidence."
 }

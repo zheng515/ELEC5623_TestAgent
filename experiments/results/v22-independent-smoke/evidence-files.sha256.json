@@ -1,0 +1,30 @@
+{
+  "scope": "Original uncompressed bytes and logical paths inside evidence.zip. Unzip to an evidence directory to use the frozen index.",
+  "files": {
+    "agent-snapshot.json": "a8aa7515772720ec0546031fc576601bf2797173fb233f7d854166b08863daf2",
+    "click-full-B0-1/reference-execution.json": "237b94dd1f42ea43b4d4a7e392e793f52e3f376bc434862dfe60b8ac7b7a80c8",
+    "click-full-B0-1/report.json": "788315b05694fb6e6f5fb703d427722238558af56811f3e844bf501cc3d8f273",
+    "click-full-B0-1/requests.json": "ed7a4cc421fc959518eb5c39a66ec6acd8b5615573f27f6f187a947e95d8266c",
+    "click-full-B0-1/review.json": "dfd6a9ddefeb775413d06af8a327af6933e92c76d49d98bef9d723f84aab7e40",
+    "click-full-B1-1/reference-execution.json": "b4589a02cb209446f297a4aa8399f93b05e56351ff027f68ad858c86a390e5ab",
+    "click-full-B1-1/report.json": "bbe77307670b3681825908feff912c81356d20843808ded1be683d13e70bcc7c",
+    "click-full-B1-1/requests.json": "87aaf4b1f9e94a7fff261f2c25a64f5c5188210c06ef04329427d737f9ac1e0e",
+    "click-full-B1-1/review.json": "1290a663803286e1b0a3859f7c18c262eb48b3af27f74e28bed40eab1cfdee11",
+    "click-full-B2-1/reference-execution.json": "125dc1a75b6af578c31262fb3e104ab58674fb58f6503b60fc5c922896548579",
+    "click-full-B2-1/report.json": "101d1d001677c8ce8acfe9896bfc712c29245f6a8c298209d9bc79f57b768c8e",
+    "click-full-B2-1/requests.json": "0bdfd6d8eecabe05c91a817d9fa419b5ea94fb53d55d0a5181e30bb1ad19bde3",
+    "click-full-B2-1/review.json": "332056c6f1a156302a675fc16d462c573fb7e66d7b883f9a0fe08466e9d4e2d6",
+    "click-full-B3-1/reference-execution.json": "a3c9bdbe7579bfe1cf18413f688ef207a3ab6cc51e7815ae8ff3540f6215fabe",
+    "click-full-B3-1/report.json": "4ab0bcac4b0bfd2d9cad41a532514510d0673c8131d2240c35cf50edeb612dd8",
+    "click-full-B3-1/requests.json": "b7b72129fae92b84cb0ab1ff79be4eaab0a3454187b32a6e02327c2ae7ee240d",
+    "click-full-B3-1/review.json": "aaaa1ca5208bcf1e9e8d2874df8fc7747b64bdc7c2c1f175373e73ab874d9741",
+    "click-full.gold.json": "a59fcec3fa249ff1988ff54cf4063369b26da30e77f98e061328219145607ac7",
+    "click-full.oracle.py": "7370d7f9e1bc6c0fdac5caf193e36ec7db361f5eee65abb4700cf63b79dc4932",
+    "click-full.reference.json": "e83fecaddb2ecad4d69f379de003e9a99319f6830becdf231ac895fca40ebff0",
+    "click-full.requirements.txt": "ae909c3fb850bbd57e5bf4d3dc818626d6f040ef3c6152a6eeff25cb120c49f8",
+    "click-full.zip": "506d225efdecdfeaa8288b2bc1d3086aff0ad0e43a2ff3c5fb302e4c64c252e8",
+    "index.json": "d93c096ff2d45fc2e2a8d3b3caf56b252e57749922a913616fec0b090a0e9228",
+    "manifest.json": "5a03c1065da8d4076499ec2aed8471b402bd89c8d32325fc24215bd17270877d",
+    "source-equivalence.json": "309612b7f608f15f3a608faefd8bfea552fe314689e1c1a84782ef63f764543d"
+  }
+}

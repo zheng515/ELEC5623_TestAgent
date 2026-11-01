@@ -1,53 +1,46 @@
 # Current experiments
 
-Implementation policy: `contract-witness-v21-unchanged-proposal-stop`.
+Frozen implementation: `bd12d236fe65009ba02655f48556b0b397e3f575`, tag
+`v22-benchmark-freeze`, policy `contract-witness-v22-bounded-mutation-review`.
 
-[Local production workflow acceptance](results/ui-workflow-2026-11-01/README.md)
-records real authentication, document upload, public GitHub preflight, queue/Docker
-saved-suite replay, exports, account isolation and responsive checks. It exposed
-and fixed sign-out mode/password state and workspace draft loss. The separate
-26,927-outcome layout check intercepts APIs. Neither is independent human usability
-or a new model observation; this acceptance made zero provider calls.
+Start with the [benchmark summary](results/v22-summary/README.md) and
+[predeclared plan](v22-benchmark-plan.md). The three separately analyzed studies
+completed all 48 workflows, with zero workflow failures/missing rows and zero
+unknown usage: **286 requests / 16,994,380 provider-reported tokens**.
 
-| Retained evidence | What it establishes | Limits |
+| Study | Scope | Recorded result |
 | --- | --- | --- |
-| [v21 natural Click observation](results/v21-click-runtime-observation/README.md) | Six naturally generated tests all pass common admission, execution and reference replay; no diagnosis or repair requests in either continuation. | One shared suite and one repeat. Zero qualifying runtime-error opportunities; repair effectiveness stays unavailable. Search stopped without new projects or seeds. |
-| [v21 admitted-failure follow-up](results/v21-retention-followup/README.md) | The type-complete candidate is admitted and executed; both full arms retain its code and defect detection. B3 records a grounded execution-phase defect diagnosis. | Adaptive reuse of the preceding B3 correction, one case/repeat. No extra B3 detection, natural runtime test-error repair or exact no-op-filter observation. |
-| [v21 controlled recovery](results/v21-controlled-recovery/README.md) | Six seeded workflow rows and two common preparations; both full arms correct a rejected bad import and retain boundary-fault detection after adding type checks. | Both initial candidates were admission-blocked, so initial runtime diagnosis was not exposed. Strict unchanged-artifact retention fails in both arms. One repeat; no B3 superiority or natural-error repair rate. |
-| [B2/B3 closed-loop pilot](results/v20-closed-loop/README.md) | Four real-model workflows on a correct shipping fixture and a booking boundary fault; both configurations detect the fault. B3 retains a grounded diagnosis. | v20 code, one repeat, two existing synthetic cases. No B3 detection advantage or test-error repair rate. The v21 no-op correction has separate offline validation only. |
-| [Generated-test mutation scope](results/v20-executed-mutation/README.md) | Real tool execution on a saved Click suite, bounded mutation selection and explicit incomplete outcomes. | No model calls, independently reviewed mutation score or demonstrated latency advantage. |
+| [Independent smoke](results/v22-independent-smoke/README.md) | Click, B0-B3, one repeat | 4/4 completed; two limited assessments; 25 requests / 1,507,751 tokens. |
+| [Real-project matrix](results/v22-real-project-matrix/README.md) | Click, Packaging, Werkzeug; B0-B3; three repeats | 36/36 completed; 397 final generated nodes pass; all 36 reference replays usable; 12 limited assessments; 240 requests / 15,392,920 tokens. |
+| [Synthetic fault supplement](results/v22-fault-cases/README.md) | Booking and Inventory; B0-B3; one repeat | 8/8 completed; every configuration detects both faults and preserves detection; B3 records two grounded diagnoses; 21 requests / 93,709 tokens. |
 
-The default [B0-B3 matrix](../examples/experiments-baselines.json) plans three
-projects, four independent configurations and three repeats: **36 new workflows**.
-It has not been run under the current policy. The [Click smoke manifest](../examples/experiments-smoke.json)
-plans four workflows; the [closed-loop smoke manifest](../examples/experiments-closed-loop-smoke.json)
-plans four B2/B3 workflows on the two synthetic fixtures. Running a manifest now
-creates new paid observations, not a replay of retained results.
-The [controlled recovery manifest](../examples/experiments-recovery-smoke.json)
-uses two seeded candidates, six workflow rows and shared preparation. Its B1
-rows are zero-model execution controls, not independent B1 generation results.
-The [retention follow-up](../examples/experiments-retention-followup.json) reuses
-the type-complete booking candidate adaptively; it is not an independent project.
-Both v21 studies together used 17 actual requests / 60,574 known tokens, counting
-common preparations once. Their repeated candidates are not pooled as independent samples.
-The [natural Click observation](../examples/experiments-click-runtime-smoke.json)
-uses one model-generated suite and normal shared admission. Its three actual
-requests / 213,753 known tokens exposed no approved generated runtime failure.
-No additional search was started and no runtime repair rate is inferred.
+B3 demonstrates an explicit decision trace, not extra defect detection. Full arms
+use more resources on the real-project contracts without a measured execution
+advantage. No admitted generated runtime-error repair opportunity appears;
+repair effectiveness remains unavailable. All cases are development inputs,
+with developer/AI-assisted contracts and witnesses, not independent human labels.
+No independent semantic accuracy, diagnosis F1, reviewed mutation score, external
+competitor advantage or user-study result is claimed. Repeats share projects.
 
-[Cleanup inventory](cleanup.json) records deletion of retired v16-v19 results,
-old raw workspaces, dedicated manifests/preparation code and unreferenced examples.
-Whole retired studies, including successes and failures, were removed together.
-Their metrics are excluded from current evidence. A byte-identical four-file
-input subset remains solely to reproduce the retained Click tool check; it is
-not an additional retained model study. Application accounts, runs, credentials
-and backups were not changed.
+Each study has a byte-verified archive, exact identities, JSON/CSV, original log
+and post-run source checks. All six standard analysis outputs reproduce exactly
+from each archive without model calls. Study denominators are not pooled;
+only actual resource totals are added. Rerunning a manifest creates new paid data.
 
-Reusable regression fixtures remain where tests reference them. The 16-case
-AI-assisted decision reference under `tests/fixtures/decision-reference*` is
-unreviewed test data, not independent semantic accuracy. The website Evaluation
-page summarizes individual runs; experimental comparisons stay offline.
+[Production UI acceptance](results/ui-workflow-2026-11-01/README.md) remains separate
+engineering evidence for authentication, upload, GitHub preflight, queue/Docker
+saved-suite replay, exports, account isolation and responsive checks. Its large
+layout fixture is not a model observation or independent human usability study.
+The website Evaluation page remains scoped to individual runs; benchmarks stay offline.
 
-See [the evaluation protocol](../docs/evaluation-protocol.md) and
-[pinned-source preparation](../examples/real-projects/README.md). No academic
-report or external-product superiority claim is included.
+The owner requested retirement of old experiments after the new studies finished.
+[Current cleanup](cleanup-v22.json) removes whole v20/v21 studies and their old raw
+workspaces/configurations, including successes and failures; exported evidence is
+recoverable from Git revision `bd12d23`. [Earlier cleanup](cleanup.json) records
+prior v16-v19 retirement. Removed studies are excluded from current metrics.
+Pinned inputs, active regression fixtures, application accounts/runs, credentials,
+backups and production UI acceptance are preserved. No academic report was written.
+
+See [evaluation protocol](../docs/evaluation-protocol.md),
+[baseline definitions](../docs/baseline-configurations.md) and
+[pinned input setup](../examples/real-projects/README.md).

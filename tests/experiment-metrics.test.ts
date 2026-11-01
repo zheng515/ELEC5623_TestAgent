@@ -87,6 +87,18 @@ test('reference disagreements require actual usable replay and never become sema
   item.referenceExecution.exitCode = 1; item.referenceExecution.suiteHash = 'changed';
   assert.equal(experimentRow(item).referenceFailureObserved, null);
 });
+test('reference replay evidence survives optional assessment failure while workflow and detection stay incomplete', () => {
+  const item = fixture();
+  item.report!.status = 'failed'; item.report!.stage = 'Review remaining mutation relevance batch 23';
+  item.referenceExecution = { ...structuredClone(item.report!.measurements[0]), sourceFingerprint: item.report!.fingerprint, suiteHash: experimentRow(item).suiteHash! };
+  const row = experimentRow(item);
+  assert.equal(row.status, 'failed'); assert.equal(row.referenceExecutionUsable, true);
+  assert.equal(row.referenceFailureObserved, true); assert.equal(row.faultAfter, null);
+  assert.equal(summarizeExperiment([item]).summary[0].completionRate, 0);
+  item.report!.stage = 'Re-measure improved tests';
+  assert.equal(experimentRow(item).referenceExecutionUsable, false, 'An interrupted execution cannot borrow an earlier measurement.');
+});
+
 test('a single pilot observation cannot establish repeatability', () => {
   const item = fixture();
   assert.equal(summarizeExperiment([item]).cases[0].stabilityAssessed, false);

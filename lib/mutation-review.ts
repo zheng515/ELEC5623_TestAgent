@@ -1,8 +1,49 @@
 import type { Mutation, PythonReport } from './python-types';
+import { defaultMutationReviewRequests, defaultMutationReviewSeconds } from './verification-policy';
 
 type Mutant = Mutation['mutants'][number];
 type Decision = PythonReport['relevance'][number];
 export type MutationReviewPair = Mutant & { behaviorId: string };
+
+/** Diversify source locations before spending a bounded review budget. */
+export function pendingMutationReviewPairs(report: PythonReport) {
+  const mutants = report.mutations.at(-1)?.mutants || [];
+  const locations = new Map<string, Mutant[]>();
+  for (const mutant of mutants) {
+    if (mutant.status !== 'survived' || !mutant.diff.trim() || mutants.filter(other => other.id === mutant.id).length !== 1) continue;
+    const key = JSON.stringify([mutant.file, mutant.line]);
+    if (!locations.has(key)) locations.set(key, []);
+    locations.get(key)!.push(mutant);
+  }
+  const groups = [...locations.values()], ordered: Mutant[] = [];
+  for (let i = 0; groups.some(group => i < group.length); i++) for (const group of groups) if (group[i]) ordered.push(group[i]);
+  return ordered.flatMap(mutant => mutationBehaviorReviews(report, mutant).filter(review => !review.decision).map(({ behavior }) => ({ ...mutant, behaviorId: behavior.id })));
+}
+
+export function mutationReviewProgress(report: PythonReport, stopReason = report.mutationReview?.stopReason) {
+  const requests = report.resources?.requests.filter(request => request.stage.includes('mutation relevance batch')) || [];
+  const pairs = (report.mutations.at(-1)?.mutants || []).filter(mutant => mutant.status === 'survived').flatMap(mutant => mutationBehaviorReviews(report, mutant));
+  const pendingPairs = pairs.filter(pair => !pair.decision).length;
+  return report.mutationReview = {
+    requestLimit: report.policy?.mutationReviewRequestLimit ?? defaultMutationReviewRequests,
+    timeoutSeconds: report.policy?.mutationReviewTimeoutSeconds ?? defaultMutationReviewSeconds,
+    requestsUsed: requests.length,
+    elapsedMs: requests.reduce((sum, request) => sum + (request.elapsedMs ?? Math.max(0, Date.now() - Date.parse(request.startedAt))), 0),
+    totalPairs: pairs.length, reviewedPairs: pairs.length - pendingPairs, pendingPairs,
+    incomplete: pendingPairs > 0 || report.mutations.at(-1)?.incomplete === true || report.mutations.at(-1)?.timedOut === true,
+    stopReason: pendingPairs || report.mutations.at(-1)?.incomplete || report.mutations.at(-1)?.timedOut ? stopReason : undefined,
+  };
+}
+
+/** Checked inside an uncached stage so recovery can still restore completed reviews. */
+export function mutationReviewBudget(report: PythonReport, reserveRequests = 0) {
+  const progress = mutationReviewProgress(report), remainingMs = progress.timeoutSeconds * 1000 - progress.elapsedMs;
+  const remaining = report.resources?.limit == null ? Infinity : report.resources.limit - report.resources.requests.length;
+  const stopReason: NonNullable<PythonReport['mutationReview']>['stopReason'] = progress.stopReason === 'time_limit' ? 'time_limit' : progress.requestsUsed >= progress.requestLimit ? 'request_limit'
+    : remainingMs <= 0 ? 'time_limit' : remaining <= 0 ? 'global_budget' : remaining <= reserveRequests ? 'improvement_reserve' : undefined;
+  if (stopReason) mutationReviewProgress(report, stopReason);
+  return { stopReason, remainingMs };
+}
 
 export function mutationReviewContext(report: PythonReport, files: Record<string, string>, pairs: MutationReviewPair[]) {
   const behaviors = (report.analysis?.behaviors || []).filter(behavior => pairs.some(pair => pair.behaviorId === behavior.id));

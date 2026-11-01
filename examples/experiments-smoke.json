@@ -12,6 +12,8 @@
   "policy": {
     "mutationChecks": true,
     "modelRequestLimit": 32,
+    "mutationReviewRequestLimit": 4,
+    "mutationReviewTimeoutSeconds": 60,
     "modelTimeoutSeconds": 300
   },
   "cases": [
