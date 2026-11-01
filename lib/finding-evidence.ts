@@ -17,7 +17,17 @@ export function findingEvidence(report: PythonReport) {
     return { outcome, test, behavior, rule, diagnosis };
   });
 }
-export type FindingEvidence = ReturnType<typeof findingEvidence>[number];
+type FindingEvidence = ReturnType<typeof findingEvidence>[number];
+
+export function findingNextStep(finding: FindingEvidence) {
+  switch (finding.diagnosis?.category) {
+    case 'potential_implementation_defect': return 'Inspect the implementation against the original requirement. Preserve the failing assertion while investigating; the Agent assessment is not a confirmed defect.';
+    case 'generated_test_error': return 'Check the generated test inputs, imports and expected result against the requirement. Accept a correction only when that contract supports it.';
+    case 'environment_failure': return 'Inspect dependencies, runtime and temporary services. Correct the environment, then re-run saved tests to check execution without regenerating assertions.';
+    case 'requirement_ambiguity': return 'Clarify the expected behavior, then regenerate with the updated requirements. Re-running saved tests cannot resolve an ambiguous contract.';
+    default: return 'Compare the original requirement, test and execution output before assigning a cause. No supported repair decision is available for this finding.';
+  }
+}
 
 export const diagnosisLabels = {
   potential_implementation_defect: 'Potential implementation defect',

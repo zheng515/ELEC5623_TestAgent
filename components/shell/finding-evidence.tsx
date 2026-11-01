@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { PythonReport } from '@/lib/python-types';
-import { findingEvidence, diagnosisLabels } from '@/lib/finding-evidence';
+import { findingEvidence, findingNextStep, diagnosisLabels } from '@/lib/finding-evidence';
 import { ruleSources } from '@/lib/requirement-input';
 import { OriginalPageLink, OcrConfidence } from './document-extraction';
 
@@ -23,6 +23,7 @@ export function FindingEvidence({ report, selectedNode, onSelect }: { report: Py
       {findings.length > 1 && <label className="mt-3 block space-y-2 text-sm">Select a finding<NativeSelect aria-label="Select a finding" value={outcome.node} onChange={event => onSelect(event.target.value)}>{findings.map(item => <NativeSelectOption key={item.outcome.node} value={item.outcome.node}>{item.outcome.status} · {item.test?.purpose || item.outcome.name || item.outcome.node}</NativeSelectOption>)}</NativeSelect></label>}
     </CardHeader>
     <CardContent className="space-y-5 pt-5">
+      <p className="rounded-lg border border-border bg-muted/30 p-4 text-sm leading-relaxed"><strong>Next step: </strong>{findingNextStep(finding)}</p>
       <div className="space-y-2"><div className="flex flex-wrap gap-2"><Badge variant="destructive">{outcome.status}</Badge>{rule && <Badge variant="outline">{rule.originalId || rule.id}</Badge>}<Badge variant="secondary">{diagnosis ? diagnosisLabels[diagnosis.category] : 'Cause not established'}</Badge></div><h3 className="text-lg font-semibold">{test?.purpose || outcome.name || 'Execution needs investigation'}</h3><p className="break-all font-mono text-xs text-muted-foreground">{outcome.node}</p></div>
       <Tabs key={report.id + ':' + outcome.node} defaultValue="execution">
         <TabsList aria-label="Finding evidence trail" className="grid h-auto w-full grid-cols-2 gap-1 bg-muted/50 p-1 sm:grid-cols-4">

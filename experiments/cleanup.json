@@ -1,0 +1,172 @@
+{
+  "createdAt": "2026-11-01T08:20:54.845734+00:00",
+  "scope": "Owner-requested removal of retired v16-v19 experiment results, retired manifests/preparation code and unreferenced development examples. Successes and failures of the retired studies were removed together; none are current effectiveness evidence.",
+  "retained": [
+    "experiments/results/v20-closed-loop",
+    "experiments/results/v20-executed-mutation",
+    "examples/experiments-baselines.json",
+    "examples/experiments-smoke.json",
+    "examples/experiments-closed-loop-smoke.json",
+    "Production code, active regression fixtures, accounts, application runs, backups and local credentials"
+  ],
+  "replayInputSubset": {
+    "sourceArchiveSha256": "424a9202d4e136cccb2337e11ffc894bcc93daec534c0c081bdd8bdb43e3a16f",
+    "scope": "Byte-identical subset of original saved inputs retained solely for the v20 tool replay; not retained v17 study results. The original index is unchanged and only the selected completed B2 report is available.",
+    "files": [
+      "index.json",
+      "agent-snapshot.json",
+      "click-full.zip",
+      "click-full-B2-1/report.json"
+    ],
+    "sha256": "5f3b278e970a279073899c08943992e52d64e8aba52c27111397336ab50d3121"
+  },
+  "removed": [
+    {
+      "path": "experiments/results/v16-current",
+      "files": 246,
+      "bytes": 29716064,
+      "treeSha256": "e3c3f112a4d417a4ed35d307bf24b7c30b354a08c7d562dfc3150d5f7f8c31d5"
+    },
+    {
+      "path": "experiments/results/v17-smoke",
+      "files": 19,
+      "bytes": 1068862,
+      "treeSha256": "cff5a7622addafb8978c4efdbdbc61bbc9850b81763df3d22eb366ae13e4b490"
+    },
+    {
+      "path": "experiments/results/v18-skip-regression",
+      "files": 7,
+      "bytes": 991276,
+      "treeSha256": "3367dabb6b0a5d3ebb3ffcda9082cad168d8d1b635d502a7148452ca63a94484"
+    },
+    {
+      "path": "experiments/results/v19-mutation-runtime",
+      "files": 19,
+      "bytes": 3219709,
+      "treeSha256": "0fef5eda4bb4db3c7c966e034f72c234666c79ea0c874b4b500ae8666414556c"
+    },
+    {
+      "path": "examples/real-projects-v16",
+      "files": 25,
+      "bytes": 17166,
+      "treeSha256": "94f0c18c7720550f3ee55ca233287bcedf64cb8b24845420c021c442e53400a1"
+    },
+    {
+      "path": "examples/experiments-real-projects-v16.json",
+      "files": 1,
+      "bytes": 1164,
+      "treeSha256": "292def0055c6c0037c11960f091b41fcf81f704f1ac319559a194330d76f354f"
+    },
+    {
+      "path": "examples/experiments-real-challenges-v16.json",
+      "files": 1,
+      "bytes": 2098,
+      "treeSha256": "8546753ee232df67a1a573fbe1ddfbd8ea6dbf3a02228609cb51bd3ff3730e07"
+    },
+    {
+      "path": "examples/experiments-real-typed-v16.json",
+      "files": 1,
+      "bytes": 926,
+      "treeSha256": "83e0caf82b96aa6b6d5bf2ba3929c7d9caa001a2d1d05b095c480c0f8eff940f"
+    },
+    {
+      "path": "examples/experiments-real-semantic-v16.json",
+      "files": 1,
+      "bytes": 944,
+      "treeSha256": "bd18608ccb39ae6ddfbbcf916916c35f1856c3a4c36528d623dcd496973e0404"
+    },
+    {
+      "path": "scripts/prepare-real-challenges.py",
+      "files": 1,
+      "bytes": 1975,
+      "treeSha256": "8a02bf3c57b173d6ece34ec7e4608f4c5199d0095087281c454213b079079380"
+    },
+    {
+      "path": "examples/experiments/REPEAT_PROTOCOL.md",
+      "files": 1,
+      "bytes": 365,
+      "treeSha256": "98329a86d9baa8d013f2ec8096d349996eb9712dc03ba95034fbf918b5a86afd"
+    },
+    {
+      "path": "examples/experiments/full-srs",
+      "files": 3,
+      "bytes": 2240,
+      "treeSha256": "cc551df37b387b71297a42ddf5e70a17ef9c74f622085c29a3a19118e6b7ff1a"
+    },
+    {
+      "path": "examples/experiments/github-demo",
+      "files": 6,
+      "bytes": 6628,
+      "treeSha256": "fe335cce3773bd1911f6eb90339c912727d1e3a9618507683c8958b8af63e8d5"
+    },
+    {
+      "path": "examples/runtime-diagnosis",
+      "files": 19,
+      "bytes": 6823,
+      "treeSha256": "0b8894c46edc4963d283836dca505141cfe9d96daa2747c44998997cccb8fee7"
+    },
+    {
+      "path": "examples/recovery-challenges",
+      "files": 8,
+      "bytes": 4141,
+      "treeSha256": "b565efa8f4d477c8478bd1cd20e933da4c865ffd073ad7a5d92ad25497949b37"
+    },
+    {
+      "path": "examples/browser-benchmark",
+      "files": 6,
+      "bytes": 2483,
+      "treeSha256": "7f573eb9fbf221704a99b5930adc5f903c81bcfe406facb17307b9286c42a956"
+    },
+    {
+      "path": "examples/large-spec",
+      "files": 7,
+      "bytes": 230953,
+      "treeSha256": "2a1f7642ad99ce69f695f48ccd048297b859920ec856c4952a9f2e517709751a"
+    },
+    {
+      "path": "examples/public-benchmark/humanize",
+      "files": 8,
+      "bytes": 8666,
+      "treeSha256": "6f3d0f748e9e43f7e05e7e7cba94d8c7fcead4e20ada4f84a40599a4a9dbc275"
+    },
+    {
+      "path": "examples/public-benchmark/more-itertools",
+      "files": 8,
+      "bytes": 35928,
+      "treeSha256": "8795b19eea571a15939176f4d87f4b8513d49d603ce0bcfdb77fbeabc7f0c679"
+    },
+    {
+      "path": "examples/public-benchmark/python-slugify",
+      "files": 11,
+      "bytes": 15298,
+      "treeSha256": "ca2a82c4671c9f8b286f0ebadaa3b5a48aeb7a4996f46787fcaf575f80a97405"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T07-11-04-306Z-f98d1f37",
+      "files": 1080,
+      "bytes": 10925539,
+      "treeSha256": "89b8b4535719054d70105a192de6e501b6c3b03bf248e9c6314453b4dc52b3eb"
+    },
+    {
+      "path": ".evidence/real-projects-v16",
+      "files": 1313,
+      "bytes": 23895804,
+      "treeSha256": "78f3223f528cb209a38eef90bcaeca3f26987e4fe349d8a944fb40af2d655603"
+    },
+    {
+      "path": ".evidence/mutation-profile",
+      "files": 9,
+      "bytes": 1089775,
+      "treeSha256": "229a6ca6cb3900ffe917fcdddb5a1750c747fc364c72a41329392b920338150d"
+    },
+    {
+      "path": "experiments/cleanup-2026-11-01.json",
+      "files": 1,
+      "bytes": 3586,
+      "treeSha256": "4054faf79153d247c39ed4d1dfa9eecd23394ffb647b02e784b6e748b04adc18"
+    }
+  ],
+  "removedFiles": 2801,
+  "removedBytes": 71248413,
+  "modelRequests": 0
+}

@@ -6,7 +6,7 @@ import { dataDir } from "./auth";
 import { githubArchive, importProject, projectDirectory, dockerTool, sandboxImage, retainSandboxImage } from "./python-tools";
 import { prepareEnvironment } from "./environments";
 
-export const setupSchema = z.object({
+const setupSchema = z.object({
   id: z.string().uuid(), source: z.string(), fingerprint: z.string(), sandboxImage: z.string(), projectDirectory: z.string().default(""), runDirectory: z.string().default(""),
   runtime: z.enum(["python", "node"]).default("python"), baseImage: z.string().optional(), automaticSetup: z.boolean().default(false), services: z.array(z.enum(["postgres", "redis"])).default([]),
   installed: z.array(z.string()).default([]),
@@ -45,7 +45,7 @@ export async function prepareProject(userId: string, form: FormData, signal: Abo
   return result;
   } catch (error) { await rm(root, { recursive: true, force: true }); throw error; }
 }
-export async function loadProjectSetup(userId: string, id: string) {
+async function loadProjectSetup(userId: string, id: string) {
   return setupSchema.parse(JSON.parse(await readFile(join(directory(userId, id), "setup.json"), "utf8")));
 }
 export async function copyPreparedProject(userId: string, id: string, root: string) {

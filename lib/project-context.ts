@@ -20,7 +20,7 @@ export function hasUninspectedContext(selections: { selectedFiles: string[]; com
 
 // Static local-import candidates only. No code is evaluated and no external module is fetched.
 // Dynamic imports, aliases and runtime configuration can still require uninspected files.
-export function localDependencyGraph(files: Record<string, string>) {
+function localDependencyGraph(files: Record<string, string>) {
   const graph = new Map<string, string[]>();
   const has = (file: string) => Object.hasOwn(files, file);
   for (const [file, text] of Object.entries(files)) {

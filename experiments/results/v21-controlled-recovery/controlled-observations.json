@@ -1,0 +1,138 @@
+{
+  "scope": "Two deliberately seeded development candidates, shared preparation and one repeat. Admission recovery is separate from runtime diagnosis; no independent accuracy or B3 superiority claim.",
+  "policyVersion": "contract-witness-v21-unchanged-proposal-stop",
+  "agentFingerprint": "7d772a13a4ff39564b713135726ee027f4df9278748daace4134e3f73ebd472f",
+  "plannedWorkflowRows": 6,
+  "completedWorkflowRows": 6,
+  "sharedPreparations": 2,
+  "actualModelRequests": 13,
+  "knownTokens": 45718,
+  "unknownUsageRequests": 0,
+  "requestErrors": 0,
+  "runtimeDiagnosisOpportunitiesInPreparedSuites": 0,
+  "naturalGeneratedTestErrorObserved": false,
+  "independentDiagnosisAccuracy": null,
+  "noOpGuardExercisedByModelProposals": false,
+  "interpretation": "Both full configurations correct the rejected import and pass reference replays. Both enrich the rejected value-only boundary candidate with type witnesses and retain defect detection; strict unchanged-artifact retention fails. A grounded B3 defect diagnosis occurs only after remeasurement. No initial runtime diagnosis opportunity was exposed.",
+  "rows": [
+    {
+      "caseId": "shipping-candidate",
+      "variant": "B2",
+      "originalAdmitted": false,
+      "admissionReason": "No unique supported model review. The test imports `fee` from `shipping_fee`, but the supplied implementation is in `shipping.py`; this import is not supported by the provided files. Also, `fee(10000) == 0` does not establish the promised integer return type, since a boolean could compare equal to the expected value. The equality-boundary value assertion itself is grounded in the requirement.",
+      "originalRuntimeFailureExposed": false,
+      "literalOriginalCodeRetained": false,
+      "finalCode": "from shipping import fee\n\n\ndef test_free_shipping():\n    result = fee(10000)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+      "generatedOutcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_free_shipping",
+          "status": "passed"
+        }
+      ],
+      "finalReferenceOutcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_free_shipping",
+          "status": "passed"
+        }
+      ],
+      "defectDetectedAfter": null,
+      "initialSeedDefectDetected": null,
+      "originalSourceBytesUnchanged": true,
+      "diagnoses": [],
+      "followupRequests": 2,
+      "followupTokens": 7003,
+      "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements."
+    },
+    {
+      "caseId": "shipping-candidate",
+      "variant": "B3",
+      "originalAdmitted": false,
+      "admissionReason": "No unique supported model review. The test imports `fee` from `shipping_fee`, but the supplied implementation is in `shipping.py`; this import is not supported by the provided files. Also, `fee(10000) == 0` does not establish the promised integer return type, since a boolean could compare equal to the expected value. The equality-boundary value assertion itself is grounded in the requirement.",
+      "originalRuntimeFailureExposed": false,
+      "literalOriginalCodeRetained": false,
+      "finalCode": "from shipping import fee\n\n\ndef test_free_shipping():\n    result = fee(10000)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+      "generatedOutcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_free_shipping",
+          "status": "passed"
+        }
+      ],
+      "finalReferenceOutcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_free_shipping",
+          "status": "passed"
+        }
+      ],
+      "defectDetectedAfter": null,
+      "initialSeedDefectDetected": null,
+      "originalSourceBytesUnchanged": true,
+      "diagnoses": [],
+      "followupRequests": 2,
+      "followupTokens": 6636,
+      "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements."
+    },
+    {
+      "caseId": "booking-candidate",
+      "variant": "B2",
+      "originalAdmitted": false,
+      "admissionReason": "No unique supported model review. The equality assertion checks that cancellation_fee(24) equals zero, but the requirement also promises an integer return. The test does not check the result\u2019s type, so it does not cover the assigned behavior fully.",
+      "originalRuntimeFailureExposed": false,
+      "literalOriginalCodeRetained": false,
+      "finalCode": "from booking import cancellation_fee\n\n\ndef test_free_cancellation():\n    result = cancellation_fee(24)\n    assert isinstance(result, int) and not isinstance(result, bool)\n    assert result == 0\n",
+      "generatedOutcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_free_cancellation",
+          "status": "failed"
+        }
+      ],
+      "finalReferenceOutcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_free_cancellation",
+          "status": "passed"
+        }
+      ],
+      "defectDetectedAfter": true,
+      "initialSeedDefectDetected": true,
+      "originalSourceBytesUnchanged": true,
+      "diagnoses": [],
+      "followupRequests": 2,
+      "followupTokens": 6636,
+      "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements."
+    },
+    {
+      "caseId": "booking-candidate",
+      "variant": "B3",
+      "originalAdmitted": false,
+      "admissionReason": "No unique supported model review. The equality assertion checks that cancellation_fee(24) equals zero, but the requirement also promises an integer return. The test does not check the result\u2019s type, so it does not cover the assigned behavior fully.",
+      "originalRuntimeFailureExposed": false,
+      "literalOriginalCodeRetained": false,
+      "finalCode": "from booking import cancellation_fee\n\ndef test_free_cancellation():\n    result = cancellation_fee(24)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+      "generatedOutcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_free_cancellation",
+          "status": "failed"
+        }
+      ],
+      "finalReferenceOutcomes": [
+        {
+          "node": "reqtest_generated/test_reqtest_T1.py::test_free_cancellation",
+          "status": "passed"
+        }
+      ],
+      "defectDetectedAfter": true,
+      "initialSeedDefectDetected": true,
+      "originalSourceBytesUnchanged": true,
+      "diagnoses": [
+        {
+          "phase": "remeasurement",
+          "category": "potential_implementation_defect",
+          "reason": "The test fails at the assertion that the fee is zero for 24 hours. The requirement explicitly includes exactly 24 and promises integer 0 cents; the implementation returns 2500 for that input. The generated test\u2019s value and type assertions are supported by the requirement.",
+          "evidenceAdmission": "Non-uncertain category retained by the production original-quote, source/test and execution-evidence gate; not independent semantic review."
+        }
+      ],
+      "followupRequests": 3,
+      "followupTokens": 10904,
+      "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements."
+    }
+  ]
+}

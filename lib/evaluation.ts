@@ -21,7 +21,7 @@ export const reviewSchema = z.object({
   mutants: z.array(z.object({ attempt: z.number().int().min(0), id: z.string(), relevant: z.boolean().nullable(), equivalent: z.boolean().nullable() })),
 });
 export type Gold = z.infer<typeof goldSchema>;
-export type Review = z.infer<typeof reviewSchema>;
+type Review = z.infer<typeof reviewSchema>;
 export type FaultProbe = { id: string; beforeDetected: boolean | null; afterDetected: boolean | null; corrected: Measurement[] };
 export const ratio = (numerator: number, denominator: number) => denominator ? numerator / denominator : null;
 const metrics = (tp: number, fp: number, fn: number) => ({ tp, fp, fn, precision: ratio(tp, tp + fp), recall: ratio(tp, tp + fn), f1: ratio(2 * tp, 2 * tp + fp + fn) });
@@ -60,7 +60,7 @@ function exact(actual: string[], expected: string[]) {
   return new Set(actual).size === actual.length && actual.length === expected.length && actual.every((id) => expected.includes(id));
 }
 const diagnosisKey = (item: { testId: string; phase?: string }) => `${item.phase || 'execution'}:${item.testId}`;
-export function validateReview(report: PythonReport, gold: Gold, review: Review) {
+function validateReview(report: PythonReport, gold: Gold, review: Review) {
   const template = reviewTemplate(report, gold);
   if (review.reportId !== undefined && review.reportId !== report.id || review.sourceFingerprint !== undefined && review.sourceFingerprint !== report.fingerprint || review.requirementTexts !== undefined && JSON.stringify(review.requirementTexts) !== JSON.stringify(report.rules.map(rule => rule.text))) throw new Error('This review belongs to a different run, source snapshot or requirement set.');
   if (!review.reviewer.trim() || !gold.reviewer.trim() || review.validOutcome === null) throw new Error('Reviewed results require named reviewers and an independently assessed outcome.');
@@ -96,11 +96,12 @@ export function scoreReports(items: { report: PythonReport; gold: Gold; review: 
       behaviors += gold.behaviors.length;
       beforeCovered += review.coverage.filter((item) => covered(item.beforeNodes, report.measurements[0])).length;
       afterCovered += report.status === 'completed' ? review.coverage.filter((item) => covered(item.afterNodes, report.measurements.at(-1))).length : 0;
-      const evidence = [...review.issues, ...review.gaps, ...review.inconsistencies, ...review.diagnoses];
+      const diagnosisEnabled = report.configuration?.configuredFeatures?.failureDiagnosis !== false;
+      const evidence = [...review.issues, ...review.gaps, ...review.inconsistencies, ...(diagnosisEnabled ? review.diagnoses : [])];
       findings += evidence.length; supported += evidence.filter((item) => item.evidenceSupported).length;
       for (const label of review.diagnoses) {
         const predicted = report.diagnoses.find((item) => diagnosisKey(item) === diagnosisKey(label))?.category || 'unresolved';
-        for (const name of new Set([predicted, label.expected!])) {
+        for (const name of diagnosisEnabled ? new Set([predicted, label.expected!]) : []) {
           const c = diagnosis.get(name) || [0, 0, 0];
           if (name === predicted && name === label.expected) c[0]++; else if (name === predicted) c[1]++; else c[2]++;
           diagnosis.set(name, c);
@@ -133,7 +134,7 @@ export function scoreReports(items: { report: PythonReport; gold: Gold; review: 
       completedRunsWithExecution: runs.filter((item) => item.report.status === 'completed' && item.report.measurements.at(-1)?.outcomes.some((outcome) => outcome.status !== 'skipped')).length,
       issues: detection('issues'), gaps: detection('gaps'), inconsistencies: detection('inconsistencies'),
       referenceBehaviors: behaviors, semanticCoverageBefore: before, semanticCoverageAfter: after, semanticCoverageChange: before === null || after === null ? null : after - before,
-      diagnosisMacroF1: diagnosticScores.length ? diagnosticScores.reduce((a, b) => a + b, 0) / diagnosticScores.length : null,
+      diagnosisMacroF1: runs.every(item => item.report.configuration?.configuredFeatures?.failureDiagnosis === false) ? null : diagnosticScores.length ? diagnosticScores.reduce((a, b) => a + b, 0) / diagnosticScores.length : null,
       nonTestFailures, incorrectRepairs, incorrectRepairRate: ratio(incorrectRepairs, nonTestFailures),
       findingEvidenceSupportRate: ratio(supported, findings), unsupportedFindingRate: ratio(findings - supported, findings),
       mutationScoreBefore: mutationBefore, mutationScoreAfter: mutationAfter, mutationScoreChange: mutationBefore === null || mutationAfter === null ? null : mutationAfter - mutationBefore,

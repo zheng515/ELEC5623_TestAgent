@@ -1,0 +1,27 @@
+{
+  "scope": "Original uncompressed bytes and logical paths inside evidence.zip. Unzip to an evidence directory to use the frozen index.",
+  "files": {
+    "agent-snapshot.json": "7d772a13a4ff39564b713135726ee027f4df9278748daace4134e3f73ebd472f",
+    "click-runtime-candidate-B1-1/reference-execution.json": "530b092eacf1d1d6671147bcc9f74ac78851cc2a94f829838ad29567577edfe7",
+    "click-runtime-candidate-B1-1/report.json": "8432110f249335d500b4c6c495aa9de4e5088f3146f7f9ce51e645aa60cb1422",
+    "click-runtime-candidate-B1-1/requests.json": "91bf8e275b5c8c53be529037e80ce65c6e87ad87e1ef340bc1320dd4e7183bcd",
+    "click-runtime-candidate-B1-1/review.json": "e6d2efeb1fe46e5ba7bccd36f7ff40e2cf33953ccb55163df85d47ac97e02c55",
+    "click-runtime-candidate-B2-1/reference-execution.json": "530b092eacf1d1d6671147bcc9f74ac78851cc2a94f829838ad29567577edfe7",
+    "click-runtime-candidate-B2-1/report.json": "1c1cbe7e9ce231695e8dd78073b9602910081d9559569d6a73ba619ad649466e",
+    "click-runtime-candidate-B2-1/requests.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "click-runtime-candidate-B2-1/review.json": "9fe7365587899549488dc12ecbe5a4773772bcab9a2415cf8af41de476db6feb",
+    "click-runtime-candidate-B3-1/reference-execution.json": "530b092eacf1d1d6671147bcc9f74ac78851cc2a94f829838ad29567577edfe7",
+    "click-runtime-candidate-B3-1/report.json": "c587f7409044734da643a66f69c763cfac12648a1aa2f70417c5ac0ac5582819",
+    "click-runtime-candidate-B3-1/requests.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "click-runtime-candidate-B3-1/review.json": "a306865bd2e777550232d0bcb6432cf4aec48da87ce5de68ca240d4e5c4edfe2",
+    "click-runtime-candidate-prepared-1/report.json": "25d3ad2726ec05f75e10b4e84b60b3a55722d047aff458c0e087c1152dc80d7e",
+    "click-runtime-candidate-prepared-1/requests.json": "2cc55f61b1b6269faf4f75a2dd3b8245434914df9bb02e88a719b635a42a7ed0",
+    "click-runtime-candidate.gold.json": "a59fcec3fa249ff1988ff54cf4063369b26da30e77f98e061328219145607ac7",
+    "click-runtime-candidate.oracle.py": "7370d7f9e1bc6c0fdac5caf193e36ec7db361f5eee65abb4700cf63b79dc4932",
+    "click-runtime-candidate.reference.json": "e83fecaddb2ecad4d69f379de003e9a99319f6830becdf231ac895fca40ebff0",
+    "click-runtime-candidate.requirements.txt": "ae909c3fb850bbd57e5bf4d3dc818626d6f040ef3c6152a6eeff25cb120c49f8",
+    "click-runtime-candidate.zip": "46c50d5b881eb7d0d6a5b14b006df93a490c9890f4120e3ecbaa44f877d23f5d",
+    "index.json": "df3f86d8b1d5b90a6492d05f72baaaa3072dc78cc338cffaeb3c4ea8d418bdae",
+    "manifest.json": "7171c495d594064f2824493540214f772b3ca1f1327f4edc473e3e7eeae6752c"
+  }
+}

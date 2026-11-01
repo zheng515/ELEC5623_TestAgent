@@ -1,0 +1,13 @@
+{
+  "algorithm": "sha256",
+  "scope": "Sanitized automated local-production workflow evidence; no cookies, credentials or browser storage state. Excludes this inventory.",
+  "files": {
+    "README.md": "61f1a6b73f1f65e9fd730335c496dfde15752a3a177725a689d3a4f7ce6e23eb",
+    "checks.json": "7dcefdcd01ff42047bc9ec972ada5ed7fca956aad5918ea8764c82ae170eac2e",
+    "draft-loss-before.png": "c62927a2fee3c99df469a40a892b6cafa7cb5292ad25c957d72c84e67bd958ec",
+    "inputs-desktop.png": "a09c4e1a790a9686f92cfb87fe1309cde37b1cde7a7d984fe0bacbf7cacab8cf",
+    "results-390.png": "3a1f37816101b7588cc335e0759db1257f44c29c3321bd8d6fd68ecae47c4a44",
+    "results-desktop.png": "f136845ee59e4b71909e09f027eda95897a99d69238ed0a495043c127bfe5476",
+    "signout-mode-before.png": "1ae6c76f22f0f41a1ca2d6b3a8775eb4d5302850eef4b3e6573cc717a576ce39"
+  }
+}

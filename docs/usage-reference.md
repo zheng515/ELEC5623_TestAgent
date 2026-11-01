@@ -52,7 +52,7 @@ Saved-test replay makes no model calls. CLI verification and experiments accept
 keeps mutation checks enabled. Historical reports keep their original evidence.
 
 See [architecture](architecture.md), [evaluation protocol](evaluation-protocol.md)
-and [contribution positioning](product-positioning.md). Policy v16 has separate frozen evaluation; historical studies retain their own source identities. No external-product advantage is claimed.
+and [contribution positioning](product-positioning.md). Current and historical evaluations retain their own source identities. No external-product advantage is claimed.
 
 ## Start
 
@@ -91,8 +91,12 @@ For local testing, set REQTEST_LOCAL_MAIL=true in .env.local and run
 `npm run mail:up`. Open http://127.0.0.1:8025 to read development emails; they
 are captured locally and never delivered to real recipients. Disable local mail
 for deployment and configure SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER,
-SMTP_PASSWORD and SMTP_FROM. AUTH_REQUIRE_EMAIL_VERIFICATION=true optionally
-requires verification before sign-in. A reset invalidates existing sessions. Keep the local
+SMTP_PASSWORD and SMTP_FROM. Mail configuration requires verification by default;
+AUTH_REQUIRE_EMAIL_VERIFICATION=false explicitly allows an optional development flow.
+Signed links expire after one hour and open a confirmation page; the user must select
+Verify email before the account becomes verified. Sign-in provides a resend action.
+Real SMTP requires encryption; see [Gmail STARTTLS setup](local-production.md#real-email-verification-with-gmail)
+and npm run mail:check. A reset invalidates existing sessions. Keep the local
 mailbox bound to loopback and use it only for development.
 Click your name in the workspace header to open **Account**, view your profile, verify your email or
 open the local development mailbox. Verification and mailbox actions are kept
@@ -671,19 +675,21 @@ REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run experiment:run
 B0/B1 rule IDs are scaffolding, not semantic behavior decomposition or verification
 claims. B2 intentionally omits evidence-based diagnosis and is available only through the explicit
 benchmark command. Each variant starts from the same frozen project snapshot.
-The default manifest uses the three pinned complete-runtime projects and shared
-B1/B3 candidates. Prepare sources and dependencies using the v16 workflow first.
+The default manifest uses three pinned complete-runtime projects, four independent
+configurations and three repeats (36 workflows). B0 excludes test/document
+context; B2 records repair attempts without diagnostic classifications. Both full
+profiles enable mutation in this matrix. Prepare sources and dependencies using [the real-project setup](../examples/real-projects/README.md).
 Results are saved in a new directory under `.evidence/evaluation/` on every invocation.
 Reference labels and correction patches stay outside the model-visible project.
 The benchmark independently probes whether generated failures detect seeded defects
 before and after refinement, using separate corrected disposable copies.
 
-For shared initial generation, use `examples/experiments-real-projects-v16.json`.
-B1 generates once per pair; B3 audits the unchanged candidates and continues with
-bounded feedback. This CLI mode does not change normal website verification.
-`paired-comparison.json` checks executable identity and includes the common prefix
-in B3 end-to-end costs. See [the experiment guide](../examples/experiments/README.md)
-for fixture scope and the active v16 workflow; this is not a diagnosis-only ablation.
+Custom controlled studies may set `sharedInitialSuite: true` for B1/B3 and
+`diagnosisAblation: true` for a shared-preparation B1/B2/B3 comparison. The runner
+validates compatible settings, executable identities and equal follow-up ceilings;
+`paired-comparison.json` includes shared-prefix costs. These modes are covered by
+regression tests. Their retired dedicated manifests and model results were deleted.
+See [the evaluation protocol](evaluation-protocol.md).
 
 Run `npm run score -- <run-directory>/index.json` to generate `summary.md` and
 `metrics.json`. Independent reviewers must first check the copied reference labels

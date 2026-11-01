@@ -8,6 +8,7 @@ import { reviewTemplate, scoreReports, type Gold } from '../lib/evaluation';
 import { probeFault } from '../lib/evaluation-tools';
 import { importProject, measureProject, writeTests } from '../lib/python-tools';
 import type { PythonReport } from '../lib/python-types';
+import { agentVariants } from '../lib/agent-variants';
 
 const node = 'reqtest_generated/test_reqtest_T1.py::test_threshold';
 const artifact = { id:'T1', behaviorId:'B1', functionName:'test_threshold', gapIndexes:[0], quote:'At 24 hours the fee is zero.', purpose:'Boundary', code:'from booking import cancellation_fee\ndef test_threshold():\n    assert cancellation_fee(24) == 0\n', approved:true };
@@ -57,6 +58,18 @@ test('incorrect repairs count weakened valid failures rather than trusting agent
   item.review=reviewTemplate(item.report,item.gold);item.review.reviewed=true;item.review.reviewer='Reviewer';item.review.validOutcome=false;item.review.gaps[0].evidenceSupported=true;
   item.review.diagnoses[0]={testId:'T1',expected:'potential_implementation_defect',evidenceSupported:false};
   const result=scoreReports([item])[0];assert.equal(result.incorrectRepairRate,1);assert.equal(result.diagnosisMacroF1,0);
+});
+test('a no-diagnosis B2 baseline has no diagnosis Macro-F1 even with reviewed failure labels', () => {
+  const item = fixture(); item.report.variant = 'B2';
+  item.report.configuration = { sandboxImage: 'fixture', improvementLimit: 1, mutationSeconds: 75, configuredFeatures: agentVariants.B2 };
+  item.report.measurements[0].outcomes[0].status = 'failed';
+  item.review = reviewTemplate(item.report, item.gold); item.review.reviewed = true; item.review.reviewer = 'Fixture reviewer'; item.review.validOutcome = false;
+  item.review.gaps[0].evidenceSupported = true;
+  item.review.diagnoses[0] = { testId: 'T1', expected: 'potential_implementation_defect', evidenceSupported: false };
+  const result = scoreReports([item])[0];
+  assert.equal(result.diagnosisMacroF1, null);
+  assert.equal(result.incorrectRepairRate, 0, 'Reference failure labels still support repair-safety measurement.');
+  assert.equal(result.findingEvidenceSupportRate, 1, 'No absent diagnosis is counted as an unsupported Agent finding.');
 });
 test('diagnosis review separates collection and baseline records with the same failure ID',()=>{
   const item=fixture();

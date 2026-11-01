@@ -7,6 +7,31 @@ import { relevanceSchema } from '../lib/python-types';
 import { rule, code, artifact, report, analysis, project, approval, scripted } from './fixtures/python-agent';
 
 const docker = { skip: process.env.REQTEST_DOCKER_TEST !== '1', timeout: 180000 };
+
+test('unchanged approved proposals retain failures without another review or execution; blocked artifacts can still be admitted', docker, async t => {
+  for (const alreadyApproved of [true, false]) {
+    const source = alreadyApproved ? code.replace('>= 10000', '> 10000') : code;
+    const root = await project(t, { 'source/shipping.py': source }), r = report();
+    r.policy = { mutationChecks: false };
+    const review = alreadyApproved ? approval('T1') : { decisions: [{ testId: 'T1', supported: false, reason: 'Controlled false rejection.', quote: rule }] };
+    const responses: unknown[] = [analysis(), { tests: [artifact] }, review, { tests: [{ ...artifact, purpose: 'Repeated executable' }] }];
+    if (!alreadyApproved) responses.push(approval('T1'));
+    const answer = scripted(...responses); let calls = 0;
+    await runPython(r, root, new AbortController().signal, () => {}, async (...args) => { calls++; return answer(...args); }, 'B2');
+    assert.equal(r.status, 'completed');
+    assert.equal(calls, alreadyApproved ? 4 : 5);
+    assert.equal(r.improvements.length, alreadyApproved ? 0 : 1);
+    assert.equal(r.measurements.length, alreadyApproved ? 1 : 2);
+    assert.equal(r.measurements.at(-1)!.outcomes[0].status, alreadyApproved ? 'failed' : 'passed');
+    assert.equal(r.tests[0].code, artifact.code);
+    assert.equal(await readFile(join(root, 'source/shipping.py'), 'utf8'), source);
+    if (alreadyApproved) {
+      assert.equal(r.testAttempts!.at(-1)!.status, 'rejected');
+      assert.match(r.testAttempts!.at(-1)!.tests[0].review!, /Unchanged approved executable/);
+      assert.match(r.stopReason!, /No additional review or execution/);
+    }
+  }
+});
 for (const mode of ['supported', 'rejected', 'ambiguous', 'duplicate', 'unquoted']) test(`rejected-test recovery: ${mode}`, docker, async t => {
   const root = await project(t), r = report(), a = analysis();
   if (mode === 'ambiguous') a.behaviors[0].issue = 'ambiguous';

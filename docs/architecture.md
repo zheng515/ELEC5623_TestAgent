@@ -43,13 +43,38 @@ improvement budget prevents repeated optimization against the same implementatio
 
 ## Depth and stopping policy
 
-Policy v16 defaults to requirement checks with no request-count limit. Users may set any positive request limit; the benchmark manifests keep explicit budgets.
+Policy v21 retains requirement checks with no request-count limit by default. Users may set any positive request limit; experiment manifests keep explicit budgets.
+An improvement repeating an already approved test's executable, behavior link,
+quote and gap mapping is retained as a non-applied proposal. It causes no new
+model review or execution and cannot count as a repair. Previously blocked tests
+still require a new admission review even when their executable is unchanged.
 Original-contract admission, suite coverage review, failure diagnosis and eligible
 bounded improvement remain active. Optional mutation checks assess additional test
 strength; they are offered explicitly so the user can choose the additional
 resource and assurance scope. No efficiency or model-quality gain is established
-for this revised policy. Old-version experiment records were removed at the
-user's request; they are not current validation.
+for this revised policy. Retained model observations keep their original source
+identity; retired studies are excluded from the current evidence inventory.
+
+Mutation readiness permits an existing skipped node only when its node ID, file
+and test name match an intact baseline skip. Every approved generated artifact
+must have a passing execution; generated/new skips and failures still block this
+stage. This does not relax the CI skip gate. A mutation sandbox deadline records
+an incomplete attempt with no invented outcomes; it cannot grant Verified.
+
+Python mutation evidence reads at most 200 cache rows in ID order, records the
+full discovered count separately and budgets ten seconds for diff reconstruction.
+Missing differences and unreturned outcomes keep assessment incomplete. Diffs
+use the immutable input source; interrupted mutated copies are not an oracle.
+
+When static calls resolve a function, its existing function scope remains. A
+whole-file fallback instead traces only generated-test function contexts with
+coverage.py 7.11.0; pre-test setup/import execution does not select mutation lines.
+The trace is limited to 15 seconds within the same 75-second mutation budget.
+Failed or empty traces remain incomplete without a whole-file fallback.
+Remeasurement freezes the original line selection and reports newly executed
+lines outside it as unassessed. Behaviors mapped to another unmeasured source
+cannot earn Verified from this line-scoped attempt. Coverage is execution
+evidence, not semantic requirement completeness or whole-project verification.
 
 With mutation checks disabled, passing cases remain Partially Verified. Strict CI
 still requires Verified; an explicitly configured non-strict CI gate can accept
@@ -96,6 +121,14 @@ frozen evaluation. Current model judgments still need independent review. Supers
 
 ## Controlled diagnosis ablation
 
+The default CLI now evaluates independent B0-B3 profiles defined in
+`lib/agent-variants.ts`; effective capabilities are saved in each report. B0 has
+implementation-only context, B1 adds repository evidence, B2 selects repair from
+generated failures without fabricated diagnoses, and B3 requires grounded
+diagnosis. Both full profiles share admission and sandbox guards and enable
+mutation in the default matrix. The shared-preparation design below remains
+supplementary; see [baseline definitions](baseline-configurations.md).
+
 The experimental runner can prepare B1 candidates, then freeze one shared B3
 analysis, admission review and initial execution before diagnosis. B2 and B3 reuse
 that exact preparation and source; only diagnosis and its downstream repair
@@ -123,7 +156,7 @@ Focused context follows static Python local imports, package initializers and
 relative JS/TS imports/re-exports transitively. Explicit mappings reserve space
 first; whole dependency files then consume the same source budget. Cycles terminate.
 
-## Complete Python execution with bounded model context (v16)
+## Complete Python execution with bounded model context
 
 A pytest collection hook writes exact node IDs independently of the bounded
 console log. Catalogs are capped explicitly at 50,000 nodes / 8 MB; exceeding

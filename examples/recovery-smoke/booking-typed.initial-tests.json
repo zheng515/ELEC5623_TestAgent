@@ -1,0 +1,13 @@
+{
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_free_cancellation",
+      "gapIndexes": [],
+      "code": "from booking import cancellation_fee\n\ndef test_free_cancellation():\n    result = cancellation_fee(24)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+      "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+      "purpose": "Check the explicitly included 24-hour boundary, the zero-cent result, and its promised integer return type."
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import { importProject, inspectProject, measureProject, sandboxImage } from '../
 
 async function main() {
   const results = [];
-  const output = resolve(process.argv[2] || '.evidence/real-projects-v16/preflight');
+  const output = resolve(process.argv[2] || '.evidence/real-projects/preflight');
   await mkdir(output, { recursive: true });
   const image = await sandboxImage();
   for (const name of ['click', 'packaging', 'werkzeug']) {

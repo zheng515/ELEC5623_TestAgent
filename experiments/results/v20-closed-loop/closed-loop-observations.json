@@ -1,0 +1,157 @@
+{
+  "scope": "Objective saved-run observations only; four independent development workflows, one repeat. No independent semantic or diagnostic accuracy labels.",
+  "policyVersion": "contract-witness-v20-executed-mutation-scope",
+  "model": "gpt-6-luna",
+  "agentFingerprint": "b1630f4c96caafaeb6267fd170cf904b8a357619a48902573fd085c4f6df36d4",
+  "modelRequests": 17,
+  "reportedTokens": 71856,
+  "naturalGeneratedTestErrorObserved": false,
+  "repairSuccessRate": null,
+  "rows": [
+    {
+      "caseId": "shipping-correct",
+      "variant": "B2",
+      "sourceFingerprint": "1cb700c032c7fef64e8fc6bb618b829a8c61237d0de721c52fa71291c58569fe",
+      "report": "shipping-correct-B2-1/report.json",
+      "status": "completed",
+      "modelRequests": 4,
+      "totalTokens": 15936,
+      "elapsedSeconds": 31.607,
+      "initialGenerated": {
+        "passed": 4
+      },
+      "finalGenerated": {
+        "passed": 4
+      },
+      "mutationAttempts": 1,
+      "mutationIncomplete": [
+        false
+      ],
+      "mutationStatuses": [
+        {
+          "killed": 7,
+          "survived": 2
+        }
+      ],
+      "behaviorStates": {
+        "Verified": 4
+      },
+      "proposalAttempts": 0,
+      "recordedImprovementActions": 0,
+      "unchangedExecutableActions": [],
+      "literalFailingArtifactsRetained": [],
+      "failureDiagnosisCategories": {},
+      "faultBefore": null,
+      "faultAfter": null
+    },
+    {
+      "caseId": "shipping-correct",
+      "variant": "B3",
+      "sourceFingerprint": "1cb700c032c7fef64e8fc6bb618b829a8c61237d0de721c52fa71291c58569fe",
+      "report": "shipping-correct-B3-1/report.json",
+      "status": "completed",
+      "modelRequests": 4,
+      "totalTokens": 16549,
+      "elapsedSeconds": 35.848,
+      "initialGenerated": {
+        "passed": 4
+      },
+      "finalGenerated": {
+        "passed": 4
+      },
+      "mutationAttempts": 1,
+      "mutationIncomplete": [
+        false
+      ],
+      "mutationStatuses": [
+        {
+          "killed": 7,
+          "survived": 2
+        }
+      ],
+      "behaviorStates": {
+        "Verified": 4
+      },
+      "proposalAttempts": 0,
+      "recordedImprovementActions": 0,
+      "unchangedExecutableActions": [],
+      "literalFailingArtifactsRetained": [],
+      "failureDiagnosisCategories": {},
+      "faultBefore": null,
+      "faultAfter": null
+    },
+    {
+      "caseId": "booking-boundary-fault",
+      "variant": "B2",
+      "sourceFingerprint": "0f46fe3838df7af05e25238d85e735b9e592cbbceb481f423eaeb311ee38dd13",
+      "report": "booking-boundary-fault-B2-1/report.json",
+      "status": "completed",
+      "modelRequests": 5,
+      "totalTokens": 21879,
+      "elapsedSeconds": 31.223,
+      "initialGenerated": {
+        "failed": 1,
+        "passed": 3
+      },
+      "finalGenerated": {
+        "failed": 1,
+        "passed": 3
+      },
+      "mutationAttempts": 0,
+      "mutationIncomplete": [],
+      "mutationStatuses": [],
+      "behaviorStates": {
+        "Uncertain": 1,
+        "Partially Verified": 3
+      },
+      "proposalAttempts": 1,
+      "recordedImprovementActions": 1,
+      "unchangedExecutableActions": [
+        0
+      ],
+      "literalFailingArtifactsRetained": [
+        "T1"
+      ],
+      "failureDiagnosisCategories": {},
+      "faultBefore": true,
+      "faultAfter": true
+    },
+    {
+      "caseId": "booking-boundary-fault",
+      "variant": "B3",
+      "sourceFingerprint": "0f46fe3838df7af05e25238d85e735b9e592cbbceb481f423eaeb311ee38dd13",
+      "report": "booking-boundary-fault-B3-1/report.json",
+      "status": "completed",
+      "modelRequests": 4,
+      "totalTokens": 17492,
+      "elapsedSeconds": 28.353,
+      "initialGenerated": {
+        "failed": 1,
+        "passed": 3
+      },
+      "finalGenerated": {
+        "failed": 1,
+        "passed": 3
+      },
+      "mutationAttempts": 0,
+      "mutationIncomplete": [],
+      "mutationStatuses": [],
+      "behaviorStates": {
+        "Uncertain": 1,
+        "Partially Verified": 3
+      },
+      "proposalAttempts": 0,
+      "recordedImprovementActions": 0,
+      "unchangedExecutableActions": [],
+      "literalFailingArtifactsRetained": [
+        "T1"
+      ],
+      "failureDiagnosisCategories": {
+        "potential_implementation_defect": 1
+      },
+      "faultBefore": true,
+      "faultAfter": true
+    }
+  ],
+  "followup": "v21 rejects identical approved executables/mappings before another review or execution. Existing v20 actions and usage remain unchanged; no post-fix model run is claimed."
+}

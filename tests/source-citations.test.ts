@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { asSchema } from 'ai';
 import { createHash } from 'node:crypto';
-import { sourceEvidenceSchema, sourceEvidenceListSchema, groundedAnalysisSchema, groundedDiagnosisSchema, originalQuoteSchema, analysisSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema } from '../lib/python-types';
+import { sourceEvidenceSchema, sourceEvidenceListSchema, groundedAnalysisSchema, groundedDiagnosisSchema, originalQuoteSchema, analysisSchema, diagnosisSchema, reviewTestsSchema, relevanceSchema, testsSchema } from '../lib/python-types';
 import { reason, validateAnalysis, assertionPolicy, testReviewTask, mutationReviewTask, type ReasonUsage } from '../lib/python-agent';
 import { analysis, artifact, code, rule, report } from './fixtures/python-agent';
 
@@ -144,6 +144,12 @@ test('mocked official SDK requests send numbered files, restore originals and fa
   const shared = JSON.parse(prompts.at(-1)!);
   assert.equal(shared.mutants.length, 1);
   assert.deepEqual(shared.pairs, mutationContext.pairs);
+  expectedRequirement = original;
+  output = { tests: [{ ...artifact, quote: 'R1', gapIndexes: [] }] };
+  const baseline = await reason(testsSchema, 'Direct baseline wire fixture', { rules: [{ id: 'R1', text: original }], files: { 'shipping.py': code }, ruleLinks: [{ ruleId: 'R1', behaviorId: 'B1' }] }, 'gpt-6-luna', new AbortController().signal);
+  assert.equal(baseline.tests.length, 1, 'Direct generation works without a semantic analysis object.');
+  assert.deepEqual(baseline.tests[0].gapIndexes, []);
+  assert.equal(JSON.parse(prompts.at(-1)!).analysis, undefined);
   assert.deepEqual(context, before, 'Saved source and caller input remain unchanged.');
 });
 

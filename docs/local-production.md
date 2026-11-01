@@ -6,7 +6,7 @@ It does not publish the website or replace a hosted deployment plan.
 ## Configure and start
 
 1. Install Node.js 22.22.2 or newer and start Docker. Run npm ci in the repository.
-2. On a new checkout, create .env.local using the [README configuration](../README.md#start).
+2. On a new checkout, create .env.local using the [README configuration](../README.md#run-locally).
    On an existing checkout, preserve the existing file. Configure DATABASE_URL, OPENAI_API_KEY and
    BETTER_AUTH_URL. The default application URL is http://127.0.0.1:3001.
 3. Run npm run db:up and npm run sandbox:build. Run npm run db:migrate:production once on
@@ -29,6 +29,79 @@ available to both services. Press Ctrl+C to stop both services together. If one
 service exits, the launcher stops the other; it does not automatically restart it.
 Shutdown is bounded to 20 seconds; remaining processes are then terminated. Saved
 worker checkpoints remain available for retry after restart.
+
+## Real email verification with Gmail
+
+ReqTest uses its existing Better Auth and Nodemailer integration. No separate
+authentication server is required. In your private .env.local, configure:
+
+```dotenv
+REQTEST_LOCAL_MAIL=false
+AUTH_REQUIRE_EMAIL_VERIFICATION=true
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-account@gmail.com
+SMTP_PASSWORD=your-google-app-password
+SMTP_FROM="ReqTest <your-account@gmail.com>"
+```
+
+Enable Google 2-Step Verification, then create an App Password for this application.
+Use that App Password rather than your ordinary Google password. Some organization
+or Advanced Protection accounts do not permit App Passwords; consult the account
+administrator or use another SMTP provider. Gmail setup follows
+[Google's SMTP settings](https://support.google.com/mail/answer/7104828?hl=en) and
+[App Password instructions](https://support.google.com/accounts/answer/185833?hl=en).
+Keep credentials out of source control and browser-visible variables.
+
+Port 587 starts with SMTP and upgrades using STARTTLS; SMTP_SECURE=false does not
+permit plaintext authentication. Nodemailer requires the TLS upgrade and validates
+the server certificate. A server without STARTTLS is rejected before credentials
+are sent. Gmail configuration checks reject port 465 and SMTP_SECURE=true because
+this setup specifically uses STARTTLS on 587. Other providers can use implicit TLS
+with SMTP_SECURE=true on their designated port.
+
+Run npm run mail:check to check the SMTP connection, encryption and authentication
+without sending a message. For production-specific environment files, run
+NODE_ENV=production npm run mail:check. Restart the website and worker after changing
+configuration. BETTER_AUTH_URL must match the application address that the recipient
+can open; localhost links work only on the machine running ReqTest. Public hosting
+needs an HTTPS application URL and its own deployment configuration.
+
+Register with an inbox you control. The account remains unverified and cannot sign
+in until the recipient opens the signed link and selects Verify email. Links expire
+after one hour. Merely opening the confirmation page does not change the account,
+which avoids verification by simple email link previews. Tokens are read from the
+URL fragment, removed from the address bar, then submitted in a POST body. Better
+Auth validates the signature and expiry; the application does not implement its own
+signing algorithm. Confirmation does not automatically sign in. Reopening an already
+confirmed valid link is harmless.
+
+Use Resend verification email on the sign-in page when a link is missing or expired.
+Responses do not disclose whether an address has an account. Better Auth applies
+its built-in resend rate limit. Existing unverified sessions lose access to protected
+project APIs when verification is required and see a verification prompt. Existing
+verified accounts, passwords, reports and GitHub connections remain in PostgreSQL.
+Preserve the signing secret across restarts so issued links remain valid.
+
+Verification is required by default whenever mail is configured. For an explicitly
+optional development flow only, set AUTH_REQUIRE_EMAIL_VERIFICATION=false. Without
+mail configuration, verification/recovery actions are disabled; explicitly requiring
+verification without a mail service prevents authentication startup.
+
+The automated mail test uses an isolated PostgreSQL schema and local Mailpit:
+
+```sh
+npm run mail:up
+REQTEST_MAIL_TEST=1 npm test
+```
+
+Mailpit validates the application's SMTP and confirmation flow, but does not deliver
+to real inboxes. Set REQTEST_LOCAL_MAIL=false for Gmail. A successful SMTP check does
+not prove inbox delivery: perform one registration with your own real inbox, check
+spam, confirm the link and sign in. Provider rejection, sending limits or spam
+filtering can still prevent delivery. Gmail credentials and this final inbox check
+must be supplied/performed by the deployment owner.
 
 ## Runtime troubleshooting
 

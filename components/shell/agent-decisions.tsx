@@ -1,11 +1,25 @@
 import type { PythonReport, TestAttempt } from '@/lib/python-types';
-import { agentStopReason } from '@/lib/run-evaluation';
+import { agentStopReason, improvementOutcomes } from '@/lib/run-evaluation';
 import { requestUsage } from '@/lib/verification-policy';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const labels: Record<TestAttempt['status'], string> = {
   proposed: 'Awaiting review', reviewed: 'Reviewed; application not recorded',
   applied: 'Applied', rejected: 'Not admitted', failed: 'Request failed',
 };
+
+export function AgentChanges({ report }: { report: PythonReport }) {
+  const changes = improvementOutcomes(report);
+  if (!changes.length) return null;
+  return <Card className="shadow-none">
+    <CardHeader><CardTitle role="heading" aria-level={3}>What changed after feedback</CardTitle><p className="text-sm text-muted-foreground">{changes.filter(change => change.recovered).length} previously failing or erroneous test files now pass · {changes.length} changed or added files.</p></CardHeader>
+    <CardContent className="space-y-4 text-sm">
+      <p className="text-muted-foreground">Recorded before and after results for changed tests. A passing revision is not independent proof that the correction is valid.</p>
+      <div className="max-h-64 overflow-auto" role="region" aria-label="Changed test results" tabIndex={0}><table className="w-full text-left"><caption className="sr-only">Changed test files before and after feedback</caption><thead><tr className="border-b border-border"><th scope="col" className="p-2">Test</th><th scope="col" className="p-2">Before</th><th scope="col" className="p-2">After</th></tr></thead><tbody>{changes.map(change => <tr key={change.id} className="border-b border-border"><th scope="row" className="p-2 font-medium">{change.id}</th><td className="p-2">{change.before}</td><td className="p-2">{change.after}</td></tr>)}</tbody></table></div>
+      <details><summary className="cursor-pointer font-medium">Inspect changed assertions</summary><p className="my-3 text-muted-foreground">{report.improvements[0].reason}</p>{changes.map(change => <details key={change.id} className="my-3 rounded-lg border border-border p-3"><summary className="cursor-pointer">{change.id} · {change.purpose}</summary><h4 className="mt-3 font-medium">Before</h4>{change.previous ? <pre className="my-2 text-xs">{change.previous.code}</pre> : <p>No earlier proposal for this ID.</p>}<h4 className="mt-3 font-medium">After</h4><pre className="my-2 text-xs">{change.test.code}</pre><p className="text-muted-foreground">{change.test.review || 'No review explanation recorded.'}</p></details>)}</details>
+    </CardContent>
+  </Card>;
+}
 
 export function AgentDecisions({ report }: { report: PythonReport }) {
   const rounds = report.testAttempts?.length || 0;

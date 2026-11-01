@@ -1,0 +1,26 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [
+    {
+      "id": "exclusive-threshold",
+      "ruleId": "R1",
+      "description": "The implementation excludes exactly 24 hours from the inclusive free cancellation contract."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "inclusive-boundary",
+      "ruleId": "R1",
+      "description": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+      "initialGap": true
+    }
+  ],
+  "fault": {
+    "id": "exclusive-threshold",
+    "file": "booking.py",
+    "before": "hours > 24",
+    "after": "hours >= 24"
+  }
+}

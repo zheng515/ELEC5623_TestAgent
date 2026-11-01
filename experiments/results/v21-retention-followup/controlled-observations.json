@@ -1,0 +1,64 @@
+{
+  "scope": "Adaptive typed-candidate follow-up to the preceding controlled study, not an independent project or unseen benchmark. Same source and original requirement; type witnesses derived from its observed B3 correction.",
+  "policyVersion": "contract-witness-v21-unchanged-proposal-stop",
+  "agentFingerprint": "7d772a13a4ff39564b713135726ee027f4df9278748daace4134e3f73ebd472f",
+  "actualModelRequests": 4,
+  "knownTokens": 14856,
+  "sharedPreparations": 1,
+  "plannedWorkflowRows": 3,
+  "completedWorkflowRows": 3,
+  "initialRuntimeDiagnosisExposure": true,
+  "naturalGeneratedTestErrorObserved": false,
+  "independentDiagnosisAccuracy": null,
+  "noOpGuardExercisedByModelProposals": false,
+  "interpretation": "Both full configurations preserve the admitted failing artifact unchanged and retain corrected-copy fault detection. B3 records an execution-phase implementation-defect diagnosis. B2 returns no replacement artifacts. No B3 detection advantage, literal no-op proposal, or runtime generated-test-error repair opportunity was observed.",
+  "rows": [
+    {
+      "variant": "B2",
+      "originalAdmitted": true,
+      "initialRuntimeFailureExposed": true,
+      "literalOriginalCodeRetained": true,
+      "sourceBytesUnchanged": true,
+      "faultDetectedOnOriginal": true,
+      "correctedCopyPass": true,
+      "diagnoses": [],
+      "appliedImprovements": 0,
+      "proposedTests": 0,
+      "stopReason": "The improvement was not admitted. Earlier approved tests remain active; the single improvement budget is exhausted."
+    },
+    {
+      "variant": "B3",
+      "originalAdmitted": true,
+      "initialRuntimeFailureExposed": true,
+      "literalOriginalCodeRetained": true,
+      "sourceBytesUnchanged": true,
+      "faultDetectedOnOriginal": true,
+      "correctedCopyPass": true,
+      "diagnoses": [
+        {
+          "testId": "T1",
+          "category": "potential_implementation_defect",
+          "reason": "The generated test fails at its zero-value assertion for the explicitly specified 24-hour input. The implementation\u2019s conditional returns 2500 at exactly 24, contrary to the requirement.",
+          "quote": "For built-in int hours of at least 24, booking.cancellation_fee(hours) returns integer 0 cents, including exactly 24.",
+          "executionQuote": "E       assert 2500 == 0",
+          "evidence": [
+            {
+              "file": "booking.py",
+              "quote": "    return 0 if hours > 24 else 2500",
+              "line": 6
+            },
+            {
+              "file": "reqtest_generated/test_reqtest_T1.py",
+              "quote": "    assert result == 0",
+              "line": 7
+            }
+          ],
+          "phase": "execution"
+        }
+      ],
+      "appliedImprovements": 0,
+      "proposedTests": 0,
+      "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions."
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "scope": "Same saved source and assertion hashes; distinct tool revisions/images and single development observations. Not a causal efficiency trial or semantic/model comparison.",
+  "sameSource": true,
+  "sameApprovedSuite": true,
+  "before": {
+    "policyVersion": "contract-witness-v19-bounded-mutation-evidence",
+    "agentFingerprint": "f1d26a5da5fc360ca6bed05303a724d83a9aa3be298e7138e571689fcaba5b36",
+    "sandboxImage": "sha256:7a2aa5242856cb3176c462f4726ad5e7ce658c5e826d50403600d0402fbf9b6e",
+    "mutationSeconds": 75,
+    "totalMutants": 986,
+    "returnedMutants": 200,
+    "availableDiffs": 98,
+    "mutationElapsedMs": 86214,
+    "incomplete": true,
+    "timedOut": true
+  },
+  "after": {
+    "policyVersion": "contract-witness-v20-executed-mutation-scope",
+    "agentFingerprint": "6aa89b8b4b44cf398073e2ece4083925af5f99ba8234b51a12c18da7e5a72d17",
+    "sandboxImage": "sha256:b64182700c09f1552bc215dc2d3cfdb933893e46138391140ecc306e562928da",
+    "mutationSeconds": 75,
+    "totalMutants": 325,
+    "returnedMutants": 200,
+    "availableDiffs": 94,
+    "mutationElapsedMs": 86281,
+    "incomplete": true,
+    "timedOut": true
+  },
+  "candidateCountChange": -661,
+  "modelRequests": 0,
+  "latencyAdvantageEstablished": false,
+  "equivalentCoverageEstablished": false
+}
