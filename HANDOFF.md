@@ -153,6 +153,14 @@ Never put credentials, cookies or database backups in source, evidence or chat.
 
 ## Next work and constraints
 
+PR #38 CI exposed a stale assertion in the Docker-enabled seeded paired CLI test:
+the fixture deliberately exhausts its follow-up budget, so the evaluation CLI
+correctly exits with code 1. The test now requires that exit code, verifies the
+completed-with-failures index, and continues checking the retained evidence and
+analysis exports. All six shared-suite tests pass with Docker enabled; typecheck,
+lint and the English-only check pass. This changes tests only; the frozen Agent,
+evaluation CLI and benchmark observations remain unchanged.
+
 1. Review the current benchmark's trade-offs and raw failure/decision traces.
 2. Write the academic report using measured current results and explicit limits.
    No academic report or team contribution names have been fabricated. The actual
