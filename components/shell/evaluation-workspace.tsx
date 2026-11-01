@@ -126,6 +126,7 @@ export function EvaluationWorkspace({ initialRunId = '' }: { initialRunId?: stri
     if (filter === 'Checks passed') return !!check?.checked && !check.investigate;
     if (filter === 'Needs investigation') return !!check?.investigate;
     if (filter === 'Incomplete checks') return !!check && !check.checked;
+    if (filter === rule.id) return true;
     return rule.status === filter;
   };
   function download() {

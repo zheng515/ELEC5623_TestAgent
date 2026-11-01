@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { agentStopReason, improvementOutcomes, runEvaluation, verificationSummary } from '../lib/run-evaluation';
+import { agentStopReason, improvementOutcomes, runEvaluation, traceabilityRows, verificationSummary } from '../lib/run-evaluation';
 import type { PythonReport } from '../lib/python-types';
 import { recordCoverage } from './fixtures/python-agent';
 
@@ -36,6 +36,17 @@ test('requirements aggregate behaviors without counting behaviors as requirement
   assert.deepEqual(result.requirements.map(item => item.status), ['Partially Verified', 'Uncertain', 'Unverified']);
   assert.equal(result.distribution.reduce((sum, item) => sum + item.value, 0), 3);
   assert.deepEqual(result.outcomes.map(item => item.value), [1, 1, 0, 1]);
+});
+
+test('traceability rows keep requirement, behavior, admission and execution counts separate', () => {
+  const report = fixture();
+  report.tests.push({ ...report.tests[0], id: 'T2', behaviorId: 'B2', functionName: 'test_blocked', approved: false });
+  const rows = traceabilityRows(report);
+  assert.deepEqual(rows.map(({ id, behaviors, approvedTests, blockedTests, outcomes, status }) => ({ id, behaviors, approvedTests, blockedTests, outcomes, status })), [
+    { id: 'R1', behaviors: 2, approvedTests: 1, blockedTests: 1, outcomes: 2, status: 'Partially Verified' },
+    { id: 'R2', behaviors: 1, approvedTests: 0, blockedTests: 0, outcomes: 1, status: 'Uncertain' },
+    { id: 'R3', behaviors: 0, approvedTests: 0, blockedTests: 0, outcomes: 0, status: 'Unverified' },
+  ]);
 });
 
 test('default-depth progress counts checked requirements including a retained failure without granting verification', () => {

@@ -9,6 +9,7 @@ import { requestUsage, usageNotice } from '@/lib/verification-policy';
 import { AgentProgress } from './agent-progress';
 import { EvaluationVisuals } from './evaluation-visuals';
 import { AgentChanges } from './agent-decisions';
+import { TraceabilityFlow } from './traceability-flow';
 
 type Navigate = (panel: string, id?: string) => void;
 export function ResultOverview({ report, onNavigate, onFinding, onRequirements, onTests }: { report: PythonReport; onNavigate: Navigate; onFinding: (node: string) => void; onRequirements: (filter: string) => void; onTests: (status: string) => void }) {
@@ -27,6 +28,7 @@ export function ResultOverview({ report, onNavigate, onFinding, onRequirements, 
     {initialIssue && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-400/30 p-4 text-sm"><span>Initial collection or existing-test checks need attention.</span><Button variant="link" onClick={() => onNavigate('evidence', 'execution-records')}>Inspect execution records</Button></div>}
     {notice && <p role="status" className="rounded-lg border border-amber-400/30 p-4 text-sm text-amber-200">{notice}</p>}
     <EvaluationVisuals report={report} evaluation={evaluation} onRequirements={onRequirements} onTests={onTests} />
+    <TraceabilityFlow report={report} onRequirement={onRequirements} />
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(260px,1fr)]">
       <Card className="overflow-hidden shadow-none">
         <CardHeader><div className="mb-2 flex flex-wrap items-center gap-2"><CircleAlert aria-hidden="true" className="size-4 text-primary" /><span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">{finding ? 'Priority finding' : 'Next action'}</span></div>{finding && <Badge variant="outline" className="mb-2 w-fit max-w-full border-amber-400/30 bg-amber-400/5 text-amber-200 whitespace-normal">{finding.diagnosis ? diagnosisLabels[finding.diagnosis.category] + ' · Agent assessment' : 'Execution needs investigation'}</Badge>}<CardTitle role="heading" aria-level={3} className="text-xl leading-snug">{finding ? finding.behavior ? `${finding.behavior.category[0].toUpperCase() + finding.behavior.category.slice(1)} check needs investigation` : finding.test?.purpose || finding.outcome.name : evaluation.needsAttention.length ? 'Review the remaining requirement evidence' : evaluation.blocked ? 'Inspect blocked test proposals' : 'Review the recorded verification scope'}</CardTitle>{finding && <p className="break-all text-xs text-muted-foreground">{finding.rule ? (finding.rule.originalId || finding.rule.id) + ' · ' : ''}{finding.outcome.file}</p>}</CardHeader>

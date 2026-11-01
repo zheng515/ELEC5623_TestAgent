@@ -63,7 +63,9 @@ evidence and remaining annotation, usability and delivery requirements.
 - PostgreSQL private reports, checkpoints, worker recovery, account isolation,
   cancellation, provider usage accounting and configurable response timeouts.
 - Evaluation charts distinguish execution progress, test outcomes and strict
-  assurance; chart categories open matching filters. Evidence trails reject stale
+  assurance; chart categories open matching filters. A compact requirement evidence
+  chain links the original item, mapped behaviors, admitted tests, executed outcomes
+  and final state, and opens the complete saved trace. Evidence trails reject stale
   phases and ambiguous links, and do not refresh diagnoses during replay.
 - Workspace tabs retain unsaved requirements and project setup in memory.
   Sign-out clears password and registration/recovery state, with visible failure
@@ -127,3 +129,6 @@ uninspected if they cannot fit the retrieval budget. Model limits and the queue'
 
 No academic report has been authored. Setup details are in the short root README,
 [deployment guide](local-production.md) and [technical reference](usage-reference.md).
+`npm run quality:check` reproduces static checks, regressions and the production
+build; `npm run acceptance:local` checks configured production services and SMTP
+authentication without sending mail.

@@ -3,7 +3,7 @@ import { ruleSources } from './requirement-input';
 import { testFile } from './runtime';
 import { requirementCoverage } from './requirement-coverage';
 import { mutationAssessmentMissing } from './verification-policy';
-import { hasUninspectedContext } from './project-context';
+import { hasUninspectedContext } from './context-assurance';
 import { findingEvidence } from './finding-evidence';
 
 export const requirementStates = ['Verified', 'Partially Verified', 'Unverified', 'Uncertain', 'Pending'] as const;
@@ -70,6 +70,25 @@ export function verificationSummary(report: PythonReport) {
   if (report.status === 'completed' && evaluation.blocked) next = `${evaluation.blocked} blocked test proposals need attention. Inspect their review reasons and uncovered requirements before regenerating. ` + next;
   if (report.replay) next += ' Saved-test execution does not regenerate analysis or diagnoses.';
   return { ...evaluation, passed, failedCount: failed, errors, skipped, unmapped, unresolved, preserved, requirementChecks, needsAttention, checksPassedAwaitingAssurance, mutationAssessment, title, next };
+}
+
+export function traceabilityRows(report: PythonReport) {
+  const evaluation = runEvaluation(report);
+  return evaluation.requirements.map(rule => {
+    const behaviorIds = new Set(rule.behaviors.map(behavior => behavior.id));
+    const tests = report.tests.filter(test => behaviorIds.has(test.behaviorId));
+    const nodes = new Set(rule.behaviors.flatMap(behavior => behavior.outcomes.map(outcome => outcome.node)));
+    return {
+      id: rule.id,
+      label: rule.originalId || rule.id,
+      text: rule.text,
+      behaviors: rule.behaviors.length,
+      approvedTests: tests.filter(test => test.approved).length,
+      blockedTests: tests.filter(test => !test.approved).length,
+      outcomes: nodes.size,
+      status: rule.status,
+    };
+  });
 }
 
 // Compare only changed artifacts against their own recorded executions, never a baseline suite.

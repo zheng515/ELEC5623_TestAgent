@@ -39,6 +39,19 @@ partially verified. No efficiency or quality advantage is established for this
 policy. Old-version experiment results were removed at the user's request on
 2026-10-28 and must not be cited as current evidence.
 
+## Concrete differentiation case
+
+The retained type-complete boundary follow-up provides one inspectable example of
+the product contribution. B2 and B3 both preserve the same failing boundary test,
+so the evidence does not support a defect-detection advantage. B3 additionally
+records a requirement quotation, executed failure excerpt and source evidence
+before classifying the result as a potential implementation defect. The user can
+therefore trace why the failing assertion was retained instead of silently
+rewriting it. This demonstrates a decision-trace difference, not superior test
+generation or diagnostic accuracy. The website exposes the same chain as
+requirement -> behavior -> admitted test -> execution outcome -> verification
+state, while the raw report remains downloadable.
+
 See [architecture and choices](architecture.md) and [evaluation protocol](evaluation-protocol.md).
 No external competitor comparison, independent review or user-task result has
 been manufactured. A credible next test is whether users choose the right action
