@@ -12,16 +12,15 @@ per workflow. It checks configuration and execution paths, not repeat stability,
 held-out effectiveness or superiority. The complete repeated matrix remains a
 separate command; a smoke run does not silently start it.
 
-The [retained v21 smoke](../experiments/results/v21-independent-smoke-2026-11-02/README.md)
-attempted all four configurations on frozen `b16b7ac`. B0/B1 completed; B2/B3
-exhausted their 32-request caps during mutation-pair review, with incomplete
-mutation evidence. This is a failed acceptance gate, not a completed repeated
-matrix or evidence of B3 superiority. See its budget analysis before spending on
-the full matrix; changed budgets or review policy require a separate study.
-Current manifests declare the same four-request, 60-second review budget for
-B2/B3 inside the unchanged 32-request global cap. See the
-[v22 semantics and engineering validation](mutation-review-budget.md).
-This change does not replace v21 failures or establish v22 model effectiveness.
+The [current v22 evidence](../experiments/results/v22-summary/README.md) is frozen
+at `bd12d23`: four smoke workflows, 36 repeated real-project workflows and eight
+supplementary synthetic fault workflows all completed. Twelve matrix workflows
+and two smoke workflows retain limited mutation review. All four configurations
+detect both declared synthetic faults; B3 adds grounded diagnosis, with no extra
+defect-detection advantage. No admitted runtime generated-test error is observed.
+Current manifests use the same four-request/60-second review allocation for B2/B3
+inside their 32-request global cap. See [policy semantics](mutation-review-budget.md).
+Old studies were retired in whole and are excluded from current measurements.
 
 | Configuration | Model input and control flow |
 | --- | --- |
@@ -51,26 +50,16 @@ isolate diagnosis and repair selection; the independent full-workflow matrix
 also includes generation variability. The retired shared-initial model studies
 and their dedicated manifests were deleted. Neither design guarantees a B3 advantage.
 
-The v20 B2/B3 pilot is a separate four-run custom subset on two existing synthetic
-fixtures. Both configurations detect its boundary fault. It exposed a repeated
-approved executable being recorded as an improvement; v21 filters such proposals
-under the same rules in both configurations. No post-fix model run or natural
-test-error repair opportunity is claimed for that pilot. The separate v21
-controlled recovery study has six seeded workflow rows and two common
-preparations. Both full arms repair the admission-rejected import; both strengthen
-the rejected boundary candidate and retain detection, but fail literal
-unchanged-artifact retention. Initial runtime diagnosis was not exposed. The
-no-op guard was not exercised by these model proposals. A separate type-complete
-follow-up admits the adaptive boundary candidate: both full arms retain it
-literally unchanged and B3 diagnoses its executed failure. The earlier blocked
-result remains, and these repeated candidates are not independent samples.
-See the experiment inventory.
+The independent matrix also includes generation variability. It cannot isolate
+causal effects of diagnosis alone. Shared-preparation and seeded-candidate modes
+remain covered by regression tests; their retired paid studies are not current
+results. All reference labels remain developer/AI-assisted and unreviewed.
 
 ## Rubric traceability
 
 | Criterion | Engineering evidence | Remaining evidence |
 | --- | --- | --- |
-| Product completeness and technical implementation | Shared production orchestrator, four executable profiles, safe tools and end-to-end regressions. | Freeze the demonstrated revision and run the new matrix before claiming measured effectiveness. |
+| Product completeness and technical implementation | Shared production orchestrator, four executable profiles, safe tools and end-to-end regressions. | The frozen matrix is complete; limits, missing semantic labels and generalization boundaries remain explicit. |
 | GenAI engineering and system architecture | Context boundaries, structured outputs, contract review, grounded B3 diagnosis, bounded actions and recorded capabilities. | Semantic validation; schema validity is not correctness. |
 | Evaluation, evidence and critical analysis | Full baselines plus separate ablations, source/model/image identities, resource usage, reference replays, failed/missing rows and non-applicable metrics. | Qualified C1/C2/C3 annotations remain necessary for independent precision/recall/F1. |
 | Novelty and positioning | Internal baselines test project mechanisms; related-work analysis distinguishes overlap and contribution. | B0/B1 are not Codex/Claude measurements and do not establish external-product superiority. |

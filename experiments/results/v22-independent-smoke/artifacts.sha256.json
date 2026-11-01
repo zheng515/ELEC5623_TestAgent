@@ -1,0 +1,18 @@
+{
+  "scope": "Final retained artifact bytes, excluding this checksum manifest itself.",
+  "files": {
+    "README.md": "b439633fe622c5eb7ab01416be960a5f6a5681edc4cabf528064b298b355ca51",
+    "analysis-notes.json": "db7a89930ba5e487dbb4e51e181a8349c7939583caecb675d89259bbe83c7679",
+    "evidence-files.sha256.json": "57de7022cb8273beb0c53ee1d606dd428b0a8ad3e77ef84b95fe9352f51a9507",
+    "evidence.zip": "5ed29971730441ae4b73d5f9817d65fbcc861d16b4c53e8dfafa08a9a3c33c6b",
+    "failure-cases.json": "563fdace375a10c004c0cbd2db2a8c92962304e10a8a053ce1302a383f13af73",
+    "identity.json": "fccf6f569c5444fd445d67898eb46f7f0cc33c75de0ef9a4a11b425969013cb2",
+    "metrics.json": "eb2741fa769cdfbe0e6af9c0693a64eeb4a15cdbbd88e5cc50329bbd53a7d324",
+    "runner.log": "12225b6defe5ec95910c0b3e31eb2f7f765ebb5179e01fe6d445ae52666709f4",
+    "runs.csv": "43f3ae3f0533e84ad35bd4193e5abc4c944a8c5a5b3af8b91c23822f06e84220",
+    "validation.json": "054d274f127eabc7a8badfcfe0d9bb0f3f958da765fcc945309a757674c406a3",
+    "variants.csv": "a0e460d82c83c98712d7c6097f951ed17b8739ce71daef5cd3f86cfcd7ded55c",
+    "workflow-details.json": "d3ef41a1aa6d3b948e479ac0808b238f4cc1a640f761e5ae24f04c388ec6df6e",
+    "workflow-evidence.json": "6626f4ead00abba163b105e393589b3c63aa75e4533417d413a458ec4a313843"
+  }
+}

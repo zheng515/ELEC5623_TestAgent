@@ -72,9 +72,10 @@ mutation execution, optional timeouts and provider-error propagation. Its Docker
 paths use real test execution, scripted model responses and declared mutation
 tool fixtures. They make no provider calls and do not measure model quality.
 
-The v21 smoke archives and checksums remain unchanged. Current manifests declare
-v22 limits; any paid study needs a new freeze and separate evidence. No v22 model
-effectiveness, repeatability or measured cost reduction is established here.
+The historical v21 smoke is retired under [cleanup](../experiments/cleanup-v22.json)
+and recoverable from Git. Its records were not relabeled. The current v22 code
+was frozen at `bd12d23`; [separate paid results](../experiments/results/v22-summary/README.md)
+are now available. No before/after causal cost advantage or semantic accuracy is inferred.
 
 Validation on 2026-11-02:
 
@@ -88,9 +89,10 @@ Validation on 2026-11-02:
 - The new default manifest passes `--validate-only` on Click, Packaging and
   Werkzeug, with zero provider requests. Agent fingerprint:
   `a8aa7515772720ec0546031fc576601bf2797173fb233f7d854166b08863daf2`.
-- All 15 retained v21 artifacts and both archives' uncompressed contents still
+- Before retirement, all 15 v21 artifacts and both archives' uncompressed contents still
   match their recorded SHA-256 checksums. No v21 result was replaced.
 
 The 4-request/60-second allocation is an engineering default, not an empirically
-optimal value. A new paid smoke remains necessary to observe v22 model behavior
-before deciding whether the repeated matrix is appropriate.
+optimal value. The v22 smoke and 36-row matrix now complete under this policy,
+with explicitly limited mutation assurance. This is not a guarantee for future
+projects or proof of optimal budget allocation.

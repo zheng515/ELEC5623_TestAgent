@@ -41,22 +41,19 @@ policy. Old-version experiment results were removed at the user's request on
 
 ## Concrete differentiation case
 
-The retained type-complete boundary follow-up provides one inspectable example of
-the product contribution. B2 and B3 both preserve the same failing boundary test,
-so the evidence does not support a defect-detection advantage. B3 additionally
-records a requirement quotation, executed failure excerpt and source evidence
-before classifying the result as a potential implementation defect. The user can
-therefore trace why the failing assertion was retained instead of silently
-rewriting it. This demonstrates a decision-trace difference, not superior test
-generation or diagnostic accuracy. The website exposes the same chain as
-requirement -> behavior -> admitted test -> execution outcome -> verification
-state, while the raw report remains downloadable.
+The current v22 Booking and Inventory supplement demonstrates the decision trail.
+All four configurations detect both declared boundary faults, so no extra B3
+fault detection is established. B3 additionally records execution-phase
+potential-implementation-defect diagnoses grounded in original requirements,
+source, tests and failed execution. It preserves the failing assertions.
+B2 also retains detection: its repeated unchanged proposals are stopped before
+extra review or execution and do not count as improvements. This directly exposes
+safe stopping behavior without manufacturing a B3 advantage.
 
-See [architecture and choices](architecture.md) and [evaluation protocol](evaluation-protocol.md).
-No external competitor comparison, independent review or user-task result has
-been manufactured. A credible next test is whether users choose the right action
-from the retained requirement/assertion/trace evidence, rather than whether the
-system generates more tests.
+See [current fault evidence](../experiments/results/v22-fault-cases/README.md).
+The cases and references are developer/AI-assisted, not independent human labels.
+Case-consistent diagnoses and exact citations establish inspectable observations,
+not population diagnostic accuracy or external-product superiority.
 
 ## Inspectable implementation
 
@@ -86,30 +83,23 @@ semantic coverage, user benefit or an advantage over other products.
 
 ## Current evaluation status
 
-The retained four-run B2/B3 pilot uses two existing synthetic fixtures and one
-repeat. Both configurations pass the correct shipping cases and expose the same
-booking equality-boundary fault. B3 supplies a traceable diagnosis and retains the
-original failing assertion. B2's unchanged-code proposal was incorrectly counted
-as an improvement; the current policy filters it before extra review or execution.
-The exact no-op correction has offline/Docker validation; subsequent model
-proposals did not exercise that path.
+The [frozen v22 benchmark](../experiments/results/v22-summary/README.md) completed
+four smoke, 36 real-project and eight synthetic fault workflows. All 397 final
+real-project generated nodes pass, and every configuration detects both declared
+synthetic faults. Full arms use more recorded requests/tokens on the real-project
+contracts, without a measured execution/reference-disagreement advantage.
+The main matrix exposes no runtime diagnosis/repair opportunity. It cannot
+attribute resource differences to diagnosis, which was not requested there.
 
-This supports a concrete inspectable decision trace, not superior defect detection:
-B3 found no extra defect in this pilot. No natural generated-test error exposed a
-repair opportunity. Independent semantic accuracy, diagnosis F1, repeat stability
-and user-task benefit remain unmeasured. The complete independent B0-B3 matrix
-is configured but has not been run under the current policy. A separate v21
-controlled study shows admission-driven import correction in both full arms and
-retained fault detection after type witnesses are added. It does not expose the
-intended initial runtime diagnosis cases, and neither full arm retains the
-boundary artifact literally unchanged. These are distinct unsuccessful or
-unavailable measures, not evidence to suppress.
-A separately frozen, type-complete adaptive candidate then reaches runtime
-diagnosis: both full arms retain the failing test unchanged, and B3 provides
-grounded defect evidence. This supports a specific decision trace, not a B3
-detection advantage or a population accuracy estimate.
+Twelve matrix workflows retain limited mutation review. Three repeats per case
+produce distinct literal suites; this does not establish semantic equivalence or
+population reliability. There is no independent semantic accuracy, diagnosis F1,
+reviewed mutation score, user study or external-product comparison. No admitted
+generated runtime-error repair opportunity appears in these observations, so
+repair effectiveness remains unavailable.
 
-The retained Click mutation-scope check is tool-only, incomplete and shows no
-latency advantage. Retired studies were deleted in full and contribute no current
-claims. See [the current evidence inventory](../experiments/README.md) and
-[the protocol](evaluation-protocol.md).
+Old v20/v21 studies were removed in whole at the owner's request and excluded from
+current results. [Cleanup](../experiments/cleanup-v22.json) records hashes and the
+Git revision retaining exported historical evidence. The current contribution is
+an implemented, inspectable contract/decision policy whose broader effectiveness
+still requires independent evaluation. No academic report was authored.

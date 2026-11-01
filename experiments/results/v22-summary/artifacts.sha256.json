@@ -1,0 +1,8 @@
+{
+  "scope": "Final retained artifact bytes, excluding this checksum manifest itself.",
+  "files": {
+    "README.md": "8d0f0bf7c33d6cc4683e8bbf0fe879ad5453efc4190243ae41747efa148e9194",
+    "studies.json": "7d251971717d0d2c65969bdcf8d9347cc808b5181edd2e49f8ff365b70f85c07",
+    "validation.json": "dd30410726602f3e84612295be2ca45bdd37b0163e5d023be025e01ae48c018e"
+  }
+}

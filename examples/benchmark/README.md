@@ -14,9 +14,10 @@ is planned; independent semantic accuracy remains unavailable.
 ## Current experiment entrypoint
 
 Old synthetic study results and manifests were removed. These projects remain
-regression inputs. Use the [real-project setup](../real-projects/README.md) and
+regression inputs. The current eight-workflow synthetic supplement is `examples/experiments-faults-v22.json`.
+Use the [real-project setup](../real-projects/README.md) and
 [current inventory](../../experiments/README.md) for retained observations.
-The active runner defaults to the independent four-configuration v21 protocol:
+The active runner defaults to the independent four-configuration v22 protocol:
 
 ```sh
 REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run experiment:run

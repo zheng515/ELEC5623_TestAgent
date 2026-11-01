@@ -1,0 +1,84 @@
+{
+  "scope": "Observed workflow records on identical case inputs. Counts do not establish semantic correctness or superiority over external products.",
+  "baseline": "B0 is this repository's direct-generation configuration, not a measurement of Codex, Claude, CoverUp or TestGen-LLM.",
+  "rows": [
+    {
+      "caseId": "click-full",
+      "variant": "B0",
+      "repeat": 1,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/click-full-B0-1/report.json"
+    },
+    {
+      "caseId": "click-full",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/click-full-B1-1/report.json"
+    },
+    {
+      "caseId": "click-full",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 13,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/click-full-B2-1/report.json"
+    },
+    {
+      "caseId": "click-full",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 6,
+      "behaviorsWithArtifactQuotes": 10,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/click-full-B3-1/report.json"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "variant": "B0",
+      "completed": 1,
+      "planned": 1,
+      "seededFaultDetection": null,
+      "medianSeconds": 18.219,
+      "totalTokens": 55404
+    },
+    {
+      "variant": "B1",
+      "completed": 1,
+      "planned": 1,
+      "seededFaultDetection": null,
+      "medianSeconds": 15.225,
+      "totalTokens": 62350
+    },
+    {
+      "variant": "B2",
+      "completed": 1,
+      "planned": 1,
+      "seededFaultDetection": null,
+      "medianSeconds": 189.074,
+      "totalTokens": 697908
+    },
+    {
+      "variant": "B3",
+      "completed": 1,
+      "planned": 1,
+      "seededFaultDetection": null,
+      "medianSeconds": 187.635,
+      "totalTokens": 692089
+    }
+  ]
+}

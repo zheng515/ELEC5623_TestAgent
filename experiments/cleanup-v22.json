@@ -1,0 +1,129 @@
+{
+  "createdAt": "2026-11-01T20:36:03.547384+00:00",
+  "ownerAuthorized": true,
+  "scope": "Whole retired v20/v21 model/tool studies, raw evaluation workspaces and their four unreferenced dedicated manifests, including all successes and failures. Deletion occurs only after all three current v22 studies are archived and byte-verified. Old observations are excluded from current metrics. Runtime code and tests do not reference the deleted manifests. The old v21 temporary archive-reanalysis workspace is also retired in full.",
+  "historyRevision": "bd12d236fe65009ba02655f48556b0b397e3f575",
+  "historyNote": "Retained exported v20/v21 evidence is recoverable from this Git revision. Raw workspaces are removed; their exported inputs, reports and model records remain in historical study archives.",
+  "preserved": [
+    "v22-independent-smoke",
+    "v22-real-project-matrix",
+    "v22-fault-cases",
+    "production UI acceptance",
+    "pinned reusable inputs",
+    "regression fixtures",
+    "application accounts and runs",
+    "credentials and backups"
+  ],
+  "removed": [
+    {
+      "path": "experiments/results/v20-closed-loop",
+      "files": 25,
+      "bytes": 1268333,
+      "treeSha256": "8208bbcc7dccb1ab26b230d312c343952e3f5227ab9715c4476722267494b08a"
+    },
+    {
+      "path": "experiments/results/v20-executed-mutation",
+      "files": 13,
+      "bytes": 2688631,
+      "treeSha256": "91f1ac37ef8ec3b5f788014b820e1ee820720f0b7d9ac7f324cff1857a7335e2"
+    },
+    {
+      "path": "experiments/results/v21-click-runtime-observation",
+      "files": 17,
+      "bytes": 910618,
+      "treeSha256": "cc90ee5f4b4b1064e1301cdc2d8523b8d08339b2d8e91420db51b28644017484"
+    },
+    {
+      "path": "experiments/results/v21-controlled-recovery",
+      "files": 31,
+      "bytes": 1004592,
+      "treeSha256": "fddd4361862df04840c20ff9d523f3a4d17f048ee3d9c142d8f94ede5463043f"
+    },
+    {
+      "path": "experiments/results/v21-independent-smoke-2026-11-02",
+      "files": 16,
+      "bytes": 3500423,
+      "treeSha256": "8bcf66df3fbb349911a6e50633eda90409bb3be862564507124ad8cbab891d25"
+    },
+    {
+      "path": "experiments/results/v21-retention-followup",
+      "files": 24,
+      "bytes": 576109,
+      "treeSha256": "c8499447f55402c1ac7a7cc81caa4be11cf8e5cd3e2379e9f1716a4b3823857e"
+    },
+    {
+      "path": "examples/experiments-closed-loop-smoke.json",
+      "files": 1,
+      "bytes": 820,
+      "treeSha256": "caf4974f3039126af11edcd839fbbfc43711df54a21dd653c146dfd86f33fe56"
+    },
+    {
+      "path": "examples/experiments-click-runtime-smoke.json",
+      "files": 1,
+      "bytes": 635,
+      "treeSha256": "8f493e24130fea1f100f7bc2f8ddb6b8fac6ad00c052a3440a66c38f307a0e91"
+    },
+    {
+      "path": "examples/experiments-recovery-smoke.json",
+      "files": 1,
+      "bytes": 1249,
+      "treeSha256": "9408c53e870d88bc2dd72995f5cba544494c480dbc1737e20390faa54caf5959"
+    },
+    {
+      "path": "examples/experiments-retention-followup.json",
+      "files": 1,
+      "bytes": 814,
+      "treeSha256": "fc7e2ce6259674a65f10f393c2f24c1a813ba9a17df163e6b145330f450cae23"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T08-49-43-270Z-f09d977e",
+      "files": 937,
+      "bytes": 9786563,
+      "treeSha256": "eda1ed0820072cf09b9c3c453b06ee5bcc16de383802fe6b317d9fe9c5d3634c"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T08-29-46-473Z-2561a35d",
+      "files": 131,
+      "bytes": 885898,
+      "treeSha256": "d9111292134af4846963dd87b3bf97fd142c43bc9fe5d8dadfd6fab4c9204ac5"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T14-24-41-408Z-16171ca3",
+      "files": 483,
+      "bytes": 7100801,
+      "treeSha256": "116c7df7c3769c1b7049a62c007b6d11d53fb6e6be2e1bad4acdb3d0813c0841"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T14-25-28-760Z-da3e8384",
+      "files": 833,
+      "bytes": 10797323,
+      "treeSha256": "0a241b6eba434b73a653b2237fe93409a5b5861e5e663b4f4e85c3122f9b6e88"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T08-02-24-302Z-ce7f5833",
+      "files": 124,
+      "bytes": 954144,
+      "treeSha256": "1dd8c81d5a593582b098f98e9738fb94f2b73731b844b8f3821c2de34a0a9ef8"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T08-41-30-663Z-647d785d",
+      "files": 83,
+      "bytes": 775967,
+      "treeSha256": "09fbe05dd2a4b6aa15ea19d678a19746453034eb63dc979688c33e8d62db3e70"
+    },
+    {
+      "path": ".evidence/smoke-b16b7ac-2026-11-02.log",
+      "files": 1,
+      "bytes": 13542,
+      "treeSha256": "cb8127f4e3a4b2fb02d1e0f7b5aac6674a741b96e5d29572f6ebd8fae1ced9b4"
+    },
+    {
+      "path": "tmp/v21-independent-smoke-2026-11-02-reanalysis",
+      "files": 53,
+      "bytes": 10479525,
+      "treeSha256": "e01b2f627dd94b15da55453779ae00bc2326b80b095e3452cc0acdbef173d087"
+    }
+  ],
+  "removedFiles": 2775,
+  "removedBytes": 50745987
+}

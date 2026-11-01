@@ -1,4 +1,0 @@
-"variant","plannedRuns","completed","failed","missing","completionRate","completedWithExecutionRate","medianSeconds","latencyObservedRuns","modelRequests","totalTokens","approvedArtifacts","blockedArtifacts","generatedPassed","generatedFailed","generatedErrors","referenceObservedRuns","referenceFailureRuns","referenceFailureRate","faultRuns","unresolvedFaultRuns","correctedCopyDetectionRate","initialDetections","preservedDetectionRate","independentSemanticAccuracy","independentDiagnosisMacroF1","independentlyReviewedMutationScore"
-"B1","1","1","0","0","1","1","17.054","1","1","62484","6","0","6","0","0","1","0","0","0","0",,"0",,,,
-"B2","1","1","0","0","1","1","2.925","1","0","0","6","0","6","0","0","1","0","0","0","0",,"0",,,,
-"B3","1","1","0","0","1","1","2.938","1","0","0","6","0","6","0","0","1","0","0","0","0",,"0",,,,

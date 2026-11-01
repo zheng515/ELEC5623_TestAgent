@@ -1,0 +1,45 @@
+{
+  "frozenCommit": "bd12d236fe65009ba02655f48556b0b397e3f575",
+  "productionSourceDiffFromFreeze": "empty",
+  "completedWorkflowRecords": 48,
+  "postRunSourceChecks": 48,
+  "globalRequestCapsRespected": true,
+  "reviewRequestCapsRespected": true,
+  "archives": [
+    {
+      "study": "v22-independent-smoke",
+      "files": 25,
+      "sha256": "5ed29971730441ae4b73d5f9817d65fbcc861d16b4c53e8dfafa08a9a3c33c6b"
+    },
+    {
+      "study": "v22-real-project-matrix",
+      "files": 163,
+      "sha256": "65f3a14a590a8dcde989724f95d93741e406ad4eecc2b23998c258a0512d6514"
+    },
+    {
+      "study": "v22-fault-cases",
+      "files": 46,
+      "sha256": "929d96ed0815f2cae6df2559ba112e1851b3c4a04bc3e332e0706f145744dced"
+    }
+  ],
+  "standardAnalysisReproduction": {
+    "studies": 3,
+    "outputsPerStudy": 6,
+    "byteIdentical": true,
+    "providerCalls": 0
+  },
+  "unknownUsageRequests": 0,
+  "oldStudyCleanup": "experiments/cleanup-v22.json",
+  "figureRenderer": {
+    "path": "experiments/render-v22-resources.py",
+    "matplotlibVersion": "3.11.2",
+    "sha256": "58c1c1aad95ce22493196fbe90971c905e227f1f1b7a2489754bd8e7a0d7011e"
+  },
+  "postCleanupTests": {
+    "total": 220,
+    "passed": 156,
+    "skipped": 64,
+    "failed": 0
+  },
+  "localMarkdownLinks": "All checked local targets exist."
+}

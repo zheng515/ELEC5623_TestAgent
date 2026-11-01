@@ -126,33 +126,24 @@ REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run evaluate -- examples/exper
 REQTEST_SANDBOX_IMAGE=reqtest-real-projects:2 npm run experiment:run
 ```
 
-The default v22 matrix uses independent B0/B1/B2/B3 configurations, three projects
-and three repeats (36 new workflows). B0 receives implementation code without
-existing tests or repository documents; B1 adds repository evidence. B2 selects
-failed generated tests for repair without diagnosis; B3 first obtains a grounded
-diagnosis. Both full configurations enable mutation guidance and share safety
-and stopping rules. See [baseline definitions and evidence requirements](docs/baseline-configurations.md).
-Both full arms share four requests and 60 seconds for mutation review inside the
-unchanged 32-request workflow cap. Limited assurance remains explicit; see
-[review allocation and reporting](docs/mutation-review-budget.md).
-The retained v21 smoke failed its budget gate; no v22 paid study is claimed.
-Mutation uses generated-test execution lines when static function mapping is
-unavailable. Trace collection is inside the mutation budget. Tool-only checks do
-not replace a repeated model comparison. The retained v20 four-run B2/B3 pilot
-checks a correct fixture and a boundary fault.
-It exposed unchanged proposals being counted as improvements; v21 stops them
-before extra review or execution. Existing observations retain their identities.
+The frozen v22 benchmark at `bd12d23` completed the four-workflow smoke,
+36-workflow real-project matrix and eight-workflow synthetic fault supplement.
+See [the benchmark summary](experiments/results/v22-summary/README.md).
+All 36 real-project final generated suites pass; all configurations detect both
+supplementary faults. B3 adds grounded decision traces without extra detected
+faults. Full arms use more resources and retain incomplete mutation assessments;
+no independent semantic accuracy or runtime-error repair rate is established.
+Both full arms share a four-request/60-second review budget inside the 32-request
+workflow cap. All failed/missing/limited outcomes remain explicit.
 
-The runner also supports a controlled recovery protocol with shared candidates
-and a frozen preparation. The v21 controlled study shows correction of a rejected
-bad import in both full arms. Its original runtime diagnosis cases were blocked
-by admission, and strict unchanged-artifact retention did not succeed. This is
-not natural-error or superiority evidence. A separately frozen type-complete
-follow-up admits the boundary test; both full arms retain its code unchanged,
-and B3 records a grounded defect diagnosis. The earlier blocked result remains.
-A single natural Click observation then found no approved generated runtime
-failure among six tests; runtime test-error repair remains unmeasured.
-See [evaluation protocol](docs/evaluation-protocol.md).
+The studies are separate: three upstream projects with three repeats, two
+synthetic cases with one repeat, and a smoke gate. They are not five independent
+real-world projects or a held-out product benchmark. Rerunning commands above
+creates new paid observations. Old v20/v21 result studies and dedicated manifests
+were retired at the owner's request; [cleanup history](experiments/cleanup-v22.json)
+records whole-study removal and recovery from Git. Reusable fixtures remain.
+See [evaluation protocol](docs/evaluation-protocol.md) and
+[review-budget semantics](docs/mutation-review-budget.md).
 
 The AI-assisted reference and original trace inputs are retained only as regression
 fixtures under `tests/fixtures/decision-reference*`. Earlier component experiment
