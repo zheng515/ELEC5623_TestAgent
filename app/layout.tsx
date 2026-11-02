@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ReqTest · Requirement-aware verification",
-  description: "Analyze Python requirements, inspect test gaps and improve tests using recorded evidence.",
+  description: "Connect original requirements, generated tests and execution evidence to investigate software behaviour.",
 };
 
 export default function RootLayout({

@@ -42,7 +42,7 @@ with sync_playwright() as playwright:
         else:
             route.fulfill(json={'configured': False, 'connected': False, 'emailEnabled': False})
     page.route('**/api/**', api)
-    page.goto('http://host.docker.internal:3001/', wait_until='networkidle')
+    page.goto('http://host.docker.internal:3001/workspace', wait_until='networkidle')
     expect(page.get_by_role('button', name='Evaluation', exact=True)).to_be_visible()
     page.locator('input[type=file][accept=".pdf,.doc,.docx,.txt,.md"]').set_input_files({'name': 'SRS.md', 'mimeType': 'text/markdown', 'buffer': text.encode()})
     expect(page.locator('textarea[name=requirements]')).to_have_value(text)

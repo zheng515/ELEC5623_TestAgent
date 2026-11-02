@@ -33,6 +33,6 @@ export function VerifyEmail() {
     {!verified && <Button disabled={!ready || !token || busy} onClick={confirm}>{busy ? 'Verifying…' : 'Verify email'}</Button>}
     {ready && !token && !verified && <p role="status">Open the link in your verification email. If it expired, request a new link from the sign-in page.</p>}
     {error && <p role="alert" className="text-red-400">{error}</p>}
-    <Button asChild variant={verified ? 'default' : 'link'}><Link href="/" prefetch={false}>{verified ? 'Continue to sign in' : 'Back to sign in'}</Link></Button>
+    <Button asChild variant={verified ? 'default' : 'link'}><Link href="/workspace" prefetch={false}>{verified ? 'Continue to sign in' : 'Back to sign in'}</Link></Button>
   </main>;
 }
