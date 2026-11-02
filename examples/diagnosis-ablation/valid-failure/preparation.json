@@ -1,0 +1,61 @@
+{
+  "source": "controlled_development_reference",
+  "independentHumanReviewed": false,
+  "analysis": {
+    "behaviors": [
+      {
+        "id": "B1",
+        "ruleId": "R1",
+        "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+        "text": "Exactly 10000 returns built-in integer zero.",
+        "category": "boundary",
+        "issue": "none",
+        "reason": "The equality boundary and result are explicit.",
+        "files": ["shipping.py"],
+        "existingTests": ["tests/test_shipping.py::test_interior_free_shipping"],
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents > 10000 else 1000"
+          }
+        ],
+        "gaps": ["Check exactly 10000."]
+      }
+    ],
+    "inconsistencies": [
+      {
+        "ruleId": "R1",
+        "behaviorIds": ["B1"],
+        "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+        "description": "The implementation excludes the explicitly included equality boundary.",
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents > 10000 else 1000"
+          }
+        ]
+      }
+    ]
+  },
+  "review": {
+    "decisions": [
+      {
+        "testId": "T1",
+        "supported": true,
+        "reason": "The assertion checks the explicit equality example and integer result.",
+        "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+        "definedScope": null
+      }
+    ],
+    "coverage": [
+      {
+        "ruleId": "R1",
+        "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+        "complete": true,
+        "reason": "The controlled candidate checks the explicit threshold example.",
+        "testIds": ["T1"],
+        "missingExamples": []
+      }
+    ]
+  }
+}

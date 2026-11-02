@@ -1,0 +1,48 @@
+{
+  "source": "controlled_development_reference",
+  "independentHumanReviewed": false,
+  "analysis": {
+    "behaviors": [
+      {
+        "id": "B1",
+        "ruleId": "R1",
+        "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+        "text": "The explicit input 500 returns built-in integer 1000.",
+        "category": "rule",
+        "issue": "none",
+        "reason": "The input example, result value and type are explicit.",
+        "files": ["shipping.py"],
+        "existingTests": ["tests/test_shipping.py::test_existing_standard_shipping"],
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents >= 10000 else 1000"
+          }
+        ],
+        "gaps": ["Check the explicit input 500."]
+      }
+    ],
+    "inconsistencies": []
+  },
+  "review": {
+    "decisions": [
+      {
+        "testId": "T1",
+        "supported": true,
+        "reason": "Controlled diagnosis challenge: the contract assertion is supported and the runtime setup error is intentionally frozen after admission.",
+        "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+        "definedScope": null
+      }
+    ],
+    "coverage": [
+      {
+        "ruleId": "R1",
+        "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+        "complete": true,
+        "reason": "Controlled admission freezes the candidate so runtime diagnosis can be isolated.",
+        "testIds": ["T1"],
+        "missingExamples": []
+      }
+    ]
+  }
+}

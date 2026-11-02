@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-02 Australia/Sydney",
+  "sourceCommit": "8489e139d3723aa85f0c94d6826996312e1b0b05",
+  "purpose": "Fresh production website acceptance, separate from frozen v22 studies",
+  "case": "Existing Inventory development fixture, not held-out",
+  "model": "gpt-6-luna",
+  "mutationChecks": false,
+  "modelRequestLimit": 12,
+  "modelTimeoutSeconds": 180,
+  "automaticRetry": false,
+  "scope": [
+    "homepage registration",
+    "local email confirmation",
+    "homepage sign-in",
+    "SRS and ZIP upload",
+    "real model through web HTTP/SSE and queue",
+    "Docker execution",
+    "saved report",
+    "evidence and test exports"
+  ],
+  "notMeasured": [
+    "diagnosis accuracy",
+    "semantic accuracy",
+    "runtime repair effectiveness",
+    "real inbox delivery"
+  ]
+}

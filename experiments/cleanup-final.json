@@ -1,0 +1,79 @@
+{
+  "cleanedAtUtc": "2026-11-02T05:07:13Z",
+  "ownerAuthorized": true,
+  "scope": "Remove the remaining redundant raw v22 evaluation workspaces after the retained public archives, checksum inventories and byte-identical offline reanalysis records were verified.",
+  "codeAudit": {
+    "command": "npm exec --yes --package=knip@6.44.1 -- knip",
+    "result": "No unused files, exports or dependencies reported.",
+    "action": "No application or Agent code was deleted because no code was proven redundant."
+  },
+  "archiveVerification": {
+    "studies": [
+      "experiments/results/v22-independent-smoke",
+      "experiments/results/v22-real-project-matrix",
+      "experiments/results/v22-fault-cases",
+      "experiments/results/v23-diagnosis-ablation-2026-11-02"
+    ],
+    "zipIntegrity": true,
+    "artifactChecksums": true,
+    "v22OfflineReanalysis": "Each v22 validation.json records byte-identical reproduction of six analysis outputs with zero provider calls."
+  },
+  "removedFromWorkspace": [
+    {
+      "path": ".evidence/evaluation/2026-11-01T14-58-56-878Z-9e9e69f7",
+      "kind": "validate-only preflight",
+      "files": 483,
+      "diskKiB": 8156,
+      "manifestHash": "af190d98dd98fcdb2e0dc6a4f51877a02272a517c2350fb81ee7bcceef6dbc94"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T15-11-04-916Z-a8dc2ed3",
+      "kind": "validate-only preflight",
+      "files": 33,
+      "diskKiB": 812,
+      "manifestHash": "f491a905252bce1e90d598f379b35206b3fcae4231df268edf103d45955bfd3e"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T15-11-26-365Z-6e9e58a5",
+      "kind": "archived v22 independent smoke raw workspace",
+      "files": 1077,
+      "diskKiB": 13764,
+      "manifestHash": "5a03c1065da8d4076499ec2aed8471b402bd89c8d32325fc24215bd17270877d"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T15-18-34-058Z-b70a46cf",
+      "kind": "archived v22 real-project matrix raw workspace",
+      "files": 12510,
+      "diskKiB": 336688,
+      "manifestHash": "af190d98dd98fcdb2e0dc6a4f51877a02272a517c2350fb81ee7bcceef6dbc94"
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-01T16-24-05-498Z-4a89e8d9",
+      "kind": "archived v22 fault supplement raw workspace",
+      "files": 279,
+      "diskKiB": 2084,
+      "manifestHash": "f491a905252bce1e90d598f379b35206b3fcae4231df268edf103d45955bfd3e"
+    }
+  ],
+  "removedFiles": 14382,
+  "removedDiskKiB": 361504,
+  "recovery": {
+    "method": "Moved to the macOS Trash rather than irreversibly erased.",
+    "trashPath": "/Users/jingxiao/.Trash/ReqTest-final-raw-cleanup-2026-11-02",
+    "authoritativeEvidence": "The retained experiment result directories and their evidence.zip archives remain in the repository."
+  },
+  "preserved": [
+    "experiments/results/v22-independent-smoke",
+    "experiments/results/v22-real-project-matrix",
+    "experiments/results/v22-fault-cases",
+    "experiments/results/v22-summary",
+    "experiments/results/ui-workflow-2026-11-01",
+    "experiments/results/final-production-acceptance-2026-11-02",
+    "experiments/results/v23-diagnosis-ablation-2026-11-02",
+    "examples/experiments-smoke.json",
+    "examples/experiments-baselines.json",
+    "examples/experiments-faults-v22.json",
+    "examples/experiments-diagnosis-ablation.json"
+  ],
+  "preservationReason": "These files are active manifests or authoritative evidence cited by the final report and evaluation documentation."
+}

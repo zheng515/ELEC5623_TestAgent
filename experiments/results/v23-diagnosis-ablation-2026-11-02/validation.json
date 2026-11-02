@@ -1,0 +1,33 @@
+{
+  "scope": "Matched controlled diagnosis ablation and offline evidence checks; controlled preparation is not an independent human label.",
+  "plannedWorkflows": 6,
+  "completedWorkflows": 6,
+  "failedWorkflows": 0,
+  "missingWorkflows": 0,
+  "limitedWorkflows": 0,
+  "providerRequests": 7,
+  "providerReportedTokens": 25007,
+  "unknownUsageRequests": 0,
+  "sharedInitialSuitesVerified": 4,
+  "sharedPreparationsVerified": 4,
+  "controlledPreparationProviderCalls": 0,
+  "validFailure": {
+    "initialDetection": true,
+    "b2FinalDetection": true,
+    "b3FinalDetection": true,
+    "b2ImprovementStageRequests": 1,
+    "b2AppliedImprovements": 0,
+    "b3Category": "potential_implementation_defect",
+    "b3ImprovementStageRequests": 0,
+    "b3AppliedImprovements": 0
+  },
+  "runtimeTestError": {
+    "initialStatus": "error",
+    "fixtureMessageObserved": true,
+    "b2RepairedAndReferencePassed": true,
+    "b3Category": "generated_test_error",
+    "b3RepairedAndReferencePassed": true
+  },
+  "supportedConclusion": "B3 diagnosis gated repair eligibility and successfully exercised a controlled admitted runtime-test-error repair while retaining a valid implementation failure without opening repair.",
+  "unsupportedConclusion": "The single-repeat developer cases do not establish B3 superiority, natural error frequency, independent diagnosis accuracy or a lower applied incorrect-repair rate than B2."
+}

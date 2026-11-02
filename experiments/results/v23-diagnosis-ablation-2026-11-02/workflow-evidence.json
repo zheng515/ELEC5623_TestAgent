@@ -1,0 +1,98 @@
+{
+  "scope": "Observed workflow records on identical case inputs. Counts do not establish semantic correctness or superiority over external products.",
+  "baseline": "B2 and B3 reuse identical seeded B1 candidates plus externally frozen development analysis, admission and initial execution. Only diagnosis and its downstream repair decision differ; controlled admission establishes the challenge precondition and does not measure natural admission accuracy.",
+  "rows": [
+    {
+      "caseId": "diagnosis-valid-failure",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/diagnosis-valid-failure-B1-1/report.json"
+    },
+    {
+      "caseId": "diagnosis-valid-failure",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/diagnosis-valid-failure-B2-1/report.json"
+    },
+    {
+      "caseId": "diagnosis-valid-failure",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 1,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/diagnosis-valid-failure-B3-1/report.json"
+    },
+    {
+      "caseId": "diagnosis-runtime-test-error",
+      "variant": "B1",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 0,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 0,
+      "evidence": "evidence/diagnosis-runtime-test-error-B1-1/report.json"
+    },
+    {
+      "caseId": "diagnosis-runtime-test-error",
+      "variant": "B2",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 0,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/diagnosis-runtime-test-error-B2-1/report.json"
+    },
+    {
+      "caseId": "diagnosis-runtime-test-error",
+      "variant": "B3",
+      "repeat": 1,
+      "inputItems": 1,
+      "behaviorsWithArtifactQuotes": 1,
+      "recordedDiagnoses": 1,
+      "retainedPotentialDefectFailures": 0,
+      "acceptedImprovementActions": 1,
+      "evidence": "evidence/diagnosis-runtime-test-error-B3-1/report.json"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "variant": "B1",
+      "completed": 2,
+      "planned": 2,
+      "seededFaultDetection": 1,
+      "medianSeconds": 1.83,
+      "totalTokens": 0
+    },
+    {
+      "variant": "B2",
+      "completed": 2,
+      "planned": 2,
+      "seededFaultDetection": 1,
+      "medianSeconds": 8.5445,
+      "totalTokens": 10014
+    },
+    {
+      "variant": "B3",
+      "completed": 2,
+      "planned": 2,
+      "seededFaultDetection": 1,
+      "medianSeconds": 8.116,
+      "totalTokens": 14993
+    }
+  ]
+}

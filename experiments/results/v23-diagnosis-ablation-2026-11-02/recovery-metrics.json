@@ -1,0 +1,138 @@
+{
+  "scope": "Controlled developer-seeded challenges, not natural-error frequency or independent semantic accuracy.",
+  "definitions": {
+    "recovery": "Import/assertion challenges require an approved changed original artifact, passing generated execution and usable fixed-witness reference replay. Missing boundaries require corrected-copy fault detection. Valid failures require unchanged approved code plus corrected-copy detection.",
+    "missing": "Missing/unusable runs stay in planned denominators and prevent a complete success rate.",
+    "validFailureDetectionLost": "Observed loss of an initially detected seeded defect, not a general independently reviewed incorrect-repair rate."
+  },
+  "rows": [
+    {
+      "caseId": "diagnosis-valid-failure",
+      "variant": "B1",
+      "repeat": 1,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": true,
+      "unchangedValidFailure": true,
+      "validFailureDetectionLost": false,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "diagnosis-valid-failure",
+      "variant": "B2",
+      "repeat": 1,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": true,
+      "unchangedValidFailure": true,
+      "validFailureDetectionLost": false,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "diagnosis-valid-failure",
+      "variant": "B3",
+      "repeat": 1,
+      "challenge": "valid-failure",
+      "status": "completed",
+      "success": true,
+      "unchangedValidFailure": true,
+      "validFailureDetectionLost": false,
+      "generatedArtifactRepaired": null,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "diagnosis-runtime-test-error",
+      "variant": "B1",
+      "repeat": 1,
+      "challenge": "runtime-setup-error",
+      "status": "completed",
+      "success": false,
+      "unchangedValidFailure": null,
+      "validFailureDetectionLost": null,
+      "generatedArtifactRepaired": false,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "diagnosis-runtime-test-error",
+      "variant": "B2",
+      "repeat": 1,
+      "challenge": "runtime-setup-error",
+      "status": "completed",
+      "success": true,
+      "unchangedValidFailure": null,
+      "validFailureDetectionLost": null,
+      "generatedArtifactRepaired": true,
+      "detectedBoundaryFault": null
+    },
+    {
+      "caseId": "diagnosis-runtime-test-error",
+      "variant": "B3",
+      "repeat": 1,
+      "challenge": "runtime-setup-error",
+      "status": "completed",
+      "success": true,
+      "unchangedValidFailure": null,
+      "validFailureDetectionLost": null,
+      "generatedArtifactRepaired": true,
+      "detectedBoundaryFault": null
+    }
+  ],
+  "summary": [
+    {
+      "variant": "B1",
+      "challenge": "valid-failure",
+      "planned": 1,
+      "observed": 1,
+      "succeeded": 1,
+      "successRate": 1,
+      "unresolved": 0
+    },
+    {
+      "variant": "B1",
+      "challenge": "runtime-setup-error",
+      "planned": 1,
+      "observed": 1,
+      "succeeded": 0,
+      "successRate": 0,
+      "unresolved": 0
+    },
+    {
+      "variant": "B2",
+      "challenge": "valid-failure",
+      "planned": 1,
+      "observed": 1,
+      "succeeded": 1,
+      "successRate": 1,
+      "unresolved": 0
+    },
+    {
+      "variant": "B2",
+      "challenge": "runtime-setup-error",
+      "planned": 1,
+      "observed": 1,
+      "succeeded": 1,
+      "successRate": 1,
+      "unresolved": 0
+    },
+    {
+      "variant": "B3",
+      "challenge": "valid-failure",
+      "planned": 1,
+      "observed": 1,
+      "succeeded": 1,
+      "successRate": 1,
+      "unresolved": 0
+    },
+    {
+      "variant": "B3",
+      "challenge": "runtime-setup-error",
+      "planned": 1,
+      "observed": 1,
+      "succeeded": 1,
+      "successRate": 1,
+      "unresolved": 0
+    }
+  ]
+}

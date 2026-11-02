@@ -1,0 +1,13 @@
+{
+  "tests": [
+    {
+      "id": "T1",
+      "behaviorId": "B1",
+      "functionName": "test_standard_shipping_example",
+      "gapIndexes": [],
+      "code": "from shipping import fee\n\ndef test_standard_shipping_example(amount_cents):\n    result = fee(amount_cents)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 1000\n",
+      "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+      "purpose": "Check the explicit 500-cent input example and integer 1000-cent result."
+    }
+  ]
+}

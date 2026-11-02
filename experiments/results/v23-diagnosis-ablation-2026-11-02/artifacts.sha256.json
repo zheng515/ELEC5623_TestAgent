@@ -1,0 +1,19 @@
+{
+  "scope": "Final retained artifact bytes, excluding this checksum manifest itself.",
+  "files": {
+    "README.md": "004eb7b2894ad1850f560e7a101b211c3cb00b1e048dd5e04be76b8c65af868a",
+    "analysis-notes.json": "28920dd320bb2baabcf7c9fe82fca7695d6d8ee02b35e8363f7a4eaa981198b8",
+    "diagnosis-exposure.json": "d3b2dbf2c54d0abf449a7a215d0067634fac70b69da5447d3a212f6a20e6c809",
+    "evidence-files.sha256.json": "42bceb582e0ce05d0329dd6f92b464ca120045c0670d3777a9c6bf7ea07cf8ec",
+    "evidence.zip": "caeab8dfba6d0e1ed406bfd8a7775adddb8dc06184d8a096a593fad304429efe",
+    "failure-cases.json": "e5c17cd71f37660167bd7c072f9b59ad06bfafc2823351f0b627f357826d78cc",
+    "identity.json": "89fa7e0e362385fd6b634c3feebb04e18da9d55e6fe03a5ed7feb849ace3e9e4",
+    "metrics.json": "1b9c5a0690831e703777c4fb7db0cac6b3942b5ee31f7d9104fd5fc547ad4527",
+    "paired-comparison.json": "a2334e981429f51053ea775a6b830a3912d1d2eddbcfde3ffa8009554680a540",
+    "recovery-metrics.json": "d1de94dc13efc97304a794972ad8200360591a16a9ad8184d2e2d273054c3548",
+    "runs.csv": "f7cdbd9037ec265b6e56484f01e72c5f1b015164b5377b528ede4ad6d88cae71",
+    "validation.json": "7aead913225a1eff2db14ae8b1804fd3b8866bec01283a255af7fffc16af378d",
+    "variants.csv": "a3b8264e9b127cabae5f5cb6ca7dd4938aab30e0e4af7b19f60edd3513cf60f3",
+    "workflow-evidence.json": "1aaffa9278a567309ca128af933adeed335e6f671ee95e6b45cc8508e11d202f"
+  }
+}

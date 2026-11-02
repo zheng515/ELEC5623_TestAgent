@@ -14,7 +14,7 @@ import type { PythonReport, Measurement } from '../lib/python-types';
 import { parseRequirementInput } from '../lib/requirement-input';
 import { experimentCompletion, type ExperimentEntry } from '../lib/experiment-metrics';
 import { verificationPolicySchema, verificationPolicyVersion, referenceReplayEligible } from '../lib/verification-policy';
-import { testsSchema } from '../lib/python-types';
+import { analysisSchema, reviewTestsSchema, testsSchema } from '../lib/python-types';
 import { agentVariants } from '../lib/agent-variants';
 
 const manifestSchema = z.object({
@@ -27,7 +27,13 @@ const manifestSchema = z.object({
   followupRequestLimit: z.number().int().min(1).max(12).default(6),
   // Benchmarks keep their frozen 12-request budget; interactive runs default to no limit.
   policy: verificationPolicySchema.default(() => verificationPolicySchema.parse({ modelRequestLimit: 12 })),
-  cases: z.array(z.object({ id: z.string().regex(/^[\w-]+$/), project: z.string(), requirements: z.string(), gold: z.string(), oracle: z.string().optional(), initialTests: z.string().optional(), challenge: z.enum(['missing-boundary', 'invented-import', 'unsupported-assertion', 'valid-failure']).optional(), expectedDiagnosis: z.enum(['generated_test_error', 'potential_implementation_defect', 'environment_failure']).optional() })).min(1).max(20),
+  cases: z.array(z.object({ id: z.string().regex(/^[\w-]+$/), project: z.string(), requirements: z.string(), gold: z.string(), oracle: z.string().optional(), initialTests: z.string().optional(), preparationReference: z.string().optional(), challenge: z.enum(['missing-boundary', 'invented-import', 'unsupported-assertion', 'runtime-setup-error', 'valid-failure']).optional(), expectedDiagnosis: z.enum(['generated_test_error', 'potential_implementation_defect', 'environment_failure']).optional() })).min(1).max(20),
+});
+const preparationReferenceSchema = z.object({
+  source: z.literal('controlled_development_reference'),
+  independentHumanReviewed: z.boolean(),
+  analysis: analysisSchema,
+  review: reviewTestsSchema,
 });
 async function main() {
   loadEnvConfig(process.cwd(), true);
@@ -39,6 +45,7 @@ async function main() {
   if (manifest.diagnosisAblation && (!manifest.sharedInitialSuite || manifest.policy.mutationChecks || manifest.variants.length !== 3 || !['B1', 'B2', 'B3'].every(variant => manifest.variants.includes(variant as 'B1' | 'B2' | 'B3')))) throw new Error('Diagnosis ablation requires shared B1/B2/B3 and mutation checks disabled.');
   if (manifest.sharedInitialSuite && !manifest.diagnosisAblation && (manifest.variants.length !== 2 || !manifest.variants.includes('B1') || !manifest.variants.includes('B3'))) throw new Error('Shared initial suites require exactly B1 and B3.');
   if (manifest.cases.some(item => item.initialTests) && !manifest.sharedInitialSuite) throw new Error('Seeded recovery challenges require shared B1/B3 initial suites.');
+  if (manifest.cases.some(item => item.preparationReference && (!manifest.diagnosisAblation || !item.initialTests))) throw new Error('Controlled preparation references require diagnosis ablation with seeded initial tests.');
   if (new Set(manifest.variants).size !== manifest.variants.length || new Set(manifest.cases.map((item) => item.id)).size !== manifest.cases.length) throw new Error('Benchmark variants and case IDs must be unique.');
   const sandboxImage = execFileSync('docker', ['image', 'inspect', '--format', '{{.Id}}', process.env.REQTEST_SANDBOX_IMAGE || 'reqtest-python:1'], { encoding: 'utf8' }).trim();
   process.env.REQTEST_SANDBOX_IMAGE = sandboxImage;
@@ -49,7 +56,7 @@ async function main() {
   await mkdir(output, { recursive: true });
   await writeFile(join(output, 'manifest.json'), manifestText);
   await writeFile(join(output, 'agent-snapshot.json'), JSON.stringify(agentFiles));
-  const index: { purpose: 'pilot' | 'held-out'; baselineProtocol: string; variantDefinitions: typeof agentVariants; policyVersion: string; createdAt: string; model: string; manifestHash: string; sandboxImage: string; agentFingerprint: string; expectedRuns: number; status: string; inputs: Record<string, { archiveHash: string; requirementHash: string; initialTestsHash?: string }>; preparations: { caseId: string; repeat: number; report: string; requests: string; elapsedMs: number }[]; runs: ExperimentEntry[] } = { purpose: manifest.purpose, baselineProtocol: manifest.baselineProtocol, variantDefinitions: agentVariants, policyVersion: verificationPolicyVersion, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', manifestHash: createHash('sha256').update(manifestText).digest('hex'), sandboxImage, agentFingerprint, expectedRuns: validateOnly ? 0 : manifest.cases.length * manifest.variants.length * manifest.repeat, status: 'preflight', inputs: {}, preparations: [], runs: [] };
+  const index: { purpose: 'pilot' | 'held-out'; baselineProtocol: string; variantDefinitions: typeof agentVariants; policyVersion: string; createdAt: string; model: string; manifestHash: string; sandboxImage: string; agentFingerprint: string; expectedRuns: number; status: string; inputs: Record<string, { archiveHash: string; requirementHash: string; initialTestsHash?: string; preparationHash?: string }>; preparations: { caseId: string; repeat: number; report: string; requests: string; elapsedMs: number; source: 'model' | 'controlled_development_reference' }[]; runs: ExperimentEntry[] } = { purpose: manifest.purpose, baselineProtocol: manifest.baselineProtocol, variantDefinitions: agentVariants, policyVersion: verificationPolicyVersion, createdAt: new Date().toISOString(), model: process.env.REQTEST_LLM_MODEL || 'gpt-6-luna', manifestHash: createHash('sha256').update(manifestText).digest('hex'), sandboxImage, agentFingerprint, expectedRuns: validateOnly ? 0 : manifest.cases.length * manifest.variants.length * manifest.repeat, status: 'preflight', inputs: {}, preparations: [], runs: [] };
   await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
   console.log(`Experiment: ${output}; ${index.expectedRuns} planned runs. ${validateOnly ? 'Reference validation only; no model requests.' : 'Paid model requests; no automatic retries.'}`);
   const outcomes: { status: PythonReport['status']; limited: boolean }[] = [];
@@ -97,6 +104,15 @@ async function main() {
       await writeFile(join(output, `${item.id}.initial-tests.json`), text);
       index.inputs[item.id].initialTestsHash = createHash('sha256').update(text).digest('hex');
     }
+    let controlledPreparation;
+    if (item.preparationReference) {
+      const child = relative(directory, resolve(item.preparationReference));
+      if (!child.startsWith('../') && !isAbsolute(child)) throw new Error('Controlled preparation references must be outside the model-visible project.');
+      const text = await readFile(item.preparationReference, 'utf8');
+      controlledPreparation = preparationReferenceSchema.parse(JSON.parse(text));
+      await writeFile(join(output, `${item.id}.preparation.json`), text);
+      index.inputs[item.id].preparationHash = createHash('sha256').update(text).digest('hex');
+    }
     let reference: string | undefined;
     if (item.oracle) {
       const oracle = await readFile(item.oracle, 'utf8');
@@ -106,12 +122,12 @@ async function main() {
       await writeFile(join(output, reference), JSON.stringify(validation, null, 2));
       if (!validation.valid) throw new Error(`Contract witnesses failed for ${item.id}; no model calls for this case.`);
     }
-    prepared.push({ item, archive, gold, rules, requirementInput, reference, seededCandidates });
+    prepared.push({ item, archive, gold, rules, requirementInput, reference, seededCandidates, controlledPreparation });
     await writeFile(join(output, 'index.json'), JSON.stringify(index, null, 2));
   }
   if (validateOnly) { index.status = 'validated'; return; }
   index.status = 'running';
-  for (const { item, archive, gold, rules, requirementInput, reference, seededCandidates } of prepared) {
+  for (const { item, archive, gold, rules, requirementInput, reference, seededCandidates, controlledPreparation } of prepared) {
     const initialSuites = new Map<number, { report: PythonReport; path: string }>();
     const preparations = new Map<number, PythonReport>();
     const variants = manifest.sharedInitialSuite ? manifest.diagnosisAblation ? ['B1', 'B2', 'B3'] as const : ['B1', 'B3'] as const : manifest.variants;
@@ -174,9 +190,15 @@ async function main() {
           await mkdir(join(prepRoot, 'generated'), { recursive: true }); await importProject(prepRoot, archive);
           const prep: PythonReport = { ...structuredClone(report), id: randomUUID(), status: 'running', stage: '', tests: [], measurements: [], mutations: [], diagnoses: [], testAttempts: [], improvements: [], states: [], resources: undefined };
           const prepRequests: typeof requests = [], prepStarted = Date.now();
-          const metadata = { caseId: item.id, repeat, report: `${prepName}/report.json`, requests: `${prepName}/requests.json`, elapsedMs: 0 };
+          const metadata = { caseId: item.id, repeat, report: `${prepName}/report.json`, requests: `${prepName}/requests.json`, elapsedMs: 0, source: controlledPreparation ? 'controlled_development_reference' as const : 'model' as const };
           index.preparations.push(metadata); await writeFile(join(prepRoot, 'requests.json'), '[]');
-          try { await runPython(prep, prepRoot, AbortSignal.any([interrupted.signal, AbortSignal.timeout(600000)]), async stage => { console.log(item.id, 'shared-preparation', repeat, stage); await writeFile(join(prepRoot, 'report.json'), JSON.stringify(prep, null, 2)); }, meter(prep, prepRequests, join(prepRoot, 'requests.json'), manifest.followupRequestLimit), 'B3', undefined, report, undefined, { prepareOnly: true }); }
+          if (controlledPreparation) prep.limitations.push('Shared analysis and admission are frozen controlled development references, not provider outputs or independent human labels.');
+          const preparationReason: Reason = controlledPreparation ? async (schema) => {
+            if (Object.is(schema, analysisSchema)) return schema.parse(controlledPreparation.analysis);
+            if (Object.is(schema, reviewTestsSchema)) return schema.parse(controlledPreparation.review);
+            throw new Error('Controlled preparation may supply only analysis and admission review.');
+          } : meter(prep, prepRequests, join(prepRoot, 'requests.json'), manifest.followupRequestLimit);
+          try { await runPython(prep, prepRoot, AbortSignal.any([interrupted.signal, AbortSignal.timeout(600000)]), async stage => { console.log(item.id, 'shared-preparation', repeat, stage); await writeFile(join(prepRoot, 'report.json'), JSON.stringify(prep, null, 2)); }, preparationReason, 'B3', undefined, report, undefined, { prepareOnly: true }); }
           catch (error) { prep.status = 'failed'; prep.error = (error instanceof Error ? error.message : 'Preparation failed').replaceAll(process.env.OPENAI_API_KEY!, '[redacted]'); }
           metadata.elapsedMs = Date.now() - prepStarted;
           await writeFile(join(prepRoot, 'report.json'), JSON.stringify(prep, null, 2));

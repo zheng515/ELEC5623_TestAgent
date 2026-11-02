@@ -143,6 +143,15 @@ no independent semantic accuracy or runtime-error repair rate is established.
 Both full arms share a four-request/60-second review budget inside the 32-request
 workflow cap. All failed/missing/limited outcomes remain explicit.
 
+A separate [matched diagnosis ablation](experiments/results/v23-diagnosis-ablation-2026-11-02/README.md)
+freezes seeded candidates, development admission and initial execution. In its
+single controlled runtime-error case, both B2 and B3 repaired a missing-fixture
+test and passed fixed-witness replay; B3 first recorded `generated_test_error`.
+On the paired valid-failure case, B3 diagnosed an implementation defect and did
+not open repair, while B2 made one unchanged proposal that the no-op guard
+stopped. This isolates a decision-path difference, not B3 superiority or
+independent diagnosis accuracy.
+
 The studies are separate: three upstream projects with three repeats, two
 synthetic cases with one repeat, and a smoke gate. They are not five independent
 real-world projects or a held-out product benchmark. Rerunning commands above

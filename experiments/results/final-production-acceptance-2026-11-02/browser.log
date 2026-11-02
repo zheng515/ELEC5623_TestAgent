@@ -1,0 +1,15 @@
+Homepage registration submitted through real authentication; verification required.
+Local Mailpit captured the verification message; browser confirmed the signed link. No external inbox used.
+Homepage sign-in redirected to authenticated workspace.
+Real SRS text extraction populated editable requirements; original Inventory ZIP uploaded.
+One new real-model verification submitted through the website; 12-request cap, no mutation.
+Stage: Queued — waiting for verification worker
+Stage: Analyze requirements and consistency
+Stage: Generate and review targeted tests
+Stage: Diagnose failures before refinement
+Stage: Improve tests once
+Stage: Complete
+Real model, durable queue and Docker workflow completed; original report persisted.
+Evidence JSON and generated-test ZIP downloaded through the result UI; report ID and tests match.
+Current failure trace opened requirement, artifact, execution and assessment views.
+Saved report remains available after page reload.

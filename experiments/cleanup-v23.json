@@ -1,0 +1,41 @@
+{
+  "cleanedAtUtc": "2026-11-02T04:52:53Z",
+  "scope": "Remove redundant v23 raw workspaces after publishing and independently replaying the retained evidence archive.",
+  "sourceCommit": "8489e139d3723aa85f0c94d6826996312e1b0b05",
+  "authoritativeResult": "experiments/results/v23-diagnosis-ablation-2026-11-02",
+  "archive": {
+    "path": "experiments/results/v23-diagnosis-ablation-2026-11-02/evidence.zip",
+    "sha256": "caeab8dfba6d0e1ed406bfd8a7775adddb8dc06184d8a096a593fad304429efe",
+    "filesVerified": 44,
+    "offlineReanalysis": "All nine published JSON/CSV analysis outputs reproduced byte-for-byte from the extracted archive without provider calls."
+  },
+  "removedFromWorkspace": [
+    {
+      "path": ".evidence/evaluation/2026-11-02T04-18-38-942Z-6a212871",
+      "reason": "Validate-only preflight; no provider calls and no unique observation."
+    },
+    {
+      "path": ".evidence/evaluation/2026-11-02T04-18-55-339Z-3a74c586",
+      "reason": "Paid raw workspace superseded by the verified retained evidence archive and published analysis."
+    },
+    {
+      "path": "tmp/v23-diagnosis-reanalysis",
+      "reason": "Temporary extraction used to verify offline reproducibility."
+    }
+  ],
+  "recovery": {
+    "workspaceRemoval": "Moved to the macOS Trash rather than irreversibly erased.",
+    "trashPath": "/Users/jingxiao/.Trash/ReqTest-cleanup-v23-2026-11-02",
+    "authoritativeEvidence": "The retained result directory and evidence.zip remain in the project."
+  },
+  "preserved": [
+    "experiments/results/v22-independent-smoke",
+    "experiments/results/v22-real-project-matrix",
+    "experiments/results/v22-fault-cases",
+    "experiments/results/v22-summary",
+    "experiments/results/ui-workflow-2026-11-01",
+    "experiments/results/final-production-acceptance-2026-11-02",
+    "experiments/results/v23-diagnosis-ablation-2026-11-02"
+  ],
+  "preservationReason": "These retained studies are still referenced by the final report or are the authoritative v23 result; they are not redundant raw workspaces."
+}

@@ -24,7 +24,8 @@ and Agent identities are retained in each study archive.
 See [full results and limitations](../experiments/results/v22-summary/README.md).
 Only actual resource usage is added across studies: 286 requests / 16,994,380
 known tokens, zero unknown usage. Effectiveness denominators remain separate.
-There are no observed admitted generated runtime-error repair opportunities.
+The frozen v22 studies contain no observed admitted generated runtime-error
+repair opportunities.
 Independent semantic/diagnosis accuracy and reviewed mutation strength are
 unavailable. Requirements, faults and witnesses are developer/AI-assisted inputs,
 not independently reviewed native SRS labels. All observations are development
@@ -44,6 +45,16 @@ studies, including successes and failures, are excluded from current metrics;
 They are not pooled with v22. Current results show a decision-trace difference,
 not B3 superiority or natural runtime-error repair success.
 
+The separate [v23 matched diagnosis ablation](../experiments/results/v23-diagnosis-ablation-2026-11-02/README.md)
+uses one controlled admitted runtime setup error and one valid implementation
+failure. Six of six linked workflows completed. B3 classified the setup failure
+as `generated_test_error`, repaired it and passed fixed-witness replay; it
+classified the valid boundary failure as `potential_implementation_defect` and
+did not open repair. B2 also repaired the setup error and preserved the boundary
+failure after its unchanged proposal was stopped. This closes the missing
+controlled repair-path observation without establishing a higher B3 final
+success rate, natural admission accuracy or independent diagnosis accuracy.
+
 ## Controlled recovery modes
 
 The CLI also supports explicitly declared seeded candidates and shared B1/B3
@@ -57,6 +68,9 @@ full independent matrix and remain covered by scripted regression tests:
 4. Permit one reviewed improvement; never substitute a new preparation after failure.
 5. Preserve blocked, failed, missing, interrupted and budget-exhausted outcomes.
 
+An optional controlled preparation reference can freeze developer/AI-assisted
+analysis and admission without provider calls. Its hash and source are retained;
+it establishes the challenge precondition and is not an independent human label.
 Controlled interventions measure recovery paths, not natural-error frequency.
 Retired controlled observations are not current results. These modes remain
 regression-tested and do not create natural-error frequency measurements.

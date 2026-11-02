@@ -1,0 +1,1440 @@
+
+> reqtest-http@0.1.0 test
+> node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx --test --test-concurrency=1 tests/*.test.mjs tests/*.test.ts
+
+.env not found. Continuing without it.
+TAP version 13
+# .env not found. Continuing without it.
+# 2026-11-02T03:37:06.667Z WARN [Better Auth]: Invalid password
+# Subtest: real registration, password verification, protected routes and per-user report ownership
+ok 1 - real registration, password verification, protected routes and per-user report ownership
+  ---
+  duration_ms: 2236.581458
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: focused context preserves safety across unsupported assertions, bad imports, defects and ambiguity
+    # Subtest: unsupported_assertion
+    ok 1 - unsupported_assertion
+      ---
+      duration_ms: 1788.570916
+      type: 'test'
+      ...
+    # {"scenario":"unsupported_assertion","contextSizes":{"review":{"beforeBytes":54713,"afterBytes":5202}},"modelCalls":0}
+    # Subtest: bad_import
+    ok 2 - bad_import
+      ---
+      duration_ms: 4173.706958
+      type: 'test'
+      ...
+    # {"scenario":"bad_import","contextSizes":{"review":{"beforeBytes":54619,"afterBytes":5108},"diagnosis":{"beforeBytes":56823,"afterBytes":7076}},"modelCalls":0}
+    # Subtest: implementation_defect
+    ok 3 - implementation_defect
+      ---
+      duration_ms: 1642.166417
+      type: 'test'
+      ...
+    # {"scenario":"implementation_defect","contextSizes":{"review":{"beforeBytes":54618,"afterBytes":5107},"diagnosis":{"beforeBytes":56179,"afterBytes":6507}},"modelCalls":0}
+    # Subtest: ambiguous_requirement
+    ok 4 - ambiguous_requirement
+      ---
+      duration_ms: 1475.043625
+      type: 'test'
+      ...
+    # {"scenario":"ambiguous_requirement","contextSizes":{"review":{"beforeBytes":54602,"afterBytes":5091}},"modelCalls":0}
+    1..4
+ok 2 - focused context preserves safety across unsupported assertions, bad imports, defects and ambiguity
+  ---
+  duration_ms: 9080.839833
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: the four-configuration protocol rejects omitted baselines, disabled mutation and seeded/shared substitutes
+ok 3 - the four-configuration protocol rejects omitted baselines, disabled mutation and seeded/shared substitutes
+  ---
+  duration_ms: 1412.997541
+  type: 'test'
+  ...
+# Subtest: test context filtering recognizes collected custom files and common Python/Node layouts
+ok 4 - test context filtering recognizes collected custom files and common Python/Node layouts
+  ---
+  duration_ms: 0.494916
+  type: 'test'
+  ...
+# Subtest: B0/B1 generate directly without analysis or execution feedback; only B1 receives repository evidence
+ok 5 - B0/B1 generate directly without analysis or execution feedback; only B1 receives repository evidence
+  ---
+  duration_ms: 3629.846709
+  type: 'test'
+  ...
+# Subtest: B2 attempts repair from failure without a diagnosis; B3 retains a diagnosed implementation defect
+ok 6 - B2 attempts repair from failure without a diagnosis; B3 retains a diagnosed implementation defect
+  ---
+  duration_ms: 3443.474583
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: stable raw classifications cannot manufacture accuracy from draft labels
+ok 7 - stable raw classifications cannot manufacture accuracy from draft labels
+  ---
+  duration_ms: 5.551667
+  type: 'test'
+  ...
+# Subtest: resource totals retain unknown usage, failures, zero usage and planned missing requests
+ok 8 - resource totals retain unknown usage, failures, zero usage and planned missing requests
+  ---
+  duration_ms: 0.954375
+  type: 'test'
+  ...
+# Subtest: sealed CLI studies reject changed reference/tasks and retain separate justified revisions
+ok 9 - sealed CLI studies reject changed reference/tasks and retain separate justified revisions
+  ---
+  duration_ms: 2028.348375
+  type: 'test'
+  ...
+# Subtest: accepted AI references produce scoped agreement without becoming independent human accuracy
+ok 10 - accepted AI references produce scoped agreement without becoming independent human accuracy
+  ---
+  duration_ms: 4.372041
+  type: 'test'
+  ...
+# Subtest: offline CLI names AI-reference comparison and withholds scores when no model decisions exist
+ok 11 - offline CLI names AI-reference comparison and withholds scores when no model decisions exist
+  ---
+  duration_ms: 339.566417
+  type: 'test'
+  ...
+# Subtest: consistent false support is exposed separately from classification agreement
+ok 12 - consistent false support is exposed separately from classification agreement
+  ---
+  duration_ms: 1.0975
+  type: 'test'
+  ...
+# Subtest: diagnosis confusion exposes wrong causes; set-valued references cannot manufacture Macro-F1
+ok 13 - diagnosis confusion exposes wrong causes; set-valued references cannot manufacture Macro-F1
+  ---
+  duration_ms: 2.144083
+  type: 'test'
+  ...
+# Subtest: missing, failed and invalid repeats stay in the denominator and prevent accuracy scoring
+ok 14 - missing, failed and invalid repeats stay in the denominator and prevent accuracy scoring
+  ---
+  duration_ms: 2.671208
+  type: 'test'
+  ...
+# Subtest: scores reject duplicate attempts, mismatched agent versions and changed inputs or reference IDs
+ok 15 - scores reject duplicate attempts, mismatched agent versions and changed inputs or reference IDs
+  ---
+  duration_ms: 3.021375
+  type: 'test'
+  ...
+# Subtest: wrong IDs, invented quotes and duplicate model decisions are invalid rather than blocked
+ok 16 - wrong IDs, invented quotes and duplicate model decisions are invalid rather than blocked
+  ---
+  duration_ms: 0.612416
+  type: 'test'
+  ...
+# Subtest: decision challenge snippets reproduce their stated execution scenarios in Docker
+ok 17 - decision challenge snippets reproduce their stated execution scenarios in Docker
+  ---
+  duration_ms: 8619.789042
+  type: 'test'
+  ...
+# Subtest: explicit type predicates reject values that pass value-only equality
+ok 18 - explicit type predicates reject values that pass value-only equality
+  ---
+  duration_ms: 5253.02225
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: review preparation exports actual failure evidence without predictions, draft answers or invented review
+ok 19 - review preparation exports actual failure evidence without predictions, draft answers or invented review
+  ---
+  duration_ms: 767.106208
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: production configuration rejects unsafe and incomplete settings without exposing credentials
+ok 20 - production configuration rejects unsafe and incomplete settings without exposing credentials
+  ---
+  duration_ms: 1.215042
+  type: 'test'
+  ...
+# Subtest: production CLI reports an occupied port without starting services or exposing credentials
+ok 21 - production CLI reports an occupied port without starting services or exposing credentials
+  ---
+  duration_ms: 823.421875
+  type: 'test'
+  ...
+# Subtest: offline backup and restore preserve PostgreSQL records, binary sources and signing secret
+ok 22 - offline backup and restore preserve PostgreSQL records, binary sources and signing secret
+  ---
+  duration_ms: 2918.516125
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: upload text includes every extracted block and preserves multiline text and OCR provenance
+ok 23 - upload text includes every extracted block and preserves multiline text and OCR provenance
+  ---
+  duration_ms: 1.679792
+  type: 'test'
+  ...
+# Subtest: 35-block documents require no selection and retain all text and source locations
+ok 24 - 35-block documents require no selection and retain all text and source locations
+  ---
+  duration_ms: 2.454417
+  type: 'test'
+  ...
+# Subtest: one multiline document paragraph stays intact and retains its citation
+ok 25 - one multiline document paragraph stays intact and retains its citation
+  ---
+  duration_ms: 0.1425
+  type: 'test'
+  ...
+# Subtest: edited text loses its citation while unchanged paragraphs keep exact original links
+ok 26 - edited text loses its citation while unchanged paragraphs keep exact original links
+  ---
+  duration_ms: 0.117
+  type: 'test'
+  ...
+# Subtest: plain text is not limited by line count or length and is never truncated
+ok 27 - plain text is not limited by line count or length and is never truncated
+  ---
+  duration_ms: 1.0565
+  type: 'test'
+  ...
+# Subtest: without requirement identifiers, Markdown heading-only paragraphs become context, not requirements
+ok 28 - without requirement identifiers, Markdown heading-only paragraphs become context, not requirements
+  ---
+  duration_ms: 0.144334
+  type: 'test'
+  ...
+# Subtest: a complete SRS separates numbered requirements from supporting context without selecting lines
+ok 29 - a complete SRS separates numbered requirements from supporting context without selecting lines
+  ---
+  duration_ms: 0.168542
+  type: 'test'
+  ...
+# Subtest: Word/table identifiers and repeated acceptance examples keep one original requirement identity
+ok 30 - Word/table identifiers and repeated acceptance examples keep one original requirement identity
+  ---
+  duration_ms: 0.085917
+  type: 'test'
+  ...
+# Subtest: multiple requirements in one original paragraph retain exact offset-bound citations
+ok 31 - multiple requirements in one original paragraph retain exact offset-bound citations
+  ---
+  duration_ms: 0.410459
+  type: 'test'
+  ...
+# Subtest: numbered requirements are not silently merged or dropped at the former twelve-section limit
+ok 32 - numbered requirements are not silently merged or dropped at the former twelve-section limit
+  ---
+  duration_ms: 0.415917
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: unreviewed outputs and missing reference review cannot manufacture accuracy
+ok 33 - unreviewed outputs and missing reference review cannot manufacture accuracy
+  ---
+  duration_ms: 1.331958
+  type: 'test'
+  ...
+# Subtest: bound reviews cannot be reused for another run, source or requirement set
+ok 34 - bound reviews cannot be reused for another run, source or requirement set
+  ---
+  duration_ms: 0.562416
+  type: 'test'
+  ...
+# Subtest: coverage includes omitted reference behaviors and requires real passing nodes
+ok 35 - coverage includes omitted reference behaviors and requires real passing nodes
+  ---
+  duration_ms: 0.916083
+  type: 'test'
+  ...
+# Subtest: reviews cannot omit actual findings or invent reference matches
+ok 36 - reviews cannot omit actual findings or invent reference matches
+  ---
+  duration_ms: 0.15075
+  type: 'test'
+  ...
+# Subtest: relevant non-equivalent mutation denominator excludes reviewed irrelevant/equivalent mutants
+ok 37 - relevant non-equivalent mutation denominator excludes reviewed irrelevant/equivalent mutants
+  ---
+  duration_ms: 0.895583
+  type: 'test'
+  ...
+# Subtest: incorrect repairs count weakened valid failures rather than trusting agent diagnoses
+ok 38 - incorrect repairs count weakened valid failures rather than trusting agent diagnoses
+  ---
+  duration_ms: 0.28875
+  type: 'test'
+  ...
+# Subtest: a no-diagnosis B2 baseline has no diagnosis Macro-F1 even with reviewed failure labels
+ok 39 - a no-diagnosis B2 baseline has no diagnosis Macro-F1 even with reviewed failure labels
+  ---
+  duration_ms: 0.227666
+  type: 'test'
+  ...
+# Subtest: diagnosis review separates collection and baseline records with the same failure ID
+ok 40 - diagnosis review separates collection and baseline records with the same failure ID
+  ---
+  duration_ms: 0.337
+  type: 'test'
+  ...
+# Subtest: missing fault probes stay unavailable instead of disappearing from the denominator
+ok 41 - missing fault probes stay unavailable instead of disappearing from the denominator
+  ---
+  duration_ms: 0.361834
+  type: 'test'
+  ...
+# Subtest: real fault probe detects a preserved defect and detects its concealment after unsafe repair
+ok 42 - real fault probe detects a preserved defect and detects its concealment after unsafe repair
+  ---
+  duration_ms: 1692.257167
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: execution references restore exact trace indentation and reject invented or rewritten quotes
+ok 43 - execution references restore exact trace indentation and reject invented or rewritten quotes
+  ---
+  duration_ms: 4.764041
+  type: 'test'
+  ...
+# Subtest: official SDK sends execution IDs and restores only supplied raw trace lines
+ok 44 - official SDK sends execution IDs and restores only supplied raw trace lines
+  ---
+  duration_ms: 57.805416
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: a failing contract check can be a successful detection without claiming semantic accuracy
+ok 45 - a failing contract check can be a successful detection without claiming semantic accuracy
+  ---
+  duration_ms: 1.852917
+  type: 'test'
+  ...
+# Subtest: every missing planned run remains in denominators and prevents complete detection and token totals
+ok 46 - every missing planned run remains in denominators and prevents complete detection and token totals
+  ---
+  duration_ms: 0.3225
+  type: 'test'
+  ...
+# Subtest: changed references or source cannot earn automated fault-detection credit
+ok 47 - changed references or source cannot earn automated fault-detection credit
+  ---
+  duration_ms: 0.3615
+  type: 'test'
+  ...
+# Subtest: a saved detection flag without the matching corrected execution is not evidence
+ok 48 - a saved detection flag without the matching corrected execution is not evidence
+  ---
+  duration_ms: 0.265375
+  type: 'test'
+  ...
+# Subtest: preservation excludes cases that never initially detected a fault
+ok 49 - preservation excludes cases that never initially detected a fault
+  ---
+  duration_ms: 0.320083
+  type: 'test'
+  ...
+# Subtest: unknown request usage stays unavailable rather than being billed as zero tokens
+ok 50 - unknown request usage stays unavailable rather than being billed as zero tokens
+  ---
+  duration_ms: 0.204792
+  type: 'test'
+  ...
+# Subtest: zero paid requests cost zero tokens; missing usage remains unavailable
+ok 51 - zero paid requests cost zero tokens; missing usage remains unavailable
+  ---
+  duration_ms: 0.215875
+  type: 'test'
+  ...
+# Subtest: paired continuation charges its prefix and verifies unchanged initial executable artifacts
+ok 52 - paired continuation charges its prefix and verifies unchanged initial executable artifacts
+  ---
+  duration_ms: 0.974166
+  type: 'test'
+  ...
+# Subtest: reference disagreements require actual usable replay and never become semantic accuracy
+ok 53 - reference disagreements require actual usable replay and never become semantic accuracy
+  ---
+  duration_ms: 0.6835
+  type: 'test'
+  ...
+# Subtest: reference replay evidence survives optional assessment failure while workflow and detection stay incomplete
+ok 54 - reference replay evidence survives optional assessment failure while workflow and detection stay incomplete
+  ---
+  duration_ms: 0.503125
+  type: 'test'
+  ...
+# Subtest: a single pilot observation cannot establish repeatability
+ok 55 - a single pilot observation cannot establish repeatability
+  ---
+  duration_ms: 0.36125
+  type: 'test'
+  ...
+# Subtest: duplicate runs, mixed source and mixed requirements are rejected
+ok 56 - duplicate runs, mixed source and mixed requirements are rejected
+  ---
+  duration_ms: 0.288625
+  type: 'test'
+  ...
+# Subtest: mutation deltas require two actual complete measurements with identical scope and diffs
+ok 57 - mutation deltas require two actual complete measurements with identical scope and diffs
+  ---
+  duration_ms: 0.628792
+  type: 'test'
+  ...
+# Subtest: ablation costs include shared preparation and reject changed shared analysis
+ok 58 - ablation costs include shared preparation and reject changed shared analysis
+  ---
+  duration_ms: 0.344041
+  type: 'test'
+  ...
+# Subtest: recovery distinguishes unchanged valid failures, changed artifacts and incomplete planned observations
+ok 59 - recovery distinguishes unchanged valid failures, changed artifacts and incomplete planned observations
+  ---
+  duration_ms: 0.579209
+  type: 'test'
+  ...
+# Subtest: diagnosis comparison does not credit an admission rejection as runtime diagnosis
+ok 60 - diagnosis comparison does not credit an admission rejection as runtime diagnosis
+  ---
+  duration_ms: 5.7685
+  type: 'test'
+  ...
+# Subtest: a run failing before configuration stays in analysis without weakening completed identity checks
+ok 61 - a run failing before configuration stays in analysis without weakening completed identity checks
+  ---
+  duration_ms: 0.336542
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: external contract witnesses reject invalid references and preserve the original project
+ok 62 - external contract witnesses reject invalid references and preserve the original project
+  ---
+  duration_ms: 2169.309667
+  type: 'test'
+  ...
+# Subtest: experiment witnesses accept integer subclasses and reject boolean returns
+ok 63 - experiment witnesses accept integer subclasses and reject boolean returns
+  ---
+  duration_ms: 3198.943542
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: finding evidence joins exact artifacts and parameterized outcomes without rewriting saved records
+ok 64 - finding evidence joins exact artifacts and parameterized outcomes without rewriting saved records
+  ---
+  duration_ms: 1.388
+  type: 'test'
+  ...
+# Subtest: remeasurement never shows an initial diagnosis as a current assessment
+ok 65 - remeasurement never shows an initial diagnosis as a current assessment
+  ---
+  duration_ms: 0.133583
+  type: 'test'
+  ...
+# Subtest: saved-suite replay exposes execution without refreshing historical diagnoses
+ok 66 - saved-suite replay exposes execution without refreshing historical diagnoses
+  ---
+  duration_ms: 0.094125
+  type: 'test'
+  ...
+# Subtest: a replacement awaiting remeasurement cannot be presented as the artifact that failed
+ok 67 - a replacement awaiting remeasurement cannot be presented as the artifact that failed
+  ---
+  duration_ms: 0.199458
+  type: 'test'
+  ...
+# Subtest: duplicate or unapproved artifacts cannot supply a generated-test diagnosis
+ok 68 - duplicate or unapproved artifacts cannot supply a generated-test diagnosis
+  ---
+  duration_ms: 0.294708
+  type: 'test'
+  ...
+# Subtest: existing checks link through a unique saved node and ambiguous links stay absent
+ok 69 - existing checks link through a unique saved node and ambiguous links stay absent
+  ---
+  duration_ms: 0.08325
+  type: 'test'
+  ...
+# Subtest: duplicate assessments stay unresolved and errors retain their original evidence
+ok 70 - duplicate assessments stay unresolved and errors retain their original evidence
+  ---
+  duration_ms: 0.16975
+  type: 'test'
+  ...
+# Subtest: node runtime artifacts use the recorded runtime path
+ok 71 - node runtime artifacts use the recorded runtime path
+  ---
+  duration_ms: 0.092333
+  type: 'test'
+  ...
+# Subtest: finding next steps distinguish contract, implementation, generated test and setup problems
+ok 72 - finding next steps distinguish contract, implementation, generated test and setup problems
+  ---
+  duration_ms: 0.552083
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# 2026-11-02T03:37:56.684Z WARN [Better Auth]: Rate limiting could not determine a client IP and is falling back to a single shared per-path bucket. Ensure your runtime forwards a trusted client IP header, then set `advanced.ipAddress.ipAddressHeaders` or `advanced.ipAddress.trustedProxies` so the address can be resolved.
+# 2026-11-02T03:37:56.691Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {
+#   code: 'state_mismatch',
+#   details: { state: 'tampered' },
+#   errorURL: undefined
+# }
+# Subtest: GitHub OAuth linking protects state, encrypts credentials and isolates repository access
+ok 73 - GitHub OAuth linking protects state, encrypts credentials and isolates repository access
+  ---
+  duration_ms: 1277.79475
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: configured email requires verification unless explicitly disabled for development
+ok 74 - configured email requires verification unless explicitly disabled for development
+  ---
+  duration_ms: 0.525458
+  type: 'test'
+  ...
+# Subtest: Gmail configuration requires authenticated STARTTLS on port 587
+ok 75 - Gmail configuration requires authenticated STARTTLS on port 587
+  ---
+  duration_ms: 0.68375
+  type: 'test'
+  ...
+# Subtest: real SMTP refuses a TLS downgrade before sending credentials
+ok 76 - real SMTP refuses a TLS downgrade before sending credentials
+  ---
+  duration_ms: 12.3235
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# 2026-11-02T03:37:59.848Z WARN [Better Auth]: Rate limiting could not determine a client IP and is falling back to a single shared per-path bucket. Ensure your runtime forwards a trusted client IP header, then set `advanced.ipAddress.ipAddressHeaders` or `advanced.ipAddress.trustedProxies` so the address can be resolved.
+# 2026-11-02T03:38:00.046Z WARN [Better Auth]: Invalid password
+# Subtest: SMTP signup requires a signed confirmation before login; recovery preserves password policy and revokes sessions
+ok 77 - SMTP signup requires a signed confirmation before login; recovery preserves password policy and revokes sessions
+  ---
+  duration_ms: 2666.362916
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: model requests use official Responses API even with a stale gateway setting
+ok 78 - model requests use official Responses API even with a stale gateway setting
+  ---
+  duration_ms: 55.986167
+  type: 'test'
+  ...
+# Subtest: authentication errors do not expose actual or masked key fragments
+ok 79 - authentication errors do not expose actual or masked key fragments
+  ---
+  duration_ms: 0.331916
+  type: 'test'
+  ...
+# Subtest: per-call timeouts stop stalled transport while owner cancellation stays distinct
+ok 80 - per-call timeouts stop stalled transport while owner cancellation stays distinct
+  ---
+  duration_ms: 32.7285
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: review scheduling spreads source locations and leaves missing diffs unresolved
+ok 81 - review scheduling spreads source locations and leaves missing diffs unresolved
+  ---
+  duration_ms: 5.123292
+  type: 'test'
+  ...
+# Subtest: stage limits preserve the global cap, improvement reserve and unknown in-flight usage
+ok 82 - stage limits preserve the global cap, improvement reserve and unknown in-flight usage
+  ---
+  duration_ms: 1.704584
+  type: 'test'
+  ...
+# Subtest: experiment completion keeps failed and limited workflows distinct
+ok 83 - experiment completion keeps failed and limited workflows distinct
+  ---
+  duration_ms: 0.14225
+  type: 'test'
+  ...
+# Subtest: failed assessment can replay its exact executed suite without changing failure or verification
+ok 84 - failed assessment can replay its exact executed suite without changing failure or verification
+  ---
+  duration_ms: 1.149584
+  type: 'test'
+  ...
+# Subtest: saved positive states cannot hide unreviewed behavior pairs or incomplete mutation execution
+ok 85 - saved positive states cannot hide unreviewed behavior pairs or incomplete mutation execution
+  ---
+  duration_ms: 0.875834
+  type: 'test'
+  ...
+# Subtest: both arms bound reviews across improvement and restore completed cached reviews at the limit
+ok 86 - both arms bound reviews across improvement and restore completed cached reviews at the limit
+  ---
+  duration_ms: 3936.871334
+  type: 'test'
+  ...
+# Subtest: both arms skip terminal model review after admission repair and incomplete mutation execution
+ok 87 - both arms skip terminal model review after admission repair and incomplete mutation execution
+  ---
+  duration_ms: 3892.256958
+  type: 'test'
+  ...
+# Subtest: optional review timeout is retained without retry; provider errors still fail the run
+ok 88 - optional review timeout is retained without retry; provider errors still fail the run
+  ---
+  duration_ms: 2874.605916
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: mutation evidence bounds cache reads and diff work while preserving incomplete outcomes
+ok 89 - mutation evidence bounds cache reads and diff work while preserving incomplete outcomes
+  ---
+  duration_ms: 349.289375
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: indirect calls use generated-test execution lines and freeze mutation scope for remeasurement
+ok 90 - indirect calls use generated-test execution lines and freeze mutation scope for remeasurement
+  ---
+  duration_ms: 6173.96375
+  type: 'test'
+  ...
+# Subtest: absent or failing execution evidence never falls back to whole-file mutation
+ok 91 - absent or failing execution evidence never falls back to whole-file mutation
+  ---
+  duration_ms: 1343.575958
+  type: 'test'
+  ...
+# Subtest: frozen mutation line requests reject invalid source locations
+ok 92 - frozen mutation line requests reject invalid source locations
+  ---
+  duration_ms: 1018.970458
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: defined incomplete cases execute only with an explicit original-contract scope review
+    # Subtest: defined
+    ok 1 - defined
+      ---
+      duration_ms: 1570.546625
+      type: 'test'
+      ...
+    # Subtest: no_scope
+    ok 2 - no_scope
+      ---
+      duration_ms: 1308.286458
+      type: 'test'
+      ...
+    # Subtest: invented_scope
+    ok 3 - invented_scope
+      ---
+      duration_ms: 1335.128958
+      type: 'test'
+      ...
+    # Subtest: unsupported
+    ok 4 - unsupported
+      ---
+      duration_ms: 1375.124375
+      type: 'test'
+      ...
+    # Subtest: ambiguous
+    ok 5 - ambiguous
+      ---
+      duration_ms: 1365.365375
+      type: 'test'
+      ...
+    1..5
+ok 93 - defined incomplete cases execute only with an explicit original-contract scope review
+  ---
+  duration_ms: 6955.735292
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: text snapshot hashes remain compatible and asset byte changes invalidate saved source
+ok 94 - text snapshot hashes remain compatible and asset byte changes invalidate saved source
+  ---
+  duration_ms: 23.539625
+  type: 'test'
+  ...
+# Subtest: structured collection and execution retain more than 200 exact parameterized and class IDs
+ok 95 - structured collection and execution retain more than 200 exact parameterized and class IDs
+  ---
+  duration_ms: 1358.623875
+  type: 'test'
+  ...
+# Subtest: repair receives a bounded model view while full baseline and both executions remain saved
+ok 96 - repair receives a bounded model view while full baseline and both executions remain saved
+  ---
+  duration_ms: 2801.721209
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: small contexts retain every full file and its original line numbering
+ok 97 - small contexts retain every full file and its original line numbering
+  ---
+  duration_ms: 1.290833
+  type: 'test'
+  ...
+# Subtest: large contexts prefer mapped files and requirement terms within a recorded byte budget
+ok 98 - large contexts prefer mapped files and requirement terms within a recorded byte budget
+  ---
+  duration_ms: 0.715375
+  type: 'test'
+  ...
+# Subtest: oversized required files stay explicitly uninspected rather than silently truncated
+ok 99 - oversized required files stay explicitly uninspected rather than silently truncated
+  ---
+  duration_ms: 0.353042
+  type: 'test'
+  ...
+# Subtest: large-project retrieval does not fill unused capacity with irrelevant files
+ok 100 - large-project retrieval does not fill unused capacity with irrelevant files
+  ---
+  duration_ms: 0.13125
+  type: 'test'
+  ...
+# Subtest: passing reviewed checks cannot verify a behavior whose mapped source was omitted
+ok 101 - passing reviewed checks cannot verify a behavior whose mapped source was omitted
+  ---
+  duration_ms: 4.30775
+  type: 'test'
+  ...
+# Subtest: focused Python retrieval follows relative local imports and package initializers transitively
+ok 102 - focused Python retrieval follows relative local imports and package initializers transitively
+  ---
+  duration_ms: 8.868208
+  type: 'test'
+  ...
+# Subtest: dependency selection handles JS re-exports, cycles and emitted JS imports of TypeScript
+ok 103 - dependency selection handles JS re-exports, cycles and emitted JS imports of TypeScript
+  ---
+  duration_ms: 0.69975
+  type: 'test'
+  ...
+# Subtest: oversized dependencies stay recorded with hashes and cannot exceed the source budget
+ok 104 - oversized dependencies stay recorded with hashes and cannot exceed the source budget
+  ---
+  duration_ms: 0.34725
+  type: 'test'
+  ...
+# Subtest: retrieval follows the existing pinned pathspec package without rewriting upstream files
+ok 105 - retrieval follows the existing pinned pathspec package without rewriting upstream files
+  ---
+  duration_ms: 9.943417
+  type: 'test'
+  ...
+# Subtest: uninspected transitive dependencies block new and stale Verified states without mutating saved evidence
+ok 106 - uninspected transitive dependencies block new and stale Verified states without mutating saved evidence
+  ---
+  duration_ms: 0.927083
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: project directories isolate runtime inputs while retaining bounded dependency lockfiles
+ok 107 - project directories isolate runtime inputs while retaining bounded dependency lockfiles
+  ---
+  duration_ms: 33.543333
+  type: 'test'
+  ...
+# Subtest: real PDF and Word extraction retains locations, original bytes and account boundaries
+ok 108 - real PDF and Word extraction retains locations, original bytes and account boundaries
+  ---
+  duration_ms: 35230.203291
+  type: 'test'
+  ...
+# Subtest: preflight detects missing/versioned dependencies without importing project code and freezes its snapshot
+ok 109 - preflight detects missing/versioned dependencies without importing project code and freezes its snapshot
+  ---
+  duration_ms: 1291.479541
+  type: 'test'
+  ...
+# Subtest: run directories execute whole-project browser checks and keep failure screenshots
+ok 110 - run directories execute whole-project browser checks and keep failure screenshots
+  ---
+  duration_ms: 8886.561959
+  type: 'test'
+  ...
+# Subtest: document page budgets, conversion failures and OCR timeouts retain explicit outcomes
+ok 111 - document page budgets, conversion failures and OCR timeouts retain explicit outcomes
+  ---
+  duration_ms: 445.817042
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: saved-test re-execution preserves outcomes without model calls and refuses changed evidence
+ok 112 - saved-test re-execution preserves outcomes without model calls and refuses changed evidence
+  ---
+  duration_ms: 6752.264208
+  type: 'test'
+  ...
+# Subtest: diagnosis provider schema accepts only requested canonical IDs and original quotes
+ok 113 - diagnosis provider schema accepts only requested canonical IDs and original quotes
+  ---
+  duration_ms: 2.006875
+  type: 'test'
+  ...
+# Subtest: legacy diagnosis nodes map only through unique recorded generated failures
+ok 114 - legacy diagnosis nodes map only through unique recorded generated failures
+  ---
+  duration_ms: 0.2425
+  type: 'test'
+  ...
+# Subtest: shared mutation context preserves every behavior pair and original constraint without repeating diffs
+ok 115 - shared mutation context preserves every behavior pair and original constraint without repeating diffs
+  ---
+  duration_ms: 0.522708
+  type: 'test'
+  ...
+# Subtest: unchanged unanswered mutation pairs are attempted once per run and remain unresolved
+ok 116 - unchanged unanswered mutation pairs are attempted once per run and remain unresolved
+  ---
+  duration_ms: 0.669458
+  type: 'test'
+  ...
+# Subtest: mutation provider schema permits repeated mutant IDs only with the supplied behavior pairs
+ok 117 - mutation provider schema permits repeated mutant IDs only with the supplied behavior pairs
+  ---
+  duration_ms: 0.890292
+  type: 'test'
+  ...
+# Subtest: complete mutant-by-behavior review permits strict CI; missing, duplicate and relevant pairs still block
+ok 118 - complete mutant-by-behavior review permits strict CI; missing, duplicate and relevant pairs still block
+  ---
+  duration_ms: 4.185875
+  type: 'test'
+  ...
+# Subtest: pair review batches by pair count and never clears siblings from a duplicate decision
+ok 119 - pair review batches by pair count and never clears siblings from a duplicate decision
+  ---
+  duration_ms: 0.860333
+  type: 'test'
+  ...
+# Subtest: survivor review batches all retained mutants and reuses only exact diff-bound decisions
+ok 120 - survivor review batches all retained mutants and reuses only exact diff-bound decisions
+  ---
+  duration_ms: 1.668875
+  type: 'test'
+  ...
+# Subtest: missing, duplicate, unrelated-file and legacy mutation reviews stay unresolved
+ok 121 - missing, duplicate, unrelated-file and legacy mutation reviews stay unresolved
+  ---
+  duration_ms: 0.781083
+  type: 'test'
+  ...
+# Subtest: an irrelevant mutation decision cannot clear other behaviors in the same file
+ok 122 - an irrelevant mutation decision cannot clear other behaviors in the same file
+  ---
+  duration_ms: 0.404958
+  type: 'test'
+  ...
+# Subtest: each behavior sharing a mutated file receives its own survivor review
+ok 123 - each behavior sharing a mutated file receives its own survivor review
+  ---
+  duration_ms: 0.403208
+  type: 'test'
+  ...
+# Subtest: ambiguous mutation behavior requests clarification without inventing a test oracle
+ok 124 - ambiguous mutation behavior requests clarification without inventing a test oracle
+  ---
+  duration_ms: 0.127625
+  type: 'test'
+  ...
+# Subtest: timed-out tool commands stop their process group and retain readable partial output
+ok 125 - timed-out tool commands stop their process group and retain readable partial output
+  ---
+  duration_ms: 1630.402042
+  type: 'test'
+  ...
+# Subtest: mutation scope follows approved direct calls and runs generated tests despite project testpaths
+ok 126 - mutation scope follows approved direct calls and runs generated tests despite project testpaths
+  ---
+  duration_ms: 1685.546667
+  type: 'test'
+  ...
+# Subtest: mutation time limits retain completed and untested cached outcomes without claiming completeness
+ok 127 - mutation time limits retain completed and untested cached outcomes without claiming completeness
+  ---
+  duration_ms: 11227.28725
+  type: 'test'
+  ...
+# Subtest: mutation collection retains existing conftest helper paths while deselecting existing assertions
+ok 128 - mutation collection retains existing conftest helper paths while deselecting existing assertions
+  ---
+  duration_ms: 1667.482792
+  type: 'test'
+  ...
+# Subtest: gap text drops only a prefix that repeats its own list position
+ok 129 - gap text drops only a prefix that repeats its own list position
+  ---
+  duration_ms: 0.604375
+  type: 'test'
+  ...
+# Subtest: rejects invented source quotes and unknown test links
+ok 130 - rejects invented source quotes and unknown test links
+  ---
+  duration_ms: 0.3335
+  type: 'test'
+  ...
+# Subtest: generation schema keeps documentation evidence separate from implementation and collected test links
+ok 131 - generation schema keeps documentation evidence separate from implementation and collected test links
+  ---
+  duration_ms: 2.747834
+  type: 'test'
+  ...
+# Subtest: multiline document quotes produce compatible provider schemas while exact originals remain mandatory
+ok 132 - multiline document quotes produce compatible provider schemas while exact originals remain mandatory
+  ---
+  duration_ms: 4.07925
+  type: 'test'
+  ...
+# Subtest: quotes that strict provider enums reject travel as rule IDs
+ok 133 - quotes that strict provider enums reject travel as rule IDs
+  ---
+  duration_ms: 0.1565
+  type: 'test'
+  ...
+# Subtest: batched analyses get run-wide behavior IDs and keep their conflict links
+ok 134 - batched analyses get run-wide behavior IDs and keep their conflict links
+  ---
+  duration_ms: 0.276333
+  type: 'test'
+  ...
+# Subtest: the execution time budget grows with the number of selected tests
+ok 135 - the execution time budget grows with the number of selected tests
+  ---
+  duration_ms: 0.047667
+  type: 'test'
+  ...
+# Subtest: the model call pool bounds concurrency and keeps input order
+ok 136 - the model call pool bounds concurrency and keeps input order
+  ---
+  duration_ms: 52.481875
+  type: 'test'
+  ...
+# Subtest: pruning keeps grounded claims, follows the quoted requirement and removes the rest
+ok 137 - pruning keeps grounded claims, follows the quoted requirement and removes the rest
+  ---
+  duration_ms: 0.855208
+  type: 'test'
+  ...
+# Subtest: retains omitted requirements as explicit unresolved behaviors
+ok 138 - retains omitted requirements as explicit unresolved behaviors
+  ---
+  duration_ms: 0.108666
+  type: 'test'
+  ...
+# Subtest: generated gap indexes are bound to their own behavior rather than global numbering
+ok 139 - generated gap indexes are bound to their own behavior rather than global numbering
+  ---
+  duration_ms: 3.255209
+  type: 'test'
+  ...
+# Subtest: inconsistencies must name affected behaviors and do not taint unrelated behaviors
+ok 140 - inconsistencies must name affected behaviors and do not taint unrelated behaviors
+  ---
+  duration_ms: 0.291875
+  type: 'test'
+  ...
+# Subtest: unexecuted or unrelated-file tests cannot earn Verified
+ok 141 - unexecuted or unrelated-file tests cannot earn Verified
+  ---
+  duration_ms: 0.103875
+  type: 'test'
+  ...
+# Subtest: a generated module loading failure makes its behavior uncertain without counting as a named check
+ok 142 - a generated module loading failure makes its behavior uncertain without counting as a named check
+  ---
+  duration_ms: 0.096709
+  type: 'test'
+  ...
+# Subtest: missing gap checks, mutations and failures prevent unsupported verification
+ok 143 - missing gap checks, mutations and failures prevent unsupported verification
+  ---
+  duration_ms: 0.206542
+  type: 'test'
+  ...
+# Subtest: a collection timeout keeps a passing selected case uncertain
+ok 144 - a collection timeout keeps a passing selected case uncertain
+  ---
+  duration_ms: 0.085709
+  type: 'test'
+  ...
+# Subtest: ZIP traversal and expanded-size limits are rejected
+ok 145 - ZIP traversal and expanded-size limits are rejected
+  ---
+  duration_ms: 6.557583
+  type: 'test'
+  ...
+# Subtest: real Docker pytest keeps a genuine defect and never repairs it
+ok 146 - real Docker pytest keeps a genuine defect and never repairs it
+  ---
+  duration_ms: 1576.4165
+  type: 'test'
+  ...
+# Subtest: one bounded retry can replace a blocked unexecuted proposal without bypassing its second review
+ok 147 - one bounded retry can replace a blocked unexecuted proposal without bypassing its second review
+  ---
+  duration_ms: 4941.715583
+  type: 'test'
+  ...
+# Subtest: failed and out-of-scope improvement proposals retain their evidence without executing
+ok 148 - failed and out-of-scope improvement proposals retain their evidence without executing
+  ---
+  duration_ms: 4094.069833
+  type: 'test'
+  ...
+# Subtest: recorded diagnosis aliases enable one grounded repair but duplicates and unsupported evidence do not
+ok 149 - recorded diagnosis aliases enable one grounded repair but duplicates and unsupported evidence do not
+  ---
+  duration_ms: 7072.992041
+  type: 'test'
+  ...
+# Subtest: collection and baseline dependency errors are diagnosed even with no generated tests
+ok 150 - collection and baseline dependency errors are diagnosed even with no generated tests
+  ---
+  duration_ms: 2674.050917
+  type: 'test'
+  ...
+# Subtest: existing assertion failures retain baseline and execution diagnoses without authorizing repair
+ok 151 - existing assertion failures retain baseline and execution diagnoses without authorizing repair
+  ---
+  duration_ms: 1725.289417
+  type: 'test'
+  ...
+# Subtest: real mutmut survivors trigger one targeted improvement and re-measurement
+ok 152 - real mutmut survivors trigger one targeted improvement and re-measurement
+  ---
+  duration_ms: 11178.873375
+  type: 'test'
+  ...
+# Subtest: sandbox evidence detects generated-code tampering and preserves original mounts
+ok 153 - sandbox evidence detects generated-code tampering and preserves original mounts
+  ---
+  duration_ms: 513.500167
+  type: 'test'
+  ...
+# Subtest: one analysis correction preserves the rejected response, and evidence it cannot ground is removed
+ok 154 - one analysis correction preserves the rejected response, and evidence it cannot ground is removed
+  ---
+  duration_ms: 2656.598542
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: authenticated real-model Python API detects a seeded defect and saves private evidence
+ok 155 - authenticated real-model Python API detects a seeded defect and saves private evidence # SKIP
+  ---
+  duration_ms: 0.45125
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: an interior witness cannot certify an explicit equality example without a suite review
+ok 156 - an interior witness cannot certify an explicit equality example without a suite review
+  ---
+  duration_ms: 4.381834
+  type: 'test'
+  ...
+# Subtest: coverage requires a unique original quote, the same reviewed suite and passing execution
+ok 157 - coverage requires a unique original quote, the same reviewed suite and passing execution
+  ---
+  duration_ms: 1.746792
+  type: 'test'
+  ...
+# Subtest: one bounded addition restores a missing explicit example and exposes the real boundary defect
+ok 158 - one bounded addition restores a missing explicit example and exposes the real boundary defect
+  ---
+  duration_ms: 2062.025208
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: unchanged approved proposals retain failures without another review or execution; blocked artifacts can still be admitted
+ok 159 - unchanged approved proposals retain failures without another review or execution; blocked artifacts can still be admitted
+  ---
+  duration_ms: 3374.981625
+  type: 'test'
+  ...
+# Subtest: rejected-test recovery: supported
+ok 160 - rejected-test recovery: supported
+  ---
+  duration_ms: 3539.125958
+  type: 'test'
+  ...
+# Subtest: rejected-test recovery: rejected
+ok 161 - rejected-test recovery: rejected
+  ---
+  duration_ms: 1351.588459
+  type: 'test'
+  ...
+# Subtest: rejected-test recovery: ambiguous
+ok 162 - rejected-test recovery: ambiguous
+  ---
+  duration_ms: 1307.996167
+  type: 'test'
+  ...
+# Subtest: rejected-test recovery: duplicate
+ok 163 - rejected-test recovery: duplicate
+  ---
+  duration_ms: 1319.429291
+  type: 'test'
+  ...
+# Subtest: rejected-test recovery: unquoted
+ok 164 - rejected-test recovery: unquoted
+  ---
+  duration_ms: 1303.149959
+  type: 'test'
+  ...
+# Subtest: a supported behavior without any proposal can use the same bounded budget for a new reviewed check
+ok 165 - a supported behavior without any proposal can use the same bounded budget for a new reviewed check
+  ---
+  duration_ms: 3523.718875
+  type: 'test'
+  ...
+# Subtest: correcting a rejected proposal preserves an approved test exposing a real defect
+ok 166 - correcting a rejected proposal preserves an approved test exposing a real defect
+  ---
+  duration_ms: 2059.449917
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: stopping explanations use recorded decisions without inventing history or verification credit
+ok 167 - stopping explanations use recorded decisions without inventing history or verification credit
+  ---
+  duration_ms: 1.278292
+  type: 'test'
+  ...
+# Subtest: requirements aggregate behaviors without counting behaviors as requirements
+ok 168 - requirements aggregate behaviors without counting behaviors as requirements
+  ---
+  duration_ms: 0.74125
+  type: 'test'
+  ...
+# Subtest: traceability rows keep requirement, behavior, admission and execution counts separate
+ok 169 - traceability rows keep requirement, behavior, admission and execution counts separate
+  ---
+  duration_ms: 0.257375
+  type: 'test'
+  ...
+# Subtest: default-depth progress counts checked requirements including a retained failure without granting verification
+ok 170 - default-depth progress counts checked requirements including a retained failure without granting verification
+  ---
+  duration_ms: 1.988333
+  type: 'test'
+  ...
+# Subtest: progress excludes skipped, erroneous, absent and untrusted mapped checks
+ok 171 - progress excludes skipped, erroneous, absent and untrusted mapped checks
+  ---
+  duration_ms: 1.314959
+  type: 'test'
+  ...
+# Subtest: mutation scope distinguishes unperformed, incomplete and recorded execution
+ok 172 - mutation scope distinguishes unperformed, incomplete and recorded execution
+  ---
+  duration_ms: 0.239458
+  type: 'test'
+  ...
+# Subtest: workflow completion, passing checks and verification remain separate in user summaries
+ok 173 - workflow completion, passing checks and verification remain separate in user summaries
+  ---
+  duration_ms: 0.241416
+  type: 'test'
+  ...
+# Subtest: passing checks leave blocked proposals and unresolved requirements visible
+ok 174 - passing checks leave blocked proposals and unresolved requirements visible
+  ---
+  duration_ms: 0.168417
+  type: 'test'
+  ...
+# Subtest: retained-failure summaries exclude changed assertions, stale phases and untrusted execution
+ok 175 - retained-failure summaries exclude changed assertions, stale phases and untrusted execution
+  ---
+  duration_ms: 0.4645
+  type: 'test'
+  ...
+# Subtest: retained-failure totals reject replayed, duplicate and interrupted assessments
+ok 176 - retained-failure totals reject replayed, duplicate and interrupted assessments
+  ---
+  duration_ms: 0.66
+  type: 'test'
+  ...
+# Subtest: before/after evidence distinguishes recovered failures, new checks and unexecuted proposals
+ok 177 - before/after evidence distinguishes recovered failures, new checks and unexecuted proposals
+  ---
+  duration_ms: 0.480083
+  type: 'test'
+  ...
+# Subtest: before/after results never treat partial, skipped, duplicate or mismatched outcomes as recovery
+ok 178 - before/after results never treat partial, skipped, duplicate or mismatched outcomes as recovery
+  ---
+  duration_ms: 0.389375
+  type: 'test'
+  ...
+# Subtest: all mapped behaviors must pass before a requirement is verified; unrelated failures stay visible
+ok 179 - all mapped behaviors must pass before a requirement is verified; unrelated failures stay visible
+  ---
+  duration_ms: 0.111959
+  type: 'test'
+  ...
+# Subtest: pytest no-existing-tests exit is not a collection failure and does not hide generated evidence
+ok 180 - pytest no-existing-tests exit is not a collection failure and does not hide generated evidence
+  ---
+  duration_ms: 0.080333
+  type: 'test'
+  ...
+# Subtest: unfinished runs never expose stale verified requirement totals
+ok 181 - unfinished runs never expose stale verified requirement totals
+  ---
+  duration_ms: 0.081542
+  type: 'test'
+  ...
+# Subtest: missing execution, missing mapped nodes, changed artifacts and timeouts cannot validate a behavior
+ok 182 - missing execution, missing mapped nodes, changed artifacts and timeouts cannot validate a behavior
+  ---
+  duration_ms: 0.123083
+  type: 'test'
+  ...
+# Subtest: ambiguous requirements and failing or skipped mapped checks override stale positive states
+ok 183 - ambiguous requirements and failing or skipped mapped checks override stale positive states
+  ---
+  duration_ms: 0.069792
+  type: 'test'
+  ...
+# Subtest: no execution stays unavailable and pasted requirements need no document citations
+ok 184 - no execution stays unavailable and pasted requirements need no document citations
+  ---
+  duration_ms: 0.06325
+  type: 'test'
+  ...
+# Subtest: document provenance counts only citations matching the saved document and hash
+ok 185 - document provenance counts only citations matching the saved document and hash
+  ---
+  duration_ms: 0.085625
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: durable queue executes, survives a killed worker, reuses checkpoints and respects owner cancellation
+ok 186 - durable queue executes, survives a killed worker, reuses checkpoints and respects owner cancellation
+  ---
+  duration_ms: 35325.272833
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: runtime health distinguishes queue clients from workers and keeps task counts private
+ok 187 - runtime health distinguishes queue clients from workers and keeps task counts private
+  ---
+  duration_ms: 6215.962084
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: a retained image remains executable when its original tag is rebuilt
+ok 188 - a retained image remains executable when its original tag is rebuilt
+  ---
+  duration_ms: 1781.075875
+  type: 'test'
+  ...
+# Subtest: Python wheels install in a pinned image, connect to isolated services and start with fresh state
+ok 189 - Python wheels install in a pinned image, connect to isolated services and start with fresh state
+  ---
+  duration_ms: 15858.372375
+  type: 'test'
+  ...
+# Subtest: Node setup preserves actual versions, disables project hooks and selects exact test cases
+ok 190 - Node setup preserves actual versions, disables project hooks and selects exact test cases
+  ---
+  duration_ms: 6841.195
+  type: 'test'
+  ...
+# Subtest: the Node agent repairs a generated import once, then preserves the real boundary defect
+ok 191 - the Node agent repairs a generated import once, then preserves the real boundary defect
+  ---
+  duration_ms: 2849.258333
+  type: 'test'
+  ...
+# Subtest: real Node mutation results retain exact source patches and respond to an added boundary check
+ok 192 - real Node mutation results retain exact source patches and respond to an added boundary check
+  ---
+  duration_ms: 7822.60475
+  type: 'test'
+  ...
+# Subtest: Node import errors, unsupported suites and source edits cannot silently pass
+ok 193 - Node import errors, unsupported suites and source edits cannot silently pass
+  ---
+  duration_ms: 2362.216833
+  type: 'test'
+  ...
+# Subtest: unsupported dependency declarations fail explicitly and cancelled services leave no resources
+ok 194 - unsupported dependency declarations fail explicitly and cancelled services leave no resources
+  ---
+  duration_ms: 2146.052417
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: shared-suite analysis cannot move a test to another requirement or renumber its behavior
+ok 195 - shared-suite analysis cannot move a test to another requirement or renumber its behavior
+  ---
+  duration_ms: 3.889875
+  type: 'test'
+  ...
+# Subtest: seeded challenge candidates reject unsupported modes, duplicate IDs and invented contracts before execution
+ok 196 - seeded challenge candidates reject unsupported modes, duplicate IDs and invented contracts before execution
+  ---
+  duration_ms: 1.810083
+  type: 'test'
+  ...
+# Subtest: seeded B1 baselines execute unchanged failures and bad imports with zero model calls
+ok 197 - seeded B1 baselines execute unchanged failures and bad imports with zero model calls
+  ---
+  duration_ms: 3616.624
+  type: 'test'
+  ...
+# Subtest: a shared B1 suite is not regenerated; one additive boundary check exposes the defect
+ok 198 - a shared B1 suite is not regenerated; one additive boundary check exposes the defect
+  ---
+  duration_ms: 4202.78275
+  type: 'test'
+  ...
+# Subtest: seeded paired CLI freezes candidates, stops at its follow-up budget and exports an auditable comparison
+ok 199 - seeded paired CLI freezes candidates, stops at its follow-up budget and exports an auditable comparison
+  ---
+  duration_ms: 4153.121083
+  type: 'test'
+  ...
+# Subtest: diagnosis ablation freezes preparation and changes only failure diagnosis and its repair decision
+ok 200 - diagnosis ablation freezes preparation and changes only failure diagnosis and its repair decision
+  ---
+  duration_ms: 6551.51625
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: source references resolve exact lines and reject invented, blank and out-of-file references
+ok 201 - source references resolve exact lines and reject invented, blank and out-of-file references
+  ---
+  duration_ms: 2.984542
+  type: 'test'
+  ...
+# Subtest: provider schemas decode line references while legacy saved quotes remain supported
+ok 202 - provider schemas decode line references while legacy saved quotes remain supported
+  ---
+  duration_ms: 10.168
+  type: 'test'
+  ...
+# Subtest: mocked SDK preserves quoted parameterized test IDs through analysis and diagnosis
+ok 203 - mocked SDK preserves quoted parameterized test IDs through analysis and diagnosis
+  ---
+  duration_ms: 68.642417
+  type: 'test'
+  ...
+# Subtest: mocked official SDK requests send numbered files, restore originals and fail closed on invalid lines
+ok 204 - mocked official SDK requests send numbered files, restore originals and fail closed on invalid lines
+  ---
+  duration_ms: 23.408834
+  type: 'test'
+  ...
+# Subtest: a response keeps resolvable line references and drops blank or out-of-file ones without replacement
+ok 205 - a response keeps resolvable line references and drops blank or out-of-file ones without replacement
+  ---
+  duration_ms: 1.184916
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: model node selection stays bounded and spans files without changing the full execution catalog
+ok 206 - model node selection stays bounded and spans files without changing the full execution catalog
+  ---
+  duration_ms: 58.697833
+  type: 'test'
+  ...
+# Subtest: model measurement summaries retain actual global counts, failures and generated checks
+ok 207 - model measurement summaries retain actual global counts, failures and generated checks
+  ---
+  duration_ms: 0.711541
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: exported tests include run instructions and provenance without unapproved artifacts
+ok 208 - exported tests include run instructions and provenance without unapproved artifacts
+  ---
+  duration_ms: 5.9185
+  type: 'test'
+  ...
+# Subtest: Python export preserves mutation collection setup without running original assertions
+ok 209 - Python export preserves mutation collection setup without running original assertions
+  ---
+  duration_ms: 0.802125
+  type: 'test'
+  ...
+# Subtest: run-directory exports place browser tests and their fixtures where pytest runs
+ok 210 - run-directory exports place browser tests and their fixtures where pytest runs
+  ---
+  duration_ms: 0.920583
+  type: 'test'
+  ...
+# Subtest: exported browser fixtures match the sandbox plugin
+ok 211 - exported browser fixtures match the sandbox plugin
+  ---
+  duration_ms: 1.058875
+  type: 'test'
+  ...
+# .env not found. Continuing without it.
+# Subtest: mutation readiness tolerates only exact existing baseline skips and requires every approved test
+ok 212 - mutation readiness tolerates only exact existing baseline skips and requires every approved test
+  ---
+  duration_ms: 2.311375
+  type: 'test'
+  ...
+# Subtest: existing platform skips do not suppress real B2/B3 mutation execution
+ok 213 - existing platform skips do not suppress real B2/B3 mutation execution
+  ---
+  duration_ms: 7113.2325
+  type: 'test'
+  ...
+# Subtest: budget reserves durably before dispatch, counts failures and unknown interrupted usage
+ok 214 - budget reserves durably before dispatch, counts failures and unknown interrupted usage
+  ---
+  duration_ms: 1.564292
+  type: 'test'
+  ...
+# Subtest: without a request limit every request is dispatched and still recorded
+ok 215 - without a request limit every request is dispatched and still recorded
+  ---
+  duration_ms: 1.044792
+  type: 'test'
+  ...
+# Subtest: usage notices retain unknown usage without imposing a hidden token limit
+ok 216 - usage notices retain unknown usage without imposing a hidden token limit
+  ---
+  duration_ms: 26.848208
+  type: 'test'
+  ...
+# Subtest: model timeout retains the consumed slot, error and explicit stopping reason
+ok 217 - model timeout retains the consumed slot, error and explicit stopping reason
+  ---
+  duration_ms: 672.404459
+  type: 'test'
+  ...
+# Subtest: requesting less assurance or exhausting a budget cannot upgrade a saved positive state
+ok 218 - requesting less assurance or exhausting a budget cannot upgrade a saved positive state
+  ---
+  duration_ms: 0.950583
+  type: 'test'
+  ...
+# Subtest: execution-scoped mutation cannot verify a behavior mapped to an unassessed file
+ok 219 - execution-scoped mutation cannot verify a behavior mapped to an unassessed file
+  ---
+  duration_ms: 0.472708
+  type: 'test'
+  ...
+# Subtest: requirement checks retain admission while skipping mutation; cached responses consume no new requests
+ok 220 - requirement checks retain admission while skipping mutation; cached responses consume no new requests
+  ---
+  duration_ms: 2695.659041
+  type: 'test'
+  ...
+1..220
+# tests 229
+# suites 0
+# pass 228
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 327682.120417

@@ -1,0 +1,14 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [],
+  "behaviors": [
+    {
+      "id": "standard-example",
+      "ruleId": "R1",
+      "description": "The explicit input 500 returns built-in integer 1000.",
+      "initialGap": true
+    }
+  ]
+}

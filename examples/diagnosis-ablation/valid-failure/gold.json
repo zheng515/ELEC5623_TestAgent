@@ -1,0 +1,26 @@
+{
+  "reviewed": false,
+  "reviewer": "",
+  "issues": [],
+  "inconsistencies": [
+    {
+      "id": "exclusive-threshold",
+      "ruleId": "R1",
+      "description": "The implementation excludes exactly 10000 from the inclusive free-shipping contract."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "inclusive-threshold",
+      "ruleId": "R1",
+      "description": "Exactly 10000 returns built-in integer zero.",
+      "initialGap": true
+    }
+  ],
+  "fault": {
+    "id": "exclusive-threshold",
+    "file": "shipping.py",
+    "before": "amount_cents > 10000",
+    "after": "amount_cents >= 10000"
+  }
+}
