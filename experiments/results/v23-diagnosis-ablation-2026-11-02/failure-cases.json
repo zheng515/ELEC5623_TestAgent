@@ -1,0 +1,494 @@
+[
+  {
+    "caseId": "diagnosis-valid-failure",
+    "variant": "B1",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_exact_free_shipping_threshold"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_exact_free_shipping_threshold"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "stopReason": "B1: direct test generation and recorded execution completed without analysis, diagnosis or execution-driven refinement.",
+    "referenceExecution": "evidence/diagnosis-valid-failure-B1-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/diagnosis-valid-failure-B1-1/report.json"
+  },
+  {
+    "caseId": "diagnosis-valid-failure",
+    "variant": "B2",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_exact_free_shipping_threshold"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_exact_free_shipping_threshold"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "stopReason": "The improvement proposal repeated unchanged approved tests. No additional review or execution was performed; original test evidence remains active.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_exact_free_shipping_threshold",
+            "gapIndexes": [],
+            "code": "from shipping import fee\n\ndef test_exact_free_shipping_threshold():\n    result = fee(10000)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+            "purpose": "Check the explicitly included threshold and integer zero result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The assertion checks the explicit equality example and integer result.",
+              "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+              "definedScope": null
+            },
+            "review": "The assertion checks the explicit equality example and integer result."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The assertion checks the explicit equality example and integer result.",
+            "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+            "complete": true,
+            "reason": "The controlled candidate checks the explicit threshold example.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "B2 baseline: attempt to repair every failed generated artifact using the recorded execution feedback, without classifying the failure cause. Keep the original requirement as the oracle; the same admission checks still apply.",
+        "status": "rejected",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_exact_free_shipping_threshold",
+            "gapIndexes": [],
+            "code": "from shipping import fee\n\ndef test_exact_free_shipping_threshold():\n    result = fee(10000)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+            "purpose": "Check the explicitly included threshold and integer zero result.",
+            "approved": false,
+            "review": "Unchanged approved executable and mapping; the original artifact is retained without another review or execution."
+          }
+        ],
+        "coverageRuleIds": [],
+        "decisions": [],
+        "coverage": []
+      }
+    ],
+    "referenceExecution": "evidence/diagnosis-valid-failure-B2-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/diagnosis-valid-failure-B2-1/report.json"
+  },
+  {
+    "caseId": "diagnosis-valid-failure",
+    "variant": "B3",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_exact_free_shipping_threshold"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_exact_free_shipping_threshold"
+    ],
+    "diagnoses": [
+      {
+        "testId": "T1",
+        "category": "potential_implementation_defect",
+        "reason": "The test checks the explicitly required equality boundary and integer-zero result. The failure shows fee(10000) returned 1000 rather than 0, contrary to R1; the implementation’s conditional excludes exactly 10000.",
+        "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+        "executionQuote": "E       assert 1000 == 0",
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "    return 0 if amount_cents > 10000 else 1000",
+            "line": 6
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "quote": "    result = fee(10000)",
+            "line": 4
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "quote": "    assert result == 0",
+            "line": 7
+          }
+        ],
+        "phase": "execution"
+      }
+    ],
+    "improvements": 0,
+    "stopReason": "Failing checks were retained because no supported generated-test repair was selected. Inspect the failure diagnoses before changing assertions.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_exact_free_shipping_threshold",
+            "gapIndexes": [],
+            "code": "from shipping import fee\n\ndef test_exact_free_shipping_threshold():\n    result = fee(10000)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 0\n",
+            "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+            "purpose": "Check the explicitly included threshold and integer zero result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The assertion checks the explicit equality example and integer result.",
+              "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+              "definedScope": null
+            },
+            "review": "The assertion checks the explicit equality example and integer result."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The assertion checks the explicit equality example and integer result.",
+            "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For a built-in int amount_cents of at least 10000, shipping.fee(amount_cents) returns the integer 0 cents, including exactly 10000.",
+            "complete": true,
+            "reason": "The controlled candidate checks the explicit threshold example.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/diagnosis-valid-failure-B3-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/diagnosis-valid-failure-B3-1/report.json"
+  },
+  {
+    "caseId": "diagnosis-runtime-test-error",
+    "variant": "B1",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_standard_shipping_example"
+    ],
+    "finalFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_standard_shipping_example"
+    ],
+    "diagnoses": [],
+    "improvements": 0,
+    "stopReason": "B1: direct test generation and recorded execution completed without analysis, diagnosis or execution-driven refinement.",
+    "referenceExecution": null,
+    "blocked": [],
+    "evidence": "evidence/diagnosis-runtime-test-error-B1-1/report.json"
+  },
+  {
+    "caseId": "diagnosis-runtime-test-error",
+    "variant": "B2",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_standard_shipping_example"
+    ],
+    "finalFailedNodes": [],
+    "diagnoses": [],
+    "improvements": 1,
+    "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_standard_shipping_example",
+            "gapIndexes": [],
+            "code": "from shipping import fee\n\ndef test_standard_shipping_example(amount_cents):\n    result = fee(amount_cents)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 1000\n",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "purpose": "Check the explicit 500-cent input example and integer 1000-cent result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "Controlled diagnosis challenge: the contract assertion is supported and the runtime setup error is intentionally frozen after admission.",
+              "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+              "definedScope": null
+            },
+            "review": "Controlled diagnosis challenge: the contract assertion is supported and the runtime setup error is intentionally frozen after admission."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "Controlled diagnosis challenge: the contract assertion is supported and the runtime setup error is intentionally frozen after admission.",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "complete": true,
+            "reason": "Controlled admission freezes the candidate so runtime diagnosis can be isolated.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "B2 baseline: attempt to repair every failed generated artifact using the recorded execution feedback, without classifying the failure cause. Keep the original requirement as the oracle; the same admission checks still apply.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_standard_shipping_example",
+            "gapIndexes": [],
+            "code": "from shipping import fee\n\n\ndef test_standard_shipping_example():\n    result = fee(500)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 1000\n",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "purpose": "Check the explicit 500-cent input example and verify the result is an integer, not a boolean, equal to 1000 cents.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test checks the explicit input 500, the promised integer return (excluding bool), and the required value 1000. Its assertions are determined by the quoted contract.",
+              "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+              "definedScope": {
+                "contractExcerpt": "amount_cents equal to 500 is an explicit example.",
+                "inputs": "amount_cents = 500",
+                "reason": "For this explicitly stated input, the contract specifies the return value and integer type, so every assertion is determined without relying on any missing contract detail."
+              }
+            },
+            "review": "The test checks the explicit input 500, the promised integer return (excluding bool), and the required value 1000. Its assertions are determined by the quoted contract."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test checks the explicit input 500, the promised integer return (excluding bool), and the required value 1000. Its assertions are determined by the quoted contract.",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "definedScope": {
+              "contractExcerpt": "amount_cents equal to 500 is an explicit example.",
+              "inputs": "amount_cents = 500",
+              "reason": "For this explicitly stated input, the contract specifies the return value and integer type, so every assertion is determined without relying on any missing contract detail."
+            }
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "complete": false,
+            "reason": "T1 covers the explicit 500 example, but the combined suite does not check the stated inclusive range endpoints.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": [
+              "amount_cents from 0 to 9999"
+            ]
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/diagnosis-runtime-test-error-B2-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/diagnosis-runtime-test-error-B2-1/report.json"
+  },
+  {
+    "caseId": "diagnosis-runtime-test-error",
+    "variant": "B3",
+    "repeat": 1,
+    "status": "completed",
+    "stage": "Complete",
+    "initialFailedNodes": [
+      "reqtest_generated/test_reqtest_T1.py::test_standard_shipping_example"
+    ],
+    "finalFailedNodes": [],
+    "diagnoses": [
+      {
+        "testId": "T1",
+        "category": "generated_test_error",
+        "reason": "The generated test declares `amount_cents` as a pytest fixture parameter, but no such fixture is available, so setup fails before the required behavior is called or checked. The requirement gives 500 as an explicit example; the test should supply that input directly rather than rely on an unavailable fixture.",
+        "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+        "executionQuote": "E       fixture 'amount_cents' not found",
+        "evidence": [
+          {
+            "file": "shipping.py",
+            "quote": "def fee(amount_cents: int) -> int:",
+            "line": 1
+          },
+          {
+            "file": "reqtest_generated/test_reqtest_T1.py",
+            "quote": "def test_standard_shipping_example(amount_cents):",
+            "line": 3
+          }
+        ],
+        "phase": "execution"
+      }
+    ],
+    "improvements": 1,
+    "stopReason": "The single improvement was applied and re-measured. No further improvement is allowed in this run; inspect the latest outcomes and unresolved requirements.",
+    "proposalRounds": [
+      {
+        "phase": "generation",
+        "reason": "Audit the unchanged shared B1 test candidates; no new initial generation.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_standard_shipping_example",
+            "gapIndexes": [],
+            "code": "from shipping import fee\n\ndef test_standard_shipping_example(amount_cents):\n    result = fee(amount_cents)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 1000\n",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "purpose": "Check the explicit 500-cent input example and integer 1000-cent result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "Controlled diagnosis challenge: the contract assertion is supported and the runtime setup error is intentionally frozen after admission.",
+              "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+              "definedScope": null
+            },
+            "review": "Controlled diagnosis challenge: the contract assertion is supported and the runtime setup error is intentionally frozen after admission."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "Controlled diagnosis challenge: the contract assertion is supported and the runtime setup error is intentionally frozen after admission.",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "complete": true,
+            "reason": "Controlled admission freezes the candidate so runtime diagnosis can be isolated.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": []
+          }
+        ]
+      },
+      {
+        "phase": "improvement",
+        "reason": "Repair only diagnosed generated-test errors; preserve all other failures.",
+        "status": "applied",
+        "tests": [
+          {
+            "id": "T1",
+            "behaviorId": "B1",
+            "functionName": "test_standard_shipping_example",
+            "gapIndexes": [],
+            "code": "from shipping import fee\n\ndef test_standard_shipping_example():\n    result = fee(500)\n    assert isinstance(result, int)\n    assert not isinstance(result, bool)\n    assert result == 1000\n",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "purpose": "Check the explicit 500-cent input example and integer 1000-cent result.",
+            "approved": true,
+            "reviewDecision": {
+              "testId": "T1",
+              "supported": true,
+              "reason": "The test calls fee with the explicitly specified input 500 and checks both the promised integer result and its value. Its assertions are supported by the contract.",
+              "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+              "definedScope": null
+            },
+            "review": "The test calls fee with the explicitly specified input 500 and checks both the promised integer result and its value. Its assertions are supported by the contract."
+          }
+        ],
+        "coverageRuleIds": [
+          "R1"
+        ],
+        "decisions": [
+          {
+            "testId": "T1",
+            "supported": true,
+            "reason": "The test calls fee with the explicitly specified input 500 and checks both the promised integer result and its value. Its assertions are supported by the contract.",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "definedScope": null
+          }
+        ],
+        "coverage": [
+          {
+            "ruleId": "R1",
+            "quote": "For a built-in int amount_cents from 0 to 9999, shipping.fee(amount_cents) returns the integer 1000 cents; amount_cents equal to 500 is an explicit example.",
+            "complete": false,
+            "reason": "The explicit 500 example is covered, but the suite does not check the stated range boundaries.",
+            "testIds": [
+              "T1"
+            ],
+            "missingExamples": [
+              "from 0 to 9999"
+            ]
+          }
+        ]
+      }
+    ],
+    "referenceExecution": "evidence/diagnosis-runtime-test-error-B3-1/reference-execution.json",
+    "blocked": [],
+    "evidence": "evidence/diagnosis-runtime-test-error-B3-1/report.json"
+  }
+]

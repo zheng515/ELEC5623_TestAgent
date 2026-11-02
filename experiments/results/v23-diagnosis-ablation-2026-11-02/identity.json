@@ -1,0 +1,14 @@
+{
+  "study": "v23-matched-diagnosis-ablation",
+  "observedAtUtc": "2026-11-02T04:18:55.339Z",
+  "sourceCommit": "8489e139d3723aa85f0c94d6826996312e1b0b05",
+  "sourceState": "The exact experiment implementation is retained in agent-snapshot.json because the working tree contained the new controlled-ablation harness and fixtures.",
+  "policyVersion": "contract-witness-v22-bounded-mutation-review",
+  "model": "gpt-6-luna",
+  "agentFingerprint": "f14fc3ecbceb51f15e308780cfa0ee54b7161305d8072a3466cc6eb80403f071",
+  "manifestHash": "2f762380ac1c8869c965ddcb6d2dca7a4df14d47714660da43a9bbbb50d06099",
+  "sandboxImage": "sha256:8850e6a9e39d3fcc0377544d2c408a33003ba52436e84d1dabce8d6f7e23b550",
+  "providerRequests": 7,
+  "providerReportedTokens": 25007,
+  "unknownUsageRequests": 0
+}

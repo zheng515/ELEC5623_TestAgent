@@ -1,0 +1,19 @@
+{
+  "scope": "Retained engineering acceptance artifacts; excludes this checksum manifest. Separate from frozen v22.",
+  "files": {
+    "README.md": "4523b0069bf8cccfed5d4e719f897eb55aaafef4d37c4bad8ccf1dbdc1b22fa7",
+    "SRS.txt": "c316ce5168c80c8a88419a27138d05ff78191cf78eb801c9a7fed4c7d5016523",
+    "browser.log": "284b2c561c22759ba50450192c5ba78ce98f0af8f0005a000f72dc5f388e08bb",
+    "evaluation.png": "b39cfb50aaf6e2c069bbbb00210c84dc8609de56c089298ca3c44eab15a41e5a",
+    "exported-evidence.json": "a4746bd6d988eb414b2c20246d64921b033a4955b6c691c50a28f16f83e3bc94",
+    "finding.png": "e6476832d4922239f580d53782e154612e8612f96dc5488ec29af05a58a925f0",
+    "generated-tests.zip": "a08f200935c4e022cc30503cf313b2e2ba17876ff0f86ad075374cd8b9684969",
+    "inputs.png": "4c9f28ad952bc8b55134ac340807580d7cdbf9a96cd61f20a96e87f1f7e3e1cf",
+    "inventory.zip": "ee3735d1545a686af2cb84f21b017b5166fbd0de983c66b50b8a50dfd7ae591f",
+    "plan.json": "20f146feb4e7797a720cf7e69597a462b415a5a9d2b0de66d5eb0a77f555b1a0",
+    "regression.log": "8f5b978afd57ca82d45da95bb39940dcd002e4919aaec1febf45fdd09c1acdf6",
+    "report.json": "a4746bd6d988eb414b2c20246d64921b033a4955b6c691c50a28f16f83e3bc94",
+    "validation.json": "9f742ac02ce9aaa078250827d3e9e42c10e384b3065d49e768e440b57ad40d99",
+    "web-checks.json": "0739a7c8a6a04dd487da083dc16a730fbd65c21deac4de7997455aafea6aa5cf"
+  }
+}

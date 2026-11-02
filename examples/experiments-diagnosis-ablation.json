@@ -1,0 +1,42 @@
+{
+  "purpose": "pilot",
+  "repeat": 1,
+  "variants": [
+    "B1",
+    "B2",
+    "B3"
+  ],
+  "baselineProtocol": "custom",
+  "sharedInitialSuite": true,
+  "diagnosisAblation": true,
+  "followupRequestLimit": 6,
+  "policy": {
+    "mutationChecks": false,
+    "modelRequestLimit": 12,
+    "modelTimeoutSeconds": 300
+  },
+  "cases": [
+    {
+      "id": "diagnosis-valid-failure",
+      "project": "examples/diagnosis-ablation/valid-failure/project",
+      "requirements": "examples/diagnosis-ablation/valid-failure/requirements.txt",
+      "gold": "examples/diagnosis-ablation/valid-failure/gold.json",
+      "oracle": "examples/diagnosis-ablation/valid-failure/oracle.py",
+      "initialTests": "examples/diagnosis-ablation/valid-failure/initial-tests.json",
+      "preparationReference": "examples/diagnosis-ablation/valid-failure/preparation.json",
+      "challenge": "valid-failure",
+      "expectedDiagnosis": "potential_implementation_defect"
+    },
+    {
+      "id": "diagnosis-runtime-test-error",
+      "project": "examples/diagnosis-ablation/runtime-test-error/project",
+      "requirements": "examples/diagnosis-ablation/runtime-test-error/requirements.txt",
+      "gold": "examples/diagnosis-ablation/runtime-test-error/gold.json",
+      "oracle": "examples/diagnosis-ablation/runtime-test-error/oracle.py",
+      "initialTests": "examples/diagnosis-ablation/runtime-test-error/initial-tests.json",
+      "preparationReference": "examples/diagnosis-ablation/runtime-test-error/preparation.json",
+      "challenge": "runtime-setup-error",
+      "expectedDiagnosis": "generated_test_error"
+    }
+  ]
+}

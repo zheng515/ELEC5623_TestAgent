@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-02",
+  "timezone": "Australia/Sydney",
+  "sourceCommit": "8489e139d3723aa85f0c94d6826996312e1b0b05",
+  "sourceWorkingTreeBeforeRun": "clean",
+  "scope": "Engineering acceptance, separate from frozen v22 benchmark",
+  "regression": {
+    "command": "REQTEST_DOCKER_TEST=1 REQTEST_MAIL_TEST=1 npm test",
+    "topLevelTests": 220,
+    "totalIncludingNested": 229,
+    "passed": 228,
+    "failed": 0,
+    "skipped": 1,
+    "durationMs": 327682.120417,
+    "skippedTest": "authenticated real-model Python API detects a seeded defect and saves private evidence",
+    "skipReason": "REQTEST_PYTHON_LIVE_TEST was not enabled to avoid a second paid model workflow. The separate browser acceptance is not counted as this test passing."
+  },
+  "web": {
+    "runId": "9283bc96-3096-4b6a-8d54-d6b8e7cbdb1b",
+    "status": "completed",
+    "replay": false,
+    "model": "gpt-6-luna",
+    "requests": 5,
+    "knownTokens": 26803,
+    "unknownUsage": 0,
+    "elapsedMs": 34871,
+    "approvedGeneratedTests": 5,
+    "generatedPass": 4,
+    "generatedFail": 1,
+    "existingPass": 2,
+    "diagnoses": [
+      {
+        "testId": "T2",
+        "phase": "execution",
+        "category": "potential_implementation_defect"
+      }
+    ],
+    "appliedImprovements": 0,
+    "stopReason": "The improvement was not admitted. Earlier approved tests remain active; the single improvement budget is exhausted.",
+    "policy": {
+      "mutationChecks": false,
+      "modelRequestLimit": 12,
+      "modelTimeoutSeconds": 180
+    },
+    "exportedArtifactsByteMatched": 5,
+    "sourceChecks": [
+      {
+        "file": "inventory.py",
+        "unchanged": true,
+        "sha256": "1a18e6e1971e9bc32285b9997ef5f0df13ffd4352e8d5aa273d886a6cfdcbeb0"
+      },
+      {
+        "file": "tests/test_inventory.py",
+        "unchanged": true,
+        "sha256": "910c6f743c0ec18d6ebc4ba82043f144c404aff4cda9b93e5e29aa7f6c3d86f2"
+      },
+      {
+        "file": "README.md",
+        "unchanged": true,
+        "sha256": "84fb72a6f94574ad10e58d5d6a3e2af5f7e9c1f84fbd1a46255989919f8ee7fc"
+      }
+    ],
+    "sandboxImage": "sha256:8850e6a9e39d3fcc0377544d2c408a33003ba52436e84d1dabce8d6f7e23b550",
+    "policyVersion": "contract-witness-v22-bounded-mutation-review"
+  },
+  "limits": [
+    "One existing synthetic development fixture, not held-out evidence.",
+    "No independent semantic labels, diagnosis accuracy or repair effectiveness measurement.",
+    "Local Mailpit email confirmation, not external inbox delivery.",
+    "The frozen 48-workflow experiment and its resource totals remain unchanged."
+  ]
+}

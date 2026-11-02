@@ -175,7 +175,7 @@ export function summarizeRecovery(items: ExperimentItem[], challenges: Record<st
     return { caseId: item.entry.caseId, variant: item.entry.variant, repeat: item.entry.repeat, challenge: kind, status: measured.status,
       success, unchangedValidFailure: kind === 'valid-failure' && trusted ? sameArtifact && measured.faultAfter === true : null,
       validFailureDetectionLost: kind === 'valid-failure' && trusted && measured.faultBefore === true && measured.faultAfter !== null ? measured.faultAfter === false : null,
-      generatedArtifactRepaired: ['invented-import', 'unsupported-assertion'].includes(kind) && trusted ? repaired : null,
+      generatedArtifactRepaired: ['invented-import', 'unsupported-assertion', 'runtime-setup-error'].includes(kind) && trusted ? repaired : null,
       detectedBoundaryFault: kind === 'missing-boundary' && trusted ? measured.faultAfter : null };
   });
   const summary = [...new Set(rows.map(row => row.variant))].flatMap(variant => [...new Set(rows.map(row => row.challenge))].map(challenge => {

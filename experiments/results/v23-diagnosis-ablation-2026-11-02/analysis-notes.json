@@ -1,0 +1,48 @@
+{
+  "scope": "Automatic observations for a development pilot, not a final report or external product benchmark.",
+  "repeatability": "One run per case/configuration. Stability and run-to-run variance are not assessed.",
+  "comparison": "B2 and B3 reuse identical seeded B1 candidates plus externally frozen development analysis, admission and initial execution. Only diagnosis and its downstream repair decision differ; controlled admission establishes the challenge precondition and does not measure natural admission accuracy.",
+  "constraints": [
+    "Development cases are not held out.",
+    "Reference witnesses cover specified examples, not all possible inputs.",
+    "No independent semantic or diagnosis labels are available.",
+    "Model alias, API time drift and caching are not frozen.",
+    "More tests or higher pass counts do not establish higher requirement coverage."
+  ],
+  "observations": [
+    {
+      "variant": "B1",
+      "completed": "2/2",
+      "usableExecutionRate": 1,
+      "faultDetectionRate": 1,
+      "unresolvedFaultRuns": 0,
+      "referenceFailureRuns": 0,
+      "referenceObservedRuns": 1,
+      "medianSeconds": 1.83,
+      "totalTokens": 0
+    },
+    {
+      "variant": "B2",
+      "completed": "2/2",
+      "usableExecutionRate": 1,
+      "faultDetectionRate": 1,
+      "unresolvedFaultRuns": 0,
+      "referenceFailureRuns": 0,
+      "referenceObservedRuns": 2,
+      "medianSeconds": 8.5445,
+      "totalTokens": 10014
+    },
+    {
+      "variant": "B3",
+      "completed": "2/2",
+      "usableExecutionRate": 1,
+      "faultDetectionRate": 1,
+      "unresolvedFaultRuns": 0,
+      "referenceFailureRuns": 0,
+      "referenceObservedRuns": 2,
+      "medianSeconds": 8.116,
+      "totalTokens": 14993
+    }
+  ],
+  "nextDecision": "Inspect every blocked proposal, reference disagreement and unresolved probe before choosing a larger repeated experiment. Do not tune on a future held-out case set."
+}

@@ -16,20 +16,22 @@ async function main() {
     if (isAbsolute(child) || child.startsWith('..')) throw new Error('Evidence paths must stay within the experiment directory.');
     return JSON.parse(await readFile(path, 'utf8')) as T;
   };
-  const index = await load<{ status?: string; baselineProtocol?: string; variantDefinitions?: unknown; policyVersion?: string; model: string; sandboxImage: string; agentFingerprint: string; manifestHash: string; expectedRuns?: number; preparations?: { caseId: string; repeat: number; report: string; requests: string; elapsedMs: number }[]; inputs?: Record<string, { archiveHash: string; requirementHash: string; initialTestsHash?: string }>; runs: ExperimentEntry[] }>('index.json');
+  const index = await load<{ status?: string; baselineProtocol?: string; variantDefinitions?: unknown; policyVersion?: string; model: string; sandboxImage: string; agentFingerprint: string; manifestHash: string; expectedRuns?: number; preparations?: { caseId: string; repeat: number; report: string; requests: string; elapsedMs: number; source?: 'model' | 'controlled_development_reference' }[]; inputs?: Record<string, { archiveHash: string; requirementHash: string; initialTestsHash?: string; preparationHash?: string }>; runs: ExperimentEntry[] }>('index.json');
   const manifestText = await readFile(join(root, 'manifest.json'), 'utf8');
   if (createHash('sha256').update(manifestText).digest('hex') !== index.manifestHash) throw new Error('Frozen manifest changed.');
   const agentSnapshot = await readFile(join(root, 'agent-snapshot.json'), 'utf8');
   if (createHash('sha256').update(agentSnapshot).digest('hex') !== index.agentFingerprint) throw new Error('Frozen agent snapshot changed.');
-  const manifest = JSON.parse(manifestText) as { purpose?: string; sharedInitialSuite?: boolean; diagnosisAblation?: boolean; followupRequestLimit?: number; variants: string[]; repeat: number; cases: { id: string; oracle?: string; initialTests?: string; challenge?: string; expectedDiagnosis?: string }[] };
+  const manifest = JSON.parse(manifestText) as { purpose?: string; sharedInitialSuite?: boolean; diagnosisAblation?: boolean; followupRequestLimit?: number; variants: string[]; repeat: number; cases: { id: string; oracle?: string; initialTests?: string; preparationReference?: string; challenge?: string; expectedDiagnosis?: string }[] };
   const seeded = manifest.cases.some(item => item.initialTests);
   if (index.expectedRuns !== manifest.cases.length * manifest.variants.length * manifest.repeat) throw new Error('Planned run count does not match the frozen manifest.');
   for (const [id, hashes] of Object.entries(index.inputs || {})) {
     if (!manifest.cases.some(item => item.id === id)) throw new Error('Unexpected frozen input.');
     if (createHash('sha256').update(await readFile(join(root, `${id}.zip`))).digest('hex') !== hashes.archiveHash || createHash('sha256').update(await readFile(join(root, `${id}.requirements.txt`))).digest('hex') !== hashes.requirementHash) throw new Error('Frozen project or requirements changed.');
     if (hashes.initialTestsHash && createHash('sha256').update(await readFile(join(root, `${id}.initial-tests.json`))).digest('hex') !== hashes.initialTestsHash) throw new Error('Frozen seeded candidates changed.');
+    if (hashes.preparationHash && createHash('sha256').update(await readFile(join(root, `${id}.preparation.json`))).digest('hex') !== hashes.preparationHash) throw new Error('Frozen controlled preparation changed.');
   }
   if (manifest.cases.some(item => item.initialTests && !index.inputs?.[item.id]?.initialTestsHash)) throw new Error('Seeded cases require frozen candidate hashes.');
+  if (manifest.cases.some(item => item.preparationReference && !index.inputs?.[item.id]?.preparationHash)) throw new Error('Controlled preparations require frozen reference hashes.');
   const items: ExperimentItem[] = [];
   for (const item of manifest.cases) for (const variant of manifest.variants) for (let repeat = 1; repeat <= manifest.repeat; repeat++) {
     const entry = index.runs.find(entry => entry.caseId === item.id && entry.variant === variant && entry.repeat === repeat) || { caseId: item.id, variant, repeat, report: '', gold: `${item.id}.gold.json`, review: '' };
@@ -53,7 +55,12 @@ async function main() {
   const metrics = summarizeExperiment(items);
   const paired = manifest.sharedInitialSuite ? compareSharedInitialSuites(items) : undefined;
   const recovery = summarizeRecovery(items, Object.fromEntries(manifest.cases.filter(item => item.challenge).map(item => [item.id, item.challenge!])));
-  const pairedScope = manifest.diagnosisAblation ? 'B2 and B3 reuse identical B1 candidates plus frozen analysis, admission review and initial execution. Follow-up order alternates. Only diagnosis and its downstream repair decision differ; the same request ceiling applies to both arms.' : 'B1 candidates are held fixed; B3 adds multiple stages, so this does not isolate diagnosis alone.';
+  const controlledPreparation = manifest.cases.some(item => item.preparationReference);
+  const pairedScope = manifest.diagnosisAblation
+    ? controlledPreparation
+      ? 'B2 and B3 reuse identical seeded B1 candidates plus externally frozen development analysis, admission and initial execution. Only diagnosis and its downstream repair decision differ; controlled admission establishes the challenge precondition and does not measure natural admission accuracy.'
+      : 'B2 and B3 reuse identical B1 candidates plus frozen analysis, admission review and initial execution. Follow-up order alternates. Only diagnosis and its downstream repair decision differ; the same request ceiling applies to both arms.'
+    : 'B1 candidates are held fixed; B3 adds multiple stages, so this does not isolate diagnosis alone.';
   const csv = (rows: object[]) => {
     const columns = Object.keys(rows[0] || {});
     const cell = (value: unknown) => value === null || value === undefined ? '' : '"' + String(value).replaceAll('"', '""') + '"';
@@ -62,7 +69,7 @@ async function main() {
   await mkdir(output, { recursive: true });
   await writeFile(join(output, 'metrics.json'), JSON.stringify({
     scope: paired ? 'Paired development cases with shared B1 initial candidates and bounded B3 follow-up; not held-out product accuracy.' : 'Independent configuration runs on declared development inputs, not held-out product accuracy. See protocol.repeat for the number of observations.',
-    protocol: { ...(index.baselineProtocol ? { baselineProtocol: index.baselineProtocol, variantDefinitions: index.variantDefinitions } : {}), diagnosisAblation: manifest.diagnosisAblation || false, purpose: manifest.purpose || 'pilot', policyVersion: index.policyVersion ?? 'legacy_not_recorded', status: index.status, plannedRuns: index.expectedRuns, cases: manifest.cases.map(item => item.id), initialCandidates: manifest.cases.map(item => ({ id: item.id, source: item.initialTests ? 'seeded' : 'model' })), repeat: manifest.repeat, stabilityAssessed: manifest.repeat > 1, variants: manifest.variants, model: index.model, sandboxImage: index.sandboxImage, agentFingerprint: index.agentFingerprint, manifestHash: index.manifestHash, ...(paired ? { sharedInitialSuite: true, followupRequestLimit: manifest.followupRequestLimit, costScope: 'Follow-up rows exclude the shared prefix. Paired totals include B1 and any shared preparation once per strategy; actual billed totals must count each shared preparation once overall.' } : {}) },
+    protocol: { ...(index.baselineProtocol ? { baselineProtocol: index.baselineProtocol, variantDefinitions: index.variantDefinitions } : {}), diagnosisAblation: manifest.diagnosisAblation || false, purpose: manifest.purpose || 'pilot', policyVersion: index.policyVersion ?? 'legacy_not_recorded', status: index.status, plannedRuns: index.expectedRuns, cases: manifest.cases.map(item => item.id), initialCandidates: manifest.cases.map(item => ({ id: item.id, source: item.initialTests ? 'seeded' : 'model', preparation: item.preparationReference ? 'controlled_development_reference' : 'model' })), repeat: manifest.repeat, stabilityAssessed: manifest.repeat > 1, variants: manifest.variants, model: index.model, sandboxImage: index.sandboxImage, agentFingerprint: index.agentFingerprint, manifestHash: index.manifestHash, ...(paired ? { sharedInitialSuite: true, followupRequestLimit: manifest.followupRequestLimit, costScope: controlledPreparation ? 'B1 and controlled preparation use zero provider calls. End-to-end paid usage is the B2/B3 follow-up only; report.resources still records local policy dispatches separately from provider request logs.' : 'Follow-up rows exclude the shared prefix. Paired totals include B1 and any shared preparation once per strategy; actual billed totals must count each shared preparation once overall.' } : {}) },
     definitions: {
       correctedCopyDetectionRate: 'A generated assertion fails on original code and passes on a separately corrected copy. References are checked by fixed external contract witnesses. This is specific seeded-fault evidence, not independent semantic accuracy.',
       preservedDetectionRate: 'Final detection among runs with an initial detection; requires a usable final probe. No initial detections means unavailable.',
@@ -98,7 +105,7 @@ async function main() {
       planned: summary.plannedRuns, seededFaultDetection: summary.correctedCopyDetectionRate,
       medianSeconds: summary.medianSeconds, totalTokens: summary.totalTokens })),
   }, null, 2));
-  const evidenceFiles = new Set(['index.json', 'manifest.json', 'agent-snapshot.json', ...manifest.cases.flatMap(item => [`${item.id}.zip`, `${item.id}.gold.json`, ...(index.inputs ? [`${item.id}.requirements.txt`] : []), ...(item.initialTests ? [`${item.id}.initial-tests.json`] : []), ...(item.oracle ? [`${item.id}.oracle.py`] : [])]), ...(index.preparations || []).flatMap(prep => [prep.report, prep.requests]), ...index.runs.flatMap(entry => [entry.report, entry.review, ...(entry.reference ? [entry.reference] : []), ...(entry.referenceExecution ? [entry.referenceExecution] : []), ...(entry.requests ? [entry.requests] : [])])]);
+  const evidenceFiles = new Set(['index.json', 'manifest.json', 'agent-snapshot.json', ...manifest.cases.flatMap(item => [`${item.id}.zip`, `${item.id}.gold.json`, ...(index.inputs ? [`${item.id}.requirements.txt`] : []), ...(item.initialTests ? [`${item.id}.initial-tests.json`] : []), ...(item.preparationReference ? [`${item.id}.preparation.json`] : []), ...(item.oracle ? [`${item.id}.oracle.py`] : [])]), ...(index.preparations || []).flatMap(prep => [prep.report, prep.requests]), ...index.runs.flatMap(entry => [entry.report, entry.review, ...(entry.reference ? [entry.reference] : []), ...(entry.referenceExecution ? [entry.referenceExecution] : []), ...(entry.requests ? [entry.requests] : [])])]);
   for (const file of evidenceFiles) {
     const path = resolve(root, file), child = relative(root, path);
     if (isAbsolute(child) || child.startsWith('..')) throw new Error('Evidence export paths must remain within the experiment.');

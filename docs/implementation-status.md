@@ -13,8 +13,12 @@ project + 8 synthetic fault workflows. See the
 All real-project final generated nodes pass, and every configuration detects both
 synthetic faults. B3 provides grounded traces without additional fault detection.
 The full profiles cost more on measured real-project contracts; limited mutation
-assessment stays visible. No admitted generated runtime-error repair opportunity
-or independent semantic accuracy is established. Retired v20/v21 studies are
+assessment stays visible. The separate v23 matched diagnosis ablation now
+exercises one controlled admitted runtime setup error: B2 and B3 both repair it,
+while B3 records a grounded `generated_test_error` decision. B3 also retains the
+paired valid implementation failure without opening repair; B2 preserves it
+after an unchanged proposal is stopped. This does not establish B3 superiority,
+natural admission accuracy or independent semantic accuracy. Retired v20/v21 studies are
 excluded; reusable fixtures and deterministic regressions remain.
 
 ## Implemented

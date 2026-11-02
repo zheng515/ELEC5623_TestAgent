@@ -16,9 +16,9 @@ unknown usage: **286 requests / 16,994,380 provider-reported tokens**.
 
 B3 demonstrates an explicit decision trace, not extra defect detection. Full arms
 use more resources on the real-project contracts without a measured execution
-advantage. No admitted generated runtime-error repair opportunity appears;
-repair effectiveness remains unavailable. All cases are development inputs,
-with developer/AI-assisted contracts and witnesses, not independent human labels.
+advantage. The frozen v22 studies contain no admitted generated runtime-error
+repair opportunity. All cases are development inputs, with developer/AI-assisted
+contracts and witnesses, not independent human labels.
 No independent semantic accuracy, diagnosis F1, reviewed mutation score, external
 competitor advantage or user-study result is claimed. Repeats share projects.
 
@@ -33,13 +33,34 @@ saved-suite replay, exports, account isolation and responsive checks. Its large
 layout fixture is not a model observation or independent human usability study.
 The website Evaluation page remains scoped to individual runs; benchmarks stay offline.
 
+[Final production website acceptance](results/final-production-acceptance-2026-11-02/README.md)
+adds a fresh browser-to-real-model workflow and environment-enabled regression:
+228 passed, 1 separately gated paid-API test skipped, zero failures. Its five
+model requests / 26,803 tokens are separate from the frozen v22 studies.
+
+[Matched diagnosis ablation](results/v23-diagnosis-ablation-2026-11-02/README.md)
+adds a separate controlled pilot with identical seeded candidates, frozen
+development admission and initial execution. Six of six workflows completed.
+B3 classified and repaired one admitted pytest fixture error, retained one valid
+implementation-failure witness without opening repair, and matched the two
+developer fixture categories. B2 also repaired the fixture error and preserved
+the valid failure after an unchanged proposal triggered the no-op guard. The
+pilot used 7 paid requests / 25,007 tokens; it demonstrates diagnosis-gated
+repair eligibility, not a higher final success rate or independent accuracy.
+
 The owner requested retirement of old experiments after the new studies finished.
 [Current cleanup](cleanup-v22.json) removes whole v20/v21 studies and their old raw
 workspaces/configurations, including successes and failures; exported evidence is
 recoverable from Git revision `bd12d23`. [Earlier cleanup](cleanup.json) records
-prior v16-v19 retirement. Removed studies are excluded from current metrics.
+prior v16-v19 retirement. [v23 cleanup](cleanup-v23.json) removes the redundant
+validate-only workspace, archived paid raw workspace and offline reanalysis
+extraction after archive and byte-for-byte replay checks. [Final raw cleanup](cleanup-final.json)
+removes the remaining two v22 preflights and three archived v22 raw workspaces
+after checksum, ZIP and offline-reanalysis verification. Removed studies and raw
+workspaces are excluded from current metrics.
 Pinned inputs, active regression fixtures, application accounts/runs, credentials,
-backups and production UI acceptance are preserved. No academic report was written.
+backups and production UI acceptance are preserved. No retained evidence cited by
+the academic report was removed.
 
 See [evaluation protocol](../docs/evaluation-protocol.md),
 [baseline definitions](../docs/baseline-configurations.md) and

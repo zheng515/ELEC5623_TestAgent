@@ -1,0 +1,71 @@
+{
+  "status": "passed",
+  "started": "2026-11-02T03:39:21.140Z",
+  "ended": "2026-11-02T03:40:00.444Z",
+  "sourceCommit": "8489e139d3723aa85f0c94d6826996312e1b0b05",
+  "runId": "9283bc96-3096-4b6a-8d54-d6b8e7cbdb1b",
+  "checks": [
+    "Homepage registration submitted through real authentication; verification required.",
+    "Local Mailpit captured the verification message; browser confirmed the signed link. No external inbox used.",
+    "Homepage sign-in redirected to authenticated workspace.",
+    "Real SRS text extraction populated editable requirements; original Inventory ZIP uploaded.",
+    "One new real-model verification submitted through the website; 12-request cap, no mutation.",
+    "Real model, durable queue and Docker workflow completed; original report persisted.",
+    "Evidence JSON and generated-test ZIP downloaded through the result UI; report ID and tests match.",
+    "Current failure trace opened requirement, artifact, execution and assessment views.",
+    "Saved report remains available after page reload."
+  ],
+  "stages": [
+    "Queued — waiting for verification worker",
+    "Analyze requirements and consistency",
+    "Generate and review targeted tests",
+    "Diagnose failures before refinement",
+    "Improve tests once",
+    "Complete"
+  ],
+  "pageErrors": [],
+  "model": "gpt-6-luna",
+  "policy": {
+    "mutationChecks": false,
+    "modelRequestLimit": 12,
+    "modelTimeoutSeconds": 180
+  },
+  "requests": 5,
+  "reportStatus": "completed",
+  "diagnoses": 1,
+  "outcomes": [
+    {
+      "node": "tests/test_inventory.py::test_partial_reservation",
+      "status": "passed"
+    },
+    {
+      "node": "tests/test_inventory.py::test_equal_stock_is_rejected",
+      "status": "passed"
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T1.py::test_below_stock_returns_integer_difference",
+      "status": "passed"
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T2.py::test_equal_stock_returns_integer_zero",
+      "status": "failed"
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T3.py::test_request_above_stock_raises_value_error",
+      "status": "passed"
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T4.py::test_negative_stock_or_request_raises_value_error",
+      "status": "passed"
+    },
+    {
+      "node": "reqtest_generated/test_reqtest_T5.py::test_non_builtin_int_and_bool_arguments_raise_type_error",
+      "status": "passed"
+    }
+  ],
+  "limitations": [
+    "Single development fixture; functional acceptance only.",
+    "Local captured email, not real inbox delivery.",
+    "Separate from frozen benchmark and not independent effectiveness evaluation."
+  ]
+}
