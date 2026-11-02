@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Dialog } from "radix-ui";
 import { Settings, X } from "lucide-react";
+import Link from "next/link";
 
 export function Topbar({ currentModel, onSelectModel, isRunning, configured }: {
   currentModel: string; onSelectModel: (model: string) => void; isRunning: boolean; configured: boolean;
@@ -25,7 +26,7 @@ export function Topbar({ currentModel, onSelectModel, isRunning, configured }: {
   return (
     <header className="border-b border-border bg-card/60">
       <div className="max-w-6xl mx-auto px-4 py-5 flex flex-wrap items-center justify-between gap-5 sm:px-6">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1"><strong className="text-2xl tracking-tight">REQTEST<span className="text-primary">.</span></strong><span className="hidden text-xs text-muted-foreground sm:inline">Requirement-aware verification</span></div>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1"><Link href="/" aria-label="ReqTest home" className="text-2xl font-bold tracking-tight">REQTEST<span className="text-primary">.</span></Link><span className="hidden text-xs text-muted-foreground sm:inline">Requirement-aware verification</span></div>
         <div className="flex items-center gap-3 text-sm">
           {isRunning && <span role="status">Running</span>}
           <Dialog.Root open={open} onOpenChange={value => { if (value) setDraftModel(currentModel); setOpen(value); }}>

@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, passwordRules, passwordError } from "@/lib/password";
 import { GitHubConnection } from "./github-connection";
 
-export function Account({ children, settings = false }: { children?: (userId: string) => ReactNode; settings?: boolean }) {
+export function Account({ children, settings = false, initialRegister = false, embedded = false }: { children?: (userId: string) => ReactNode; settings?: boolean; initialRegister?: boolean; embedded?: boolean }) {
   const { data, isPending, error, refetch } = authClient.useSession();
-  const [register, setRegister] = useState(false);
+  const [register, setRegister] = useState(initialRegister);
   const [message, setMessage] = useState("");
   const [messageError, setMessageError] = useState(false);
   const [signOutError, setSignOutError] = useState("");
@@ -21,6 +21,7 @@ export function Account({ children, settings = false }: { children?: (userId: st
   const [configError, setConfigError] = useState(false);
   const forgot = help === 'reset', resend = help === 'verify';
   const emailEnabled = config?.emailEnabled === true, localMailbox = config?.localMailbox === true;
+  const AuthContainer = embedded ? 'div' : 'main';
   useEffect(() => {
     fetch('/api/account/config').then(async response => {
       if (!response.ok) throw new Error('Account configuration unavailable.');
@@ -55,7 +56,7 @@ export function Account({ children, settings = false }: { children?: (userId: st
     if (problem) { setMessageError(true); setMessage(problem); return; }
     setBusy(true);
     try {
-      const result = resend ? await authClient.sendVerificationEmail({ email: values.email }) : forgot ? await authClient.requestPasswordReset({ email: values.email, redirectTo: window.location.origin + '/reset-password' }) : register ? await authClient.signUp.email({ ...values, name: String(fields.get("name")), callbackURL: window.location.origin }) : await authClient.signIn.email(values);
+      const result = resend ? await authClient.sendVerificationEmail({ email: values.email }) : forgot ? await authClient.requestPasswordReset({ email: values.email, redirectTo: window.location.origin + '/reset-password' }) : register ? await authClient.signUp.email({ ...values, name: String(fields.get("name")), callbackURL: window.location.origin + "/workspace" }) : await authClient.signIn.email(values);
       if (result.error) { setMessageError(true); setMessage(result.error.message || "Authentication failed."); }
       else if (resend) setMessage("If this address has an unverified account, a confirmation link has been sent. Check your inbox and spam folder.");
       else if (forgot) setMessage("If this address has an account, a reset link has been sent. Check your inbox.");
@@ -65,8 +66,8 @@ export function Account({ children, settings = false }: { children?: (userId: st
   }
   if (configError) return <main className="p-8 space-y-4"><p role="alert">Account settings are unavailable. Please reload the page.</p><Button onClick={() => window.location.reload()}>Reload</Button></main>;
   if (isPending || !config) return <p className="p-8" role="status">Loading your account…</p>;
-  if (!data) return <main className="mx-auto max-w-md px-6 py-20 space-y-6">
-    <h1 className="text-4xl font-bold">REQTEST.</h1><p>{resend ? "Resend verification email" : forgot ? "Reset your password" : register ? "Create your account" : "Sign in to your workspace"}</p>
+  if (!data) return <AuthContainer className={embedded ? "space-y-5" : "mx-auto max-w-md px-6 py-20 space-y-6"}>
+    {!embedded && <Link href="/" className="inline-block text-sm text-muted-foreground hover:text-foreground">Back to home</Link>}<h1 className="text-3xl font-bold">REQTEST.</h1><p>{resend ? "Resend verification email" : forgot ? "Reset your password" : register ? "Create your account" : "Sign in to your workspace"}</p>
     <form noValidate onSubmit={submit} className="space-y-4">
       {register && <label className="block space-y-2">Name<Input name="name" autoComplete="name" required maxLength={100} /></label>}
       <label className="block space-y-2">Email<Input name="email" type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" required /></label>
@@ -85,7 +86,7 @@ export function Account({ children, settings = false }: { children?: (userId: st
     {register && config.verificationRequired && <p className="text-sm text-muted-foreground">Verify your email before signing in. A confirmation link will be sent after registration.</p>}
     {!emailEnabled && <p className="text-sm text-muted-foreground">Email delivery is disabled. Ask the administrator to configure SMTP for verification and recovery.</p>}
     {localMailbox && (help || register) && <p className="text-sm">Development emails stay on this machine. <a className="underline" href="http://127.0.0.1:8025" target="_blank" rel="noreferrer">Open local mailbox</a></p>}
-  </main>;
+  </AuthContainer>;
   return <div key={data.user.id}>
     <div className="flex justify-end gap-3 items-center border-b border-border bg-background px-4 py-1 text-xs text-muted-foreground sm:px-6 [&_button]:h-7 [&_button]:text-xs">
       <Link href="/account" className="rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-4" aria-label={"Account settings for " + data.user.name} aria-current={settings ? "page" : undefined}>{data.user.name}</Link>
@@ -99,7 +100,7 @@ export function Account({ children, settings = false }: { children?: (userId: st
       {message && <p role="status">{message}</p>}
       {localMailbox && <a className="block underline" href="http://127.0.0.1:8025" target="_blank" rel="noreferrer">Open local mailbox</a>}
     </main> : settings ? <main className="max-w-2xl mx-auto px-6 py-12 space-y-8">
-      <header className="space-y-2"><Link href="/" className="text-sm underline">Back to workspace</Link><h1 className="text-3xl font-bold">Account</h1><p className="text-muted-foreground">Manage your sign-in, email verification and GitHub connection.</p></header>
+      <header className="space-y-2"><Link href="/workspace" className="text-sm underline">Back to workspace</Link><h1 className="text-3xl font-bold">Account</h1><p className="text-muted-foreground">Manage your sign-in, email verification and GitHub connection.</p></header>
       <section className="border rounded-lg p-5 space-y-4">
         <h2 className="text-lg font-semibold">Profile</h2>
         <dl className="space-y-3"><div><dt className="text-sm text-muted-foreground">Name</dt><dd>{data.user.name}</dd></div><div><dt className="text-sm text-muted-foreground">Email</dt><dd>{data.user.email}</dd></div><div><dt className="text-sm text-muted-foreground">Email status</dt><dd>{data.user.emailVerified ? "Verified" : "Not verified"}</dd></div></dl>

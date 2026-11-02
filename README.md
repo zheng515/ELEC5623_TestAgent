@@ -29,7 +29,11 @@ npm run sandbox:build
 npm run dev:all
 ```
 
-Open http://127.0.0.1:3001, register/sign in, and check model access in Settings.
+Open http://127.0.0.1:3001 for the public introduction and evidence example.
+Use Sign in or Create account on the homepage; authentication opens in a dialog
+and successful sign-in continues to http://127.0.0.1:3001/workspace.
+Check model access in Settings. Signed-in visitors can open the workspace or
+account settings from the homepage navigation.
 For real email verification and recovery, configure SMTP. Configured mail requires
 verification by default; signed links expire after one hour and can be resent from
 sign-in. Local development supports Mailpit. See
